@@ -15,7 +15,7 @@ class ProjectManager {
 
     init() {
         this.loadRecentProjects();
-        this.loadSavedProjects();
+        // Non caricare progetti salvati all'avvio
         this.setupEventListeners();
 
         // Delay initial UI update to ensure DOM is ready
@@ -32,10 +32,6 @@ class ProjectManager {
 
         document.getElementById('load-project-btn')?.addEventListener('click', () => {
             this.showLoadProjectModal();
-        });
-
-        document.getElementById('import-project-btn')?.addEventListener('click', () => {
-            this.importProject();
         });
 
         document.getElementById('save-current-project-btn')?.addEventListener('click', () => {
@@ -238,10 +234,10 @@ class ProjectManager {
             }
 
             // Load the project
-            await this.loadProjectData(this.selectedFile.data);
+            await this.loadProjectData(this.selectedFile.data, 'loaded-from-file');
 
             // Add to recent projects
-            this.addToRecentProjects(this.selectedFile.data.project);
+            this.addToRecentProjects(this.selectedFile.data.project, 'loaded-from-file');
 
             // Close modal
             this.closeLoadModal();
@@ -260,10 +256,15 @@ class ProjectManager {
     /**
      * Load project data into application
      */
-    async loadProjectData(projectData) {
+    async loadProjectData(projectData, filePath = null) {
         // Set project data
         this.app.currentProject = projectData;
         this.app.isDirty = false;
+
+        // Mark as loaded project (not just created)
+        if (filePath) {
+            this.app.dataManager.currentProjectPath = filePath;
+        }
 
         // Update dropdowns
         await this.app.populateDropdowns();
@@ -275,53 +276,6 @@ class ProjectManager {
         // Refresh all sections
         if (this.app.featureManager) {
             this.app.featureManager.refreshTable();
-        }
-    }
-
-    /**
-     * Import project (same as load but from menu)
-     */
-    async importProject() {
-        try {
-            // Use file picker
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.style.display = 'none';
-
-            input.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    try {
-                        const content = await this.readFileContent(file);
-                        const projectData = JSON.parse(content);
-                        this.validateProjectFile(projectData);
-
-                        // Check if current project needs saving
-                        if (this.app.isDirty) {
-                            const save = await this.confirmSave();
-                            if (save === null) return;
-                            if (save) await this.app.saveProject();
-                        }
-
-                        await this.loadProjectData(projectData);
-                        this.addToRecentProjects(projectData.project);
-                        this.app.navigationManager.navigateTo('features');
-
-                        NotificationManager.success(`Project "${projectData.project.name}" imported successfully`);
-                    } catch (error) {
-                        NotificationManager.error(`Import failed: ${error.message}`);
-                    }
-                }
-            });
-
-            document.body.appendChild(input);
-            input.click();
-            document.body.removeChild(input);
-
-        } catch (error) {
-            console.error('Import project failed:', error);
-            NotificationManager.error('Failed to import project');
         }
     }
 
@@ -475,12 +429,88 @@ class ProjectManager {
         try {
             this.loadRecentProjects();
             await this.loadSavedProjects();
-            this.updateUI();
-            NotificationManager.info('Projects list refreshed');
+
+            // Aggiorna UI con progetti trovati
+            this.updateRecentProjectsUI();
+            this.renderSavedProjects();
+
+            NotificationManager.info(`Found ${this.savedProjects.length} saved projects`);
         } catch (error) {
             console.error('Failed to refresh projects:', error);
             NotificationManager.error('Failed to refresh projects list');
         }
+    }
+
+    /**
+     * Render saved projects after loading
+     */
+    renderSavedProjects() {
+        const container = document.getElementById('saved-projects-list');
+        if (!container) return;
+
+        if (this.savedProjects.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-save"></i>
+                    <p>No saved projects found</p>
+                    <small>Save some projects first or check your projects folder configuration</small>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = this.savedProjects.map(item => `
+            <div class="project-item" data-file-path="${item.filePath}">
+                <div class="project-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="project-info">
+                    <h4>${Helpers.escapeHtml(item.project.name)}</h4>
+                    <div class="project-meta">
+                        <span><i class="fas fa-calendar"></i> Created: ${Helpers.formatDate(item.project.created)}</span>
+                        <span><i class="fas fa-edit"></i> Modified: ${Helpers.formatDate(item.project.lastModified)}</span>
+                        <span><i class="fas fa-code-branch"></i> v${item.project.version}</span>
+                        <span><i class="fas fa-hdd"></i> ${Helpers.formatBytes(item.fileSize)}</span>
+                    </div>
+                    <div class="project-path">
+                        <small><i class="fas fa-folder"></i> ${item.fileName}</small>
+                    </div>
+                </div>
+                <div class="project-actions">
+                    <button class="btn btn-small btn-primary load-saved-project" data-file-path="${item.filePath}">
+                        <i class="fas fa-folder-open"></i> Load
+                    </button>
+                    <button class="btn btn-small btn-secondary export-saved-project" data-file-path="${item.filePath}">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button class="btn btn-small btn-danger delete-saved-project" data-file-path="${item.filePath}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        // Add event listeners
+        container.querySelectorAll('.load-saved-project').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filePath = e.target.closest('[data-file-path]').dataset.filePath;
+                this.loadSavedProject(filePath);
+            });
+        });
+
+        container.querySelectorAll('.export-saved-project').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filePath = e.target.closest('[data-file-path]').dataset.filePath;
+                this.exportSavedProject(filePath);
+            });
+        });
+
+        container.querySelectorAll('.delete-saved-project').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filePath = e.target.closest('[data-file-path]').dataset.filePath;
+                this.deleteSavedProject(filePath);
+            });
+        });
     }
 
     /**
@@ -497,27 +527,28 @@ class ProjectManager {
      */
     updateCurrentProjectUI() {
         const project = this.app.currentProject?.project;
-        const hasProject = project && project.name !== 'New Project';
+        // Solo progetti realmente caricati, non il "New Project" di default
+        const hasLoadedProject = project && project.name !== 'New Project' && this.app.dataManager.currentProjectPath;
 
         // Update project info
         const nameEl = document.getElementById('current-project-name');
         if (nameEl) {
-            nameEl.textContent = project?.name || 'No Project Loaded';
+            nameEl.textContent = hasLoadedProject ? project.name : 'No Project Loaded';
         }
 
         const createdEl = document.getElementById('current-project-created');
         if (createdEl) {
-            createdEl.textContent = project?.created ? Helpers.formatDate(project.created) : '-';
+            createdEl.textContent = hasLoadedProject ? Helpers.formatDate(project.created) : '-';
         }
 
         const modifiedEl = document.getElementById('current-project-modified');
         if (modifiedEl) {
-            modifiedEl.textContent = project?.lastModified ? Helpers.formatDate(project.lastModified) : '-';
+            modifiedEl.textContent = hasLoadedProject ? Helpers.formatDate(project.lastModified) : '-';
         }
 
         const versionEl = document.getElementById('current-project-version');
         if (versionEl) {
-            versionEl.textContent = project?.version || '-';
+            versionEl.textContent = hasLoadedProject ? project.version : '-';
         }
 
         // Update action buttons
@@ -525,16 +556,18 @@ class ProjectManager {
         const closeBtn = document.getElementById('close-current-project-btn');
 
         if (saveBtn) {
-            saveBtn.disabled = !hasProject || !this.app.isDirty;
+            saveBtn.disabled = !hasLoadedProject || !this.app.isDirty;
         }
 
         if (closeBtn) {
-            closeBtn.disabled = !hasProject;
+            closeBtn.disabled = !hasLoadedProject;
         }
 
-        // Update project status in title bar
-        this.app.updateProjectInfo();
-        this.app.updateProjectStatus();
+        // Update project status in title bar only if we have a loaded project
+        if (hasLoadedProject) {
+            this.app.updateProjectInfo();
+            this.app.updateProjectStatus();
+        }
     }
 
     /**
@@ -601,69 +634,14 @@ class ProjectManager {
         const container = document.getElementById('saved-projects-list');
         if (!container) return;
 
-        if (this.savedProjects.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-save"></i>
-                    <p>No saved projects</p>
-                    <small>Projects are saved in your configured projects folder</small>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = this.savedProjects.map(item => `
-            <div class="project-item" data-file-path="${item.filePath}">
-                <div class="project-icon">
-                    <i class="fas fa-file-alt"></i>
-                </div>
-                <div class="project-info">
-                    <h4>${Helpers.escapeHtml(item.project.name)}</h4>
-                    <div class="project-meta">
-                        <span><i class="fas fa-calendar"></i> Created: ${Helpers.formatDate(item.project.created)}</span>
-                        <span><i class="fas fa-edit"></i> Modified: ${Helpers.formatDate(item.project.lastModified)}</span>
-                        <span><i class="fas fa-code-branch"></i> v${item.project.version}</span>
-                        <span><i class="fas fa-hdd"></i> ${Helpers.formatBytes(item.fileSize)}</span>
-                    </div>
-                    <div class="project-path">
-                        <small><i class="fas fa-folder"></i> ${item.fileName}</small>
-                    </div>
-                </div>
-                <div class="project-actions">
-                    <button class="btn btn-small btn-primary load-saved-project" data-file-path="${item.filePath}">
-                        <i class="fas fa-folder-open"></i> Load
-                    </button>
-                    <button class="btn btn-small btn-secondary export-saved-project" data-file-path="${item.filePath}">
-                        <i class="fas fa-download"></i> Export
-                    </button>
-                    <button class="btn btn-small btn-danger delete-saved-project" data-file-path="${item.filePath}">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+        // Mostra sempre empty state inizialmente
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-folder-open"></i>
+                <p>Click "Refresh" to scan for saved projects</p>
+                <small>Projects will be scanned from your configured projects folder</small>
             </div>
-        `).join('');
-
-        // Add event listeners
-        container.querySelectorAll('.load-saved-project').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const filePath = e.target.closest('[data-file-path]').dataset.filePath;
-                this.loadSavedProject(filePath);
-            });
-        });
-
-        container.querySelectorAll('.export-saved-project').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const filePath = e.target.closest('[data-file-path]').dataset.filePath;
-                this.exportSavedProject(filePath);
-            });
-        });
-
-        container.querySelectorAll('.delete-saved-project').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const filePath = e.target.closest('[data-file-path]').dataset.filePath;
-                this.deleteSavedProject(filePath);
-            });
-        });
+        `;
     }
 
     /**
