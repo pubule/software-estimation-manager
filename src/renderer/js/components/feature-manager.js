@@ -22,15 +22,47 @@ class FeatureManager {
             });
         }
 
-        // Modal close events
-        document.querySelector('.modal-close')?.addEventListener('click', () => {
-            this.closeFeatureModal();
-        });
-
-        // Click outside modal to close
-        document.getElementById('feature-modal')?.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
+        // CORREZIONE: Modal close events migliorati
+        const modalCloseBtn = document.querySelector('#feature-modal .modal-close');
+        if (modalCloseBtn) {
+            modalCloseBtn.addEventListener('click', () => {
                 this.closeFeatureModal();
+            });
+        }
+
+        // CORREZIONE: Cancel button
+        const cancelBtn = document.getElementById('cancel-feature-btn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                this.closeFeatureModal();
+            });
+        }
+
+        // CORREZIONE: Save button
+        const saveBtn = document.getElementById('save-feature-btn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                this.saveFeature();
+            });
+        }
+
+        // CORREZIONE: Click outside modal to close
+        const modal = document.getElementById('feature-modal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal')) {
+                    this.closeFeatureModal();
+                }
+            });
+        }
+
+        // CORREZIONE: Escape key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('feature-modal');
+                if (modal && modal.classList.contains('active')) {
+                    this.closeFeatureModal();
+                }
             }
         });
     }
@@ -99,12 +131,18 @@ class FeatureManager {
      * Close the feature modal
      */
     closeFeatureModal() {
+        console.log('Closing feature modal...');
+
         const modal = document.getElementById('feature-modal');
         if (modal) {
             modal.classList.remove('active');
+            console.log('Modal closed');
         }
 
+        // Reset editing state
         this.editingFeature = null;
+
+        // Reset form
         this.resetFeatureForm();
     }
 
@@ -119,6 +157,8 @@ class FeatureManager {
 
         // Clear any validation errors
         this.clearFormErrors();
+
+        console.log('Feature form reset');
     }
 
     /**
@@ -556,17 +596,17 @@ class FeatureManager {
         const supplierName = this.getSupplierName(currentProject, feature.supplier);
 
         row.innerHTML = `
-            <td class="feature-id">${Helpers.escapeHtml(feature.id)}</td>
+            <td class="feature-id">${this.escapeHtml(feature.id)}</td>
             <td class="feature-description">
-                <div class="description-main">${Helpers.escapeHtml(feature.description)}</div>
-                ${feature.notes ? `<div class="description-notes">${Helpers.escapeHtml(feature.notes)}</div>` : ''}
+                <div class="description-main">${this.escapeHtml(feature.description)}</div>
+                ${feature.notes ? `<div class="description-notes">${this.escapeHtml(feature.notes)}</div>` : ''}
             </td>
             <td class="feature-category">
-                <span class="badge">${Helpers.escapeHtml(categoryName)}</span>
+                <span class="badge">${this.escapeHtml(categoryName)}</span>
             </td>
-            <td class="feature-supplier">${Helpers.escapeHtml(supplierName)}</td>
+            <td class="feature-supplier">${this.escapeHtml(supplierName)}</td>
             <td class="feature-man-days text-right">${feature.manDays}</td>
-            <td class="feature-notes">${Helpers.escapeHtml(feature.notes || '')}</td>
+            <td class="feature-notes">${this.escapeHtml(feature.notes || '')}</td>
             <td class="feature-actions">
                 <div class="action-buttons">
                     <button class="action-btn edit" data-action="edit" data-feature-id="${feature.id}" title="Edit Feature">
@@ -682,6 +722,20 @@ class FeatureManager {
         }
 
         return field;
+    }
+
+    /**
+     * Escape HTML characters (fallback implementation)
+     * @param {string} text - Text to escape
+     */
+    escapeHtml(text) {
+        if (typeof Helpers !== 'undefined' && Helpers.escapeHtml) {
+            return Helpers.escapeHtml(text);
+        }
+        // Fallback implementation
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 
