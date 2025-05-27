@@ -15,7 +15,12 @@ class ProjectManager {
 
     init() {
         this.loadRecentProjects();
-        // Non caricare progetti salvati all'avvio
+
+        // AUTO-LOAD: Carica automaticamente i progetti salvati all'avvio
+        this.loadSavedProjects().then(() => {
+            console.log(`Loaded ${this.savedProjects.length} saved projects at startup`);
+        });
+
         this.setupEventListeners();
 
         // Delay initial UI update to ensure DOM is ready
@@ -229,8 +234,28 @@ class ProjectManager {
             this.app.currentProject = newProject;
             this.app.isDirty = true;
 
-            // Mark as a real project (not just the default "New Project")
-            this.app.dataManager.currentProjectPath = 'new-project';
+            // AUTO-SAVE: Salva automaticamente il nuovo progetto
+            console.log('Auto-saving new project...');
+            const saveResult = await this.app.dataManager.saveProject(newProject);
+
+            if (saveResult.success) {
+                this.app.isDirty = false;
+                this.app.dataManager.currentProjectPath = saveResult.filePath;
+
+                // Add to recent projects with the saved file path
+                this.addToRecentProjects(newProject.project, saveResult.filePath);
+
+                // Refresh saved projects list
+                await this.loadSavedProjects();
+                this.renderSavedProjects();
+
+                console.log('New project auto-saved to:', saveResult.filePath);
+                NotificationManager.success(`New project created and saved: ${saveResult.fileName}`);
+            } else {
+                console.warn('Auto-save failed, project created but not saved');
+                this.app.dataManager.currentProjectPath = 'new-project';
+                NotificationManager.warning('Project created but auto-save failed');
+            }
 
             // Update dropdowns
             await this.app.populateDropdowns();
@@ -241,8 +266,6 @@ class ProjectManager {
 
             // Navigate to features section
             this.app.navigationManager.navigateTo('features');
-
-            NotificationManager.success('New project created successfully');
 
         } catch (error) {
             console.error('Failed to create new project:', error);
@@ -630,11 +653,18 @@ class ProjectManager {
 
             if (result.success) {
                 this.app.isDirty = false;
+
+                // Update current project path if it's a new save
+                this.app.dataManager.currentProjectPath = result.filePath;
+
+                // Add to recent projects
+                this.addToRecentProjects(this.app.currentProject.project, result.filePath);
+
                 this.updateCurrentProjectUI();
 
-                // Refresh saved projects list
+                // AUTO-REFRESH: Refresh saved projects list ogni volta che si salva
                 await this.loadSavedProjects();
-                this.updateSavedProjectsUI();
+                this.renderSavedProjects();
 
                 NotificationManager.success(`Project saved: ${result.fileName || 'Success'}`);
             }
@@ -680,6 +710,7 @@ class ProjectManager {
         const recentItem = {
             id: projectInfo.id,
             name: projectInfo.name,
+            code: projectInfo.code, // Include code for duplicate checking
             version: projectInfo.version,
             lastOpened: new Date().toISOString(),
             created: projectInfo.created,
@@ -687,8 +718,10 @@ class ProjectManager {
             filePath: filePath // Store file path for file-based projects
         };
 
-        // Remove if already exists
-        this.recentProjects = this.recentProjects.filter(p => p.id !== projectInfo.id);
+        // Remove if already exists (by ID or file path)
+        this.recentProjects = this.recentProjects.filter(p =>
+            p.id !== projectInfo.id && p.filePath !== filePath
+        );
 
         // Add to beginning
         this.recentProjects.unshift(recentItem);
@@ -703,6 +736,8 @@ class ProjectManager {
 
         // Update UI
         this.updateRecentProjectsUI();
+
+        console.log('Added to recent projects:', recentItem.name, 'FilePath:', filePath);
     }
 
     /**
@@ -768,7 +803,7 @@ class ProjectManager {
             this.loadRecentProjects();
             await this.loadSavedProjects();
 
-            // Aggiorna UI con progetti trovati
+            // AUTO-UPDATE: Aggiorna entrambe le UI
             this.updateRecentProjectsUI();
             this.renderSavedProjects();
 
@@ -972,12 +1007,32 @@ class ProjectManager {
         const container = document.getElementById('saved-projects-list');
         if (!container) return;
 
-        // Mostra sempre empty state inizialmente
+        // AUTO-LOAD: Carica automaticamente i progetti salvati se non ci sono
+        if (this.savedProjects.length === 0) {
+            this.loadSavedProjects().then(() => {
+                if (this.savedProjects.length > 0) {
+                    this.renderSavedProjects();
+                } else {
+                    this.showEmptySavedProjectsState();
+                }
+            });
+        } else {
+            this.renderSavedProjects();
+        }
+    }
+
+    /**
+     * Show empty state for saved projects
+     */
+    showEmptySavedProjectsState() {
+        const container = document.getElementById('saved-projects-list');
+        if (!container) return;
+
         container.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-folder-open"></i>
-                <p>Click "Refresh" to scan for saved projects</p>
-                <small>Projects will be scanned from your configured projects folder</small>
+                <p>No saved projects found</p>
+                <small>Create a new project to get started - it will be automatically saved</small>
             </div>
         `;
     }
@@ -1168,9 +1223,10 @@ class ProjectManager {
             this.recentProjects = this.recentProjects.filter(p => p.filePath !== filePath);
             this.saveRecentProjects();
 
-            // Refresh lists
+            // AUTO-REFRESH: Refresh lists immediately after deletion
             await this.loadSavedProjects();
-            this.updateUI();
+            this.updateRecentProjectsUI();
+            this.renderSavedProjects();
 
             NotificationManager.success(`Project "${project.project.name}" deleted`);
 
