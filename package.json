@@ -1,0 +1,62 @@
+{
+  "name": "software-estimation-manager",
+  "version": "1.0.0",
+  "description": "Desktop application for managing software development cost estimates",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "concurrently \"npm run start\" \"npm run watch\"",
+    "watch": "nodemon --watch src --ext js,html,css --exec \"electron .\"",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "dist": "npm run build",
+    "pack": "electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "keywords": [
+    "electron",
+    "estimation",
+    "project-management",
+    "cost-calculation"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^7.6.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "nodemon": "^3.0.2"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0",
+    "uuid": "^9.0.1",
+    "xlsx": "^0.18.5",
+    "papaparse": "^5.4.1"
+  },
+  "build": {
+    "appId": "com.yourcompany.software-estimation-manager",
+    "productName": "Software Estimation Manager",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png"
+    }
+  }
+}
