@@ -7,31 +7,171 @@
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/themes/vscode-dark.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom Title Bar Styles */
+        .custom-title-bar {
+            height: 40px;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--spacing-md);
+            -webkit-app-region: drag;
+            user-select: none;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .title-bar-left {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            -webkit-app-region: no-drag;
+        }
+
+        .app-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .app-icon {
+            color: var(--text-accent);
+            font-size: var(--font-size-lg);
+        }
+
+        .app-title {
+            font-size: var(--font-size-base);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .title-bar-center {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .project-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        #project-name {
+            font-size: var(--font-size-sm);
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        #project-status {
+            font-size: var(--font-size-base);
+            line-height: 1;
+        }
+
+        #project-status.saved {
+            color: var(--success);
+        }
+
+        #project-status.unsaved {
+            color: var(--warning);
+        }
+
+        .title-bar-right {
+            display: flex;
+            -webkit-app-region: no-drag;
+        }
+
+        .window-controls {
+            display: flex;
+        }
+
+        .window-control-btn {
+            width: 46px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color var(--transition-fast);
+            font-size: var(--font-size-sm);
+        }
+
+        .window-control-btn:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .window-control-btn.close:hover {
+            background-color: var(--error);
+            color: white;
+        }
+
+        /* Adjust main container to account for custom title bar */
+        .main-container {
+            height: calc(100vh - 40px - 22px); /* Custom title bar + status bar */
+        }
+
+        /* Make sure the app takes full height */
+        #app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Status bar stays the same */
+        .status-bar {
+            height: 22px;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 var(--spacing-md);
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+    </style>
 </head>
 <body>
 <div id="app">
-    <!-- Title Bar -->
-    <div class="title-bar">
+    <!-- Custom Title Bar -->
+    <div class="custom-title-bar">
         <div class="title-bar-left">
-            <div class="app-icon">
-                <i class="fas fa-calculator"></i>
+            <div class="app-info">
+                <div class="app-icon">
+                    <i class="fas fa-calculator"></i>
+                </div>
+                <span class="app-title">Software Estimation Manager</span>
             </div>
-            <span class="app-title">Software Estimation Manager</span>
         </div>
+
         <div class="title-bar-center">
-            <span id="project-name">New Project</span>
-            <span id="project-status" class="unsaved">●</span>
+            <div class="project-info">
+                <span id="project-name">New Project</span>
+                <span id="project-status" class="unsaved">●</span>
+            </div>
         </div>
+
         <div class="title-bar-right">
-            <button class="title-button minimize" onclick="window.electronAPI?.minimize()">
-                <i class="fas fa-minus"></i>
-            </button>
-            <button class="title-button maximize" onclick="window.electronAPI?.maximize()">
-                <i class="fas fa-square"></i>
-            </button>
-            <button class="title-button close" onclick="window.electronAPI?.close()">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="window-controls">
+                <button class="window-control-btn minimize" onclick="window.electronAPI?.minimize()" title="Minimize">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button class="window-control-btn maximize" onclick="window.electronAPI?.maximize()" title="Maximize">
+                    <i class="far fa-square"></i>
+                </button>
+                <button class="window-control-btn close" onclick="window.electronAPI?.close()" title="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -253,7 +393,7 @@
                 </div>
             </div>
 
-            <!-- Project Phases Page -->
+            <!-- Other pages remain the same... -->
             <div id="phases-page" class="page">
                 <div class="page-header">
                     <h2>Project Phases Configuration</h2>
@@ -263,7 +403,6 @@
                 </div>
             </div>
 
-            <!-- Calculations Page -->
             <div id="calculations-page" class="page">
                 <div class="page-header">
                     <h2>Calculations Dashboard</h2>
@@ -273,7 +412,6 @@
                 </div>
             </div>
 
-            <!-- Configuration Page -->
             <div id="configuration-page" class="page">
                 <div class="page-header">
                     <h2>Configuration</h2>
@@ -283,7 +421,6 @@
                 </div>
             </div>
 
-            <!-- Templates Page -->
             <div id="templates-page" class="page">
                 <div class="page-header">
                     <h2>Templates Management</h2>
@@ -293,7 +430,6 @@
                 </div>
             </div>
 
-            <!-- Version History Page -->
             <div id="history-page" class="page">
                 <div class="page-header">
                     <h2>Version History</h2>
@@ -313,6 +449,47 @@
         <div class="status-right">
             <span id="auto-save-status">Auto-save: ON</span>
             <span id="last-saved">Last saved: Never</span>
+        </div>
+    </div>
+</div>
+
+<!-- All modals remain the same... -->
+
+<!-- Modal for New Project -->
+<div id="new-project-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Create New Project</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="new-project-form">
+                <div class="form-group">
+                    <label for="project-code">Project Code:</label>
+                    <input type="text" id="project-code" name="code" required
+                           placeholder="e.g. PRJ-2025-001"
+                           pattern="[A-Z0-9-_]+"
+                           title="Only uppercase letters, numbers, hyphens and underscores allowed">
+                    <small class="form-help">Unique identifier for the project (uppercase, numbers, - and _ only)</small>
+                </div>
+                <div class="form-group">
+                    <label for="project-name">Project Name:</label>
+                    <input type="text" id="project-name" name="name" required
+                           placeholder="e.g. Customer Portal Development"
+                           maxlength="100">
+                    <small class="form-help">Descriptive name for the project</small>
+                </div>
+                <div class="form-group">
+                    <label for="project-description">Description (Optional):</label>
+                    <textarea id="project-description" name="description"
+                              placeholder="Brief description of the project..."
+                              rows="3" maxlength="500"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="cancel-new-project-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="create-project-btn">Create Project</button>
         </div>
     </div>
 </div>

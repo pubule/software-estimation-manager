@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const os = require('os');
@@ -21,11 +21,19 @@ function createWindow() {
             enableRemoteModule: false,
             preload: path.join(__dirname, 'preload.js')
         },
-        titleBarStyle: 'default', // Change to default for better compatibility
+        // RIMOZIONE TITLE BAR: Rimuove completamente la title bar di sistema
+        titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+        frame: false,           // Rimuove il frame della finestra
         backgroundColor: '#1e1e1e',
         show: false,
-        icon: path.join(__dirname, '../assets/icon.png') // Add icon if available
+        icon: path.join(__dirname, '../assets/icon.png'),
+        // Menu già rimosso
+        autoHideMenuBar: true,
+        menuBarVisible: false
     });
+
+    // Menu già disabilitato
+    mainWindow.setMenuBarVisibility(false);
 
     // Load the main HTML file
     mainWindow.loadFile('src/renderer/index.html');
@@ -45,184 +53,8 @@ function createWindow() {
         mainWindow = null;
     });
 
-    // Create application menu
-    createMenu();
-
     // Ensure default projects folder exists
     ensureProjectsFolder();
-}
-
-// Create application menu
-function createMenu() {
-    const template = [
-        {
-            label: 'File',
-            submenu: [
-                {
-                    label: 'New Project',
-                    accelerator: 'CmdOrCtrl+N',
-                    click: () => {
-                        mainWindow.webContents.send('menu-action', 'new-project');
-                    }
-                },
-                {
-                    label: 'Open Project',
-                    accelerator: 'CmdOrCtrl+O',
-                    click: () => {
-                        mainWindow.webContents.send('menu-action', 'open-project');
-                    }
-                },
-                {
-                    label: 'Save Project',
-                    accelerator: 'CmdOrCtrl+S',
-                    click: () => {
-                        mainWindow.webContents.send('menu-action', 'save-project');
-                    }
-                },
-                {
-                    label: 'Save Project As...',
-                    accelerator: 'CmdOrCtrl+Shift+S',
-                    click: () => {
-                        mainWindow.webContents.send('menu-action', 'save-project-as');
-                    }
-                },
-                { type: 'separator' },
-                {
-                    label: 'Export',
-                    submenu: [
-                        {
-                            label: 'Export to JSON',
-                            click: () => {
-                                mainWindow.webContents.send('menu-action', 'export-json');
-                            }
-                        },
-                        {
-                            label: 'Export to CSV',
-                            click: () => {
-                                mainWindow.webContents.send('menu-action', 'export-csv');
-                            }
-                        },
-                        {
-                            label: 'Export to Excel',
-                            click: () => {
-                                mainWindow.webContents.send('menu-action', 'export-excel');
-                            }
-                        }
-                    ]
-                },
-                { type: 'separator' },
-                {
-                    label: 'Exit',
-                    accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
-                    click: () => {
-                        app.quit();
-                    }
-                }
-            ]
-        },
-        {
-            label: 'Projects',
-            submenu: [
-                {
-                    label: 'Project Manager',
-                    accelerator: 'CmdOrCtrl+P',
-                    click: () => {
-                        mainWindow.webContents.send('menu-action', 'open-project-manager');
-                    }
-                },
-                {
-                    label: 'Recent Projects',
-                    click: () => {
-                        mainWindow.webContents.send('menu-action', 'show-recent-projects');
-                    }
-                },
-                { type: 'separator' },
-                {
-                    label: 'Load Project from File',
-                    click: () => {
-                        mainWindow.webContents.send('menu-action', 'load-project-file');
-                    }
-                },
-                {
-                    label: 'Import Project',
-                    click: () => {
-                        mainWindow.webContents.send('menu-action', 'import-project');
-                    }
-                }
-            ]
-        },
-        {
-            label: 'Edit',
-            submenu: [
-                { role: 'undo' },
-                { role: 'redo' },
-                { type: 'separator' },
-                { role: 'cut' },
-                { role: 'copy' },
-                { role: 'paste' },
-                { role: 'selectall' }
-            ]
-        },
-        {
-            label: 'View',
-            submenu: [
-                { role: 'reload' },
-                { role: 'forceReload' },
-                { role: 'toggleDevTools' },
-                { type: 'separator' },
-                { role: 'resetZoom' },
-                { role: 'zoomIn' },
-                { role: 'zoomOut' },
-                { type: 'separator' },
-                { role: 'togglefullscreen' }
-            ]
-        },
-        {
-            label: 'Tools',
-            submenu: [
-                {
-                    label: 'Backup Data',
-                    click: () => {
-                        mainWindow.webContents.send('menu-action', 'backup-data');
-                    }
-                },
-                {
-                    label: 'Restore Data',
-                    click: () => {
-                        mainWindow.webContents.send('menu-action', 'restore-data');
-                    }
-                },
-                { type: 'separator' },
-                {
-                    label: 'Settings',
-                    accelerator: 'CmdOrCtrl+,',
-                    click: () => {
-                        mainWindow.webContents.send('menu-action', 'open-settings');
-                    }
-                }
-            ]
-        },
-        {
-            label: 'Help',
-            submenu: [
-                {
-                    label: 'About',
-                    click: () => {
-                        dialog.showMessageBox(mainWindow, {
-                            type: 'info',
-                            title: 'About Software Estimation Manager',
-                            message: 'Software Estimation Manager v1.0.0',
-                            detail: 'A comprehensive tool for managing software development cost estimates.',
-                            buttons: ['OK']
-                        });
-                    }
-                }
-            ]
-        }
-    ];
-
-    const menu = Menu.buildFromTemplate(template);
-    Menu.setApplicationMenu(menu);
 }
 
 // Ensure projects folder exists
@@ -477,6 +309,23 @@ ipcMain.handle('window-maximize', () => {
 
 ipcMain.handle('window-close', () => {
     if (mainWindow) mainWindow.close();
+});
+
+// RIMOZIONE MENU: Aggiungere keyboard shortcuts globali se necessario
+ipcMain.handle('trigger-action', async (event, action) => {
+    // Handle keyboard shortcuts that previously were in the menu
+    switch (action) {
+        case 'new-project':
+        case 'open-project':
+        case 'save-project':
+        case 'export-json':
+            // etc.
+            // Send to renderer process
+            mainWindow.webContents.send('app-action', action);
+            break;
+        default:
+            console.warn('Unknown action:', action);
+    }
 });
 
 // App event handlers

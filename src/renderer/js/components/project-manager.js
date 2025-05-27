@@ -27,7 +27,7 @@ class ProjectManager {
     setupEventListeners() {
         // Main project actions
         document.getElementById('new-project-btn')?.addEventListener('click', () => {
-            this.createNewProject();
+            this.showNewProjectModal();
         });
 
         document.getElementById('load-project-btn')?.addEventListener('click', () => {
@@ -51,7 +51,26 @@ class ProjectManager {
             this.refreshProjects();
         });
 
-        // Modal actions
+        // New Project Modal
+        document.getElementById('create-project-btn')?.addEventListener('click', () => {
+            this.createNewProjectFromModal();
+        });
+
+        document.getElementById('cancel-new-project-btn')?.addEventListener('click', () => {
+            this.closeNewProjectModal();
+        });
+
+        document.querySelector('#new-project-modal .modal-close')?.addEventListener('click', () => {
+            this.closeNewProjectModal();
+        });
+
+        // New project form submission
+        document.getElementById('new-project-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.createNewProjectFromModal();
+        });
+
+        // Load Project Modal actions
         document.getElementById('select-file-btn')?.addEventListener('click', () => {
             document.getElementById('project-file-input')?.click();
         });
@@ -75,9 +94,104 @@ class ProjectManager {
     }
 
     /**
-     * Create a new project
+     * Show new project modal
      */
-    async createNewProject() {
+    showNewProjectModal() {
+        // Check if current project needs saving
+        if (this.app.isDirty) {
+            const confirmed = confirm('You have unsaved changes. Creating a new project will discard them. Continue?');
+            if (!confirmed) return;
+        }
+
+        // Reset form
+        this.resetNewProjectForm();
+
+        const modal = document.getElementById('new-project-modal');
+        if (modal) {
+            modal.classList.add('active');
+
+            // Focus first input
+            const codeInput = document.getElementById('project-code');
+            if (codeInput) {
+                setTimeout(() => codeInput.focus(), 100);
+            }
+        }
+    }
+
+    /**
+     * Close new project modal
+     */
+    closeNewProjectModal() {
+        const modal = document.getElementById('new-project-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+
+        this.resetNewProjectForm();
+    }
+
+    /**
+     * Reset new project form
+     */
+    resetNewProjectForm() {
+        const form = document.getElementById('new-project-form');
+        if (form) {
+            form.reset();
+        }
+
+        // Clear any validation errors
+        this.clearNewProjectFormErrors();
+    }
+
+    /**
+     * Create new project from modal data
+     */
+    async createNewProjectFromModal() {
+        try {
+            console.log('=== Creating new project from modal ===');
+
+            // Prova prima il metodo normale, poi quello alternativo
+            let formData = this.getNewProjectFormData();
+
+            console.log('Form data (normal method):', formData);
+
+            // Se il nome è vuoto, prova il metodo alternativo
+            if (!formData.name) {
+                console.log('Name empty, trying alternative method...');
+                formData = this.getNewProjectFormDataAlternative();
+                console.log('Form data (alternative method):', formData);
+            }
+
+            // Validate form data
+            const validation = this.validateNewProjectData(formData);
+            if (!validation.isValid) {
+                console.log('Validation failed:', validation.errors);
+                this.showNewProjectFormErrors(validation.errors);
+                return;
+            }
+
+            // Check if project code already exists
+            if (await this.projectCodeExists(formData.code)) {
+                this.showNewProjectFormErrors({ code: 'Project code already exists' });
+                return;
+            }
+
+            // Create new project with form data
+            await this.createNewProject(formData);
+
+            // Close modal
+            this.closeNewProjectModal();
+
+        } catch (error) {
+            console.error('Failed to create new project:', error);
+            NotificationManager.error(`Failed to create project: ${error.message}`);
+        }
+    }
+
+    /**
+     * CORREZIONE: Metodo createNewProject mancante
+     */
+    async createNewProject(formData) {
         try {
             // Check if current project needs saving
             if (this.app.isDirty) {
@@ -86,20 +200,244 @@ class ProjectManager {
                 if (save) await this.app.saveProject();
             }
 
-            // Create new project
-            await this.app.newProject();
+            // Create new project with form data invece di chiamare app.newProject()
+            const newProject = {
+                project: {
+                    id: this.generateProjectId(),
+                    code: formData.code,
+                    name: formData.name,
+                    description: formData.description,
+                    version: '1.0.0',
+                    created: new Date().toISOString(),
+                    lastModified: new Date().toISOString()
+                },
+                features: [],
+                phases: {
+                    functionalSpec: { manDays: 0, assignedResources: [], cost: 0 },
+                    techSpec: { manDays: 0, assignedResources: [], cost: 0 },
+                    development: { manDays: 0, calculated: true, cost: 0 },
+                    sit: { manDays: 0, assignedResources: [], cost: 0 },
+                    uat: { manDays: 0, assignedResources: [], cost: 0 },
+                    vapt: { manDays: 0, assignedResources: [], cost: 0 },
+                    consolidation: { manDays: 0, assignedResources: [], cost: 0 },
+                    postGoLive: { manDays: 0, assignedResources: [], cost: 0 }
+                },
+                config: this.app.createNewProject().config // Use app's default config
+            };
+
+            // Set as current project
+            this.app.currentProject = newProject;
+            this.app.isDirty = true;
+
+            // Mark as a real project (not just the default "New Project")
+            this.app.dataManager.currentProjectPath = 'new-project';
+
+            // Update dropdowns
+            await this.app.populateDropdowns();
 
             // Update UI
+            this.app.updateUI();
             this.updateCurrentProjectUI();
 
             // Navigate to features section
             this.app.navigationManager.navigateTo('features');
 
             NotificationManager.success('New project created successfully');
+
         } catch (error) {
             console.error('Failed to create new project:', error);
             NotificationManager.error(`Failed to create new project: ${error.message}`);
         }
+    }
+
+    /**
+     * Generate a unique project ID
+     */
+    generateProjectId() {
+        return 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    /**
+     * Get new project form data
+     */
+    getNewProjectFormData() {
+        // Debug: log per verificare i valori
+        const codeEl = document.getElementById('project-code');
+        const nameEl = document.getElementById('project-name');
+        const descEl = document.getElementById('project-description');
+
+        console.log('Form elements found:', {
+            code: !!codeEl,
+            name: !!nameEl,
+            desc: !!descEl
+        });
+
+        const formData = {
+            code: codeEl?.value?.trim().toUpperCase() || '',
+            name: nameEl?.value?.trim() || '',
+            description: descEl?.value?.trim() || ''
+        };
+
+        console.log('Form data extracted:', formData);
+
+        return formData;
+    }
+
+    /**
+     * Get new project form data (versione alternativa più robusta)
+     */
+    getNewProjectFormDataAlternative() {
+        // Prova metodi alternativi per trovare i campi
+        let codeValue = '';
+        let nameValue = '';
+        let descValue = '';
+
+        // Metodo 1: getElementById
+        const codeEl1 = document.getElementById('project-code');
+        const nameEl1 = document.getElementById('project-name');
+        const descEl1 = document.getElementById('project-description');
+
+        // Metodo 2: querySelector
+        const codeEl2 = document.querySelector('#project-code');
+        const nameEl2 = document.querySelector('#project-name');
+        const descEl2 = document.querySelector('#project-description');
+
+        // Metodo 3: querySelector by name
+        const codeEl3 = document.querySelector('input[name="code"]');
+        const nameEl3 = document.querySelector('input[name="name"]');
+        const descEl3 = document.querySelector('textarea[name="description"]');
+
+        console.log('Elements found by different methods:', {
+            byId: { code: !!codeEl1, name: !!nameEl1, desc: !!descEl1 },
+            byQuerySelector: { code: !!codeEl2, name: !!nameEl2, desc: !!descEl2 },
+            byName: { code: !!codeEl3, name: !!nameEl3, desc: !!descEl3 }
+        });
+
+        // Prova a ottenere i valori con diversi metodi
+        codeValue = (codeEl1?.value || codeEl2?.value || codeEl3?.value || '').trim().toUpperCase();
+        nameValue = (nameEl1?.value || nameEl2?.value || nameEl3?.value || '').trim();
+        descValue = (descEl1?.value || descEl2?.value || descEl3?.value || '').trim();
+
+        console.log('Values extracted:', { codeValue, nameValue, descValue });
+
+        return {
+            code: codeValue,
+            name: nameValue,
+            description: descValue
+        };
+    }
+
+    /**
+     * Validate new project data
+     */
+    validateNewProjectData(data) {
+        const errors = {};
+
+        console.log('Validating data:', data);
+
+        // Validate project code
+        if (!data.code) {
+            errors.code = 'Project code is required';
+        } else if (!/^[A-Z0-9_-]+$/.test(data.code)) {
+            errors.code = 'Project code can only contain uppercase letters, numbers, hyphens and underscores';
+        } else if (data.code.length < 3) {
+            errors.code = 'Project code must be at least 3 characters long';
+        } else if (data.code.length > 20) {
+            errors.code = 'Project code must be less than 20 characters';
+        }
+
+        // Validate project name
+        if (!data.name || data.name === '') {
+            errors.name = 'Project name is required';
+            console.log('Name validation failed, value:', `"${data.name}"`);
+        } else if (data.name.length < 3) {
+            errors.name = 'Project name must be at least 3 characters long';
+        } else if (data.name.length > 100) {
+            errors.name = 'Project name must be less than 100 characters';
+        }
+
+        // Validate description (optional)
+        if (data.description && data.description.length > 500) {
+            errors.description = 'Description must be less than 500 characters';
+        }
+
+        console.log('Validation errors:', errors);
+
+        return {
+            isValid: Object.keys(errors).length === 0,
+            errors
+        };
+    }
+
+    /**
+     * Check if project code already exists
+     */
+    async projectCodeExists(code) {
+        try {
+            // Check in recent projects
+            const recentExists = this.recentProjects.some(p =>
+                p.code && p.code.toUpperCase() === code.toUpperCase()
+            );
+
+            if (recentExists) return true;
+
+            // Check in saved projects
+            await this.loadSavedProjects();
+            const savedExists = this.savedProjects.some(p =>
+                p.project.code && p.project.code.toUpperCase() === code.toUpperCase()
+            );
+
+            return savedExists;
+        } catch (error) {
+            console.warn('Could not check for existing project codes:', error);
+            return false; // Continue if check fails
+        }
+    }
+
+    /**
+     * Show form validation errors
+     */
+    showNewProjectFormErrors(errors) {
+        // Clear existing errors
+        this.clearNewProjectFormErrors();
+
+        // Show new errors
+        Object.keys(errors).forEach(field => {
+            const fieldId = `project-${field}`;
+            const element = document.getElementById(fieldId);
+
+            if (element) {
+                element.classList.add('error');
+
+                // Add error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = errors[field];
+
+                element.parentNode.appendChild(errorDiv);
+            }
+        });
+
+        // Focus first error field
+        const firstErrorField = document.querySelector('#new-project-form .error');
+        if (firstErrorField) {
+            firstErrorField.focus();
+        }
+    }
+
+    /**
+     * Clear form validation errors
+     */
+    clearNewProjectFormErrors() {
+        // Remove error classes
+        document.querySelectorAll('#new-project-form .error').forEach(el => {
+            el.classList.remove('error');
+        });
+
+        // Remove error messages
+        document.querySelectorAll('#new-project-form .error-message').forEach(el => {
+            el.remove();
+        });
     }
 
     /**

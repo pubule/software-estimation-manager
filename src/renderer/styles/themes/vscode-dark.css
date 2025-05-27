@@ -497,6 +497,49 @@ flex-shrink: 0;
     }
 }
 
+/* Form Validation Styles */
+.form-group input.error,
+.form-group textarea.error,
+.form-group select.error {
+    border-color: var(--error);
+    box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2);
+}
+
+.error-message {
+    display: block;
+    margin-top: var(--spacing-xs);
+    color: var(--error);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.form-help {
+    display: block;
+    margin-top: var(--spacing-xs);
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+}
+
+/* New Project Modal specific styles */
+#new-project-modal .modal-content {
+    min-width: 500px;
+    max-width: 600px;
+}
+
+#project-code {
+    text-transform: uppercase;
+    font-family: monospace;
+}
+
+#project-name {
+    font-weight: 500;
+}
+
+#project-description {
+    resize: vertical;
+    min-height: 60px;
+}
+
 /* Project Manager Styles */
 .current-project-section,
 .recent-projects-section,
