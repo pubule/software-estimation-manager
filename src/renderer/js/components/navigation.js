@@ -828,3 +828,214 @@ if (typeof window !== 'undefined') {
     window.EnhancedNavigationManager = EnhancedNavigationManager;
     window.NavigationStateManager = NavigationStateManager;
 }
+
+// Estendi EnhancedNavigationManager se esiste
+if (typeof window !== 'undefined' && window.EnhancedNavigationManager) {
+
+    // Override del navigateTo per gestire le fasi
+    const originalNavigateTo = window.EnhancedNavigationManager.prototype.navigateTo;
+
+    window.EnhancedNavigationManager.prototype.navigateTo = function(sectionName) {
+        if (sectionName === 'phases') {
+            // Verifica che ci sia un progetto caricato
+            if (!this.projectLoaded) {
+                console.warn('Cannot navigate to phases: No project loaded');
+                NotificationManager.warning('Please load or create a project first to access project phases');
+                return;
+            }
+
+            // Naviga alla pagina phases
+            this.showPhasesPage();
+        } else {
+            // Usa l'implementazione originale per altre sezioni
+            originalNavigateTo.call(this, sectionName);
+        }
+    };
+
+    // Nuovo metodo per mostrare la pagina delle fasi
+    window.EnhancedNavigationManager.prototype.showPhasesPage = function() {
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // Update active states
+        this.updateActiveStates('phases');
+
+        // Show target page
+        const targetPage = document.getElementById('phases-page');
+        if (targetPage) {
+            targetPage.classList.add('active');
+
+            // Inizializza il phases manager se non esiste
+            if (!this.app.phasesManager) {
+                this.app.phasesManager = new ProjectPhasesManager(this.app, this.configManager);
+            }
+
+            // Render del contenuto delle fasi
+            setTimeout(() => {
+                this.app.phasesManager.renderPhasesPage(targetPage);
+            }, 100);
+        }
+
+        // Store current section
+        this.currentSection = 'phases';
+
+        // If navigating to a project sub-section, ensure projects is expanded
+        if (!this.projectsExpanded) {
+            this.projectsExpanded = true;
+            this.updateProjectsExpansion();
+        }
+
+        console.log('Navigated to phases page');
+    };
+
+    // Estendi renderConfigurationSection per includere le fasi nei tab
+    const originalRenderConfigurationSection = window.EnhancedNavigationManager.prototype.renderConfigurationSection;
+
+    window.EnhancedNavigationManager.prototype.renderConfigurationSection = function(container) {
+        // Chiama l'implementazione originale se esiste
+        if (originalRenderConfigurationSection) {
+            originalRenderConfigurationSection.call(this, container);
+        }
+
+        // Aggiungi il tab delle fasi se non esiste
+        const tabsNav = container.querySelector('.tabs-nav');
+        if (tabsNav && !tabsNav.querySelector('[data-tab="phases"]')) {
+            const phasesTab = document.createElement('button');
+            phasesTab.className = 'tab-button';
+            phasesTab.dataset.tab = 'phases';
+            phasesTab.textContent = 'Project Phases';
+
+            // Inserisci dopo il tab global
+            const globalTab = tabsNav.querySelector('[data-tab="global"]');
+            if (globalTab) {
+                globalTab.insertAdjacentElement('afterend', phasesTab);
+            } else {
+                tabsNav.appendChild(phasesTab);
+            }
+        }
+
+        // Aggiungi il contenuto del tab phases se non esiste
+        const tabContent = container.querySelector('.tab-content');
+        if (tabContent && !tabContent.querySelector('#phases-tab')) {
+            const phasesTabPane = document.createElement('div');
+            phasesTabPane.id = 'phases-tab';
+            phasesTabPane.className = 'tab-pane';
+            phasesTabPane.innerHTML = `
+                <div class="config-section-header">
+                    <h3>Project Phases Configuration</h3>
+                    <p class="config-description">
+                        Configure project phases, effort distribution, and resource allocation for the current project.
+                    </p>
+                </div>
+                <div id="phases-content"></div>
+            `;
+            tabContent.appendChild(phasesTabPane);
+        }
+
+        // Re-inizializza i tab
+        this.initializeConfigTabs(container);
+    };
+
+    // Estendi loadConfigContent per gestire il tab phases
+    const originalLoadConfigContent = window.EnhancedNavigationManager.prototype.loadConfigContent;
+
+    window.EnhancedNavigationManager.prototype.loadConfigContent = async function(tabName) {
+        if (tabName === 'phases') {
+            await this.loadPhasesConfigTab();
+        } else if (originalLoadConfigContent) {
+            await originalLoadConfigContent.call(this, tabName);
+        }
+    };
+
+    // Nuovo metodo per caricare il tab delle fasi
+    window.EnhancedNavigationManager.prototype.loadPhasesConfigTab = async function() {
+        const contentDiv = document.getElementById('phases-content');
+        if (!contentDiv) return;
+
+        // Verifica che ci sia un progetto caricato
+        if (!this.projectLoaded || !this.app.currentProject) {
+            contentDiv.innerHTML = `
+                <div class="config-placeholder">
+                    <h4>No Project Loaded</h4>
+                    <p>Please load or create a project to configure phases.</p>
+                    <button class="btn btn-primary" onclick="window.app?.navigationManager?.navigateTo('projects')">
+                        <i class="fas fa-plus"></i> Go to Projects
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        // Inizializza il phases manager se non esiste
+        if (!this.app.phasesManager) {
+            this.app.phasesManager = new ProjectPhasesManager(this.app, this.configManager);
+        }
+
+        // Render delle fasi nel contenuto del tab
+        try {
+            // Crea un contenitore temporaneo per il rendering
+            const tempContainer = document.createElement('div');
+            this.app.phasesManager.renderPhasesPage(tempContainer);
+
+            // Estrai solo il contenuto interno
+            const phasesConfig = tempContainer.querySelector('.phases-configuration');
+            if (phasesConfig) {
+                contentDiv.innerHTML = phasesConfig.innerHTML;
+
+                // Ri-applica gli event listeners
+                this.app.phasesManager.attachEventListeners(contentDiv);
+            } else {
+                throw new Error('Failed to render phases configuration');
+            }
+        } catch (error) {
+            console.error('Failed to load phases configuration:', error);
+            contentDiv.innerHTML = `
+                <div class="phases-error">
+                    <h3>Error Loading Phases Configuration</h3>
+                    <p>There was an error loading the phases configuration. Please try refreshing the page.</p>
+                    <button class="btn btn-secondary" onclick="window.location.reload()">
+                        <i class="fas fa-sync"></i> Refresh Page
+                    </button>
+                </div>
+            `;
+        }
+    };
+}
+
+// Utility functions globali per le fasi
+window.navigateToPhases = function() {
+    if (window.app && window.app.navigationManager) {
+        window.app.navigationManager.navigateTo('phases');
+    }
+};
+
+window.refreshPhasesFromFeatures = function() {
+    if (window.app && window.app.phasesManager) {
+        window.app.phasesManager.refreshFromFeatures();
+        console.log('Phases refreshed from features');
+    }
+};
+
+window.getProjectTotals = function() {
+    if (window.app && window.app.phasesManager) {
+        const phasesSummary = window.app.getPhasesSummary();
+        const featuresTotal = window.app.currentProject?.features?.reduce((sum, f) => sum + (parseFloat(f.manDays) || 0), 0) || 0;
+
+        return {
+            features: {
+                count: window.app.currentProject?.features?.length || 0,
+                totalManDays: featuresTotal
+            },
+            phases: phasesSummary,
+            grandTotal: {
+                manDays: phasesSummary?.totalManDays || 0,
+                cost: phasesSummary?.totalCost || 0
+            }
+        };
+    }
+    return null;
+};
+
+console.log('Navigation integration for Project Phases completed successfully');

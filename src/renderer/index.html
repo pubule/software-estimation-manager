@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="styles/hierarchical-config.css">
     <!-- NUOVO: CSS per navigazione annidata -->
     <link rel="stylesheet" href="styles/nested-navigation.css">
+    <link rel="stylesheet" href="styles/project-phases.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -267,9 +268,20 @@
             <div id="phases-page" class="page">
                 <div class="page-header">
                     <h2>Project Phases Configuration</h2>
+                    <div class="page-actions">
+                        <button class="btn btn-secondary" onclick="window.refreshPhasesFromFeatures()">
+                            <i class="fas fa-sync"></i> Refresh from Features
+                        </button>
+                        <button class="btn btn-primary" onclick="window.app?.phasesManager?.exportPhases()">
+                            <i class="fas fa-download"></i> Export Phases
+                        </button>
+                    </div>
                 </div>
                 <div class="phases-content">
-                    <p>Project phases configuration will be implemented here...</p>
+                    <div class="phases-loading">
+                        <div class="spinner"></div>
+                        <span>Loading phases configuration...</span>
+                    </div>
                 </div>
             </div>
 
@@ -483,6 +495,8 @@
 
 <!-- Project management (depends on other managers) -->
 <script src="js/components/project-manager.js"></script>
+
+<script src="js/components/project-phases-manager.js"></script>
 
 <!-- Main application (depends on all other components) -->
 <script src="js/main.js"></script>

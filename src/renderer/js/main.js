@@ -92,6 +92,9 @@ class SoftwareEstimationApp {
         this.modalManager = new ModalManager();
         this.projectManager = new ProjectManager(this);
 
+        this.phasesManager = new ProjectPhasesManager(this, this.configManager);
+        console.log('Project Phases Manager initialized and integrated');
+
         console.log('All managers initialized successfully with hierarchical configuration and nested navigation');
 
         // Initialize default project structure
@@ -143,6 +146,19 @@ class SoftwareEstimationApp {
             this.featureManager.populateFilterDropdowns();
             console.log('Dropdowns initialized through FeatureManager with ConfigurationManager');
         }
+    }
+
+    // Nuovo metodo per ottenere il riepilogo delle fasi
+    getPhasesSummary() {
+        if (this.phasesManager) {
+            return {
+                totalCost: this.phasesManager.getTotalProjectCost(),
+                totalManDays: this.phasesManager.getTotalProjectManDays(),
+                phases: this.phasesManager.getProjectPhases(),
+                validation: this.phasesManager.validateAllPhases()
+            };
+        }
+        return null;
     }
 
     /**
@@ -726,6 +742,19 @@ class SoftwareEstimationApp {
         this.navigationManager.onProjectDirty(true);
 
         this.updateProjectStatus();
+
+        // Se sono state modificate le features, aggiorna le fasi
+        if (this.phasesManager) {
+            this.phasesManager.calculateDevelopmentPhase();
+
+            // Aggiorna la UI solo se siamo nella pagina phases
+            if (this.navigationManager.currentSection === 'phases') {
+                const phasesPage = document.getElementById('phases-page');
+                if (phasesPage && phasesPage.classList.contains('active')) {
+                    this.phasesManager.updateCalculations();
+                }
+            }
+        }
     }
 
     updateUI() {
@@ -734,6 +763,10 @@ class SoftwareEstimationApp {
         this.featureManager.refreshTable();
         this.updateSummary();
         this.updateConfigurationStatus();
+        // Aggiorna il phases manager se esiste e siamo nella pagina corretta
+        if (this.phasesManager && this.navigationManager.currentSection === 'phases') {
+            this.phasesManager.refreshFromFeatures();
+        }
     }
 
     updateProjectInfo() {
@@ -1188,6 +1221,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             window.app = new SoftwareEstimationApp();
+
+            // Event listeners per l'integrazione delle fasi
+            document.addEventListener('DOMContentLoaded', function() {
+
+                // Listener per sincronizzare le fasi quando cambiano le features
+                document.addEventListener('featuresChanged', function(event) {
+                    if (window.app && window.app.phasesManager) {
+                        window.app.phasesManager.refreshFromFeatures();
+                        console.log('Phases updated due to features change');
+                    }
+                });
+
+                // Listener per i cambiamenti di progetto
+                document.addEventListener('projectChanged', function(event) {
+                    if (window.app && window.app.phasesManager) {
+                        window.app.phasesManager.initializePhases();
+                        console.log('Phases reinitialized due to project change');
+                    }
+                });
+
+                // Aggiorna il contenuto della pagina phases se esiste
+                const phasesPage = document.getElementById('phases-page');
+                if (phasesPage && !phasesPage.querySelector('.phases-configuration')) {
+                    phasesPage.innerHTML = `
+            <div class="page-header">
+                <h2>Project Phases Configuration</h2>
+                <div class="page-actions">
+                    <button class="btn btn-secondary" onclick="window.refreshPhasesFromFeatures()">
+                        <i class="fas fa-sync"></i> Refresh from Features
+                    </button>
+                    <button class="btn btn-primary" onclick="window.app?.phasesManager?.exportPhases()">
+                        <i class="fas fa-download"></i> Export Phases
+                    </button>
+                </div>
+            </div>
+            <div class="phases-content">
+                <div class="phases-loading">
+                    <div class="spinner"></div>
+                    <span>Loading phases configuration...</span>
+                </div>
+            </div>
+        `;
+                }
+            });
         } catch (error) {
             console.error('Failed to initialize app:', error);
             alert(`Failed to initialize application: ${error.message}`);

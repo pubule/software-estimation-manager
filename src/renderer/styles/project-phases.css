@@ -1,0 +1,673 @@
+/**
+ * Project Phases Configuration CSS
+ * File: src/renderer/styles/project-phases.css
+ */
+
+/* Phase Configuration Container */
+.phases-configuration {
+    padding: var(--spacing-lg);
+    height: 100%;
+    overflow-y: auto;
+}
+
+.phases-header {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.phases-header h2 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-sm) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.phases-description {
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Development Phase Notice */
+.development-notice {
+    background-color: rgba(33, 150, 243, 0.1);
+    border: 1px solid var(--info);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    color: var(--info);
+    font-size: var(--font-size-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.development-notice i {
+    font-size: var(--font-size-base);
+    flex-shrink: 0;
+}
+
+/* Phases Controls */
+.phases-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.controls-left {
+    display: flex;
+    gap: var(--spacing-lg);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.controls-right {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+/* Resource Rates Display */
+.resource-rates {
+    display: flex;
+    gap: var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+}
+
+.rate-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-secondary);
+}
+
+.rate-value {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: monospace;
+}
+
+/* Phases Table Container */
+.phases-table-container {
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Phases Table */
+.phases-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+    min-width: 1400px; /* Ensure minimum width for all columns */
+}
+
+.phases-table th,
+.phases-table td {
+    padding: var(--spacing-sm);
+    text-align: center;
+    border: 1px solid var(--border-primary);
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* Table Headers */
+.phases-table th {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.phases-table th.phase-name {
+    background-color: var(--bg-quaternary);
+    text-align: left;
+    min-width: 220px;
+    max-width: 280px;
+    position: sticky;
+    left: 0;
+    z-index: 11;
+}
+
+.phases-table td.phase-name {
+    text-align: left;
+    font-weight: 500;
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    position: sticky;
+    left: 0;
+    z-index: 9;
+}
+
+/* Header Groups */
+.header-group {
+    background-color: var(--bg-quaternary);
+    color: var(--text-accent);
+    font-weight: 700;
+    font-size: var(--font-size-base);
+    border-bottom: 2px solid var(--text-accent);
+}
+
+.sub-header {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+/* Phase Name Styling */
+.phase-name strong {
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+}
+
+.phase-description {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    font-style: italic;
+    display: block;
+    margin-top: 2px;
+    line-height: 1.3;
+}
+
+/* Input Styling */
+.phases-table input {
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    padding: var(--spacing-xs);
+    width: 65px;
+    text-align: center;
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-fast);
+}
+
+.phases-table input:focus {
+    outline: none;
+    border-color: var(--input-focus);
+    box-shadow: 0 0 0 2px rgba(0, 127, 212, 0.2);
+}
+
+.phases-table input[readonly] {
+    background-color: var(--bg-quaternary);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    border-style: dashed;
+}
+
+.phases-table input.error {
+    border-color: var(--error);
+    box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2);
+}
+
+/* Calculated Fields */
+.phases-table td.calculated {
+    background-color: rgba(33, 150, 243, 0.1);
+    color: var(--info);
+    font-weight: 600;
+}
+
+.calculated-notice {
+    background-color: rgba(33, 150, 243, 0.1);
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 2px var(--spacing-xs);
+    font-size: 10px;
+    color: var(--info);
+    margin-top: 2px;
+}
+
+/* Currency Display */
+.currency {
+    font-family: monospace;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Totals Row */
+.totals-row {
+    background-color: var(--bg-quaternary);
+    font-weight: 600;
+    border-top: 2px solid var(--text-accent);
+}
+
+.totals-row td {
+    color: var(--text-accent);
+    font-size: var(--font-size-base);
+    padding: var(--spacing-md) var(--spacing-sm);
+}
+
+.totals-row .phase-name {
+    background-color: var(--bg-quaternary);
+    color: var(--text-accent);
+}
+
+/* Hover Effects */
+.phases-table tbody tr:hover {
+    background-color: var(--bg-hover);
+}
+
+.phases-table tbody tr:hover .phase-name {
+    background-color: var(--bg-hover);
+}
+
+/* Validation States */
+.percentage-error {
+    background-color: rgba(244, 67, 54, 0.1);
+    animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+.percentage-warning {
+    background-color: rgba(255, 152, 0, 0.1);
+    border-color: var(--warning);
+}
+
+.percentage-warning::after {
+    content: '⚠️';
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+}
+
+/* Calculation Animation */
+.calculating {
+    animation: pulse 1s infinite;
+    background-color: rgba(0, 127, 212, 0.1);
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+/* Tooltip Enhancements */
+.tooltip {
+    position: relative;
+    cursor: help;
+}
+
+.tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--bg-quaternary);
+    color: var(--text-primary);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-fast);
+    z-index: 1000;
+    margin-bottom: var(--spacing-xs);
+    border: 1px solid var(--border-primary);
+    box-shadow: var(--shadow-sm);
+    max-width: 200px;
+    white-space: normal;
+    text-align: center;
+}
+
+.tooltip:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Effort Distribution Validation */
+.effort-row {
+    position: relative;
+}
+
+.effort-total-indicator {
+    position: absolute;
+    right: -30px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    white-space: nowrap;
+    z-index: 5;
+}
+
+.effort-total-indicator.valid {
+    background-color: var(--success);
+    color: white;
+}
+
+.effort-total-indicator.invalid {
+    background-color: var(--error);
+    color: white;
+}
+
+.effort-total-indicator.warning {
+    background-color: var(--warning);
+    color: white;
+}
+
+/* Resource Type Colors */
+.resource-g1 { color: #4caf50; }
+.resource-g2 { color: #2196f3; }
+.resource-ta { color: #ff9800; }
+.resource-pm { color: #9c27b0; }
+
+/* Phase Type Indicators */
+.phase-analysis .phase-name { border-left: 3px solid var(--info); }
+.phase-development .phase-name { border-left: 3px solid var(--success); }
+.phase-testing .phase-name { border-left: 3px solid var(--warning); }
+.phase-support .phase-name { border-left: 3px solid var(--error); }
+
+/* Effort Cell Styling */
+.effort-cell {
+    position: relative;
+}
+
+.percentage-sign {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    margin-left: 2px;
+}
+
+/* Project Phases Page Specific Styles */
+#phases-page {
+    overflow-y: auto;
+}
+
+#phases-page .page-header {
+    border-bottom: 1px solid var(--border-primary);
+    margin-bottom: 0;
+}
+
+.phases-table-container {
+    margin-top: var(--spacing-lg);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.phases-table tbody tr:hover .effort-total-indicator {
+    right: -35px;
+}
+
+/* Loading States */
+.phases-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: var(--text-secondary);
+}
+
+.phases-loading .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-primary);
+    border-top: 3px solid var(--text-accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: var(--spacing-md);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error States */
+.phases-error {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--error);
+    background-color: rgba(244, 67, 54, 0.1);
+    border: 1px solid var(--error);
+    border-radius: var(--radius-md);
+    margin: var(--spacing-lg) 0;
+}
+
+.phases-error h3 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--error);
+}
+
+.phases-error p {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+/* Success States */
+.save-success {
+    animation: successPulse 0.6s ease-out;
+}
+
+@keyframes successPulse {
+    0% {
+        background-color: var(--success);
+        color: white;
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        background-color: transparent;
+        color: inherit;
+        transform: scale(1);
+    }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 1600px) {
+    .phases-table {
+        font-size: 11px;
+    }
+
+    .phases-table input {
+        width: 55px;
+        padding: 2px;
+    }
+
+    .phases-table th,
+    .phases-table td {
+        padding: var(--spacing-xs);
+    }
+}
+
+@media (max-width: 1400px) {
+    .phases-table input {
+        width: 50px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .phases-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .controls-left,
+    .controls-right {
+        justify-content: center;
+    }
+
+    .resource-rates {
+        justify-content: center;
+    }
+
+    .phases-table th.phase-name {
+        min-width: 180px;
+        max-width: 200px;
+    }
+
+    .effort-total-indicator {
+        position: static;
+        display: block;
+        margin-top: 2px;
+        text-align: center;
+        right: auto;
+        transform: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .phases-configuration {
+        padding: var(--spacing-md);
+    }
+
+    .phases-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .phases-table {
+        min-width: 1200px;
+    }
+
+    .phases-table input {
+        width: 45px;
+        font-size: 10px;
+    }
+
+    .controls-right {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .controls-right .btn {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .resource-rates {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .rate-info {
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 480px) {
+    .phases-header h2 {
+        font-size: var(--font-size-lg);
+        flex-direction: column;
+        text-align: center;
+        gap: var(--spacing-xs);
+    }
+
+    .development-notice {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .phases-table th.phase-name {
+        min-width: 150px;
+    }
+
+    .phase-description {
+        display: none; /* Hide descriptions on very small screens */
+    }
+}
+
+/* Print Styles */
+@media print {
+    .phases-controls,
+    .development-notice {
+        display: none;
+    }
+
+    .phases-table-container {
+        border: none;
+        box-shadow: none;
+    }
+
+    .phases-table {
+        font-size: 10px;
+    }
+
+    .phases-table th,
+    .phases-table td {
+        padding: 2px 4px;
+        border: 1px solid #333;
+    }
+
+    .tooltip::after {
+        display: none;
+    }
+}
+
+/* Accessibility Enhancements */
+.phases-table input:focus {
+    outline: 2px solid var(--text-accent);
+    outline-offset: 1px;
+}
+
+.btn:focus {
+    outline: 2px solid var(--text-accent);
+    outline-offset: 2px;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .phases-table th,
+    .phases-table td {
+        border: 2px solid var(--text-primary);
+    }
+
+    .calculated-notice,
+    .development-notice {
+        border: 2px solid currentColor;
+    }
+
+    .tooltip::after {
+        border: 2px solid var(--text-primary);
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .calculating,
+    .percentage-error,
+    .save-success {
+        animation: none;
+    }
+
+    .phases-table input,
+    .tooltip::after {
+        transition: none;
+    }
+}
