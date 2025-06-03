@@ -2007,3 +2007,149 @@
 .nav-section.has-children + .nav-section {
     border-top-color: var(--border-secondary);
 }
+
+/**
+ * Additional CSS for Project Phases Auto-Save Indicator
+ * Add this to project-phases.css
+ */
+
+/* Auto-Save Indicator */
+.auto-save-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: var(--radius-md);
+    color: var(--success);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.auto-save-indicator i {
+    font-size: var(--font-size-sm);
+}
+
+/* Enhanced Controls Right Section */
+.controls-right {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.controls-right .auto-save-indicator {
+    margin-left: var(--spacing-sm);
+}
+
+/* Responsive adjustments for auto-save indicator */
+@media (max-width: 1200px) {
+    .phases-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .controls-left,
+    .controls-right {
+        justify-content: center;
+    }
+
+    .auto-save-indicator {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .controls-right {
+        width: 100%;
+        justify-content: stretch;
+        flex-direction: column;
+    }
+
+    .controls-right .btn {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .auto-save-indicator {
+        width: 100%;
+        justify-content: center;
+        margin-left: 0;
+        margin-top: var(--spacing-sm);
+    }
+}
+
+/* Enhanced development notice with auto-save info */
+.development-notice {
+    background-color: rgba(33, 150, 243, 0.1);
+    border: 1px solid var(--info);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    color: var(--info);
+    font-size: var(--font-size-sm);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    line-height: 1.5;
+}
+
+.development-notice i {
+    font-size: var(--font-size-base);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.development-notice strong {
+    color: var(--info);
+}
+
+/* Input change animation for auto-save feedback */
+.phases-table input:focus {
+    background-color: rgba(33, 150, 243, 0.05);
+    border-color: var(--info);
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+.phases-table input.changed {
+    animation: inputChanged 0.5s ease-out;
+}
+
+@keyframes inputChanged {
+    0% {
+        background-color: rgba(76, 175, 80, 0.2);
+        transform: scale(1.02);
+    }
+    100% {
+        background-color: transparent;
+        transform: scale(1);
+    }
+}
+
+/* Auto-save status in page header */
+.phases-header {
+    position: relative;
+}
+
+.phases-header::after {
+    content: "✓ Auto-Save Active";
+    position: absolute;
+    top: var(--spacing-sm);
+    right: 0;
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--success);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+@media (max-width: 768px) {
+    .phases-header::after {
+        position: static;
+        display: inline-block;
+        margin-top: var(--spacing-sm);
+    }
+}

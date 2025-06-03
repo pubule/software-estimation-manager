@@ -205,9 +205,10 @@ class NavigationManager {
 }
 
 /**
- * Enhanced Navigation Manager with Nested Project Sections
- * Extends NavigationManager to support hierarchical navigation
+ * Enhanced Navigation Manager - UPDATED
+ * Rimuove Project Phases dalla configurazione, rimane solo nel sottomenu Projects
  */
+
 class EnhancedNavigationManager extends NavigationManager {
     constructor(app, configManager) {
         super(app);
@@ -240,10 +241,10 @@ class EnhancedNavigationManager extends NavigationManager {
                     const sectionName = section.dataset.section;
 
                     if (sectionName === 'projects') {
-                        // *** CORREZIONE: Sempre navigare alla pagina Projects ***
+                        // Always navigate to Projects page
                         this.navigateTo('projects');
 
-                        // Poi espandere la sezione se il progetto è caricato
+                        // Then expand section if project is loaded
                         if (this.projectLoaded && !this.projectsExpanded) {
                             this.projectsExpanded = true;
                             this.updateProjectsExpansion();
@@ -296,6 +297,12 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
+        // Special handling for phases navigation
+        if (sectionName === 'phases') {
+            this.showPhasesPage();
+            return;
+        }
+
         // Hide all pages
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
@@ -330,6 +337,51 @@ class EnhancedNavigationManager extends NavigationManager {
         }
 
         console.log(`Navigated to section: ${sectionName}`);
+    }
+
+    // Special method for phases page
+    showPhasesPage() {
+        // Verify project is loaded
+        if (!this.projectLoaded) {
+            console.warn('Cannot navigate to phases: No project loaded');
+            NotificationManager.warning('Please load or create a project first to access project phases');
+            return;
+        }
+
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // Update active states
+        this.updateActiveStates('phases');
+
+        // Show target page
+        const targetPage = document.getElementById('phases-page');
+        if (targetPage) {
+            targetPage.classList.add('active');
+
+            // Initialize phases manager if not exists
+            if (!this.app.phasesManager) {
+                this.app.phasesManager = new ProjectPhasesManager(this.app, this.configManager);
+            }
+
+            // Render phases content
+            setTimeout(() => {
+                this.app.phasesManager.renderPhasesPage(targetPage);
+            }, 100);
+        }
+
+        // Store current section
+        this.currentSection = 'phases';
+
+        // Ensure projects is expanded
+        if (!this.projectsExpanded) {
+            this.projectsExpanded = true;
+            this.updateProjectsExpansion();
+        }
+
+        console.log('Navigated to phases page');
     }
 
     updateActiveStates(activeSectionName) {
@@ -367,11 +419,6 @@ class EnhancedNavigationManager extends NavigationManager {
         return ['features', 'phases', 'calculations', 'history'].includes(sectionName);
     }
 
-    /**
-     * Update project status based on current project state
-     * @param {boolean} loaded - Whether a project is loaded
-     * @param {boolean} dirty - Whether the project has unsaved changes
-     */
     setProjectStatus(loaded, dirty = false) {
         this.projectLoaded = loaded;
         this.projectDirty = dirty;
@@ -412,9 +459,6 @@ class EnhancedNavigationManager extends NavigationManager {
         });
     }
 
-    /**
-     * Auto-expand projects section when a project is loaded
-     */
     onProjectLoaded() {
         this.setProjectStatus(true, false);
 
@@ -425,23 +469,14 @@ class EnhancedNavigationManager extends NavigationManager {
         }
     }
 
-    /**
-     * Handle project being closed
-     */
     onProjectClosed() {
         this.setProjectStatus(false, false);
     }
 
-    /**
-     * Handle project dirty state change
-     */
     onProjectDirty(isDirty) {
         this.setProjectStatus(this.projectLoaded, isDirty);
     }
 
-    /**
-     * Get current navigation state
-     */
     getNavigationState() {
         return {
             currentSection: this.currentSection,
@@ -451,9 +486,6 @@ class EnhancedNavigationManager extends NavigationManager {
         };
     }
 
-    /**
-     * Restore navigation state
-     */
     restoreNavigationState(state) {
         if (state) {
             this.projectLoaded = state.projectLoaded || false;
@@ -471,102 +503,109 @@ class EnhancedNavigationManager extends NavigationManager {
     }
 
     /**
-     * Enhanced configuration rendering with project status awareness
+     * UPDATED: Configuration rendering WITHOUT phases tab
      */
     renderConfigurationSection(container) {
-        // Call parent implementation if exists
-        if (super.renderConfigurationSection) {
-            super.renderConfigurationSection(container);
-        } else {
-            // Basic configuration rendering
-            container.innerHTML = `
-                <div class="config-tabs">
-                    <div class="tabs">
-                        <div class="tabs-nav">
-                            <button class="tab-button active" data-tab="storage">Storage</button>
-                            <button class="tab-button" data-tab="global">Global Config</button>
-                            <button class="tab-button" data-tab="suppliers">Suppliers</button>
-                            <button class="tab-button" data-tab="resources">Internal Resources</button>
-                            <button class="tab-button" data-tab="categories">Categories</button>
-                            <button class="tab-button" data-tab="parameters">Parameters</button>
+        container.innerHTML = `
+            <div class="config-tabs">
+                <div class="tabs">
+                    <div class="tabs-nav">
+                        <button class="tab-button active" data-tab="storage">Storage</button>
+                        <button class="tab-button" data-tab="global">Global Config</button>
+                        <button class="tab-button" data-tab="suppliers">Suppliers</button>
+                        <button class="tab-button" data-tab="resources">Internal Resources</button>
+                        <button class="tab-button" data-tab="categories">Categories</button>
+                        <button class="tab-button" data-tab="parameters">Parameters</button>
+                    </div>
+                </div>
+                
+                <div class="tab-content">
+                    <div id="storage-tab" class="tab-pane active">
+                        <div class="config-section-header">
+                            <h3>Projects Storage Configuration</h3>
+                        </div>
+                        <div id="storage-content">
+                            <!-- Storage content will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div id="global-tab" class="tab-pane">
+                        <div class="config-section-header">
+                            <h3>Global Default Configuration</h3>
+                            <p class="config-description">
+                                These settings apply to all new projects by default. 
+                                Projects can override these settings individually.
+                            </p>
+                        </div>
+                        <div id="global-content">
+                            <!-- Global config content will be loaded here -->
                         </div>
                     </div>
                     
-                    <div class="tab-content">
-                        <div id="storage-tab" class="tab-pane active">
-                            <div class="config-section-header">
-                                <h3>Projects Storage Configuration</h3>
-                            </div>
-                            <div id="storage-content">
-                                <!-- Storage content will be loaded here -->
-                            </div>
+                    <div id="suppliers-tab" class="tab-pane">
+                        <div class="config-section-header">
+                            <h3>Suppliers Configuration</h3>
+                            <p class="config-description">
+                                Manage external suppliers and their rates. These will be available 
+                                for all new projects by default.
+                            </p>
                         </div>
-
-                        <div id="global-tab" class="tab-pane">
-                            <div class="config-section-header">
-                                <h3>Global Default Configuration</h3>
-                                <p class="config-description">
-                                    These settings apply to all new projects by default. 
-                                    Projects can override these settings individually.
-                                </p>
-                            </div>
-                            <div id="global-content">
-                                <!-- Global config content will be loaded here -->
-                            </div>
+                        <div id="suppliers-content">
+                            <p>Suppliers configuration will be implemented here...</p>
                         </div>
-                        
-                        <div id="suppliers-tab" class="tab-pane">
-                            <div class="config-section-header">
-                                <h3>Suppliers Configuration</h3>
-                            </div>
-                            <div id="suppliers-content">
-                                <p>Suppliers configuration will be implemented here...</p>
-                            </div>
+                    </div>
+                    
+                    <div id="resources-tab" class="tab-pane">
+                        <div class="config-section-header">
+                            <h3>Internal Resources Configuration</h3>
+                            <p class="config-description">
+                                Manage internal team resources like developers, analysts, and project managers.
+                            </p>
                         </div>
-                        
-                        <div id="resources-tab" class="tab-pane">
-                            <div class="config-section-header">
-                                <h3>Internal Resources Configuration</h3>
-                            </div>
-                            <div id="resources-content">
-                                <p>Internal resources configuration will be implemented here...</p>
-                            </div>
+                        <div id="resources-content">
+                            <p>Internal resources configuration will be implemented here...</p>
                         </div>
-                        
-                        <div id="categories-tab" class="tab-pane">
-                            <div class="config-section-header">
-                                <h3>Feature Categories Configuration</h3>
-                            </div>
-                            <div id="categories-content">
-                                <p>Categories configuration will be implemented here...</p>
-                            </div>
+                    </div>
+                    
+                    <div id="categories-tab" class="tab-pane">
+                        <div class="config-section-header">
+                            <h3>Feature Categories Configuration</h3>
+                            <p class="config-description">
+                                Manage feature categories and their complexity multipliers.
+                            </p>
                         </div>
-                        
-                        <div id="parameters-tab" class="tab-pane">
-                            <div class="config-section-header">
-                                <h3>Calculation Parameters</h3>
-                            </div>
-                            <div id="parameters-content">
-                                <p>Parameters configuration will be implemented here...</p>
-                            </div>
+                        <div id="categories-content">
+                            <p>Categories configuration will be implemented here...</p>
+                        </div>
+                    </div>
+                    
+                    <div id="parameters-tab" class="tab-pane">
+                        <div class="config-section-header">
+                            <h3>Calculation Parameters</h3>
+                            <p class="config-description">
+                                Configure global calculation parameters like working days, currency, and margins.
+                            </p>
+                        </div>
+                        <div id="parameters-content">
+                            <!-- Parameters content will be loaded here -->
                         </div>
                     </div>
                 </div>
-            `;
+            </div>
+        `;
 
-            // Initialize tab functionality
-            this.initializeConfigTabs(container);
+        // Initialize tab functionality
+        this.initializeConfigTabs(container);
 
-            // Load initial tab content
-            this.loadConfigContent('storage');
-        }
+        // Load initial tab content
+        this.loadConfigContent('storage');
 
         // Add project status information to configuration
         this.addProjectStatusToConfig(container);
     }
 
     /**
-     * Load configuration content for a specific tab
+     * UPDATED: Load configuration content WITHOUT phases handling
      */
     async loadConfigContent(tabName) {
         const contentDiv = document.getElementById(`${tabName}-content`);
@@ -634,7 +673,23 @@ class EnhancedNavigationManager extends NavigationManager {
                         <li><strong>Project Inheritance:</strong> New projects automatically inherit global settings</li>
                         <li><strong>Project Overrides:</strong> Projects can modify or add to global settings without affecting other projects</li>
                         <li><strong>Centralized Management:</strong> Update global settings to affect all future projects</li>
+                        <li><strong>Project Phases:</strong> Configure project phases and effort distribution in the Projects section for each specific project</li>
                     </ul>
+                </div>
+
+                <div class="global-actions-section">
+                    <h4>Global Configuration Actions</h4>
+                    <div class="action-buttons-grid">
+                        <button class="btn btn-secondary" onclick="window.importGlobalConfig()">
+                            <i class="fas fa-upload"></i> Import Global Config
+                        </button>
+                        <button class="btn btn-secondary" onclick="window.exportGlobalConfig()">
+                            <i class="fas fa-download"></i> Export Global Config
+                        </button>
+                        <button class="btn btn-warning" onclick="window.resetProjectConfig()">
+                            <i class="fas fa-undo"></i> Reset Current Project to Global
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -649,6 +704,9 @@ class EnhancedNavigationManager extends NavigationManager {
                 <h4>Suppliers Configuration</h4>
                 <p>This section will manage external suppliers and their rates.</p>
                 <p>Configuration will include both global defaults and project-specific overrides.</p>
+                <div style="margin-top: var(--spacing-lg);">
+                    <p><strong>Note:</strong> Project-specific supplier configuration is available in the Features Management section when working on a specific project.</p>
+                </div>
             </div>
         `;
     }
@@ -662,6 +720,9 @@ class EnhancedNavigationManager extends NavigationManager {
                 <h4>Internal Resources Configuration</h4>
                 <p>This section will manage internal resources like developers, analysts, etc.</p>
                 <p>Similar functionality to suppliers but for internal team members.</p>
+                <div style="margin-top: var(--spacing-lg);">
+                    <p><strong>Note:</strong> Project-specific resource allocation is available in the Project Phases section when working on a specific project.</p>
+                </div>
             </div>
         `;
     }
@@ -675,6 +736,9 @@ class EnhancedNavigationManager extends NavigationManager {
                 <h4>Feature Categories Configuration</h4>
                 <p>This section will manage feature categories with multipliers.</p>
                 <p>Categories help organize features and apply complexity multipliers.</p>
+                <div style="margin-top: var(--spacing-lg);">
+                    <p><strong>Note:</strong> Project-specific categories can be added in the Features Management section when working on a specific project.</p>
+                </div>
             </div>
         `;
     }
@@ -730,6 +794,10 @@ class EnhancedNavigationManager extends NavigationManager {
                     <button class="btn btn-secondary" id="reset-parameters-config">
                         <i class="fas fa-undo"></i> Reset to Defaults
                     </button>
+                </div>
+                
+                <div style="margin-top: var(--spacing-lg); padding: var(--spacing-md); background-color: var(--bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--border-primary);">
+                    <p><strong>Note:</strong> These are global default parameters. For project-specific phase configuration and effort distribution, use the Project Phases section in the Projects menu.</p>
                 </div>
             </div>
         `;
@@ -787,6 +855,10 @@ class EnhancedNavigationManager extends NavigationManager {
                     <label>Available Sections:</label>
                     <span class="status-value">${this.projectLoaded ? 'All sections accessible' : 'Only Projects and Configuration accessible'}</span>
                 </div>
+                <div class="status-item">
+                    <label>Project Phases:</label>
+                    <span class="status-value info">Available in Projects → Project Phases</span>
+                </div>
             </div>
         `;
 
@@ -798,9 +870,7 @@ class EnhancedNavigationManager extends NavigationManager {
     }
 }
 
-/**
- * Utility functions for navigation state management
- */
+// Utility functions for navigation state management
 class NavigationStateManager {
     static saveState(navigationManager) {
         const state = navigationManager.getNavigationState();
@@ -828,214 +898,3 @@ if (typeof window !== 'undefined') {
     window.EnhancedNavigationManager = EnhancedNavigationManager;
     window.NavigationStateManager = NavigationStateManager;
 }
-
-// Estendi EnhancedNavigationManager se esiste
-if (typeof window !== 'undefined' && window.EnhancedNavigationManager) {
-
-    // Override del navigateTo per gestire le fasi
-    const originalNavigateTo = window.EnhancedNavigationManager.prototype.navigateTo;
-
-    window.EnhancedNavigationManager.prototype.navigateTo = function(sectionName) {
-        if (sectionName === 'phases') {
-            // Verifica che ci sia un progetto caricato
-            if (!this.projectLoaded) {
-                console.warn('Cannot navigate to phases: No project loaded');
-                NotificationManager.warning('Please load or create a project first to access project phases');
-                return;
-            }
-
-            // Naviga alla pagina phases
-            this.showPhasesPage();
-        } else {
-            // Usa l'implementazione originale per altre sezioni
-            originalNavigateTo.call(this, sectionName);
-        }
-    };
-
-    // Nuovo metodo per mostrare la pagina delle fasi
-    window.EnhancedNavigationManager.prototype.showPhasesPage = function() {
-        // Hide all pages
-        document.querySelectorAll('.page').forEach(page => {
-            page.classList.remove('active');
-        });
-
-        // Update active states
-        this.updateActiveStates('phases');
-
-        // Show target page
-        const targetPage = document.getElementById('phases-page');
-        if (targetPage) {
-            targetPage.classList.add('active');
-
-            // Inizializza il phases manager se non esiste
-            if (!this.app.phasesManager) {
-                this.app.phasesManager = new ProjectPhasesManager(this.app, this.configManager);
-            }
-
-            // Render del contenuto delle fasi
-            setTimeout(() => {
-                this.app.phasesManager.renderPhasesPage(targetPage);
-            }, 100);
-        }
-
-        // Store current section
-        this.currentSection = 'phases';
-
-        // If navigating to a project sub-section, ensure projects is expanded
-        if (!this.projectsExpanded) {
-            this.projectsExpanded = true;
-            this.updateProjectsExpansion();
-        }
-
-        console.log('Navigated to phases page');
-    };
-
-    // Estendi renderConfigurationSection per includere le fasi nei tab
-    const originalRenderConfigurationSection = window.EnhancedNavigationManager.prototype.renderConfigurationSection;
-
-    window.EnhancedNavigationManager.prototype.renderConfigurationSection = function(container) {
-        // Chiama l'implementazione originale se esiste
-        if (originalRenderConfigurationSection) {
-            originalRenderConfigurationSection.call(this, container);
-        }
-
-        // Aggiungi il tab delle fasi se non esiste
-        const tabsNav = container.querySelector('.tabs-nav');
-        if (tabsNav && !tabsNav.querySelector('[data-tab="phases"]')) {
-            const phasesTab = document.createElement('button');
-            phasesTab.className = 'tab-button';
-            phasesTab.dataset.tab = 'phases';
-            phasesTab.textContent = 'Project Phases';
-
-            // Inserisci dopo il tab global
-            const globalTab = tabsNav.querySelector('[data-tab="global"]');
-            if (globalTab) {
-                globalTab.insertAdjacentElement('afterend', phasesTab);
-            } else {
-                tabsNav.appendChild(phasesTab);
-            }
-        }
-
-        // Aggiungi il contenuto del tab phases se non esiste
-        const tabContent = container.querySelector('.tab-content');
-        if (tabContent && !tabContent.querySelector('#phases-tab')) {
-            const phasesTabPane = document.createElement('div');
-            phasesTabPane.id = 'phases-tab';
-            phasesTabPane.className = 'tab-pane';
-            phasesTabPane.innerHTML = `
-                <div class="config-section-header">
-                    <h3>Project Phases Configuration</h3>
-                    <p class="config-description">
-                        Configure project phases, effort distribution, and resource allocation for the current project.
-                    </p>
-                </div>
-                <div id="phases-content"></div>
-            `;
-            tabContent.appendChild(phasesTabPane);
-        }
-
-        // Re-inizializza i tab
-        this.initializeConfigTabs(container);
-    };
-
-    // Estendi loadConfigContent per gestire il tab phases
-    const originalLoadConfigContent = window.EnhancedNavigationManager.prototype.loadConfigContent;
-
-    window.EnhancedNavigationManager.prototype.loadConfigContent = async function(tabName) {
-        if (tabName === 'phases') {
-            await this.loadPhasesConfigTab();
-        } else if (originalLoadConfigContent) {
-            await originalLoadConfigContent.call(this, tabName);
-        }
-    };
-
-    // Nuovo metodo per caricare il tab delle fasi
-    window.EnhancedNavigationManager.prototype.loadPhasesConfigTab = async function() {
-        const contentDiv = document.getElementById('phases-content');
-        if (!contentDiv) return;
-
-        // Verifica che ci sia un progetto caricato
-        if (!this.projectLoaded || !this.app.currentProject) {
-            contentDiv.innerHTML = `
-                <div class="config-placeholder">
-                    <h4>No Project Loaded</h4>
-                    <p>Please load or create a project to configure phases.</p>
-                    <button class="btn btn-primary" onclick="window.app?.navigationManager?.navigateTo('projects')">
-                        <i class="fas fa-plus"></i> Go to Projects
-                    </button>
-                </div>
-            `;
-            return;
-        }
-
-        // Inizializza il phases manager se non esiste
-        if (!this.app.phasesManager) {
-            this.app.phasesManager = new ProjectPhasesManager(this.app, this.configManager);
-        }
-
-        // Render delle fasi nel contenuto del tab
-        try {
-            // Crea un contenitore temporaneo per il rendering
-            const tempContainer = document.createElement('div');
-            this.app.phasesManager.renderPhasesPage(tempContainer);
-
-            // Estrai solo il contenuto interno
-            const phasesConfig = tempContainer.querySelector('.phases-configuration');
-            if (phasesConfig) {
-                contentDiv.innerHTML = phasesConfig.innerHTML;
-
-                // Ri-applica gli event listeners
-                this.app.phasesManager.attachEventListeners(contentDiv);
-            } else {
-                throw new Error('Failed to render phases configuration');
-            }
-        } catch (error) {
-            console.error('Failed to load phases configuration:', error);
-            contentDiv.innerHTML = `
-                <div class="phases-error">
-                    <h3>Error Loading Phases Configuration</h3>
-                    <p>There was an error loading the phases configuration. Please try refreshing the page.</p>
-                    <button class="btn btn-secondary" onclick="window.location.reload()">
-                        <i class="fas fa-sync"></i> Refresh Page
-                    </button>
-                </div>
-            `;
-        }
-    };
-}
-
-// Utility functions globali per le fasi
-window.navigateToPhases = function() {
-    if (window.app && window.app.navigationManager) {
-        window.app.navigationManager.navigateTo('phases');
-    }
-};
-
-window.refreshPhasesFromFeatures = function() {
-    if (window.app && window.app.phasesManager) {
-        window.app.phasesManager.refreshFromFeatures();
-        console.log('Phases refreshed from features');
-    }
-};
-
-window.getProjectTotals = function() {
-    if (window.app && window.app.phasesManager) {
-        const phasesSummary = window.app.getPhasesSummary();
-        const featuresTotal = window.app.currentProject?.features?.reduce((sum, f) => sum + (parseFloat(f.manDays) || 0), 0) || 0;
-
-        return {
-            features: {
-                count: window.app.currentProject?.features?.length || 0,
-                totalManDays: featuresTotal
-            },
-            phases: phasesSummary,
-            grandTotal: {
-                manDays: phasesSummary?.totalManDays || 0,
-                cost: phasesSummary?.totalCost || 0
-            }
-        };
-    }
-    return null;
-};
-
-console.log('Navigation integration for Project Phases completed successfully');

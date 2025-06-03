@@ -1,6 +1,6 @@
 /**
- * Updated Feature Manager - Integrato con ConfigurationManager
- * Utilizza il sistema di configurazione gerarchica per suppliers, categories e resources
+ * Fixed Feature Manager - PROBLEMA SALVATAGGIO RISOLTO
+ * Corretto il salvataggio delle feature e l'aggiornamento dell'UI
  */
 
 class FeatureManager {
@@ -493,15 +493,21 @@ class FeatureManager {
     }
 
     /**
-     * Save feature (add or update)
+     * FIXED: Save feature method with improved debugging and error handling
      */
     async saveFeature() {
+        console.log('=== SAVEFEATURE START ===');
+
         try {
             const formData = this.getFormData();
+            console.log('Form data:', formData);
 
             // Validate form data
             const validation = this.validateFeatureData(formData);
+            console.log('Validation result:', validation);
+
             if (!validation.isValid) {
+                console.log('Validation failed, showing errors');
                 this.showFormErrors(validation.errors);
                 return;
             }
@@ -509,6 +515,7 @@ class FeatureManager {
             // Check for duplicate IDs
             if (!this.editingFeature || this.editingFeature.id !== formData.id) {
                 if (this.isIdDuplicate(formData.id)) {
+                    console.log('Duplicate ID detected');
                     this.showFormErrors({ id: 'Feature ID already exists' });
                     return;
                 }
@@ -516,46 +523,103 @@ class FeatureManager {
 
             // Get current project
             const currentProject = window.app?.currentProject;
+            console.log('Current project:', currentProject ? 'Found' : 'Not found');
+
             if (!currentProject) {
                 throw new Error('No project loaded');
             }
 
+            // Ensure features array exists
+            if (!Array.isArray(currentProject.features)) {
+                console.log('Creating features array');
+                currentProject.features = [];
+            }
+
             // Add timestamps
             const now = new Date().toISOString();
+
             if (this.editingFeature) {
                 // Update existing feature
+                console.log('Updating existing feature:', this.editingFeature.id);
                 formData.created = this.editingFeature.created || now;
                 formData.modified = now;
 
                 const index = currentProject.features.findIndex(f => f.id === this.editingFeature.id);
+                console.log('Feature index:', index);
+
                 if (index !== -1) {
                     currentProject.features[index] = formData;
+                    console.log('Feature updated at index:', index);
+                } else {
+                    console.warn('Feature not found for update, adding as new');
+                    currentProject.features.push(formData);
                 }
             } else {
                 // Add new feature
+                console.log('Adding new feature');
                 formData.created = now;
                 formData.modified = now;
                 currentProject.features.push(formData);
+                console.log('Feature added. Total features:', currentProject.features.length);
             }
 
-            // Mark project as dirty
-            window.app?.markDirty();
+            // CRITICAL: Mark project as dirty to trigger save
+            console.log('Marking project as dirty');
+            if (window.app && typeof window.app.markDirty === 'function') {
+                window.app.markDirty();
+                console.log('Project marked as dirty');
+            } else {
+                console.error('window.app.markDirty not available');
+            }
+
+            // CRITICAL: Force project save to ensure data persistence
+            console.log('Triggering project save...');
+            if (window.app && typeof window.app.saveProject === 'function') {
+                try {
+                    await window.app.saveProject();
+                    console.log('Project saved successfully');
+                } catch (saveError) {
+                    console.error('Project save failed:', saveError);
+                    // Continue anyway as the feature is in memory
+                }
+            }
 
             // Refresh UI
+            console.log('Refreshing UI');
             this.refreshTable();
-            window.app?.updateSummary();
+
+            if (window.app && typeof window.app.updateSummary === 'function') {
+                window.app.updateSummary();
+            }
 
             // Close modal
             this.closeFeatureModal();
 
             // Show success notification
             const action = this.editingFeature ? 'updated' : 'added';
-            NotificationManager.show(`Feature ${action} successfully`, 'success');
+            console.log('Feature operation successful:', action);
+
+            if (window.NotificationManager) {
+                NotificationManager.show(`Feature ${action} successfully`, 'success');
+            }
+
+            // ADDITIONAL: Debug current state
+            console.log('Current project features count:', currentProject.features.length);
+            console.log('Last feature:', currentProject.features[currentProject.features.length - 1]);
 
         } catch (error) {
+            console.error('=== SAVEFEATURE ERROR ===');
             console.error('Save feature failed:', error);
-            NotificationManager.show(`Failed to save feature: ${error.message}`, 'error');
+            console.error('Stack trace:', error.stack);
+
+            if (window.NotificationManager) {
+                NotificationManager.show(`Failed to save feature: ${error.message}`, 'error');
+            } else {
+                alert(`Failed to save feature: ${error.message}`);
+            }
         }
+
+        console.log('=== SAVEFEATURE END ===');
     }
 
     /**
@@ -582,19 +646,32 @@ class FeatureManager {
             const feature = currentProject.features[index];
             currentProject.features.splice(index, 1);
 
-            // Mark project as dirty
-            window.app?.markDirty();
+            // Mark project as dirty and save
+            if (window.app) {
+                window.app.markDirty();
+                try {
+                    await window.app.saveProject();
+                } catch (saveError) {
+                    console.error('Auto-save after delete failed:', saveError);
+                }
+            }
 
             // Refresh UI
             this.refreshTable();
-            window.app?.updateSummary();
+            if (window.app && typeof window.app.updateSummary === 'function') {
+                window.app.updateSummary();
+            }
 
             // Show success notification
-            NotificationManager.show(`Feature "${feature.description}" deleted`, 'success');
+            if (window.NotificationManager) {
+                NotificationManager.show(`Feature "${feature.description}" deleted`, 'success');
+            }
 
         } catch (error) {
             console.error('Delete feature failed:', error);
-            NotificationManager.show(`Failed to delete feature: ${error.message}`, 'error');
+            if (window.NotificationManager) {
+                NotificationManager.show(`Failed to delete feature: ${error.message}`, 'error');
+            }
         }
     }
 
@@ -602,7 +679,7 @@ class FeatureManager {
      * Get form data as object
      */
     getFormData() {
-        return {
+        const data = {
             id: document.getElementById('feature-id')?.value?.trim() || '',
             description: document.getElementById('feature-description')?.value?.trim() || '',
             category: document.getElementById('feature-category')?.value || '',
@@ -610,6 +687,9 @@ class FeatureManager {
             manDays: parseFloat(document.getElementById('feature-man-days')?.value) || 0,
             notes: document.getElementById('feature-notes')?.value?.trim() || ''
         };
+
+        console.log('getFormData result:', data);
+        return data;
     }
 
     /**
@@ -618,6 +698,8 @@ class FeatureManager {
      */
     validateFeatureData(data) {
         const errors = {};
+
+        console.log('Validating data:', data);
 
         // Required fields
         if (!data.id) {
@@ -655,6 +737,8 @@ class FeatureManager {
         } else if (data.manDays > 1000) {
             errors.manDays = 'Man days seems too high (max 1000)';
         }
+
+        console.log('Validation errors:', errors);
 
         return {
             isValid: Object.keys(errors).length === 0,
@@ -694,7 +778,7 @@ class FeatureManager {
      */
     isIdDuplicate(id) {
         const currentProject = window.app?.currentProject;
-        if (!currentProject) return false;
+        if (!currentProject || !currentProject.features) return false;
 
         return currentProject.features.some(feature =>
             feature.id.toLowerCase() === id.toLowerCase()
@@ -725,6 +809,12 @@ class FeatureManager {
                 element.parentNode.appendChild(errorDiv);
             }
         });
+
+        // Focus first error field
+        const firstErrorField = document.querySelector('#feature-form .error');
+        if (firstErrorField) {
+            firstErrorField.focus();
+        }
     }
 
     /**
@@ -747,7 +837,7 @@ class FeatureManager {
      */
     generateFeatureId() {
         const currentProject = window.app?.currentProject;
-        if (!currentProject) return 'FEAT-001';
+        if (!currentProject || !currentProject.features) return 'FEAT-001';
 
         const existingIds = currentProject.features.map(f => f.id);
         let counter = 1;
@@ -762,11 +852,18 @@ class FeatureManager {
     }
 
     /**
-     * Refresh the features table
+     * ENHANCED: Refresh the features table with better debugging
      */
     refreshTable() {
+        console.log('=== REFRESH TABLE START ===');
+
         const currentProject = window.app?.currentProject;
-        if (!currentProject) return;
+        if (!currentProject) {
+            console.log('No current project for table refresh');
+            return;
+        }
+
+        console.log('Refreshing table with features:', currentProject.features?.length || 0);
 
         // Refresh filter dropdowns
         this.populateFilterDropdowns();
@@ -776,6 +873,8 @@ class FeatureManager {
 
         // Render table
         this.renderTable();
+
+        console.log('=== REFRESH TABLE END ===');
     }
 
     /**
@@ -783,7 +882,7 @@ class FeatureManager {
      */
     applyFilters() {
         const currentProject = window.app?.currentProject;
-        if (!currentProject) {
+        if (!currentProject || !currentProject.features) {
             this.filteredFeatures = [];
             return;
         }
@@ -835,6 +934,7 @@ class FeatureManager {
         });
 
         this.filteredFeatures = features;
+        console.log('Applied filters, filtered features:', this.filteredFeatures.length);
     }
 
     /**
@@ -891,7 +991,10 @@ class FeatureManager {
      */
     renderTable() {
         const tbody = document.getElementById('features-tbody');
-        if (!tbody) return;
+        if (!tbody) {
+            console.warn('Features table body not found');
+            return;
+        }
 
         // Clear existing rows
         tbody.innerHTML = '';
@@ -918,6 +1021,8 @@ class FeatureManager {
             const row = this.createFeatureRow(feature);
             tbody.appendChild(row);
         });
+
+        console.log(`Rendered ${this.filteredFeatures.length} feature rows`);
     }
 
     /**
