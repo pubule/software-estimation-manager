@@ -710,7 +710,7 @@ class FeatureManager {
 
         if (!data.description) {
             errors.description = 'Description is required';
-        } else if (data.description.length < 10) {
+        } else if (data.description.length < 3) {
             errors.description = 'Description must be at least 10 characters long';
         }
 
