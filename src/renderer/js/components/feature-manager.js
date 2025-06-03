@@ -837,14 +837,14 @@ class FeatureManager {
      */
     generateFeatureId() {
         const currentProject = window.app?.currentProject;
-        if (!currentProject || !currentProject.features) return 'FEAT-001';
+        if (!currentProject || !currentProject.features) return 'BR-001';
 
         const existingIds = currentProject.features.map(f => f.id);
         let counter = 1;
         let newId;
 
         do {
-            newId = `FEAT-${counter.toString().padStart(3, '0')}`;
+            newId = `BR-${counter.toString().padStart(3, '0')}`;
             counter++;
         } while (existingIds.includes(newId));
 

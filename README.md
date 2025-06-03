@@ -228,7 +228,7 @@ software-estimation-manager/
 ### Feature
 ```json
 {
-  "id": "FEAT-001",
+  "id": "BR-001",
   "description": "User authentication system",
   "category": "security",
   "supplier": "supplier1",

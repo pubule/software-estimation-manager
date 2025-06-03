@@ -24,7 +24,7 @@ class ProjectPhasesManager {
                 name: 'Functional Analysis',
                 description: 'Business requirements analysis and functional specification',
                 type: 'analysis',
-                defaultEffort: { G1: 10, G2: 20, TA: 50, PM: 20 },
+                defaultEffort: { G1: 100, G2: 0, TA: 20, PM: 50 },
                 editable: true
             },
             {
@@ -32,7 +32,7 @@ class ProjectPhasesManager {
                 name: 'Technical Analysis',
                 description: 'Technical design and architecture specification',
                 type: 'analysis',
-                defaultEffort: { G1: 30, G2: 20, TA: 40, PM: 10 },
+                defaultEffort: { G1: 0, G2: 100, TA: 60, PM: 20 },
                 editable: true
             },
             {
@@ -40,7 +40,7 @@ class ProjectPhasesManager {
                 name: 'Development',
                 description: 'Implementation of features (calculated from features list)',
                 type: 'development',
-                defaultEffort: { G1: 40, G2: 35, TA: 15, PM: 10 },
+                defaultEffort: { G1: 0, G2: 100, TA: 40, PM: 20 },
                 editable: true,
                 calculated: true
             },
@@ -49,7 +49,7 @@ class ProjectPhasesManager {
                 name: 'Integration Tests',
                 description: 'System integration and integration testing',
                 type: 'testing',
-                defaultEffort: { G1: 25, G2: 35, TA: 30, PM: 10 },
+                defaultEffort: { G1: 100, G2: 50, TA: 50, PM: 75 },
                 editable: true
             },
             {
@@ -57,7 +57,7 @@ class ProjectPhasesManager {
                 name: 'UAT Tests',
                 description: 'User acceptance testing support and execution',
                 type: 'testing',
-                defaultEffort: { G1: 15, G2: 25, TA: 40, PM: 20 },
+                defaultEffort: { G1: 50, G2: 50, TA: 40, PM: 75 },
                 editable: true
             },
             {
@@ -65,7 +65,7 @@ class ProjectPhasesManager {
                 name: 'Consolidation',
                 description: 'Final testing, bug fixing, and deployment preparation',
                 type: 'testing',
-                defaultEffort: { G1: 30, G2: 30, TA: 25, PM: 15 },
+                defaultEffort: { G1: 30, G2: 30, TA: 30, PM: 20 },
                 editable: true
             },
             {
@@ -73,7 +73,7 @@ class ProjectPhasesManager {
                 name: 'VAPT',
                 description: 'Vulnerability Assessment and Penetration Testing',
                 type: 'testing',
-                defaultEffort: { G1: 20, G2: 10, TA: 60, PM: 10 },
+                defaultEffort: { G1: 30, G2: 30, TA: 30, PM: 20 },
                 editable: true
             },
             {
@@ -81,7 +81,7 @@ class ProjectPhasesManager {
                 name: 'Post Go-Live Support',
                 description: 'Production support and monitoring after deployment',
                 type: 'support',
-                defaultEffort: { G1: 20, G2: 30, TA: 25, PM: 25 },
+                defaultEffort: { G1: 0, G2: 100, TA: 50, PM: 100 },
                 editable: true
             }
         ];
@@ -648,11 +648,6 @@ class ProjectPhasesManager {
         const errors = [];
 
         this.currentPhases.forEach(phase => {
-            // Check effort distribution
-            const effortTotal = Object.values(phase.effort).reduce((sum, val) => sum + val, 0);
-            if (effortTotal !== 100) {
-                errors.push(`${phase.name}: Effort distribution total is ${effortTotal}% (should be 100%)`);
-            }
 
             // Check negative values
             if (phase.manDays < 0) {
