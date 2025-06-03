@@ -842,3 +842,1168 @@
 #project-name::-webkit-scrollbar {
     display: none;
 }
+
+/**
+ * Nested Navigation CSS
+ * Complete styles for hierarchical navigation with project sections
+ */
+
+/* Enhanced Navigation Styles for Nested Structure */
+
+/* Nested Navigation Styles */
+.nav-section.has-children {
+    position: relative;
+}
+
+.nav-section.has-children > .nav-item {
+    justify-content: space-between;
+    padding-right: var(--spacing-sm);
+}
+
+.nav-toggle {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    font-size: 10px;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: var(--spacing-xs);
+}
+
+.nav-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-toggle.expanded {
+    transform: rotate(90deg);
+}
+
+.nav-children {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-normal), opacity var(--transition-fast);
+    background-color: rgba(0, 0, 0, 0.1);
+    opacity: 0;
+}
+
+.nav-children.expanded {
+    max-height: 300px; /* Adjust based on content */
+    opacity: 1;
+}
+
+.nav-child {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-xl);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    border-left: 2px solid transparent;
+    position: relative;
+    margin-left: var(--spacing-md);
+}
+
+.nav-child:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+    border-left-color: var(--text-accent);
+}
+
+.nav-child.active {
+    background-color: var(--bg-active);
+    color: var(--text-inverse);
+    border-left-color: var(--text-accent);
+}
+
+.nav-child.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 2px,
+            rgba(255, 255, 255, 0.05) 2px,
+            rgba(255, 255, 255, 0.05) 4px
+    );
+}
+
+.nav-child.disabled:hover {
+    background-color: transparent;
+    color: var(--text-secondary);
+    border-left-color: transparent;
+}
+
+.nav-child i {
+    width: 14px;
+    text-align: center;
+    font-size: 12px;
+}
+
+/* Project status indicator */
+.project-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-left: auto;
+    margin-right: var(--spacing-xs);
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.project-status-indicator.no-project {
+    background-color: var(--text-muted);
+}
+
+.project-status-indicator.project-loaded {
+    background-color: var(--success);
+    box-shadow: 0 0 4px rgba(76, 175, 80, 0.5);
+}
+
+.project-status-indicator.project-dirty {
+    background-color: var(--warning);
+    box-shadow: 0 0 4px rgba(255, 152, 0, 0.5);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Tooltip for disabled items */
+.nav-child.disabled::after {
+    content: 'Load or create a project first';
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: var(--spacing-sm);
+    background-color: var(--bg-quaternary);
+    color: var(--text-primary);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-fast);
+    z-index: 1000;
+    pointer-events: none;
+    border: 1px solid var(--border-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.nav-child.disabled:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Enhanced navigation item styling */
+.nav-item {
+    position: relative;
+}
+
+.nav-section.has-children.active > .nav-item {
+    background-color: var(--bg-selected);
+}
+
+/* Project status section in configuration */
+.config-project-status {
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+}
+
+.project-status-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+}
+
+.status-item label {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+.status-value {
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+.status-value.success {
+    color: var(--success);
+}
+
+.status-value.warning {
+    color: var(--warning);
+}
+
+.status-value.muted {
+    color: var(--text-muted);
+}
+
+/* Animation for expanding/collapsing */
+.nav-children {
+    transition: max-height var(--transition-normal), opacity var(--transition-fast);
+}
+
+.nav-children:not(.expanded) {
+    opacity: 0;
+}
+
+.nav-children.expanded {
+    opacity: 1;
+}
+
+/* Smooth transitions for all interactive elements */
+.nav-item,
+.nav-child,
+.nav-toggle,
+.project-status-indicator {
+    transition: all var(--transition-fast);
+}
+
+/* Loading state for navigation */
+.nav-child.loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.nav-child.loading::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Enhanced hover effects */
+.nav-item:hover .project-status-indicator {
+    transform: scale(1.2);
+}
+
+.nav-toggle:focus {
+    outline: 2px solid var(--text-accent);
+    outline-offset: 2px;
+}
+
+.nav-child:focus {
+    outline: 2px solid var(--text-accent);
+    outline-offset: -2px;
+}
+
+/* Nested structure visual enhancements */
+.nav-child::before {
+    content: '';
+    position: absolute;
+    left: calc(-1 * var(--spacing-md));
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: var(--border-primary);
+    opacity: 0.3;
+}
+
+.nav-child:first-child::after {
+    content: '';
+    position: absolute;
+    left: calc(-1 * var(--spacing-md));
+    top: 50%;
+    width: var(--spacing-sm);
+    height: 1px;
+    background-color: var(--border-primary);
+    opacity: 0.3;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .nav-child {
+        padding-left: var(--spacing-lg);
+        margin-left: var(--spacing-sm);
+    }
+
+    .nav-child.disabled::after {
+        display: none;
+    }
+
+    .nav-toggle {
+        width: 20px;
+        height: 20px;
+    }
+
+    .project-status-indicator {
+        width: 10px;
+        height: 10px;
+    }
+
+    .nav-child::before,
+    .nav-child:first-child::after {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-children {
+        margin-left: 0;
+    }
+
+    .nav-child {
+        padding-left: var(--spacing-md);
+        margin-left: 0;
+    }
+
+    .nav-child span {
+        font-size: var(--font-size-xs);
+    }
+
+    .nav-toggle {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .nav-child.disabled {
+        opacity: 0.6;
+        text-decoration: line-through;
+    }
+
+    .project-status-indicator {
+        border: 1px solid currentColor;
+    }
+
+    .nav-child.disabled::after {
+        border: 2px solid var(--text-primary);
+    }
+
+    .nav-children {
+        border-left: 2px solid var(--border-primary);
+        margin-left: var(--spacing-sm);
+    }
+}
+
+/* Dark mode enhancements */
+@media (prefers-color-scheme: dark) {
+    .nav-children {
+        background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .nav-child.disabled {
+        background-image: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 2px,
+                rgba(255, 255, 255, 0.03) 2px,
+                rgba(255, 255, 255, 0.03) 4px
+        );
+    }
+}
+
+/* Animation for status changes */
+.project-status-indicator {
+    transition: all var(--transition-normal);
+}
+
+.project-status-indicator.no-project {
+    animation: none;
+}
+
+.project-status-indicator.project-loaded {
+    animation: statusLoaded 0.5s ease-out;
+}
+
+.project-status-indicator.project-dirty {
+    animation: pulse 2s infinite;
+}
+
+@keyframes statusLoaded {
+    0% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+    50% {
+        transform: scale(1.3);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Enhanced visual feedback for navigation hierarchy */
+.nav-section {
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-xs);
+    overflow: hidden;
+}
+
+.nav-section.has-children {
+    border: 1px solid transparent;
+    transition: border-color var(--transition-fast);
+}
+
+.nav-section.has-children.active {
+    border-color: var(--text-accent);
+    background-color: rgba(0, 127, 212, 0.05);
+}
+
+/* Breadcrumb-style indication for nested sections */
+.nav-child.active::before {
+    background-color: var(--text-accent);
+    opacity: 1;
+    width: 2px;
+}
+
+/* Special styling for project management sections */
+.nav-child[data-section="features"] i {
+    color: #4caf50;
+}
+
+.nav-child[data-section="phases"] i {
+    color: #2196f3;
+}
+
+.nav-child[data-section="calculations"] i {
+    color: #ff9800;
+}
+
+.nav-child[data-section="history"] i {
+    color: #9c27b0;
+}
+
+/* Hover effects for project status indicator */
+.nav-item:hover .project-status-indicator.project-loaded {
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
+}
+
+.nav-item:hover .project-status-indicator.project-dirty {
+    box-shadow: 0 0 8px rgba(255, 152, 0, 0.8);
+}
+
+.nav-item:hover .project-status-indicator.no-project {
+    opacity: 0.8;
+}
+
+/* Configuration tab enhancements for nested structure */
+.config-tabs .tabs-nav {
+    border-bottom: 2px solid var(--border-primary);
+}
+
+.config-tabs .tab-button.active {
+    border-bottom-color: var(--text-accent);
+    color: var(--text-accent);
+}
+
+/* Enhanced form styling in configuration */
+.config-form .form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.config-form .config-input {
+    width: 100%;
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
+    color: var(--text-primary);
+    transition: border-color var(--transition-fast);
+}
+
+.config-form .config-input:focus {
+    border-color: var(--input-focus);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 127, 212, 0.2);
+}
+
+.config-actions {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--border-primary);
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+/* Improved accessibility */
+.nav-toggle[aria-expanded="true"] {
+    transform: rotate(90deg);
+}
+
+.nav-child[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Print styles */
+@media print {
+    .nav-toggle,
+    .project-status-indicator,
+    .nav-child.disabled::after {
+        display: none !important;
+    }
+
+    .nav-children {
+        max-height: none !important;
+        overflow: visible !important;
+        opacity: 1 !important;
+    }
+
+    .nav-section.has-children {
+        page-break-inside: avoid;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .nav-children {
+        transition: none;
+    }
+
+    .nav-toggle {
+        transition: none;
+    }
+
+    .project-status-indicator {
+        animation: none !important;
+    }
+
+    .nav-child.loading::before {
+        animation: none;
+    }
+}
+
+/**
+ * Nested Navigation CSS
+ * Complete styles for hierarchical navigation with project sections
+ */
+
+/* Enhanced Navigation Styles for Nested Structure */
+
+/* Nested Navigation Styles */
+.nav-section.has-children {
+    position: relative;
+}
+
+.nav-section.has-children > .nav-item {
+    justify-content: space-between;
+    padding-right: var(--spacing-sm);
+}
+
+.nav-toggle {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    font-size: 10px;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: var(--spacing-xs);
+}
+
+.nav-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-toggle.expanded {
+    transform: rotate(90deg);
+}
+
+.nav-children {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-normal), opacity var(--transition-fast);
+    background-color: rgba(0, 0, 0, 0.1);
+    opacity: 0;
+}
+
+.nav-children.expanded {
+    max-height: 300px; /* Adjust based on content */
+    opacity: 1;
+}
+
+.nav-child {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-xl);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    border-left: 2px solid transparent;
+    position: relative;
+    margin-left: var(--spacing-md);
+}
+
+.nav-child:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+    border-left-color: var(--text-accent);
+}
+
+.nav-child.active {
+    background-color: var(--bg-active);
+    color: var(--text-inverse);
+    border-left-color: var(--text-accent);
+}
+
+.nav-child.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 2px,
+            rgba(255, 255, 255, 0.05) 2px,
+            rgba(255, 255, 255, 0.05) 4px
+    );
+}
+
+.nav-child.disabled:hover {
+    background-color: transparent;
+    color: var(--text-secondary);
+    border-left-color: transparent;
+}
+
+.nav-child i {
+    width: 14px;
+    text-align: center;
+    font-size: 12px;
+}
+
+/* Project status indicator */
+.project-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-left: auto;
+    margin-right: var(--spacing-xs);
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.project-status-indicator.no-project {
+    background-color: var(--text-muted);
+}
+
+.project-status-indicator.project-loaded {
+    background-color: var(--success);
+    box-shadow: 0 0 4px rgba(76, 175, 80, 0.5);
+}
+
+.project-status-indicator.project-dirty {
+    background-color: var(--warning);
+    box-shadow: 0 0 4px rgba(255, 152, 0, 0.5);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Tooltip for disabled items */
+.nav-child.disabled::after {
+    content: 'Load or create a project first';
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: var(--spacing-sm);
+    background-color: var(--bg-quaternary);
+    color: var(--text-primary);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-fast);
+    z-index: 1000;
+    pointer-events: none;
+    border: 1px solid var(--border-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.nav-child.disabled:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Enhanced navigation item styling */
+.nav-item {
+    position: relative;
+}
+
+.nav-section.has-children.active > .nav-item {
+    background-color: var(--bg-selected);
+}
+
+/* Project status section in configuration */
+.config-project-status {
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+}
+
+.project-status-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+}
+
+.status-item label {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+.status-value {
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+.status-value.success {
+    color: var(--success);
+}
+
+.status-value.warning {
+    color: var(--warning);
+}
+
+.status-value.muted {
+    color: var(--text-muted);
+}
+
+/* Loading state for navigation */
+.nav-child.loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.nav-child.loading::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Breadcrumb-style indication for nested items */
+.nav-child::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    width: 8px;
+    height: 1px;
+    background-color: var(--border-primary);
+    transform: translateY(-50%);
+}
+
+.nav-child.active::before {
+    background-color: var(--text-accent);
+}
+
+/* Enhanced hover effects */
+.nav-child:not(.disabled):hover {
+    transform: translateX(2px);
+}
+
+.nav-child:not(.disabled):active {
+    transform: translateX(1px);
+}
+
+/* Status indicators with tooltips */
+.project-status-indicator[title] {
+    cursor: help;
+}
+
+.project-status-indicator:hover {
+    transform: scale(1.2);
+}
+
+/* Smooth transitions for all elements */
+.nav-section,
+.nav-item,
+.nav-child,
+.nav-toggle,
+.project-status-indicator {
+    transition: all var(--transition-fast);
+}
+
+/* Focus states for accessibility */
+.nav-toggle:focus,
+.nav-item:focus,
+.nav-child:focus {
+    outline: 2px solid var(--text-accent);
+    outline-offset: 2px;
+}
+
+/* Keyboard navigation support */
+.nav-child:focus {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+    border-left-color: var(--text-accent);
+}
+
+/* Animation for section expansion */
+.nav-children {
+    transform-origin: top;
+}
+
+.nav-children.expanded {
+    animation: expandSection 0.3s ease-out;
+}
+
+@keyframes expandSection {
+    0% {
+        max-height: 0;
+        opacity: 0;
+        transform: scaleY(0.8);
+    }
+    100% {
+        max-height: 300px;
+        opacity: 1;
+        transform: scaleY(1);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .nav-child {
+        padding-left: var(--spacing-lg);
+        margin-left: var(--spacing-sm);
+        font-size: var(--font-size-xs);
+    }
+
+    .nav-child.disabled::after {
+        display: none;
+    }
+
+    .nav-toggle {
+        width: 20px;
+        height: 20px;
+    }
+
+    .project-status-indicator {
+        width: 10px;
+        height: 10px;
+    }
+
+    .nav-child span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-children {
+        margin-left: 0;
+    }
+
+    .nav-child {
+        padding-left: var(--spacing-md);
+        margin-left: 0;
+    }
+
+    .nav-child span {
+        font-size: var(--font-size-xs);
+    }
+
+    .nav-child::before {
+        display: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .nav-child.disabled {
+        opacity: 0.6;
+        text-decoration: line-through;
+    }
+
+    .project-status-indicator {
+        border: 1px solid currentColor;
+    }
+
+    .nav-child.disabled::after {
+        border: 2px solid var(--text-primary);
+        background-color: var(--bg-primary);
+    }
+
+    .nav-child.active {
+        font-weight: bold;
+        text-decoration: underline;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .nav-children,
+    .nav-toggle,
+    .project-status-indicator,
+    .nav-child {
+        transition: none;
+        animation: none;
+    }
+
+    .project-status-indicator.project-dirty {
+        animation: none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .nav-toggle,
+    .project-status-indicator,
+    .nav-child.disabled::after {
+        display: none;
+    }
+
+    .nav-children {
+        max-height: none;
+        opacity: 1;
+    }
+
+    .nav-child.disabled {
+        opacity: 0.3;
+    }
+}
+
+/* Dark theme specific adjustments */
+@media (prefers-color-scheme: dark) {
+    .nav-child.disabled {
+        background-image: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 2px,
+                rgba(255, 255, 255, 0.03) 2px,
+                rgba(255, 255, 255, 0.03) 4px
+        );
+    }
+
+    .project-status-indicator.project-loaded {
+        box-shadow: 0 0 6px rgba(76, 175, 80, 0.7);
+    }
+
+    .project-status-indicator.project-dirty {
+        box-shadow: 0 0 6px rgba(255, 152, 0, 0.7);
+    }
+}
+
+/* Custom properties for theming */
+:root {
+    --nav-child-indent: var(--spacing-xl);
+    --nav-status-size: 8px;
+    --nav-transition-duration: var(--transition-fast);
+    --nav-expand-height: 300px;
+}
+
+/* Utility classes for navigation states */
+.nav-section.collapsed .nav-children {
+    max-height: 0;
+    opacity: 0;
+}
+
+.nav-section.expanded .nav-children {
+    max-height: var(--nav-expand-height);
+    opacity: 1;
+}
+
+.nav-section.has-active-child > .nav-item {
+    background-color: rgba(0, 123, 204, 0.1);
+}
+
+/* Special effects for project status changes */
+.project-status-indicator.status-changed {
+    animation: statusChange 0.6s ease-out;
+}
+
+@keyframes statusChange {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.3);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Enhanced tooltip positioning */
+.nav-child.disabled::after {
+    white-space: nowrap;
+    max-width: 200px;
+    word-wrap: break-word;
+    text-align: center;
+}
+
+/* Sidebar collapsed state adjustments */
+.sidebar.collapsed .nav-child span {
+    display: none;
+}
+
+.sidebar.collapsed .nav-toggle {
+    display: none;
+}
+
+.sidebar.collapsed .nav-children {
+    display: none;
+}
+
+.sidebar.collapsed .project-status-indicator {
+    margin: 0;
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Enhanced active state styling */
+.nav-child.active {
+    box-shadow: inset 2px 0 0 var(--text-accent);
+    font-weight: 600;
+}
+
+.nav-child.active i {
+    color: var(--text-accent);
+}
+
+/* Contextual menu styling for nested items */
+.nav-child .context-menu {
+    position: absolute;
+    right: 0;
+    top: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-fast);
+}
+
+.nav-child:hover .context-menu {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Badge styling for navigation items */
+.nav-child .nav-badge {
+    margin-left: auto;
+    background-color: var(--text-accent);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 16px;
+    text-align: center;
+    line-height: 1;
+}
+
+.nav-child.disabled .nav-badge {
+    opacity: 0.5;
+}
+
+/* Section dividers */
+.nav-section + .nav-section {
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border-primary);
+}
+
+.nav-section.has-children + .nav-section {
+    border-top-color: var(--border-secondary);
+}

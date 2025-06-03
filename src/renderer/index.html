@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="styles/themes/vscode-dark.css">
     <!-- NUOVO: CSS per configurazione gerarchica -->
     <link rel="stylesheet" href="styles/hierarchical-config.css">
+    <!-- NUOVO: CSS per navigazione annidata -->
+    <link rel="stylesheet" href="styles/nested-navigation.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -47,41 +49,48 @@
 
     <!-- Main Container -->
     <div class="main-container">
-        <!-- Sidebar Navigation -->
+        <!-- Sidebar Navigation with Nested Structure -->
         <nav class="sidebar">
             <div class="sidebar-header">
                 <h3>Project Explorer</h3>
             </div>
 
             <div class="nav-sections">
-                <div class="nav-section active" data-section="projects">
+                <!-- Projects Section with nested children -->
+                <div class="nav-section has-children" data-section="projects">
                     <div class="nav-item">
                         <i class="fas fa-folder-open"></i>
                         <span>Projects</span>
+                        <div class="project-status-indicator no-project" id="nav-project-status"></div>
+                        <button class="nav-toggle" id="projects-toggle">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="nav-children" id="projects-children">
+                        <div class="nav-child disabled" data-section="features">
+                            <i class="fas fa-list-ul"></i>
+                            <span>Features Management</span>
+                        </div>
+
+                        <div class="nav-child disabled" data-section="phases">
+                            <i class="fas fa-project-diagram"></i>
+                            <span>Project Phases</span>
+                        </div>
+
+                        <div class="nav-child disabled" data-section="calculations">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Calculations</span>
+                        </div>
+
+                        <div class="nav-child disabled" data-section="history">
+                            <i class="fas fa-history"></i>
+                            <span>Version History</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="nav-section" data-section="features">
-                    <div class="nav-item">
-                        <i class="fas fa-list-ul"></i>
-                        <span>Features Management</span>
-                    </div>
-                </div>
-
-                <div class="nav-section" data-section="phases">
-                    <div class="nav-item">
-                        <i class="fas fa-project-diagram"></i>
-                        <span>Project Phases</span>
-                    </div>
-                </div>
-
-                <div class="nav-section" data-section="calculations">
-                    <div class="nav-item">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>Calculations</span>
-                    </div>
-                </div>
-
+                <!-- Configuration Section (independent) -->
                 <div class="nav-section" data-section="configuration">
                     <div class="nav-item">
                         <i class="fas fa-cog"></i>
@@ -89,17 +98,11 @@
                     </div>
                 </div>
 
+                <!-- Templates Section (independent) -->
                 <div class="nav-section" data-section="templates">
                     <div class="nav-item">
                         <i class="fas fa-copy"></i>
                         <span>Templates</span>
-                    </div>
-                </div>
-
-                <div class="nav-section" data-section="history">
-                    <div class="nav-item">
-                        <i class="fas fa-history"></i>
-                        <span>Version History</span>
                     </div>
                 </div>
             </div>
@@ -140,18 +143,18 @@
                         <div class="project-info">
                             <h4 id="current-project-name">No Project Loaded</h4>
                             <div class="project-details">
-                                    <span class="project-detail">
-                                        <i class="fas fa-calendar"></i>
-                                        <span id="current-project-created">-</span>
-                                    </span>
                                 <span class="project-detail">
-                                        <i class="fas fa-edit"></i>
-                                        <span id="current-project-modified">-</span>
-                                    </span>
+                                    <i class="fas fa-calendar"></i>
+                                    <span id="current-project-created">-</span>
+                                </span>
                                 <span class="project-detail">
-                                        <i class="fas fa-code-branch"></i>
-                                        <span id="current-project-version">-</span>
-                                    </span>
+                                    <i class="fas fa-edit"></i>
+                                    <span id="current-project-modified">-</span>
+                                </span>
+                                <span class="project-detail">
+                                    <i class="fas fa-code-branch"></i>
+                                    <span id="current-project-version">-</span>
+                                </span>
                             </div>
                         </div>
                         <div class="project-actions">
@@ -260,7 +263,7 @@
                 </div>
             </div>
 
-            <!-- Other pages remain the same... -->
+            <!-- Project Phases Page -->
             <div id="phases-page" class="page">
                 <div class="page-header">
                     <h2>Project Phases Configuration</h2>
@@ -270,6 +273,7 @@
                 </div>
             </div>
 
+            <!-- Calculations Page -->
             <div id="calculations-page" class="page">
                 <div class="page-header">
                     <h2>Calculations Dashboard</h2>
@@ -279,6 +283,7 @@
                 </div>
             </div>
 
+            <!-- Configuration Page -->
             <div id="configuration-page" class="page">
                 <div class="page-header">
                     <h2>Configuration</h2>
@@ -288,6 +293,7 @@
                 </div>
             </div>
 
+            <!-- Templates Page -->
             <div id="templates-page" class="page">
                 <div class="page-header">
                     <h2>Templates Management</h2>
@@ -297,6 +303,7 @@
                 </div>
             </div>
 
+            <!-- Version History Page -->
             <div id="history-page" class="page">
                 <div class="page-header">
                     <h2>Version History</h2>

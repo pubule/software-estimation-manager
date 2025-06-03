@@ -235,6 +235,9 @@ class ProjectManager {
             this.app.currentProject = newProject;
             this.app.isDirty = true;
 
+            // Notifica il navigation manager che un progetto è stato caricato
+            this.app.navigationManager.onProjectLoaded();
+
             // AUTO-SAVE: Save new project automatically
             console.log('Auto-saving new project...');
             const saveResult = await this.app.dataManager.saveProject(newProject);
@@ -242,6 +245,9 @@ class ProjectManager {
             if (saveResult.success) {
                 this.app.isDirty = false;
                 this.app.dataManager.currentProjectPath = saveResult.filePath;
+
+                // Aggiorna lo stato dirty del navigation manager
+                this.app.navigationManager.onProjectDirty(false);
 
                 // Add to recent projects with the saved file path
                 this.addToRecentProjects(newProject.project, saveResult.filePath);
@@ -628,6 +634,8 @@ class ProjectManager {
             this.app.dataManager.currentProjectPath = filePath;
         }
 
+        this.app.navigationManager.onProjectLoaded();
+
         // FIXED: Update dropdowns through refreshDropdowns instead of populateDropdowns
         this.app.refreshDropdowns();
 
@@ -690,6 +698,9 @@ class ProjectManager {
             // Reset to empty project
             this.app.currentProject = this.app.createNewProject();
             this.app.isDirty = false;
+
+            // Notifica il navigation manager che il progetto è stato chiuso
+            this.app.navigationManager.onProjectClosed();
 
             // FIXED: Update dropdowns through refreshDropdowns instead of populateDropdowns
             this.app.refreshDropdowns();

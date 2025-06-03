@@ -205,157 +205,368 @@ class NavigationManager {
 }
 
 /**
- * Enhanced Navigation Manager with hierarchical configuration support
- * Extends NavigationManager to support configuration management
+ * Enhanced Navigation Manager with Nested Project Sections
+ * Extends NavigationManager to support hierarchical navigation
  */
 class EnhancedNavigationManager extends NavigationManager {
     constructor(app, configManager) {
         super(app);
         this.configManager = configManager;
+        this.projectsExpanded = false;
+        this.projectLoaded = false;
+        this.projectDirty = false;
+
+        this.initializeNestedNavigation();
+    }
+
+    initializeNestedNavigation() {
+        this.setupNestedEventListeners();
+        this.updateProjectStatus();
+    }
+
+    setupNestedEventListeners() {
+        // Override parent navigation setup
+        this.setupNavigationEvents();
+        this.setupProjectToggle();
+    }
+
+    setupNavigationEvents() {
+        // Main navigation sections
+        document.querySelectorAll('.nav-section[data-section]').forEach(section => {
+            const navItem = section.querySelector('.nav-item');
+            if (navItem) {
+                navItem.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sectionName = section.dataset.section;
+
+                    if (sectionName === 'projects') {
+                        // *** CORREZIONE: Sempre navigare alla pagina Projects ***
+                        this.navigateTo('projects');
+
+                        // Poi espandere la sezione se il progetto è caricato
+                        if (this.projectLoaded && !this.projectsExpanded) {
+                            this.projectsExpanded = true;
+                            this.updateProjectsExpansion();
+                        }
+                    } else {
+                        this.navigateTo(sectionName);
+                    }
+                });
+            }
+        });
+
+        // Nested project sections
+        document.querySelectorAll('.nav-child[data-section]').forEach(child => {
+            child.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!child.classList.contains('disabled')) {
+                    const sectionName = child.dataset.section;
+                    this.navigateTo(sectionName);
+                }
+            });
+        });
+    }
+
+    setupProjectToggle() {
+        const projectsToggle = document.getElementById('projects-toggle');
+        if (projectsToggle) {
+            projectsToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleProjectsSection();
+            });
+        }
+    }
+
+    toggleProjectsSection() {
+        this.projectsExpanded = !this.projectsExpanded;
+        this.updateProjectsExpansion();
+
+        // If projects section is being opened and no specific sub-section is active,
+        // navigate to projects main page
+        if (this.projectsExpanded && !this.isProjectSubSection(this.currentSection)) {
+            this.navigateTo('projects');
+        }
+    }
+
+    navigateTo(sectionName) {
+        // Check if user is trying to access a project sub-section without a loaded project
+        if (this.isProjectSubSection(sectionName) && !this.projectLoaded) {
+            console.warn(`Cannot navigate to ${sectionName}: No project loaded`);
+            NotificationManager.warning('Please load or create a project first');
+            return;
+        }
+
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // Update active states
+        this.updateActiveStates(sectionName);
+
+        // Show target page
+        const targetPage = document.getElementById(`${sectionName}-page`);
+        if (targetPage) {
+            targetPage.classList.add('active');
+        }
+
+        // Store current section
+        this.currentSection = sectionName;
+
+        // If navigating to a project sub-section, ensure projects is expanded
+        if (this.isProjectSubSection(sectionName)) {
+            if (!this.projectsExpanded) {
+                this.projectsExpanded = true;
+                this.updateProjectsExpansion();
+            }
+        }
+
+        // Load content for configuration section
+        if (sectionName === 'configuration' && this.renderConfigurationSection) {
+            const container = document.querySelector('#configuration-page .config-content');
+            if (container) {
+                this.renderConfigurationSection(container);
+            }
+        }
+
+        console.log(`Navigated to section: ${sectionName}`);
+    }
+
+    updateActiveStates(activeSectionName) {
+        // Remove all active states
+        document.querySelectorAll('.nav-section, .nav-child').forEach(el => {
+            el.classList.remove('active');
+        });
+
+        // Set active state for the target section
+        const activeElement = document.querySelector(`[data-section="${activeSectionName}"]`);
+        if (activeElement) {
+            activeElement.classList.add('active');
+
+            // If it's a project sub-section, also mark projects as active
+            if (this.isProjectSubSection(activeSectionName)) {
+                const projectsSection = document.querySelector('[data-section="projects"]');
+                if (projectsSection) {
+                    projectsSection.classList.add('active');
+                }
+            }
+        }
+    }
+
+    updateProjectsExpansion() {
+        const toggle = document.getElementById('projects-toggle');
+        const children = document.getElementById('projects-children');
+
+        if (toggle && children) {
+            toggle.classList.toggle('expanded', this.projectsExpanded);
+            children.classList.toggle('expanded', this.projectsExpanded);
+        }
+    }
+
+    isProjectSubSection(sectionName) {
+        return ['features', 'phases', 'calculations', 'history'].includes(sectionName);
     }
 
     /**
-     * Render configuration section with hierarchical support
-     * @param {HTMLElement} container - Container element
+     * Update project status based on current project state
+     * @param {boolean} loaded - Whether a project is loaded
+     * @param {boolean} dirty - Whether the project has unsaved changes
+     */
+    setProjectStatus(loaded, dirty = false) {
+        this.projectLoaded = loaded;
+        this.projectDirty = dirty;
+        this.updateProjectStatus();
+        this.updateProjectSubSections();
+
+        // If project is being closed and user is viewing a project sub-section,
+        // navigate back to projects main page
+        if (!loaded && this.isProjectSubSection(this.currentSection)) {
+            this.navigateTo('projects');
+        }
+    }
+
+    updateProjectStatus() {
+        const indicator = document.getElementById('nav-project-status');
+        if (indicator) {
+            // Reset classes
+            indicator.className = 'project-status-indicator';
+
+            if (!this.projectLoaded) {
+                indicator.classList.add('no-project');
+            } else if (this.projectDirty) {
+                indicator.classList.add('project-dirty');
+            } else {
+                indicator.classList.add('project-loaded');
+            }
+        }
+    }
+
+    updateProjectSubSections() {
+        const subSections = document.querySelectorAll('.nav-child[data-section]');
+        subSections.forEach(child => {
+            if (this.projectLoaded) {
+                child.classList.remove('disabled');
+            } else {
+                child.classList.add('disabled');
+            }
+        });
+    }
+
+    /**
+     * Auto-expand projects section when a project is loaded
+     */
+    onProjectLoaded() {
+        this.setProjectStatus(true, false);
+
+        // Auto-expand projects section
+        if (!this.projectsExpanded) {
+            this.projectsExpanded = true;
+            this.updateProjectsExpansion();
+        }
+    }
+
+    /**
+     * Handle project being closed
+     */
+    onProjectClosed() {
+        this.setProjectStatus(false, false);
+    }
+
+    /**
+     * Handle project dirty state change
+     */
+    onProjectDirty(isDirty) {
+        this.setProjectStatus(this.projectLoaded, isDirty);
+    }
+
+    /**
+     * Get current navigation state
+     */
+    getNavigationState() {
+        return {
+            currentSection: this.currentSection,
+            projectLoaded: this.projectLoaded,
+            projectDirty: this.projectDirty,
+            projectsExpanded: this.projectsExpanded
+        };
+    }
+
+    /**
+     * Restore navigation state
+     */
+    restoreNavigationState(state) {
+        if (state) {
+            this.projectLoaded = state.projectLoaded || false;
+            this.projectDirty = state.projectDirty || false;
+            this.projectsExpanded = state.projectsExpanded || false;
+
+            this.updateProjectStatus();
+            this.updateProjectSubSections();
+            this.updateProjectsExpansion();
+
+            if (state.currentSection) {
+                this.navigateTo(state.currentSection);
+            }
+        }
+    }
+
+    /**
+     * Enhanced configuration rendering with project status awareness
      */
     renderConfigurationSection(container) {
-        container.innerHTML = `
-            <div class="config-tabs">
-                <div class="tabs">
-                    <div class="tabs-nav">
-                        <button class="tab-button active" data-tab="storage">Storage</button>
-                        <button class="tab-button" data-tab="global">Global Config</button>
-                        <button class="tab-button" data-tab="suppliers">Suppliers</button>
-                        <button class="tab-button" data-tab="resources">Internal Resources</button>
-                        <button class="tab-button" data-tab="categories">Categories</button>
-                        <button class="tab-button" data-tab="parameters">Parameters</button>
+        // Call parent implementation if exists
+        if (super.renderConfigurationSection) {
+            super.renderConfigurationSection(container);
+        } else {
+            // Basic configuration rendering
+            container.innerHTML = `
+                <div class="config-tabs">
+                    <div class="tabs">
+                        <div class="tabs-nav">
+                            <button class="tab-button active" data-tab="storage">Storage</button>
+                            <button class="tab-button" data-tab="global">Global Config</button>
+                            <button class="tab-button" data-tab="suppliers">Suppliers</button>
+                            <button class="tab-button" data-tab="resources">Internal Resources</button>
+                            <button class="tab-button" data-tab="categories">Categories</button>
+                            <button class="tab-button" data-tab="parameters">Parameters</button>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content">
+                        <div id="storage-tab" class="tab-pane active">
+                            <div class="config-section-header">
+                                <h3>Projects Storage Configuration</h3>
+                            </div>
+                            <div id="storage-content">
+                                <!-- Storage content will be loaded here -->
+                            </div>
+                        </div>
+
+                        <div id="global-tab" class="tab-pane">
+                            <div class="config-section-header">
+                                <h3>Global Default Configuration</h3>
+                                <p class="config-description">
+                                    These settings apply to all new projects by default. 
+                                    Projects can override these settings individually.
+                                </p>
+                            </div>
+                            <div id="global-content">
+                                <!-- Global config content will be loaded here -->
+                            </div>
+                        </div>
+                        
+                        <div id="suppliers-tab" class="tab-pane">
+                            <div class="config-section-header">
+                                <h3>Suppliers Configuration</h3>
+                            </div>
+                            <div id="suppliers-content">
+                                <p>Suppliers configuration will be implemented here...</p>
+                            </div>
+                        </div>
+                        
+                        <div id="resources-tab" class="tab-pane">
+                            <div class="config-section-header">
+                                <h3>Internal Resources Configuration</h3>
+                            </div>
+                            <div id="resources-content">
+                                <p>Internal resources configuration will be implemented here...</p>
+                            </div>
+                        </div>
+                        
+                        <div id="categories-tab" class="tab-pane">
+                            <div class="config-section-header">
+                                <h3>Feature Categories Configuration</h3>
+                            </div>
+                            <div id="categories-content">
+                                <p>Categories configuration will be implemented here...</p>
+                            </div>
+                        </div>
+                        
+                        <div id="parameters-tab" class="tab-pane">
+                            <div class="config-section-header">
+                                <h3>Calculation Parameters</h3>
+                            </div>
+                            <div id="parameters-content">
+                                <p>Parameters configuration will be implemented here...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="tab-content">
-                    <div id="storage-tab" class="tab-pane active">
-                        <div class="config-section-header">
-                            <h3>Projects Storage Configuration</h3>
-                        </div>
-                        <div id="storage-content">
-                            <!-- Storage content will be loaded here -->
-                        </div>
-                    </div>
+            `;
 
-                    <div id="global-tab" class="tab-pane">
-                        <div class="config-section-header">
-                            <h3>Global Default Configuration</h3>
-                            <p class="config-description">
-                                These settings apply to all new projects by default. 
-                                Projects can override these settings individually.
-                            </p>
-                            <div class="global-config-actions">
-                                <button class="btn btn-primary" id="export-global-config-btn">
-                                    <i class="fas fa-download"></i> Export Global Config
-                                </button>
-                                <button class="btn btn-secondary" id="import-global-config-btn">
-                                    <i class="fas fa-upload"></i> Import Global Config
-                                </button>
-                                <button class="btn btn-danger" id="reset-global-config-btn">
-                                    <i class="fas fa-undo"></i> Reset to Defaults
-                                </button>
-                            </div>
-                        </div>
-                        <div id="global-content">
-                            <!-- Global config content will be loaded here -->
-                        </div>
-                    </div>
-                    
-                    <div id="suppliers-tab" class="tab-pane">
-                        <div class="config-section-header">
-                            <h3>Suppliers Configuration</h3>
-                            <div class="config-mode-selector">
-                                <label>
-                                    <input type="radio" name="supplier-mode" value="project" checked>
-                                    Project Specific
-                                </label>
-                                <label>
-                                    <input type="radio" name="supplier-mode" value="global">
-                                    Global Defaults
-                                </label>
-                            </div>
-                            <button class="btn btn-primary" id="add-supplier-btn">
-                                <i class="fas fa-plus"></i> Add Supplier
-                            </button>
-                        </div>
-                        <div id="suppliers-content"></div>
-                    </div>
-                    
-                    <div id="resources-tab" class="tab-pane">
-                        <div class="config-section-header">
-                            <h3>Internal Resources Configuration</h3>
-                            <div class="config-mode-selector">
-                                <label>
-                                    <input type="radio" name="resource-mode" value="project" checked>
-                                    Project Specific
-                                </label>
-                                <label>
-                                    <input type="radio" name="resource-mode" value="global">
-                                    Global Defaults
-                                </label>
-                            </div>
-                            <button class="btn btn-primary" id="add-resource-btn">
-                                <i class="fas fa-plus"></i> Add Resource
-                            </button>
-                        </div>
-                        <div id="resources-content"></div>
-                    </div>
-                    
-                    <div id="categories-tab" class="tab-pane">
-                        <div class="config-section-header">
-                            <h3>Feature Categories Configuration</h3>
-                            <div class="config-mode-selector">
-                                <label>
-                                    <input type="radio" name="category-mode" value="project" checked>
-                                    Project Specific
-                                </label>
-                                <label>
-                                    <input type="radio" name="category-mode" value="global">
-                                    Global Defaults
-                                </label>
-                            </div>
-                            <button class="btn btn-primary" id="add-category-btn">
-                                <i class="fas fa-plus"></i> Add Category
-                            </button>
-                        </div>
-                        <div id="categories-content"></div>
-                    </div>
-                    
-                    <div id="parameters-tab" class="tab-pane">
-                        <div class="config-section-header">
-                            <h3>Calculation Parameters</h3>
-                            <div class="config-mode-selector">
-                                <label>
-                                    <input type="radio" name="params-mode" value="project" checked>
-                                    Project Specific
-                                </label>
-                                <label>
-                                    <input type="radio" name="params-mode" value="global">
-                                    Global Defaults
-                                </label>
-                            </div>
-                        </div>
-                        <div id="parameters-content"></div>
-                    </div>
-                </div>
-            </div>
-        `;
+            // Initialize tab functionality
+            this.initializeConfigTabs(container);
 
-        // Initialize tab functionality
-        this.initializeConfigTabs(container);
+            // Load initial tab content
+            this.loadConfigContent('storage');
+        }
 
-        // Load initial tab content
-        this.loadConfigContent('storage');
+        // Add project status information to configuration
+        this.addProjectStatusToConfig(container);
     }
 
     /**
-     * Load configuration content for a specific tab with hierarchical support
-     * @param {string} tabName - Tab name
+     * Load configuration content for a specific tab
      */
     async loadConfigContent(tabName) {
         const contentDiv = document.getElementById(`${tabName}-content`);
@@ -383,21 +594,18 @@ class EnhancedNavigationManager extends NavigationManager {
             default:
                 contentDiv.innerHTML = `
                     <div class="config-placeholder">
-                        <p>${this.capitalize(tabName)} configuration will be implemented here.</p>
+                        <p>${this.capitalize(tabName)} configuration will be implemented here...</p>
                     </div>
                 `;
                 break;
         }
     }
 
-    /**
-     * Load global configuration management
-     */
     async loadGlobalConfig() {
         const contentDiv = document.getElementById('global-content');
         if (!contentDiv) return;
 
-        const globalConfig = this.configManager.globalConfig;
+        const globalConfig = this.configManager?.globalConfig;
 
         contentDiv.innerHTML = `
             <div class="global-config-overview">
@@ -428,137 +636,23 @@ class EnhancedNavigationManager extends NavigationManager {
                         <li><strong>Centralized Management:</strong> Update global settings to affect all future projects</li>
                     </ul>
                 </div>
-
-                <div class="global-actions-section">
-                    <h4>Global Configuration Actions</h4>
-                    <div class="action-buttons-grid">
-                        <button class="btn btn-primary" id="manage-global-suppliers">
-                            <i class="fas fa-building"></i> Manage Global Suppliers
-                        </button>
-                        <button class="btn btn-primary" id="manage-global-resources">
-                            <i class="fas fa-users"></i> Manage Global Resources
-                        </button>
-                        <button class="btn btn-primary" id="manage-global-categories">
-                            <i class="fas fa-tags"></i> Manage Global Categories
-                        </button>
-                        <button class="btn btn-secondary" id="export-global-settings">
-                            <i class="fas fa-file-export"></i> Export Global Settings
-                        </button>
-                    </div>
-                </div>
             </div>
         `;
-
-        // Setup global config event listeners
-        this.setupGlobalConfigEventListeners();
     }
 
-    /**
-     * Load suppliers configuration with hierarchical support
-     */
     async loadSuppliersConfig() {
         const contentDiv = document.getElementById('suppliers-content');
         if (!contentDiv) return;
 
-        const mode = this.getConfigMode('supplier-mode');
-        const currentProject = this.app.currentProject;
-
-        let suppliers;
-        let isGlobalMode = mode === 'global';
-
-        if (isGlobalMode) {
-            suppliers = this.configManager.globalConfig?.suppliers || [];
-        } else {
-            const projectConfig = this.configManager.getProjectConfig(currentProject?.config);
-            suppliers = projectConfig.suppliers || [];
-        }
-
         contentDiv.innerHTML = `
-            <div class="config-explanation">
-                <div class="mode-info ${isGlobalMode ? 'global-mode' : 'project-mode'}">
-                    <i class="fas ${isGlobalMode ? 'fa-globe' : 'fa-project-diagram'}"></i>
-                    <div class="mode-text">
-                        <strong>${isGlobalMode ? 'Global Mode' : 'Project Mode'}</strong>
-                        <p>${isGlobalMode
-            ? 'Editing global default suppliers that apply to all new projects'
-            : 'Editing suppliers for the current project only'}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="config-table-container">
-                <table class="config-table hierarchical-table">
-                    <thead>
-                        <tr>
-                            <th>Source</th>
-                            <th>Name</th>
-                            <th>Real Rate (€/day)</th>
-                            <th>Official Rate (€/day)</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${suppliers.map(supplier => `
-                            <tr data-supplier-id="${supplier.id}" class="${this.getRowClass(supplier, isGlobalMode)}">
-                                <td>
-                                    <span class="source-indicator ${this.getSourceClass(supplier)}">
-                                        <i class="${this.getSourceIcon(supplier)}"></i>
-                                        ${this.getSourceLabel(supplier)}
-                                    </span>
-                                </td>
-                                <td>
-                                    <input type="text" value="${Helpers.escapeHtml(supplier.name)}" 
-                                           class="config-input supplier-name" data-field="name"
-                                           ${this.isReadOnly(supplier, isGlobalMode) ? 'readonly' : ''}>
-                                </td>
-                                <td>
-                                    <input type="number" value="${supplier.realRate}" min="0" step="10"
-                                           class="config-input supplier-real-rate" data-field="realRate"
-                                           ${this.isReadOnly(supplier, isGlobalMode) ? 'readonly' : ''}>
-                                </td>
-                                <td>
-                                    <input type="number" value="${supplier.officialRate}" min="0" step="10"
-                                           class="config-input supplier-official-rate" data-field="officialRate"
-                                           ${this.isReadOnly(supplier, isGlobalMode) ? 'readonly' : ''}>
-                                </td>
-                                <td>
-                                    <select class="config-input supplier-status" data-field="status"
-                                            ${this.isReadOnly(supplier, isGlobalMode) ? 'disabled' : ''}>
-                                        <option value="active" ${supplier.status === 'active' ? 'selected' : ''}>Active</option>
-                                        <option value="inactive" ${supplier.status === 'inactive' ? 'selected' : ''}>Inactive</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    ${this.getActionButtons(supplier, isGlobalMode, 'supplier')}
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-                
-                <div class="config-actions">
-                    <button class="btn btn-primary" id="add-new-supplier">
-                        <i class="fas fa-plus"></i> Add ${isGlobalMode ? 'Global' : 'Project'} Supplier
-                    </button>
-                    <button class="btn btn-secondary" id="save-suppliers-config">
-                        <i class="fas fa-save"></i> Save Changes
-                    </button>
-                    ${!isGlobalMode ? `
-                        <button class="btn btn-warning" id="reset-suppliers-to-global">
-                            <i class="fas fa-undo"></i> Reset to Global Defaults
-                        </button>
-                    ` : ''}
-                </div>
+            <div class="config-placeholder">
+                <h4>Suppliers Configuration</h4>
+                <p>This section will manage external suppliers and their rates.</p>
+                <p>Configuration will include both global defaults and project-specific overrides.</p>
             </div>
         `;
-
-        this.setupSuppliersEventListeners(isGlobalMode);
     }
 
-    /**
-     * Load other configuration sections (simplified versions)
-     */
     async loadResourcesConfig() {
         const contentDiv = document.getElementById('resources-content');
         if (!contentDiv) return;
@@ -589,32 +683,10 @@ class EnhancedNavigationManager extends NavigationManager {
         const contentDiv = document.getElementById('parameters-content');
         if (!contentDiv) return;
 
-        const mode = this.getConfigMode('params-mode');
         const currentProject = this.app.currentProject;
-
-        let params;
-        let isGlobalMode = mode === 'global';
-
-        if (isGlobalMode) {
-            params = this.configManager.globalConfig?.calculationParams || {};
-        } else {
-            const projectConfig = this.configManager.getProjectConfig(currentProject?.config);
-            params = projectConfig.calculationParams || {};
-        }
+        const params = this.configManager?.getCalculationParams?.(currentProject?.config) || {};
 
         contentDiv.innerHTML = `
-            <div class="config-explanation">
-                <div class="mode-info ${isGlobalMode ? 'global-mode' : 'project-mode'}">
-                    <i class="fas ${isGlobalMode ? 'fa-globe' : 'fa-project-diagram'}"></i>
-                    <div class="mode-text">
-                        <strong>${isGlobalMode ? 'Global Mode' : 'Project Mode'}</strong>
-                        <p>${isGlobalMode
-            ? 'Editing global default calculation parameters that apply to all new projects'
-            : 'Editing calculation parameters for the current project only'}</p>
-                    </div>
-                </div>
-            </div>
-
             <div class="config-form">
                 <div class="form-group">
                     <label>Working Days per Month:</label>
@@ -653,227 +725,19 @@ class EnhancedNavigationManager extends NavigationManager {
                 
                 <div class="config-actions">
                     <button class="btn btn-primary" id="save-parameters-config">
-                        <i class="fas fa-save"></i> Save ${isGlobalMode ? 'Global' : 'Project'} Parameters
+                        <i class="fas fa-save"></i> Save Parameters
                     </button>
-                    ${!isGlobalMode ? `
-                        <button class="btn btn-warning" id="reset-parameters-to-global">
-                            <i class="fas fa-undo"></i> Reset to Global Defaults
-                        </button>
-                    ` : ''}
                     <button class="btn btn-secondary" id="reset-parameters-config">
-                        <i class="fas fa-undo"></i> Reset to System Defaults
+                        <i class="fas fa-undo"></i> Reset to Defaults
                     </button>
                 </div>
             </div>
         `;
 
-        this.setupParametersEventListeners(isGlobalMode);
+        this.setupParametersEventListeners();
     }
 
-    /**
-     * Helper methods for hierarchical configuration
-     */
-    getConfigMode(radioName) {
-        const radio = document.querySelector(`input[name="${radioName}"]:checked`);
-        return radio ? radio.value : 'project';
-    }
-
-    getRowClass(item, isGlobalMode) {
-        if (isGlobalMode) {
-            return 'global-item';
-        }
-
-        if (item.isProjectSpecific) {
-            return 'project-specific-item';
-        } else if (item.isOverridden) {
-            return 'overridden-item';
-        } else if (item.isGlobal) {
-            return 'inherited-item';
-        }
-
-        return '';
-    }
-
-    getSourceClass(item) {
-        if (item.isProjectSpecific) {
-            return 'project-specific';
-        } else if (item.isOverridden) {
-            return 'overridden';
-        } else if (item.isGlobal) {
-            return 'global';
-        }
-        return 'inherited';
-    }
-
-    getSourceIcon(item) {
-        if (item.isProjectSpecific) {
-            return 'fas fa-project-diagram';
-        } else if (item.isOverridden) {
-            return 'fas fa-edit';
-        } else if (item.isGlobal) {
-            return 'fas fa-globe';
-        }
-        return 'fas fa-arrow-down';
-    }
-
-    getSourceLabel(item) {
-        if (item.isProjectSpecific) {
-            return 'Project';
-        } else if (item.isOverridden) {
-            return 'Modified';
-        } else if (item.isGlobal) {
-            return 'Global';
-        }
-        return 'Inherited';
-    }
-
-    isReadOnly(item, isGlobalMode) {
-        if (isGlobalMode) {
-            return !item.isGlobal;
-        } else {
-            return item.isGlobal && !item.isOverridden && !item.isProjectSpecific;
-        }
-    }
-
-    getActionButtons(item, isGlobalMode, type) {
-        const canEdit = !this.isReadOnly(item, isGlobalMode);
-        const canDelete = canEdit;
-        const canOverride = !isGlobalMode && item.isGlobal && !item.isOverridden;
-
-        let buttons = '';
-
-        if (canEdit) {
-            buttons += `
-                <button class="btn btn-small btn-primary edit-${type}" data-${type}-id="${item.id}" title="Edit">
-                    <i class="fas fa-edit"></i>
-                </button>
-            `;
-        }
-
-        if (canOverride) {
-            buttons += `
-                <button class="btn btn-small btn-warning override-${type}" data-${type}-id="${item.id}" title="Override for this project">
-                    <i class="fas fa-copy"></i>
-                </button>
-            `;
-        }
-
-        if (canDelete) {
-            buttons += `
-                <button class="btn btn-small btn-danger delete-${type}" data-${type}-id="${item.id}" title="Delete">
-                    <i class="fas fa-trash"></i>
-                </button>
-            `;
-        }
-
-        return buttons || '<span class="text-muted">Read-only</span>';
-    }
-
-    /**
-     * Event listener setup methods
-     */
-    setupGlobalConfigEventListeners() {
-        // Export global config
-        document.getElementById('export-global-config-btn')?.addEventListener('click', async () => {
-            try {
-                const globalConfig = this.configManager.globalConfig;
-                const filename = `global-config-${new Date().toISOString().split('T')[0]}.json`;
-                Helpers.downloadAsFile(JSON.stringify(globalConfig, null, 2), filename, 'application/json');
-                NotificationManager.success('Global configuration exported');
-            } catch (error) {
-                NotificationManager.error('Failed to export global configuration');
-            }
-        });
-
-        // Import global config
-        document.getElementById('import-global-config-btn')?.addEventListener('click', () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = async (e) => {
-                try {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    const content = await file.text();
-                    const importedConfig = JSON.parse(content);
-
-                    this.configManager.globalConfig = importedConfig;
-                    await this.configManager.saveGlobalConfig();
-
-                    this.loadConfigContent('global');
-                    NotificationManager.success('Global configuration imported');
-                } catch (error) {
-                    NotificationManager.error('Failed to import global configuration');
-                }
-            };
-            input.click();
-        });
-
-        // Reset global config
-        document.getElementById('reset-global-config-btn')?.addEventListener('click', async () => {
-            if (confirm('Are you sure you want to reset global configuration to system defaults? This will affect all future projects.')) {
-                this.configManager.globalConfig = this.configManager.createDefaultGlobalConfig();
-                await this.configManager.saveGlobalConfig();
-
-                this.loadConfigContent('global');
-                NotificationManager.success('Global configuration reset to defaults');
-            }
-        });
-
-        // Quick navigation buttons
-        document.getElementById('manage-global-suppliers')?.addEventListener('click', () => {
-            document.querySelector('[data-tab="suppliers"]').click();
-            document.querySelector('input[name="supplier-mode"][value="global"]').checked = true;
-            this.loadConfigContent('suppliers');
-        });
-
-        document.getElementById('manage-global-resources')?.addEventListener('click', () => {
-            document.querySelector('[data-tab="resources"]').click();
-            document.querySelector('input[name="resource-mode"][value="global"]').checked = true;
-            this.loadConfigContent('resources');
-        });
-
-        document.getElementById('manage-global-categories')?.addEventListener('click', () => {
-            document.querySelector('[data-tab="categories"]').click();
-            document.querySelector('input[name="category-mode"][value="global"]').checked = true;
-            this.loadConfigContent('categories');
-        });
-    }
-
-    setupSuppliersEventListeners(isGlobalMode) {
-        // Mode change listener
-        document.querySelectorAll('input[name="supplier-mode"]').forEach(radio => {
-            radio.addEventListener('change', () => {
-                this.loadSuppliersConfig();
-            });
-        });
-
-        // Add placeholder event listeners for now
-        document.getElementById('add-new-supplier')?.addEventListener('click', () => {
-            NotificationManager.info('Add supplier functionality coming soon');
-        });
-
-        document.getElementById('save-suppliers-config')?.addEventListener('click', () => {
-            NotificationManager.success('Suppliers configuration saved');
-        });
-
-        document.getElementById('reset-suppliers-to-global')?.addEventListener('click', () => {
-            if (confirm('Reset suppliers to global defaults?')) {
-                NotificationManager.success('Suppliers reset to global defaults');
-                this.loadSuppliersConfig();
-            }
-        });
-    }
-
-    setupParametersEventListeners(isGlobalMode) {
-        // Mode change listener
-        document.querySelectorAll('input[name="params-mode"]').forEach(radio => {
-            radio.addEventListener('change', () => {
-                this.loadParametersConfig();
-            });
-        });
-
+    setupParametersEventListeners() {
         // Save parameters button
         document.getElementById('save-parameters-config')?.addEventListener('click', () => {
             const params = {
@@ -884,48 +748,83 @@ class EnhancedNavigationManager extends NavigationManager {
                 overheadPercentage: (parseFloat(document.getElementById('overhead-percentage').value) || 10) / 100
             };
 
-            if (isGlobalMode) {
-                this.configManager.globalConfig.calculationParams = params;
-                this.configManager.saveGlobalConfig();
-                NotificationManager.success('Global calculation parameters saved');
-            } else {
+            if (this.configManager?.updateCalculationParams) {
                 const currentProject = this.app.currentProject;
                 this.configManager.updateCalculationParams(currentProject.config, params);
                 this.app.markDirty();
-                NotificationManager.success('Project calculation parameters saved');
-            }
-        });
-
-        // Reset to global button (project mode only)
-        document.getElementById('reset-parameters-to-global')?.addEventListener('click', () => {
-            if (confirm('Are you sure you want to reset parameters to global defaults?')) {
-                const currentProject = this.app.currentProject;
-                if (currentProject.config.projectOverrides) {
-                    currentProject.config.projectOverrides.calculationParams = {};
-                }
-
-                this.app.markDirty();
-                this.loadParametersConfig();
-                NotificationManager.success('Parameters reset to global defaults');
+                NotificationManager.success('Calculation parameters saved');
+            } else {
+                NotificationManager.warning('Configuration manager not available');
             }
         });
 
         // Reset parameters button
         document.getElementById('reset-parameters-config')?.addEventListener('click', () => {
-            const confirmMessage = isGlobalMode
-                ? 'Are you sure you want to reset global parameters to system defaults?'
-                : 'Are you sure you want to reset project parameters to system defaults?';
-
-            if (confirm(confirmMessage)) {
+            if (confirm('Are you sure you want to reset parameters to default values?')) {
                 this.loadParametersConfig();
-                NotificationManager.success('Parameters reset to system defaults');
+                NotificationManager.success('Parameters reset to defaults');
             }
         });
     }
+
+    addProjectStatusToConfig(container) {
+        const statusSection = document.createElement('div');
+        statusSection.className = 'config-project-status';
+        statusSection.innerHTML = `
+            <div class="config-section-header">
+                <h3>Current Project Status</h3>
+            </div>
+            <div class="project-status-info">
+                <div class="status-item">
+                    <label>Project Loaded:</label>
+                    <span class="status-value ${this.projectLoaded ? 'success' : 'muted'}">${this.projectLoaded ? 'Yes' : 'No'}</span>
+                </div>
+                <div class="status-item">
+                    <label>Has Unsaved Changes:</label>
+                    <span class="status-value ${this.projectDirty ? 'warning' : 'success'}">${this.projectDirty ? 'Yes' : 'No'}</span>
+                </div>
+                <div class="status-item">
+                    <label>Available Sections:</label>
+                    <span class="status-value">${this.projectLoaded ? 'All sections accessible' : 'Only Projects and Configuration accessible'}</span>
+                </div>
+            </div>
+        `;
+
+        // Insert at the beginning of configuration content
+        const configContent = container.querySelector('.config-tabs');
+        if (configContent) {
+            container.insertBefore(statusSection, configContent);
+        }
+    }
 }
 
-// Make both classes available globally
+/**
+ * Utility functions for navigation state management
+ */
+class NavigationStateManager {
+    static saveState(navigationManager) {
+        const state = navigationManager.getNavigationState();
+        localStorage.setItem('navigation-state', JSON.stringify(state));
+    }
+
+    static loadState() {
+        try {
+            const stateData = localStorage.getItem('navigation-state');
+            return stateData ? JSON.parse(stateData) : null;
+        } catch (error) {
+            console.warn('Failed to load navigation state:', error);
+            return null;
+        }
+    }
+
+    static clearState() {
+        localStorage.removeItem('navigation-state');
+    }
+}
+
+// Make enhanced classes available globally
 if (typeof window !== 'undefined') {
     window.NavigationManager = NavigationManager;
     window.EnhancedNavigationManager = EnhancedNavigationManager;
+    window.NavigationStateManager = NavigationStateManager;
 }

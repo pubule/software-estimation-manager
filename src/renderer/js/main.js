@@ -1,6 +1,6 @@
 /**
  * Software Estimation Manager - Updated Main Application
- * Integrato con sistema di configurazione gerarchica
+ * Integrato con sistema di configurazione gerarchica e navigazione annidata
  */
 
 class SoftwareEstimationApp {
@@ -10,7 +10,7 @@ class SoftwareEstimationApp {
         this.autoSaveInterval = null;
         this.currentPage = 'projects';
 
-        // Managers for hierarchical configuration
+        // Managers for hierarchical configuration and nested navigation
         this.configManager = null;
         this.dataManager = null;
         this.featureManager = null;
@@ -27,6 +27,10 @@ class SoftwareEstimationApp {
             this.setupEventListeners();
             this.setupAutoSave();
             await this.loadLastProject();
+
+            // Verifica e aggiorna lo stato della navigazione dopo il caricamento
+            this.updateNavigationState();
+
             this.updateUI();
 
             // Ensure proper initial section display
@@ -34,7 +38,7 @@ class SoftwareEstimationApp {
                 this.navigationManager.navigateTo('projects');
             }, 200);
 
-            console.log('Software Estimation Manager initialized successfully with hierarchical configuration');
+            console.log('Software Estimation Manager initialized successfully with nested navigation');
         } catch (error) {
             console.error('Failed to initialize application:', error);
             NotificationManager.show('Failed to initialize application', 'error');
@@ -59,7 +63,7 @@ class SoftwareEstimationApp {
             throw new Error('DataManager is not defined - check data-manager.js');
         }
         if (typeof ConfigurationManager === 'undefined') {
-            throw new Error('ConfigurationManager is not defined - check config-manager.js');
+            throw new Error('ConfigurationManager is not defined - check configuration-manager.js');
         }
         if (typeof NotificationManager === 'undefined') {
             throw new Error('NotificationManager is not defined - check notification-manager.js');
@@ -88,7 +92,7 @@ class SoftwareEstimationApp {
         this.modalManager = new ModalManager();
         this.projectManager = new ProjectManager(this);
 
-        console.log('All managers initialized successfully with hierarchical configuration');
+        console.log('All managers initialized successfully with hierarchical configuration and nested navigation');
 
         // Initialize default project structure
         if (!this.currentProject) {
@@ -153,43 +157,56 @@ class SoftwareEstimationApp {
 
     setupEventListeners() {
         // Menu actions from main process
-        window.electronAPI?.onMenuAction?.(this.handleMenuAction.bind(this));
+        if (window.electronAPI && window.electronAPI.onMenuAction) {
+            window.electronAPI.onMenuAction(this.handleMenuAction.bind(this));
+        }
 
-        // Navigation
-        document.querySelectorAll('.nav-section').forEach(section => {
-            section.addEventListener('click', (e) => {
-                const sectionName = section.dataset.section;
-                this.navigationManager.navigateTo(sectionName);
-            });
-        });
-
+        // Navigation is now handled by EnhancedNavigationManager
         // Save button
-        document.getElementById('save-btn')?.addEventListener('click', () => {
-            this.saveProject();
-        });
+        const saveBtn = document.getElementById('save-btn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                this.saveProject();
+            });
+        }
 
         // Export button
-        document.getElementById('export-btn')?.addEventListener('click', () => {
-            this.showExportMenu();
-        });
+        const exportBtn = document.getElementById('export-btn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                this.showExportMenu();
+            });
+        }
 
         // Feature management
-        document.getElementById('add-feature-btn')?.addEventListener('click', () => {
-            this.featureManager.showAddFeatureModal();
-        });
+        const addFeatureBtn = document.getElementById('add-feature-btn');
+        if (addFeatureBtn) {
+            addFeatureBtn.addEventListener('click', () => {
+                this.featureManager.showAddFeatureModal();
+            });
+        }
 
         // Search and filters
-        document.getElementById('search-input')?.addEventListener('input', (e) => {
-            this.featureManager.filterFeatures();
-        });
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                this.featureManager.filterFeatures();
+            });
+        }
 
-        document.getElementById('category-filter')?.addEventListener('change', () => {
-            this.featureManager.filterFeatures();
-        });
+        const categoryFilter = document.getElementById('category-filter');
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', () => {
+                this.featureManager.filterFeatures();
+            });
+        }
 
-        document.getElementById('supplier-filter')?.addEventListener('change', () => {
-            this.featureManager.filterFeatures();
-        });
+        const supplierFilter = document.getElementById('supplier-filter');
+        if (supplierFilter) {
+            supplierFilter.addEventListener('change', () => {
+                this.featureManager.filterFeatures();
+            });
+        }
 
         // Table sorting
         document.querySelectorAll('[data-sort]').forEach(header => {
@@ -226,6 +243,11 @@ class SoftwareEstimationApp {
                 e.returnValue = '';
                 return '';
             }
+
+            // Save navigation state before closing
+            if (this.navigationManager && NavigationStateManager) {
+                NavigationStateManager.saveState(this.navigationManager);
+            }
         });
     }
 
@@ -247,6 +269,9 @@ class SoftwareEstimationApp {
                 case 'open-project':
                     await this.openProject();
                     break;
+                case 'close-project':
+                    await this.closeProject();
+                    break;
                 case 'save-project':
                     await this.saveProject();
                     break;
@@ -256,14 +281,32 @@ class SoftwareEstimationApp {
                 case 'open-project-manager':
                     this.navigationManager.navigateTo('projects');
                     break;
+                case 'open-features-management':
+                    this.navigationManager.navigateTo('features');
+                    break;
+                case 'open-project-phases':
+                    this.navigationManager.navigateTo('phases');
+                    break;
+                case 'open-calculations':
+                    this.navigationManager.navigateTo('calculations');
+                    break;
+                case 'open-version-history':
+                    this.navigationManager.navigateTo('history');
+                    break;
                 case 'show-recent-projects':
-                    this.projectManager.showLoadProjectModal();
+                    if (this.projectManager) {
+                        this.projectManager.showLoadProjectModal();
+                    }
                     break;
                 case 'load-project-file':
-                    await this.projectManager.importProject();
+                    if (this.projectManager) {
+                        await this.projectManager.importProject();
+                    }
                     break;
                 case 'import-project':
-                    await this.projectManager.importProject();
+                    if (this.projectManager) {
+                        await this.projectManager.importProject();
+                    }
                     break;
                 case 'export-json':
                     await this.exportProject('json');
@@ -300,6 +343,9 @@ class SoftwareEstimationApp {
         this.currentProject = this.createNewProject();
         this.isDirty = false;
 
+        // Update navigation state - project is now loaded
+        this.navigationManager.onProjectLoaded();
+
         // Refresh dropdowns after creating new project
         this.refreshDropdowns();
         this.updateUI();
@@ -315,22 +361,51 @@ class SoftwareEstimationApp {
         }
 
         try {
-            const result = await window.electronAPI?.openFile?.();
-            if (result?.success && result.data) {
-                // Migrate old project format to new hierarchical format if needed
-                this.currentProject = this.migrateProjectConfig(result.data);
-                this.isDirty = false;
+            if (window.electronAPI && window.electronAPI.openFile) {
+                const result = await window.electronAPI.openFile();
+                if (result && result.success && result.data) {
+                    // Migrate old project format to new hierarchical format if needed
+                    this.currentProject = this.migrateProjectConfig(result.data);
+                    this.isDirty = false;
 
-                // Refresh dropdowns after loading project
-                this.refreshDropdowns();
-                this.updateUI();
+                    // Update navigation state - project is now loaded
+                    this.navigationManager.onProjectLoaded();
 
-                NotificationManager.show(`Project "${this.currentProject.project.name}" opened`, 'success');
+                    // Refresh dropdowns after loading project
+                    this.refreshDropdowns();
+                    this.updateUI();
+
+                    NotificationManager.show(`Project "${this.currentProject.project.name}" opened`, 'success');
+                }
             }
         } catch (error) {
             console.error('Failed to open project:', error);
             NotificationManager.show('Failed to open project', 'error');
         }
+    }
+
+    /**
+     * New method to handle project closing
+     */
+    async closeProject() {
+        if (this.isDirty) {
+            const save = await this.confirmSave();
+            if (save === null) return; // User cancelled
+            if (save) await this.saveProject();
+        }
+
+        // Reset to empty project
+        this.currentProject = this.createNewProject();
+        this.isDirty = false;
+
+        // Update navigation state - no project loaded
+        this.navigationManager.onProjectClosed();
+
+        // Refresh dropdowns and UI
+        this.refreshDropdowns();
+        this.updateUI();
+
+        NotificationManager.info('Project closed');
     }
 
     /**
@@ -371,6 +446,10 @@ class SoftwareEstimationApp {
             await this.dataManager.saveProject(this.currentProject);
 
             this.isDirty = false;
+
+            // Update navigation state - project is saved (no longer dirty)
+            this.navigationManager.onProjectDirty(false);
+
             this.updateProjectStatus();
 
             // Update project manager if available
@@ -470,28 +549,38 @@ class SoftwareEstimationApp {
             this.currentProject.config = this.configManager.migrateProjectConfig(this.currentProject.config);
         }
 
-        const result = await window.electronAPI?.saveFile?.(
-            `${filename}.json`,
-            this.currentProject
-        );
+        if (window.electronAPI && window.electronAPI.saveFile) {
+            const result = await window.electronAPI.saveFile(
+                `${filename}.json`,
+                this.currentProject
+            );
 
-        if (!result?.success && !result?.canceled) {
-            throw new Error(result?.error || 'Failed to save JSON file');
+            if (!result.success && !result.canceled) {
+                throw new Error(result.error || 'Failed to save JSON file');
+            }
+        } else {
+            // Fallback for web mode
+            const dataStr = JSON.stringify(this.currentProject, null, 2);
+            Helpers.downloadAsFile(dataStr, `${filename}.json`, 'application/json');
         }
     }
 
     async exportCSV(filename) {
         // Export features to CSV using ConfigurationManager for proper name resolution
         const csvData = this.featureManager.generateCSV();
-        const blob = new Blob([csvData], { type: 'text/csv' });
 
-        const result = await window.electronAPI?.saveFile?.(
-            `${filename}_features.csv`,
-            csvData
-        );
+        if (window.electronAPI && window.electronAPI.saveFile) {
+            const result = await window.electronAPI.saveFile(
+                `${filename}_features.csv`,
+                csvData
+            );
 
-        if (!result?.success && !result?.canceled) {
-            throw new Error(result?.error || 'Failed to save CSV file');
+            if (!result.success && !result.canceled) {
+                throw new Error(result.error || 'Failed to save CSV file');
+            }
+        } else {
+            // Fallback for web mode
+            Helpers.downloadAsFile(csvData, `${filename}_features.csv`, 'text/csv');
         }
     }
 
@@ -505,24 +594,46 @@ class SoftwareEstimationApp {
         // Create a simple context menu for export options
         const menu = document.createElement('div');
         menu.className = 'context-menu';
+        menu.style.cssText = `
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-sm);
+            z-index: 1000;
+            box-shadow: var(--shadow-md);
+        `;
+
         menu.innerHTML = `
-            <div class="context-menu-item" data-action="export-json">
+            <div class="context-menu-item" data-action="export-json" style="padding: var(--spacing-sm); cursor: pointer; border-radius: var(--radius-sm);">
                 <i class="fas fa-file-code"></i> Export as JSON
             </div>
-            <div class="context-menu-item" data-action="export-csv">
+            <div class="context-menu-item" data-action="export-csv" style="padding: var(--spacing-sm); cursor: pointer; border-radius: var(--radius-sm);">
                 <i class="fas fa-file-csv"></i> Export as CSV
             </div>
-            <div class="context-menu-item" data-action="export-excel">
+            <div class="context-menu-item" data-action="export-excel" style="padding: var(--spacing-sm); cursor: pointer; border-radius: var(--radius-sm);">
                 <i class="fas fa-file-excel"></i> Export as Excel
             </div>
-            <div class="context-menu-separator"></div>
-            <div class="context-menu-item" data-action="export-global-config">
+            <div style="height: 1px; background: var(--border-primary); margin: var(--spacing-xs) 0;"></div>
+            <div class="context-menu-item" data-action="export-global-config" style="padding: var(--spacing-sm); cursor: pointer; border-radius: var(--radius-sm);">
                 <i class="fas fa-globe"></i> Export Global Configuration
             </div>
         `;
 
         // Position and show menu
         document.body.appendChild(menu);
+
+        // Add hover effects
+        menu.querySelectorAll('.context-menu-item').forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                item.style.backgroundColor = 'var(--bg-hover)';
+            });
+            item.addEventListener('mouseleave', () => {
+                item.style.backgroundColor = 'transparent';
+            });
+        });
 
         // Handle menu clicks
         menu.addEventListener('click', async (e) => {
@@ -566,11 +677,38 @@ class SoftwareEstimationApp {
                 // Migrate configuration format if needed
                 this.currentProject = this.migrateProjectConfig(lastProject);
 
+                // Update navigation state
+                this.updateNavigationState();
+
                 // Refresh dropdowns after loading last project
                 this.refreshDropdowns();
             }
+
+            // Restore navigation state
+            if (NavigationStateManager) {
+                const savedNavState = NavigationStateManager.loadState();
+                if (savedNavState) {
+                    this.navigationManager.restoreNavigationState(savedNavState);
+                }
+            }
         } catch (error) {
             console.warn('Failed to load last project:', error);
+        }
+    }
+
+    /**
+     * Update navigation state based on current project
+     */
+    updateNavigationState() {
+        const hasProject = this.currentProject &&
+            this.currentProject.project &&
+            this.currentProject.project.name !== 'New Project';
+
+        if (hasProject) {
+            this.navigationManager.onProjectLoaded();
+            this.navigationManager.onProjectDirty(this.isDirty);
+        } else {
+            this.navigationManager.onProjectClosed();
         }
     }
 
@@ -583,6 +721,10 @@ class SoftwareEstimationApp {
 
     markDirty() {
         this.isDirty = true;
+
+        // Update navigation state - project now has unsaved changes
+        this.navigationManager.onProjectDirty(true);
+
         this.updateProjectStatus();
     }
 
@@ -674,7 +816,7 @@ class SoftwareEstimationApp {
 
     showLoading(message = 'Loading...') {
         const overlay = document.getElementById('loading-overlay');
-        const messageEl = overlay?.querySelector('p');
+        const messageEl = overlay ? overlay.querySelector('p') : null;
 
         if (overlay) {
             if (messageEl) messageEl.textContent = message;
@@ -705,15 +847,16 @@ class SoftwareEstimationApp {
                 globalConfiguration: this.configManager.globalConfig,
                 currentProject: this.currentProject,
                 recentProjects: this.projectManager ? this.projectManager.recentProjects : [],
-                applicationSettings: await this.dataManager.getSettings()
+                applicationSettings: await this.dataManager.getSettings(),
+                navigationState: this.navigationManager.getNavigationState()
             };
 
             const filename = `backup-${new Date().toISOString().split('T')[0]}.json`;
             const dataStr = JSON.stringify(backupData, null, 2);
 
-            if (window.electronAPI?.saveFile) {
+            if (window.electronAPI && window.electronAPI.saveFile) {
                 const result = await window.electronAPI.saveFile(filename, backupData);
-                if (result?.success) {
+                if (result && result.success) {
                     NotificationManager.show('Backup created successfully', 'success');
                 }
             } else {
@@ -761,6 +904,7 @@ class SoftwareEstimationApp {
                     if (backupData.currentProject) {
                         this.currentProject = this.migrateProjectConfig(backupData.currentProject);
                         this.isDirty = false;
+                        this.navigationManager.onProjectLoaded();
                     }
 
                     // Restore recent projects if available
@@ -772,6 +916,11 @@ class SoftwareEstimationApp {
                     // Restore application settings if available
                     if (backupData.applicationSettings) {
                         await this.dataManager.saveSettings(backupData.applicationSettings);
+                    }
+
+                    // Restore navigation state if available
+                    if (backupData.navigationState) {
+                        this.navigationManager.restoreNavigationState(backupData.navigationState);
                     }
 
                     // Refresh UI
@@ -1005,6 +1154,11 @@ class SoftwareEstimationApp {
             clearInterval(this.autoSaveInterval);
         }
 
+        // Save navigation state before destroying
+        if (this.navigationManager && NavigationStateManager) {
+            NavigationStateManager.saveState(this.navigationManager);
+        }
+
         // Clean up configuration manager
         if (this.configManager) {
             this.configManager.clearCache();
@@ -1016,7 +1170,7 @@ class SoftwareEstimationApp {
 document.addEventListener('DOMContentLoaded', () => {
     // Add delay to ensure all scripts are loaded
     setTimeout(() => {
-        console.log('Starting app initialization with hierarchical configuration...');
+        console.log('Starting app initialization with hierarchical configuration and nested navigation...');
 
         // Check if all required classes are available
         const requiredClasses = [
@@ -1048,37 +1202,70 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-// Global helper functions for configuration management
+// Global helper functions for configuration management and navigation
 window.getConfigurationStats = () => {
-    return window.app?.getConfigurationStats() || null;
+    return window.app ? window.app.getConfigurationStats() : null;
 };
 
 window.resetProjectConfig = () => {
-    return window.app?.resetProjectConfigToGlobal() || false;
+    return window.app ? window.app.resetProjectConfigToGlobal() : false;
 };
 
 window.importGlobalConfig = () => {
-    return window.app?.importGlobalConfiguration();
+    if (window.app) {
+        return window.app.importGlobalConfiguration();
+    }
 };
 
 window.exportGlobalConfig = () => {
-    return window.app?.exportGlobalConfiguration();
+    if (window.app) {
+        return window.app.exportGlobalConfiguration();
+    }
+};
+
+window.isProjectLoaded = () => {
+    return window.app && window.app.currentProject &&
+        window.app.currentProject.project &&
+        window.app.currentProject.project.name !== 'New Project';
+};
+
+window.hasUnsavedChanges = () => {
+    return window.app ? window.app.isDirty : false;
+};
+
+window.getNavigationState = () => {
+    return window.app && window.app.navigationManager ?
+        window.app.navigationManager.getNavigationState() : null;
+};
+
+window.navigateToSection = (sectionName) => {
+    if (window.app && window.app.navigationManager) {
+        return window.app.navigationManager.navigateTo(sectionName);
+    }
 };
 
 // Additional helper functions for debugging and development
 window.debugConfig = () => {
-    if (window.app?.configManager) {
+    if (window.app && window.app.configManager) {
         console.log('Global Config:', window.app.configManager.globalConfig);
-        console.log('Current Project Config:', window.app.currentProject?.config);
+        console.log('Current Project Config:', window.app.currentProject ? window.app.currentProject.config : null);
         console.log('Effective Config:', window.app.getEffectiveConfiguration());
         console.log('Config Stats:', window.app.getConfigurationStats());
+        console.log('Navigation State:', window.app.navigationManager ? window.app.navigationManager.getNavigationState() : null);
     }
 };
 
 window.clearConfigCache = () => {
-    if (window.app?.configManager) {
+    if (window.app && window.app.configManager) {
         window.app.configManager.clearCache();
         console.log('Configuration cache cleared');
+    }
+};
+
+window.clearNavigationState = () => {
+    if (NavigationStateManager) {
+        NavigationStateManager.clearState();
+        console.log('Navigation state cleared');
     }
 };
 
