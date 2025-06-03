@@ -1043,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Handle app cleanup
 window.addEventListener('beforeunload', () => {
-    if (window.app) {Software Estimation Manager
+    if (window.app) {
         window.app.destroy();
     }
 });
