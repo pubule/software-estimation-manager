@@ -1,0 +1,897 @@
+/**
+ * Hierarchical Configuration CSS
+ * Styles for the hierarchical configuration system
+ */
+
+/* Global Configuration Overview */
+.global-config-overview {
+    padding: var(--spacing-lg);
+}
+
+.config-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.stat-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    text-align: center;
+    transition: all var(--transition-fast);
+}
+
+.stat-card:hover {
+    border-color: var(--border-focus);
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-card h4 {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-sm) 0;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-accent);
+    margin-bottom: var(--spacing-sm);
+}
+
+.stat-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.global-config-info {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.global-config-info h4 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+.info-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.info-list li {
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-primary);
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.info-list li:last-child {
+    border-bottom: none;
+}
+
+.info-list strong {
+    color: var(--text-primary);
+}
+
+.global-actions-section h4 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+.action-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.global-config-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+
+/* Configuration Mode Selector */
+.config-mode-selector {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+}
+
+.config-mode-selector label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: color var(--transition-fast);
+}
+
+.config-mode-selector label:hover {
+    color: var(--text-primary);
+}
+
+.config-mode-selector input[type="radio"] {
+    width: auto;
+    margin: 0;
+}
+
+.config-mode-selector input[type="radio"]:checked + span {
+    color: var(--text-accent);
+    font-weight: 600;
+}
+
+/* Mode Information Display */
+.config-explanation {
+    margin-bottom: var(--spacing-lg);
+}
+
+.mode-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+}
+
+.mode-info.global-mode {
+    background-color: rgba(33, 150, 243, 0.1);
+    border-color: var(--info);
+}
+
+.mode-info.project-mode {
+    background-color: rgba(76, 175, 80, 0.1);
+    border-color: var(--success);
+}
+
+.mode-info i {
+    font-size: var(--font-size-xl);
+    color: var(--text-accent);
+}
+
+.mode-info.global-mode i {
+    color: var(--info);
+}
+
+.mode-info.project-mode i {
+    color: var(--success);
+}
+
+.mode-text strong {
+    display: block;
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.mode-text p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Hierarchical Table Styles */
+.hierarchical-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.hierarchical-table tr {
+    transition: all var(--transition-fast);
+}
+
+/* Row type indicators */
+.hierarchical-table .global-item {
+    background-color: rgba(33, 150, 243, 0.05);
+}
+
+.hierarchical-table .project-specific-item {
+    background-color: rgba(76, 175, 80, 0.05);
+}
+
+.hierarchical-table .overridden-item {
+    background-color: rgba(255, 152, 0, 0.05);
+}
+
+.hierarchical-table .inherited-item {
+    background-color: var(--bg-primary);
+}
+
+.hierarchical-table tr:hover {
+    background-color: var(--bg-hover) !important;
+}
+
+/* Source Indicators */
+.source-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.source-indicator.global {
+    background-color: rgba(33, 150, 243, 0.2);
+    color: var(--info);
+    border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.source-indicator.project-specific {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: var(--success);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.source-indicator.overridden {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: var(--warning);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.source-indicator.inherited {
+    background-color: rgba(158, 158, 158, 0.2);
+    color: var(--text-secondary);
+    border: 1px solid rgba(158, 158, 158, 0.3);
+}
+
+.source-indicator i {
+    font-size: var(--font-size-sm);
+}
+
+/* Read-only inputs in hierarchical tables */
+.hierarchical-table input[readonly],
+.hierarchical-table select[disabled] {
+    background-color: var(--bg-quaternary);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    border-style: dashed;
+}
+
+/* Enhanced Action Buttons */
+.hierarchical-table .action-buttons {
+    display: flex;
+    gap: var(--spacing-xs);
+    justify-content: center;
+}
+
+.hierarchical-table .btn-small {
+    padding: var(--spacing-xs);
+    min-width: 28px;
+    font-size: var(--font-size-sm);
+}
+
+.hierarchical-table .btn-small i {
+    margin: 0;
+}
+
+/* Override button special styling */
+.btn.override-supplier,
+.btn.override-resource,
+.btn.override-category {
+    background-color: var(--warning);
+    color: white;
+}
+
+.btn.override-supplier:hover,
+.btn.override-resource:hover,
+.btn.override-category:hover {
+    background-color: #f57c00;
+}
+
+/* Configuration Description */
+.config-description {
+    margin: 0 0 var(--spacing-md) 0;
+    padding: var(--spacing-sm);
+    background-color: var(--bg-tertiary);
+    border-left: 3px solid var(--text-accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Enhanced Config Actions */
+.config-actions {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--border-primary);
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.config-actions .btn {
+    white-space: nowrap;
+}
+
+/* Configuration Section Header Enhancements */
+.config-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--border-primary);
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.config-section-header h3 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+    min-width: 200px;
+}
+
+.config-section-header .config-mode-selector {
+    margin: 0;
+}
+
+/* Hierarchical Badges in Dropdowns */
+select option[style*="italic"] {
+    font-style: italic;
+    color: var(--success);
+}
+
+select option[style*="bold"] {
+    font-weight: bold;
+    color: var(--warning);
+}
+
+/* Tooltips for hierarchical items */
+.hierarchical-tooltip {
+    position: relative;
+}
+
+.hierarchical-tooltip::after {
+    content: attr(data-hierarchy-info);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--bg-quaternary);
+    color: var(--text-primary);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-fast);
+    z-index: 1000;
+    margin-bottom: var(--spacing-xs);
+    border: 1px solid var(--border-primary);
+}
+
+.hierarchical-tooltip:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Configuration Import/Export */
+.config-import-export {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.file-input-wrapper {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+}
+
+.file-input-wrapper input[type="file"] {
+    position: absolute;
+    left: -9999px;
+}
+
+.file-input-label {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--btn-secondary-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.file-input-label:hover {
+    background-color: var(--btn-secondary-hover);
+}
+
+/* Status Indicators */
+.config-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+}
+
+.config-status-indicator.synced {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--success);
+}
+
+.config-status-indicator.modified {
+    background-color: rgba(255, 152, 0, 0.1);
+    color: var(--warning);
+}
+
+.config-status-indicator.conflict {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: var(--error);
+}
+
+/* Hierarchical Tree View (for complex configurations) */
+.config-tree {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.config-tree-item {
+    position: relative;
+    padding: var(--spacing-xs) 0;
+}
+
+.config-tree-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--border-primary);
+}
+
+.config-tree-item.global::before {
+    background-color: var(--info);
+}
+
+.config-tree-item.project::before {
+    background-color: var(--success);
+}
+
+.config-tree-item.overridden::before {
+    background-color: var(--warning);
+}
+
+.config-tree-content {
+    padding-left: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.config-tree-label {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.config-tree-value {
+    color: var(--text-secondary);
+    font-family: monospace;
+}
+
+/* Configuration Comparison View */
+.config-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg);
+    margin: var(--spacing-lg) 0;
+}
+
+.config-comparison-column {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+}
+
+.config-comparison-header {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-md) 0;
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.config-comparison-header.global {
+    color: var(--info);
+}
+
+.config-comparison-header.project {
+    color: var(--success);
+}
+
+.config-diff-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast);
+}
+
+.config-diff-item:hover {
+    background-color: var(--bg-hover);
+}
+
+.config-diff-item.added {
+    background-color: rgba(76, 175, 80, 0.1);
+    border-left: 3px solid var(--success);
+}
+
+.config-diff-item.modified {
+    background-color: rgba(255, 152, 0, 0.1);
+    border-left: 3px solid var(--warning);
+}
+
+.config-diff-item.removed {
+    background-color: rgba(244, 67, 54, 0.1);
+    border-left: 3px solid var(--error);
+}
+
+/* Configuration Validation */
+.config-validation {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+}
+
+.config-validation.valid {
+    background-color: rgba(76, 175, 80, 0.1);
+    border-color: var(--success);
+}
+
+.config-validation.invalid {
+    background-color: rgba(244, 67, 54, 0.1);
+    border-color: var(--error);
+}
+
+.config-validation.warning {
+    background-color: rgba(255, 152, 0, 0.1);
+    border-color: var(--warning);
+}
+
+.config-validation-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+.config-validation.valid .config-validation-header {
+    color: var(--success);
+}
+
+.config-validation.invalid .config-validation-header {
+    color: var(--error);
+}
+
+.config-validation.warning .config-validation-header {
+    color: var(--warning);
+}
+
+.config-validation-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.config-validation-item {
+    padding: var(--spacing-xs) 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+/* Enhanced Form Styling for Configuration */
+.config-form {
+    max-width: 800px;
+}
+
+.config-form .form-group {
+    position: relative;
+}
+
+.config-form .form-group.has-override {
+    padding-left: var(--spacing-lg);
+    border-left: 3px solid var(--warning);
+    background-color: rgba(255, 152, 0, 0.05);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.config-form .override-indicator {
+    position: absolute;
+    left: calc(-1 * var(--spacing-lg));
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background-color: var(--warning);
+}
+
+.config-form .global-value {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+    font-style: italic;
+}
+
+.config-form .global-value::before {
+    content: 'Global default: ';
+    font-weight: 500;
+}
+
+/* Configuration Search and Filter */
+.config-filter {
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.config-filter-input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.config-filter-scope {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.config-filter-scope label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.config-filter-scope input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+/* Configuration Preview */
+.config-preview {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.config-preview-header {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-md) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.config-preview-content {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    font-family: monospace;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Responsive Design for Configuration */
+@media (max-width: 1200px) {
+    .config-stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .action-buttons-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .config-comparison {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .config-section-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .config-mode-selector {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .config-filter {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .config-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .config-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .hierarchical-table {
+        font-size: var(--font-size-sm);
+    }
+
+    .hierarchical-table th,
+    .hierarchical-table td {
+        padding: var(--spacing-xs);
+    }
+
+    .source-indicator {
+        font-size: var(--font-size-xs);
+        padding: 2px var(--spacing-xs);
+    }
+}
+
+/* Animation for configuration changes */
+@keyframes configUpdate {
+    0% {
+        background-color: var(--warning);
+        transform: scale(1.02);
+    }
+    100% {
+        background-color: transparent;
+        transform: scale(1);
+    }
+}
+
+.config-updated {
+    animation: configUpdate 0.5s ease-out;
+}
+
+/* Configuration Help and Tips */
+.config-help {
+    background-color: rgba(33, 150, 243, 0.1);
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.config-help-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-weight: 600;
+    color: var(--info);
+    margin-bottom: var(--spacing-sm);
+}
+
+.config-help-content {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.config-help-content ul {
+    margin: var(--spacing-sm) 0;
+    padding-left: var(--spacing-lg);
+}
+
+.config-help-content li {
+    margin-bottom: var(--spacing-xs);
+}
+
+/* Configuration keyboard shortcuts indicator */
+.config-shortcuts {
+    position: fixed;
+    bottom: var(--spacing-lg);
+    right: var(--spacing-lg);
+    background-color: var(--bg-quaternary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    opacity: 0.8;
+    transition: opacity var(--transition-fast);
+}
+
+.config-shortcuts:hover {
+    opacity: 1;
+}
+
+.config-shortcuts kbd {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+    padding: 2px var(--spacing-xs);
+    font-family: monospace;
+    font-size: var(--font-size-xs);
+    color: var(--text-primary);
+}
+
+/* Special styling for configuration placeholders */
+.config-placeholder {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+    background-color: var(--bg-secondary);
+    border: 2px dashed var(--border-primary);
+    border-radius: var(--radius-lg);
+    margin: var(--spacing-lg) 0;
+}
+
+.config-placeholder h4 {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+}
+
+.config-placeholder p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Enhanced button styling for hierarchical actions */
+.hierarchical-table .btn {
+    border: none;
+    transition: all var(--transition-fast);
+}
+
+.hierarchical-table .btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.hierarchical-table .text-muted {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: var(--font-size-sm);
+}

@@ -1,6 +1,6 @@
 /**
- * Software Estimation Manager - Main Application
- * Entry point for the renderer process
+ * Software Estimation Manager - Updated Main Application
+ * Integrato con sistema di configurazione gerarchica
  */
 
 class SoftwareEstimationApp {
@@ -8,7 +8,15 @@ class SoftwareEstimationApp {
         this.currentProject = null;
         this.isDirty = false;
         this.autoSaveInterval = null;
-        this.currentPage = 'features';
+        this.currentPage = 'projects';
+
+        // Managers for hierarchical configuration
+        this.configManager = null;
+        this.dataManager = null;
+        this.featureManager = null;
+        this.navigationManager = null;
+        this.modalManager = null;
+        this.projectManager = null;
 
         this.init();
     }
@@ -26,7 +34,7 @@ class SoftwareEstimationApp {
                 this.navigationManager.navigateTo('projects');
             }, 200);
 
-            console.log('Software Estimation Manager initialized successfully');
+            console.log('Software Estimation Manager initialized successfully with hierarchical configuration');
         } catch (error) {
             console.error('Failed to initialize application:', error);
             NotificationManager.show('Failed to initialize application', 'error');
@@ -37,8 +45,9 @@ class SoftwareEstimationApp {
         // Debug: Check if all classes are available
         console.log('Checking class availability:');
         console.log('DataManager:', typeof DataManager);
+        console.log('ConfigurationManager:', typeof ConfigurationManager);
         console.log('FeatureManager:', typeof FeatureManager);
-        console.log('NavigationManager:', typeof NavigationManager);
+        console.log('EnhancedNavigationManager:', typeof EnhancedNavigationManager);
         console.log('ModalManager:', typeof ModalManager);
         console.log('ProjectManager:', typeof ProjectManager);
         console.log('NotificationManager:', typeof NotificationManager);
@@ -48,6 +57,9 @@ class SoftwareEstimationApp {
         // Check if classes are defined before initializing
         if (typeof DataManager === 'undefined') {
             throw new Error('DataManager is not defined - check data-manager.js');
+        }
+        if (typeof ConfigurationManager === 'undefined') {
+            throw new Error('ConfigurationManager is not defined - check config-manager.js');
         }
         if (typeof NotificationManager === 'undefined') {
             throw new Error('NotificationManager is not defined - check notification-manager.js');
@@ -64,26 +76,31 @@ class SoftwareEstimationApp {
             NotificationManager.info('Running in development mode - some features may be limited');
         }
 
-        // Initialize managers
+        // Initialize managers in correct order
         this.dataManager = new DataManager();
-        this.featureManager = new FeatureManager(this.dataManager);
-        this.navigationManager = new NavigationManager(this);
+        this.configManager = new ConfigurationManager(this.dataManager);
+
+        // Wait for configuration manager to initialize
+        await this.configManager.init();
+
+        this.featureManager = new FeatureManager(this.dataManager, this.configManager);
+        this.navigationManager = new EnhancedNavigationManager(this, this.configManager);
         this.modalManager = new ModalManager();
         this.projectManager = new ProjectManager(this);
 
-        console.log('All managers initialized successfully');
+        console.log('All managers initialized successfully with hierarchical configuration');
 
         // Initialize default project structure
         if (!this.currentProject) {
             this.currentProject = this.createNewProject();
         }
 
-        // Populate dropdowns with default data
-        await this.populateDropdowns();
+        // Initialize dropdowns after project is created
+        this.initializeDropdowns();
     }
 
     createNewProject() {
-        return {
+        const baseProject = {
             project: {
                 id: Helpers.generateId(),
                 name: 'New Project',
@@ -103,82 +120,35 @@ class SoftwareEstimationApp {
                 consolidation: { manDays: 0, assignedResources: [], cost: 0 },
                 postGoLive: { manDays: 0, assignedResources: [], cost: 0 }
             },
-            config: {
-                suppliers: [
-                    { id: 'supplier1', name: 'External Supplier A', realRate: 450, officialRate: 500, status: 'active' },
-                    { id: 'supplier2', name: 'External Supplier B', realRate: 400, officialRate: 450, status: 'active' }
-                ],
-                internalResources: [
-                    { id: 'internal1', name: 'Tech Analyst IT', role: 'Tech Analyst IT', realRate: 350, officialRate: 400, department: 'IT' },
-                    { id: 'internal2', name: 'Tech Analyst RO', role: 'Tech Analyst RO', realRate: 320, officialRate: 380, department: 'RO' },
-                    { id: 'internal3', name: 'Developer', role: 'Developer', realRate: 400, officialRate: 450, department: 'Development' }
-                ],
-                categories: [
-                    { id: 'security', name: 'Security', description: 'Security-related features', multiplier: 1.2 },
-                    { id: 'ui', name: 'User Interface', description: 'UI/UX features', multiplier: 1.0 },
-                    { id: 'backend', name: 'Backend', description: 'Backend logic and APIs', multiplier: 1.1 },
-                    { id: 'integration', name: 'Integration', description: 'Third-party integrations', multiplier: 1.3 },
-                    { id: 'reporting', name: 'Reporting', description: 'Reports and analytics', multiplier: 1.1 }
-                ],
-                calculationParams: {
-                    workingDaysPerMonth: 22,
-                    workingHoursPerDay: 8,
-                    currencySymbol: '€',
-                    riskMargin: 0.15,
-                    overheadPercentage: 0.10
-                }
-            },
+            // Initialize with hierarchical configuration structure
+            config: this.configManager.initializeProjectConfig(),
             templates: [],
             versions: []
         };
+
+        console.log('Created new project with hierarchical configuration');
+        return baseProject;
     }
 
-    async populateDropdowns() {
-        if (!this.currentProject) return;
+    /**
+     * Initialize dropdowns using ConfigurationManager
+     */
+    initializeDropdowns() {
+        if (this.featureManager && this.configManager) {
+            // Let FeatureManager handle all dropdown population using ConfigurationManager
+            this.featureManager.populateFilterDropdowns();
+            console.log('Dropdowns initialized through FeatureManager with ConfigurationManager');
+        }
+    }
 
-        // Populate category dropdowns
-        const categorySelects = document.querySelectorAll('#category-filter, #feature-category');
-        categorySelects.forEach(select => {
-            // Clear existing options (except first)
-            while (select.children.length > 1) {
-                select.removeChild(select.lastChild);
-            }
-
-            // Add categories
-            this.currentProject.config.categories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category.id;
-                option.textContent = category.name;
-                select.appendChild(option);
-            });
-        });
-
-        // Populate supplier dropdowns
-        const supplierSelects = document.querySelectorAll('#supplier-filter, #feature-supplier');
-        supplierSelects.forEach(select => {
-            // Clear existing options (except first)
-            while (select.children.length > 1) {
-                select.removeChild(select.lastChild);
-            }
-
-            // Add suppliers
-            this.currentProject.config.suppliers.forEach(supplier => {
-                if (supplier.status === 'active') {
-                    const option = document.createElement('option');
-                    option.value = supplier.id;
-                    option.textContent = supplier.name;
-                    select.appendChild(option);
-                }
-            });
-
-            // Add internal resources
-            this.currentProject.config.internalResources.forEach(resource => {
-                const option = document.createElement('option');
-                option.value = resource.id;
-                option.textContent = `${resource.name} (Internal)`;
-                select.appendChild(option);
-            });
-        });
+    /**
+     * Refresh dropdowns when project changes
+     */
+    refreshDropdowns() {
+        if (this.featureManager) {
+            this.featureManager.refreshDropdowns();
+            console.log('Dropdowns refreshed through FeatureManager');
+        }
     }
 
     setupEventListeners() {
@@ -206,19 +176,6 @@ class SoftwareEstimationApp {
         // Feature management
         document.getElementById('add-feature-btn')?.addEventListener('click', () => {
             this.featureManager.showAddFeatureModal();
-        });
-
-        document.getElementById('import-features-btn')?.addEventListener('click', () => {
-            this.importFeatures();
-        });
-
-        // Modal events
-        document.getElementById('save-feature-btn')?.addEventListener('click', () => {
-            this.featureManager.saveFeature();
-        });
-
-        document.getElementById('cancel-feature-btn')?.addEventListener('click', () => {
-            this.modalManager.closeModal('feature-modal');
         });
 
         // Search and filters
@@ -342,10 +299,12 @@ class SoftwareEstimationApp {
 
         this.currentProject = this.createNewProject();
         this.isDirty = false;
-        await this.populateDropdowns();
+
+        // Refresh dropdowns after creating new project
+        this.refreshDropdowns();
         this.updateUI();
 
-        NotificationManager.show('New project created', 'success');
+        NotificationManager.show('New project created with default configuration', 'success');
     }
 
     async openProject() {
@@ -358,9 +317,12 @@ class SoftwareEstimationApp {
         try {
             const result = await window.electronAPI?.openFile?.();
             if (result?.success && result.data) {
-                this.currentProject = result.data;
+                // Migrate old project format to new hierarchical format if needed
+                this.currentProject = this.migrateProjectConfig(result.data);
                 this.isDirty = false;
-                await this.populateDropdowns();
+
+                // Refresh dropdowns after loading project
+                this.refreshDropdowns();
                 this.updateUI();
 
                 NotificationManager.show(`Project "${this.currentProject.project.name}" opened`, 'success');
@@ -369,6 +331,22 @@ class SoftwareEstimationApp {
             console.error('Failed to open project:', error);
             NotificationManager.show('Failed to open project', 'error');
         }
+    }
+
+    /**
+     * Migrate project configuration to hierarchical format
+     */
+    migrateProjectConfig(projectData) {
+        if (!projectData.config) {
+            // Very old format - create new config
+            projectData.config = this.configManager.initializeProjectConfig();
+        } else if (!projectData.config.projectOverrides) {
+            // Old format - migrate to hierarchical
+            projectData.config = this.configManager.migrateProjectConfig(projectData.config);
+        }
+
+        console.log('Project configuration migrated to hierarchical format');
+        return projectData;
     }
 
     async saveProject() {
@@ -380,11 +358,16 @@ class SoftwareEstimationApp {
             // Update project metadata
             this.currentProject.project.lastModified = new Date().toISOString();
 
+            // Ensure config is in hierarchical format
+            if (!this.currentProject.config.projectOverrides) {
+                this.currentProject.config = this.configManager.migrateProjectConfig(this.currentProject.config);
+            }
+
             // Save to localStorage with unique key
             const projectKey = `software-estimation-project-${this.currentProject.project.id}`;
             localStorage.setItem(projectKey, JSON.stringify(this.currentProject));
 
-            // Also save as current project
+            // Also save through data manager
             await this.dataManager.saveProject(this.currentProject);
 
             this.isDirty = false;
@@ -396,7 +379,7 @@ class SoftwareEstimationApp {
                 this.projectManager.updateCurrentProjectUI();
             }
 
-            NotificationManager.show('Project saved successfully', 'success');
+            NotificationManager.show('Project saved successfully with hierarchical configuration', 'success');
         } catch (error) {
             console.error('Failed to save project:', error);
             NotificationManager.show('Failed to save project', 'error');
@@ -414,6 +397,11 @@ class SoftwareEstimationApp {
             // Create a copy with new timestamp
             const projectCopy = Helpers.deepClone(this.currentProject);
             projectCopy.project.lastModified = new Date().toISOString();
+
+            // Ensure hierarchical config format
+            if (!projectCopy.config.projectOverrides) {
+                projectCopy.config = this.configManager.migrateProjectConfig(projectCopy.config);
+            }
 
             // Generate filename
             const filename = `${projectCopy.project.name}_${new Date().toISOString().split('T')[0]}.json`;
@@ -435,6 +423,11 @@ class SoftwareEstimationApp {
         if (!this.currentProject || !this.isDirty) return;
 
         try {
+            // Ensure hierarchical config format before auto-save
+            if (!this.currentProject.config.projectOverrides) {
+                this.currentProject.config = this.configManager.migrateProjectConfig(this.currentProject.config);
+            }
+
             await this.dataManager.saveProject(this.currentProject, 'autosave');
             this.updateLastSaved();
         } catch (error) {
@@ -472,6 +465,11 @@ class SoftwareEstimationApp {
     }
 
     async exportJSON(filename) {
+        // Ensure hierarchical config format
+        if (!this.currentProject.config.projectOverrides) {
+            this.currentProject.config = this.configManager.migrateProjectConfig(this.currentProject.config);
+        }
+
         const result = await window.electronAPI?.saveFile?.(
             `${filename}.json`,
             this.currentProject
@@ -483,12 +481,10 @@ class SoftwareEstimationApp {
     }
 
     async exportCSV(filename) {
-        // Export features to CSV
+        // Export features to CSV using ConfigurationManager for proper name resolution
         const csvData = this.featureManager.generateCSV();
         const blob = new Blob([csvData], { type: 'text/csv' });
 
-        // For now, we'll use the JSON save method and let user change extension
-        // In a full implementation, this would use a CSV-specific save dialog
         const result = await window.electronAPI?.saveFile?.(
             `${filename}_features.csv`,
             csvData
@@ -519,17 +515,25 @@ class SoftwareEstimationApp {
             <div class="context-menu-item" data-action="export-excel">
                 <i class="fas fa-file-excel"></i> Export as Excel
             </div>
+            <div class="context-menu-separator"></div>
+            <div class="context-menu-item" data-action="export-global-config">
+                <i class="fas fa-globe"></i> Export Global Configuration
+            </div>
         `;
 
-        // Position and show menu (simplified implementation)
+        // Position and show menu
         document.body.appendChild(menu);
 
         // Handle menu clicks
         menu.addEventListener('click', async (e) => {
             const action = e.target.closest('.context-menu-item')?.dataset.action;
             if (action) {
-                const format = action.replace('export-', '');
-                await this.exportProject(format);
+                if (action === 'export-global-config') {
+                    await this.exportGlobalConfiguration();
+                } else {
+                    const format = action.replace('export-', '');
+                    await this.exportProject(format);
+                }
             }
             menu.remove();
         });
@@ -540,12 +544,30 @@ class SoftwareEstimationApp {
         }, 100);
     }
 
+    async exportGlobalConfiguration() {
+        try {
+            const globalConfig = this.configManager.globalConfig;
+            const filename = `global-configuration-${new Date().toISOString().split('T')[0]}.json`;
+
+            const dataStr = JSON.stringify(globalConfig, null, 2);
+            Helpers.downloadAsFile(dataStr, filename, 'application/json');
+
+            NotificationManager.show('Global configuration exported successfully', 'success');
+        } catch (error) {
+            console.error('Failed to export global configuration:', error);
+            NotificationManager.show('Failed to export global configuration', 'error');
+        }
+    }
+
     async loadLastProject() {
         try {
             const lastProject = await this.dataManager.loadProject();
             if (lastProject) {
-                this.currentProject = lastProject;
-                await this.populateDropdowns();
+                // Migrate configuration format if needed
+                this.currentProject = this.migrateProjectConfig(lastProject);
+
+                // Refresh dropdowns after loading last project
+                this.refreshDropdowns();
             }
         } catch (error) {
             console.warn('Failed to load last project:', error);
@@ -569,6 +591,7 @@ class SoftwareEstimationApp {
         this.updateProjectStatus();
         this.featureManager.refreshTable();
         this.updateSummary();
+        this.updateConfigurationStatus();
     }
 
     updateProjectInfo() {
@@ -588,12 +611,48 @@ class SoftwareEstimationApp {
         }
     }
 
+    updateConfigurationStatus() {
+        // Show configuration status in the UI
+        if (this.configManager && this.currentProject) {
+            const stats = this.configManager.getConfigStats(this.currentProject.config);
+
+            // Update status bar or other UI elements with configuration info
+            const statusMessage = document.getElementById('status-message');
+            if (statusMessage && stats) {
+                const projectSpecificCount = stats.suppliers.projectSpecific +
+                    stats.internalResources.projectSpecific +
+                    stats.categories.projectSpecific;
+
+                if (projectSpecificCount > 0) {
+                    statusMessage.textContent = `Ready - ${projectSpecificCount} project-specific configurations`;
+                } else {
+                    statusMessage.textContent = 'Ready - Using global configuration';
+                }
+            }
+        }
+    }
+
     updateSummary() {
         if (!this.currentProject) return;
 
         const features = this.currentProject.features;
         const totalFeatures = features.length;
-        const totalManDays = features.reduce((sum, feature) => sum + (feature.manDays || 0), 0);
+
+        // Calculate total man days using hierarchical configuration
+        let totalManDays = 0;
+        if (this.configManager) {
+            const projectConfig = this.configManager.getProjectConfig(this.currentProject.config);
+            const categories = projectConfig.categories;
+
+            totalManDays = features.reduce((sum, feature) => {
+                const category = categories.find(c => c.id === feature.category);
+                const multiplier = category ? category.multiplier : 1.0;
+                return sum + ((feature.manDays || 0) * multiplier);
+            }, 0);
+        } else {
+            totalManDays = features.reduce((sum, feature) => sum + (feature.manDays || 0), 0);
+        }
+
         const averageManDays = totalFeatures > 0 ? (totalManDays / totalFeatures).toFixed(1) : 0;
 
         // Update summary display
@@ -602,7 +661,7 @@ class SoftwareEstimationApp {
         const averageManDaysEl = document.getElementById('average-man-days');
 
         if (totalFeaturesEl) totalFeaturesEl.textContent = totalFeatures;
-        if (totalManDaysEl) totalManDaysEl.textContent = totalManDays;
+        if (totalManDaysEl) totalManDaysEl.textContent = totalManDays.toFixed(1);
         if (averageManDaysEl) averageManDaysEl.textContent = averageManDays;
     }
 
@@ -630,9 +689,325 @@ class SoftwareEstimationApp {
         }
     }
 
+    /**
+     * Backup and restore functionality
+     */
+    async backupData() {
+        try {
+            this.showLoading('Creating backup...');
+
+            const backupData = {
+                metadata: {
+                    version: '1.0.0',
+                    createdAt: new Date().toISOString(),
+                    application: 'Software Estimation Manager'
+                },
+                globalConfiguration: this.configManager.globalConfig,
+                currentProject: this.currentProject,
+                recentProjects: this.projectManager ? this.projectManager.recentProjects : [],
+                applicationSettings: await this.dataManager.getSettings()
+            };
+
+            const filename = `backup-${new Date().toISOString().split('T')[0]}.json`;
+            const dataStr = JSON.stringify(backupData, null, 2);
+
+            if (window.electronAPI?.saveFile) {
+                const result = await window.electronAPI.saveFile(filename, backupData);
+                if (result?.success) {
+                    NotificationManager.show('Backup created successfully', 'success');
+                }
+            } else {
+                Helpers.downloadAsFile(dataStr, filename, 'application/json');
+                NotificationManager.show('Backup downloaded successfully', 'success');
+            }
+        } catch (error) {
+            console.error('Backup failed:', error);
+            NotificationManager.show('Failed to create backup', 'error');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    async restoreData() {
+        try {
+            if (!confirm('Restoring data will replace all current data. Are you sure you want to continue?')) {
+                return;
+            }
+
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = async (e) => {
+                try {
+                    this.showLoading('Restoring data...');
+
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const content = await file.text();
+                    const backupData = JSON.parse(content);
+
+                    // Validate backup data
+                    if (!backupData.metadata || !backupData.globalConfiguration) {
+                        throw new Error('Invalid backup file format');
+                    }
+
+                    // Restore global configuration
+                    this.configManager.globalConfig = backupData.globalConfiguration;
+                    await this.configManager.saveGlobalConfig();
+
+                    // Restore current project if available
+                    if (backupData.currentProject) {
+                        this.currentProject = this.migrateProjectConfig(backupData.currentProject);
+                        this.isDirty = false;
+                    }
+
+                    // Restore recent projects if available
+                    if (this.projectManager && backupData.recentProjects) {
+                        this.projectManager.recentProjects = backupData.recentProjects;
+                        this.projectManager.saveRecentProjects();
+                    }
+
+                    // Restore application settings if available
+                    if (backupData.applicationSettings) {
+                        await this.dataManager.saveSettings(backupData.applicationSettings);
+                    }
+
+                    // Refresh UI
+                    this.refreshDropdowns();
+                    this.updateUI();
+
+                    NotificationManager.show('Data restored successfully', 'success');
+                } catch (error) {
+                    console.error('Failed to restore data:', error);
+                    NotificationManager.show(`Failed to restore data: ${error.message}`, 'error');
+                } finally {
+                    this.hideLoading();
+                }
+            };
+
+            input.click();
+        } catch (error) {
+            console.error('Failed to restore data:', error);
+            NotificationManager.show('Failed to restore data', 'error');
+        }
+    }
+
+    /**
+     * Get configuration statistics for current project
+     */
+    getConfigurationStats() {
+        if (!this.configManager || !this.currentProject) {
+            return null;
+        }
+
+        return this.configManager.getConfigStats(this.currentProject.config);
+    }
+
+    /**
+     * Reset project configuration to global defaults
+     */
+    async resetProjectConfigToGlobal() {
+        if (!this.configManager || !this.currentProject) {
+            return false;
+        }
+
+        const confirmed = confirm(
+            'Are you sure you want to reset all project configuration to global defaults? ' +
+            'This will remove all project-specific suppliers, resources, categories, and parameter overrides.'
+        );
+
+        if (!confirmed) return false;
+
+        try {
+            this.configManager.resetProjectToGlobalDefaults(this.currentProject.config);
+            this.markDirty();
+            this.refreshDropdowns();
+            this.updateUI();
+
+            NotificationManager.show('Project configuration reset to global defaults', 'success');
+            return true;
+        } catch (error) {
+            console.error('Failed to reset project configuration:', error);
+            NotificationManager.show('Failed to reset project configuration', 'error');
+            return false;
+        }
+    }
+
+    /**
+     * Import global configuration from file
+     */
+    async importGlobalConfiguration() {
+        try {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = async (e) => {
+                try {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    this.showLoading('Importing global configuration...');
+
+                    const content = await file.text();
+                    const importedConfig = JSON.parse(content);
+
+                    // Remove export metadata if present
+                    if (importedConfig.exportMetadata) {
+                        delete importedConfig.exportMetadata;
+                    }
+
+                    // Validate imported configuration
+                    if (!this.validateGlobalConfiguration(importedConfig)) {
+                        throw new Error('Invalid configuration file format');
+                    }
+
+                    // Backup current configuration
+                    const backup = this.configManager.globalConfig;
+
+                    try {
+                        this.configManager.globalConfig = importedConfig;
+                        await this.configManager.saveGlobalConfig();
+
+                        // Refresh all dropdowns and UI
+                        this.refreshDropdowns();
+                        this.updateUI();
+
+                        NotificationManager.show('Global configuration imported successfully', 'success');
+                    } catch (saveError) {
+                        // Restore backup on save failure
+                        this.configManager.globalConfig = backup;
+                        throw saveError;
+                    }
+                } catch (error) {
+                    console.error('Failed to import global configuration:', error);
+                    NotificationManager.show(`Failed to import configuration: ${error.message}`, 'error');
+                } finally {
+                    this.hideLoading();
+                }
+            };
+
+            input.click();
+        } catch (error) {
+            console.error('Failed to import global configuration:', error);
+            NotificationManager.show('Failed to import global configuration', 'error');
+        }
+    }
+
+    /**
+     * Validate global configuration structure
+     */
+    validateGlobalConfiguration(config) {
+        if (!config || typeof config !== 'object') return false;
+
+        const requiredProps = ['suppliers', 'internalResources', 'categories', 'calculationParams'];
+
+        for (const prop of requiredProps) {
+            if (!(prop in config)) return false;
+        }
+
+        // Validate suppliers array
+        if (!Array.isArray(config.suppliers)) return false;
+
+        // Validate internal resources array
+        if (!Array.isArray(config.internalResources)) return false;
+
+        // Validate categories array
+        if (!Array.isArray(config.categories)) return false;
+
+        // Validate calculation params object
+        if (!config.calculationParams || typeof config.calculationParams !== 'object') return false;
+
+        return true;
+    }
+
+    /**
+     * Get current project configuration merged with global defaults
+     */
+    getEffectiveConfiguration() {
+        if (!this.configManager || !this.currentProject) {
+            return null;
+        }
+
+        return this.configManager.getProjectConfig(this.currentProject.config);
+    }
+
+    /**
+     * Add supplier to current project
+     */
+    async addSupplierToProject(supplier) {
+        if (!this.configManager || !this.currentProject) {
+            return false;
+        }
+
+        try {
+            this.configManager.addSupplierToProject(this.currentProject.config, supplier);
+            this.markDirty();
+            this.refreshDropdowns();
+
+            NotificationManager.show('Supplier added to project', 'success');
+            return true;
+        } catch (error) {
+            console.error('Failed to add supplier to project:', error);
+            NotificationManager.show('Failed to add supplier', 'error');
+            return false;
+        }
+    }
+
+    /**
+     * Add internal resource to current project
+     */
+    async addInternalResourceToProject(resource) {
+        if (!this.configManager || !this.currentProject) {
+            return false;
+        }
+
+        try {
+            this.configManager.addInternalResourceToProject(this.currentProject.config, resource);
+            this.markDirty();
+            this.refreshDropdowns();
+
+            NotificationManager.show('Internal resource added to project', 'success');
+            return true;
+        } catch (error) {
+            console.error('Failed to add internal resource to project:', error);
+            NotificationManager.show('Failed to add internal resource', 'error');
+            return false;
+        }
+    }
+
+    /**
+     * Add category to current project
+     */
+    async addCategoryToProject(category) {
+        if (!this.configManager || !this.currentProject) {
+            return false;
+        }
+
+        try {
+            this.configManager.addCategoryToProject(this.currentProject.config, category);
+            this.markDirty();
+            this.refreshDropdowns();
+
+            NotificationManager.show('Category added to project', 'success');
+            return true;
+        } catch (error) {
+            console.error('Failed to add category to project:', error);
+            NotificationManager.show('Failed to add category', 'error');
+            return false;
+        }
+    }
+
     destroy() {
         if (this.autoSaveInterval) {
             clearInterval(this.autoSaveInterval);
+        }
+
+        // Clean up configuration manager
+        if (this.configManager) {
+            this.configManager.clearCache();
         }
     }
 }
@@ -641,11 +1016,11 @@ class SoftwareEstimationApp {
 document.addEventListener('DOMContentLoaded', () => {
     // Add delay to ensure all scripts are loaded
     setTimeout(() => {
-        console.log('Starting app initialization...');
+        console.log('Starting app initialization with hierarchical configuration...');
 
         // Check if all required classes are available
         const requiredClasses = [
-            'DataManager', 'FeatureManager', 'NavigationManager',
+            'DataManager', 'ConfigurationManager', 'FeatureManager', 'EnhancedNavigationManager',
             'ModalManager', 'ProjectManager', 'NotificationManager', 'Helpers'
         ];
 
@@ -668,7 +1043,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Handle app cleanup
 window.addEventListener('beforeunload', () => {
-    if (window.app) {
+    if (window.app) {Software Estimation Manager
         window.app.destroy();
     }
 });
+
+// Global helper functions for configuration management
+window.getConfigurationStats = () => {
+    return window.app?.getConfigurationStats() || null;
+};
+
+window.resetProjectConfig = () => {
+    return window.app?.resetProjectConfigToGlobal() || false;
+};
+
+window.importGlobalConfig = () => {
+    return window.app?.importGlobalConfiguration();
+};
+
+window.exportGlobalConfig = () => {
+    return window.app?.exportGlobalConfiguration();
+};
+
+// Additional helper functions for debugging and development
+window.debugConfig = () => {
+    if (window.app?.configManager) {
+        console.log('Global Config:', window.app.configManager.globalConfig);
+        console.log('Current Project Config:', window.app.currentProject?.config);
+        console.log('Effective Config:', window.app.getEffectiveConfiguration());
+        console.log('Config Stats:', window.app.getConfigurationStats());
+    }
+};
+
+window.clearConfigCache = () => {
+    if (window.app?.configManager) {
+        window.app.configManager.clearCache();
+        console.log('Configuration cache cleared');
+    }
+};
+
+// Export for external modules if needed
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = SoftwareEstimationApp;
+}

@@ -558,3 +558,287 @@
         padding: 4px 8px;
     }
 }
+
+/* Custom Title Bar Styles */
+.custom-title-bar {
+    height: 32px;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    -webkit-app-region: drag;
+    user-select: none;
+    position: relative;
+    z-index: 1000;
+}
+
+.title-bar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding-left: var(--spacing-sm);
+    flex: 0 0 auto;
+    -webkit-app-region: drag;
+}
+
+.app-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.app-icon {
+    color: var(--text-accent);
+    font-size: var(--font-size-base);
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-title {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.title-bar-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    flex: 1;
+    -webkit-app-region: drag;
+}
+
+.project-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+#project-name {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    font-weight: 500;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#project-status {
+    font-size: var(--font-size-lg);
+    line-height: 1;
+    width: 12px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#project-status.saved {
+    color: var(--success);
+}
+
+#project-status.unsaved {
+    color: var(--warning);
+}
+
+.title-bar-right {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    -webkit-app-region: no-drag;
+}
+
+/* Window Controls */
+.window-controls {
+    display: flex;
+    align-items: stretch;
+    height: 32px;
+}
+
+.window-control-btn {
+    width: 46px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color var(--transition-fast);
+    font-size: 10px;
+    -webkit-app-region: no-drag;
+    outline: none;
+}
+
+.window-control-btn:hover {
+    background-color: var(--bg-hover);
+}
+
+.window-control-btn:active {
+    background-color: var(--bg-active);
+}
+
+/* Specific button styles */
+.window-control-btn.minimize:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.window-control-btn.maximize:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.window-control-btn.close:hover {
+    background-color: #e81123;
+    color: white;
+}
+
+.window-control-btn.close:active {
+    background-color: #f1707a;
+    color: white;
+}
+
+/* Icon adjustments for window controls */
+.window-control-btn i {
+    font-size: 10px;
+    pointer-events: none;
+}
+
+.window-control-btn.minimize i {
+    font-size: 8px;
+}
+
+.window-control-btn.maximize i {
+    font-size: 9px;
+}
+
+.window-control-btn.close i {
+    font-size: 10px;
+}
+
+/* macOS specific styles */
+@supports (-webkit-appearance: none) {
+    .custom-title-bar {
+        -webkit-app-region: drag;
+    }
+
+    .window-controls {
+        -webkit-app-region: no-drag;
+    }
+}
+
+/* Windows specific adjustments */
+@media screen and (-ms-high-contrast: active), screen and (-ms-high-contrast: none) {
+    .window-control-btn {
+        width: 45px;
+    }
+
+    .window-control-btn.close:hover {
+        background-color: #e81123;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .custom-title-bar {
+        padding: 0 var(--spacing-xs);
+    }
+
+    .app-title {
+        display: none;
+    }
+
+    #project-name {
+        max-width: 200px;
+    }
+
+    .window-control-btn {
+        width: 40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .title-bar-left {
+        padding-left: var(--spacing-xs);
+    }
+
+    .app-info {
+        gap: var(--spacing-xs);
+    }
+
+    #project-name {
+        max-width: 150px;
+    }
+
+    .window-control-btn {
+        width: 36px;
+        height: 30px;
+    }
+}
+
+/* Focus styles for accessibility */
+.window-control-btn:focus {
+    outline: 2px solid var(--text-accent);
+    outline-offset: -2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .custom-title-bar {
+        border-bottom: 2px solid var(--border-primary);
+    }
+
+    .window-control-btn {
+        border: 1px solid transparent;
+    }
+
+    .window-control-btn:hover {
+        border-color: var(--text-primary);
+    }
+
+    .window-control-btn.close:hover {
+        border-color: white;
+    }
+}
+
+/* Animation for maximize/restore button */
+.window-control-btn.maximize.maximized i:before {
+    content: "\f2d0"; /* fa-window-restore */
+}
+
+/* Smooth transitions */
+.window-control-btn,
+.custom-title-bar {
+    transition: all var(--transition-fast);
+}
+
+/* When window is focused/unfocused */
+.window-unfocused .custom-title-bar {
+    background-color: var(--bg-tertiary);
+}
+
+.window-unfocused .custom-title-bar .app-title,
+.window-unfocused .custom-title-bar #project-name {
+    color: var(--text-muted);
+}
+
+.window-unfocused .window-control-btn {
+    color: var(--text-muted);
+}
+
+/* Custom scrollbar for title if needed */
+#project-name {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+#project-name::-webkit-scrollbar {
+    display: none;
+}

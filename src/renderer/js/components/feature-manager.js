@@ -1,10 +1,12 @@
 /**
- * Feature Manager - Handles all feature-related operations
+ * Updated Feature Manager - Integrato con ConfigurationManager
+ * Utilizza il sistema di configurazione gerarchica per suppliers, categories e resources
  */
 
 class FeatureManager {
-    constructor(dataManager) {
+    constructor(dataManager, configManager) {
         this.dataManager = dataManager;
+        this.configManager = configManager;
         this.currentSort = { field: 'id', direction: 'asc' };
         this.filteredFeatures = [];
         this.editingFeature = null;
@@ -22,7 +24,7 @@ class FeatureManager {
             });
         }
 
-        // CORREZIONE: Modal close events migliorati
+        // Modal close events
         const modalCloseBtn = document.querySelector('#feature-modal .modal-close');
         if (modalCloseBtn) {
             modalCloseBtn.addEventListener('click', () => {
@@ -30,7 +32,6 @@ class FeatureManager {
             });
         }
 
-        // CORREZIONE: Cancel button
         const cancelBtn = document.getElementById('cancel-feature-btn');
         if (cancelBtn) {
             cancelBtn.addEventListener('click', () => {
@@ -38,7 +39,6 @@ class FeatureManager {
             });
         }
 
-        // CORREZIONE: Save button
         const saveBtn = document.getElementById('save-feature-btn');
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
@@ -46,7 +46,7 @@ class FeatureManager {
             });
         }
 
-        // CORREZIONE: Click outside modal to close
+        // Click outside modal to close
         const modal = document.getElementById('feature-modal');
         if (modal) {
             modal.addEventListener('click', (e) => {
@@ -56,7 +56,7 @@ class FeatureManager {
             });
         }
 
-        // CORREZIONE: Escape key to close modal
+        // Escape key to close modal
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 const modal = document.getElementById('feature-modal');
@@ -87,6 +87,9 @@ class FeatureManager {
             idField.value = this.generateFeatureId();
         }
 
+        // Populate dropdowns with current project configuration
+        this.populateModalDropdowns();
+
         if (modal) {
             modal.classList.add('active');
 
@@ -104,6 +107,9 @@ class FeatureManager {
      */
     showEditFeatureModal(feature) {
         this.editingFeature = feature;
+
+        // Populate dropdowns before populating the form
+        this.populateModalDropdowns();
         this.populateFeatureForm(feature);
 
         const modal = document.getElementById('feature-modal');
@@ -124,6 +130,298 @@ class FeatureManager {
                     descField.select();
                 }, 100);
             }
+        }
+    }
+
+    /**
+     * Populate modal dropdowns using ConfigurationManager
+     */
+    populateModalDropdowns() {
+        const currentProject = window.app?.currentProject;
+
+        if (!currentProject || !this.configManager) {
+            console.warn('No project or configuration manager found');
+            this.clearModalDropdowns();
+            return;
+        }
+
+        // Get merged configuration for current project
+        const projectConfig = this.configManager.getProjectConfig(currentProject.config);
+
+        // Populate category dropdown in modal
+        this.populateCategoryDropdown(projectConfig.categories);
+
+        // Populate supplier dropdown in modal (include both suppliers and internal resources)
+        this.populateSupplierDropdown(projectConfig.suppliers, projectConfig.internalResources);
+
+        console.log('Modal dropdowns populated from merged project configuration');
+    }
+
+    /**
+     * Populate category dropdown
+     * @param {Array} categories - Array of categories from merged config
+     */
+    populateCategoryDropdown(categories) {
+        const categorySelect = document.getElementById('feature-category');
+        if (!categorySelect) return;
+
+        // Clear existing options (keep only the first option)
+        categorySelect.innerHTML = '<option value="">Select Category</option>';
+
+        // Add categories from merged configuration
+        categories.forEach(category => {
+            if (category.id && category.name && category.status !== 'inactive') {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+
+                // Add visual indicator for global vs project-specific
+                if (category.isProjectSpecific) {
+                    option.textContent += ' (Project)';
+                    option.style.fontStyle = 'italic';
+                } else if (category.isOverridden) {
+                    option.textContent += ' (Modified)';
+                    option.style.fontWeight = 'bold';
+                }
+
+                option.title = category.description || category.name;
+                categorySelect.appendChild(option);
+            }
+        });
+
+        console.log(`Populated ${categories.length} categories in modal dropdown`);
+    }
+
+    /**
+     * Populate supplier dropdown
+     * @param {Array} suppliers - Array of external suppliers
+     * @param {Array} internalResources - Array of internal resources
+     */
+    populateSupplierDropdown(suppliers, internalResources) {
+        const supplierSelect = document.getElementById('feature-supplier');
+        if (!supplierSelect) return;
+
+        // Clear existing options (keep only the first option)
+        supplierSelect.innerHTML = '<option value="">Select Supplier</option>';
+
+        // Add external suppliers
+        suppliers.forEach(supplier => {
+            if (supplier.id && supplier.name && supplier.status !== 'inactive') {
+                const option = document.createElement('option');
+                option.value = supplier.id;
+                option.textContent = `${supplier.name} (External)`;
+
+                // Add visual indicator for global vs project-specific
+                if (supplier.isProjectSpecific) {
+                    option.textContent += ' - Project';
+                    option.style.fontStyle = 'italic';
+                } else if (supplier.isOverridden) {
+                    option.textContent += ' - Modified';
+                    option.style.fontWeight = 'bold';
+                }
+
+                option.title = `External Supplier - Rate: €${supplier.officialRate}/day`;
+                supplierSelect.appendChild(option);
+            }
+        });
+
+        // Add internal resources
+        internalResources.forEach(resource => {
+            if (resource.id && resource.name && resource.status !== 'inactive') {
+                const option = document.createElement('option');
+                option.value = resource.id;
+                option.textContent = `${resource.name} (Internal)`;
+
+                // Add visual indicator for global vs project-specific
+                if (resource.isProjectSpecific) {
+                    option.textContent += ' - Project';
+                    option.style.fontStyle = 'italic';
+                } else if (resource.isOverridden) {
+                    option.textContent += ' - Modified';
+                    option.style.fontWeight = 'bold';
+                }
+
+                option.title = `Internal Resource - ${resource.role} - ${resource.department}`;
+                supplierSelect.appendChild(option);
+            }
+        });
+
+        console.log(`Populated ${suppliers.length} suppliers and ${internalResources.length} internal resources in modal dropdown`);
+    }
+
+    /**
+     * Populate filter dropdowns using ConfigurationManager
+     */
+    populateFilterDropdowns() {
+        const currentProject = window.app?.currentProject;
+
+        if (!currentProject || !this.configManager) {
+            console.warn('No project or configuration manager found for filters');
+            this.clearFilterDropdowns();
+            return;
+        }
+
+        // Get merged configuration for current project
+        const projectConfig = this.configManager.getProjectConfig(currentProject.config);
+
+        // Populate category filter dropdown
+        this.populateCategoryFilterDropdown(projectConfig.categories);
+
+        // Populate supplier filter dropdown
+        this.populateSupplierFilterDropdown(projectConfig.suppliers, projectConfig.internalResources);
+
+        console.log('Filter dropdowns populated from merged project configuration');
+    }
+
+    /**
+     * Populate category filter dropdown
+     * @param {Array} categories - Array of categories from merged config
+     */
+    populateCategoryFilterDropdown(categories) {
+        const categoryFilterSelect = document.getElementById('category-filter');
+        if (!categoryFilterSelect) return;
+
+        // Store current selection
+        const currentValue = categoryFilterSelect.value;
+
+        // Clear existing options (except first)
+        while (categoryFilterSelect.children.length > 1) {
+            categoryFilterSelect.removeChild(categoryFilterSelect.lastChild);
+        }
+
+        // Add categories
+        categories.forEach(category => {
+            if (category.id && category.name && category.status !== 'inactive') {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+
+                // Add visual indicator for global vs project-specific
+                if (category.isProjectSpecific) {
+                    option.textContent += ' (Project)';
+                } else if (category.isOverridden) {
+                    option.textContent += ' (Modified)';
+                }
+
+                categoryFilterSelect.appendChild(option);
+            }
+        });
+
+        // Restore selection if it still exists
+        if (currentValue && Array.from(categoryFilterSelect.options).some(opt => opt.value === currentValue)) {
+            categoryFilterSelect.value = currentValue;
+        }
+
+        console.log(`Populated ${categories.length} categories in filter dropdown`);
+    }
+
+    /**
+     * Populate supplier filter dropdown
+     * @param {Array} suppliers - Array of external suppliers
+     * @param {Array} internalResources - Array of internal resources
+     */
+    populateSupplierFilterDropdown(suppliers, internalResources) {
+        const supplierFilterSelect = document.getElementById('supplier-filter');
+        if (!supplierFilterSelect) return;
+
+        // Store current selection
+        const currentValue = supplierFilterSelect.value;
+
+        // Clear existing options (except first)
+        while (supplierFilterSelect.children.length > 1) {
+            supplierFilterSelect.removeChild(supplierFilterSelect.lastChild);
+        }
+
+        // Add external suppliers
+        suppliers.forEach(supplier => {
+            if (supplier.id && supplier.name && supplier.status !== 'inactive') {
+                const option = document.createElement('option');
+                option.value = supplier.id;
+                option.textContent = `${supplier.name} (External)`;
+
+                // Add visual indicator for global vs project-specific
+                if (supplier.isProjectSpecific) {
+                    option.textContent += ' - Project';
+                } else if (supplier.isOverridden) {
+                    option.textContent += ' - Modified';
+                }
+
+                supplierFilterSelect.appendChild(option);
+            }
+        });
+
+        // Add internal resources
+        internalResources.forEach(resource => {
+            if (resource.id && resource.name && resource.status !== 'inactive') {
+                const option = document.createElement('option');
+                option.value = resource.id;
+                option.textContent = `${resource.name} (Internal)`;
+
+                // Add visual indicator for global vs project-specific
+                if (resource.isProjectSpecific) {
+                    option.textContent += ' - Project';
+                } else if (resource.isOverridden) {
+                    option.textContent += ' - Modified';
+                }
+
+                supplierFilterSelect.appendChild(option);
+            }
+        });
+
+        // Restore selection if it still exists
+        if (currentValue && Array.from(supplierFilterSelect.options).some(opt => opt.value === currentValue)) {
+            supplierFilterSelect.value = currentValue;
+        }
+
+        console.log(`Populated ${suppliers.length} suppliers and ${internalResources.length} internal resources in filter dropdown`);
+    }
+
+    /**
+     * Clear dropdowns when no configuration data is available
+     */
+    clearModalDropdowns() {
+        const categorySelect = document.getElementById('feature-category');
+        const supplierSelect = document.getElementById('feature-supplier');
+
+        if (categorySelect) {
+            categorySelect.innerHTML = '<option value="">No Categories Available</option>';
+        }
+
+        if (supplierSelect) {
+            supplierSelect.innerHTML = '<option value="">No Suppliers Available</option>';
+        }
+
+        console.log('Modal dropdowns cleared - no configuration data available');
+    }
+
+    /**
+     * Clear filter dropdowns when no configuration data is available
+     */
+    clearFilterDropdowns() {
+        const categoryFilterSelect = document.getElementById('category-filter');
+        const supplierFilterSelect = document.getElementById('supplier-filter');
+
+        if (categoryFilterSelect) {
+            categoryFilterSelect.innerHTML = '<option value="">All Categories</option>';
+        }
+
+        if (supplierFilterSelect) {
+            supplierFilterSelect.innerHTML = '<option value="">All Suppliers</option>';
+        }
+
+        console.log('Filter dropdowns cleared - no configuration data available');
+    }
+
+    /**
+     * Method to refresh all dropdowns when configuration changes
+     */
+    refreshDropdowns() {
+        this.populateFilterDropdowns();
+
+        // If modal is open, also refresh modal dropdowns
+        const modal = document.getElementById('feature-modal');
+        if (modal && modal.classList.contains('active')) {
+            this.populateModalDropdowns();
         }
     }
 
@@ -315,7 +613,7 @@ class FeatureManager {
     }
 
     /**
-     * Validate feature data
+     * Validate feature data using ConfigurationManager
      * @param {Object} data - Feature data to validate
      */
     validateFeatureData(data) {
@@ -336,10 +634,20 @@ class FeatureManager {
 
         if (!data.category) {
             errors.category = 'Category is required';
+        } else {
+            // Validate that category exists in merged configuration
+            if (!this.isCategoryValid(data.category)) {
+                errors.category = 'Please select a valid category from the configuration';
+            }
         }
 
         if (!data.supplier) {
             errors.supplier = 'Supplier is required';
+        } else {
+            // Validate that supplier exists in merged configuration
+            if (!this.isSupplierValid(data.supplier)) {
+                errors.supplier = 'Please select a valid supplier from the configuration';
+            }
         }
 
         if (!data.manDays || data.manDays <= 0) {
@@ -352,6 +660,32 @@ class FeatureManager {
             isValid: Object.keys(errors).length === 0,
             errors
         };
+    }
+
+    /**
+     * Verify that category is valid in merged configuration
+     * @param {string} categoryId - Category ID to verify
+     */
+    isCategoryValid(categoryId) {
+        const currentProject = window.app?.currentProject;
+        if (!currentProject || !this.configManager) {
+            return false;
+        }
+
+        return this.configManager.validateCategory(currentProject.config, categoryId);
+    }
+
+    /**
+     * Verify that supplier is valid in merged configuration
+     * @param {string} supplierId - Supplier ID to verify
+     */
+    isSupplierValid(supplierId) {
+        const currentProject = window.app?.currentProject;
+        if (!currentProject || !this.configManager) {
+            return false;
+        }
+
+        return this.configManager.validateSupplier(currentProject.config, supplierId);
     }
 
     /**
@@ -433,6 +767,9 @@ class FeatureManager {
     refreshTable() {
         const currentProject = window.app?.currentProject;
         if (!currentProject) return;
+
+        // Refresh filter dropdowns
+        this.populateFilterDropdowns();
 
         // Apply current filters
         this.applyFilters();
@@ -639,33 +976,25 @@ class FeatureManager {
     }
 
     /**
-     * Get category name by ID
+     * Get category name by ID using ConfigurationManager
      * @param {Object} project - Project data
      * @param {string} categoryId - Category ID
      */
     getCategoryName(project, categoryId) {
-        if (!project || !categoryId) return 'Uncategorized';
-        const category = project.config?.categories?.find(c => c.id === categoryId);
-        return category?.name || categoryId;
+        if (!project || !categoryId || !this.configManager) return 'Uncategorized';
+
+        return this.configManager.getCategoryDisplayName(project.config, categoryId);
     }
 
     /**
-     * Get supplier name by ID
+     * Get supplier name by ID using ConfigurationManager
      * @param {Object} project - Project data
      * @param {string} supplierId - Supplier ID
      */
     getSupplierName(project, supplierId) {
-        if (!project || !supplierId) return 'Unassigned';
+        if (!project || !supplierId || !this.configManager) return 'Unassigned';
 
-        // Check suppliers
-        let supplier = project.config?.suppliers?.find(s => s.id === supplierId);
-        if (supplier) return supplier.name;
-
-        // Check internal resources
-        supplier = project.config?.internalResources?.find(r => r.id === supplierId);
-        if (supplier) return `${supplier.name}`;
-
-        return supplierId;
+        return this.configManager.getSupplierDisplayName(project.config, supplierId);
     }
 
     /**

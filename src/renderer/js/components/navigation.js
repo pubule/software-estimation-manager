@@ -1,424 +1,221 @@
 /**
- * Navigation Manager
- * Handles navigation between different sections of the application
+ * Base Navigation Manager
  */
-
 class NavigationManager {
     constructor(app) {
         this.app = app;
         this.currentSection = 'projects';
-        this.sections = [
-            'projects',
-            'features',
-            'phases',
-            'calculations',
-            'configuration',
-            'templates',
-            'history'
-        ];
-
-        this.init();
     }
 
-    init() {
-        this.setupNavigationEvents();
-        this.updateActiveNavigation();
-
-        // Initialize the current section immediately
-        setTimeout(() => {
-            this.initializeSection(this.currentSection);
-        }, 100);
-    }
-
-    /**
-     * Setup navigation event listeners
-     */
-    setupNavigationEvents() {
-        // Navigation section clicks
-        document.querySelectorAll('.nav-section').forEach(section => {
-            section.addEventListener('click', (e) => {
-                e.preventDefault();
-                const sectionName = section.dataset.section;
-                if (sectionName && this.sections.includes(sectionName)) {
-                    this.navigateTo(sectionName);
-                }
-            });
-        });
-
-        // Handle browser back/forward buttons
-        window.addEventListener('popstate', (e) => {
-            if (e.state && e.state.section) {
-                this.navigateTo(e.state.section, false);
-            }
-        });
-
-        // Keyboard navigation
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                const sectionKeys = {
-                    '1': 'projects',
-                    '2': 'features',
-                    '3': 'phases',
-                    '4': 'calculations',
-                    '5': 'configuration',
-                    '6': 'templates',
-                    '7': 'history'
-                };
-
-                if (sectionKeys[e.key]) {
-                    e.preventDefault();
-                    this.navigateTo(sectionKeys[e.key]);
-                }
-            }
-        });
-    }
-
-    /**
-     * Navigate to a specific section
-     * @param {string} sectionName - Name of the section to navigate to
-     * @param {boolean} pushState - Whether to push state to browser history
-     */
-    navigateTo(sectionName, pushState = true) {
-        if (!this.sections.includes(sectionName)) {
-            console.warn(`Unknown section: ${sectionName}`);
-            return false;
-        }
-
-        // Check if we need to save before navigating
-        if (this.app.isDirty && this.currentSection !== sectionName) {
-            // For now, we'll just navigate. In a full implementation,
-            // you might want to prompt the user to save
-        }
-
-        // Hide current section
-        this.hideSection(this.currentSection);
-
-        // Show new section
-        this.showSection(sectionName);
-
-        // Update navigation state
-        this.currentSection = sectionName;
-        this.updateActiveNavigation();
-
-        // Update browser history
-        if (pushState) {
-            const state = { section: sectionName };
-            const title = this.getSectionTitle(sectionName);
-            const url = `#${sectionName}`;
-
-            history.pushState(state, title, url);
-        }
-
-        // Trigger section-specific initialization
-        this.initializeSection(sectionName);
-
-        // Update page title
-        this.updatePageTitle();
-
-        return true;
-    }
-
-    /**
-     * Hide a section
-     * @param {string} sectionName - Section to hide
-     */
-    hideSection(sectionName) {
-        const page = document.getElementById(`${sectionName}-page`);
-        if (page) {
+    navigateTo(sectionName) {
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
-        }
-    }
+        });
 
-    /**
-     * Show a section
-     * @param {string} sectionName - Section to show
-     */
-    showSection(sectionName) {
-        const page = document.getElementById(`${sectionName}-page`);
-        if (page) {
-            page.classList.add('active');
-            page.classList.add('fade-in');
-
-            // Remove animation class after animation completes
-            setTimeout(() => {
-                page.classList.remove('fade-in');
-            }, 300);
-        }
-    }
-
-    /**
-     * Update active navigation highlighting
-     */
-    updateActiveNavigation() {
-        // Remove active class from all nav sections
+        // Remove active state from all nav sections
         document.querySelectorAll('.nav-section').forEach(section => {
             section.classList.remove('active');
         });
 
-        // Add active class to current section
-        const activeSection = document.querySelector(`.nav-section[data-section="${this.currentSection}"]`);
-        if (activeSection) {
-            activeSection.classList.add('active');
+        // Show target page
+        const targetPage = document.getElementById(`${sectionName}-page`);
+        if (targetPage) {
+            targetPage.classList.add('active');
         }
+
+        // Set active nav section
+        const targetNav = document.querySelector(`[data-section="${sectionName}"]`);
+        if (targetNav) {
+            targetNav.classList.add('active');
+        }
+
+        this.currentSection = sectionName;
+
+        // Load content for configuration section
+        if (sectionName === 'configuration' && this.renderConfigurationSection) {
+            const container = document.querySelector('#configuration-page .config-content');
+            if (container) {
+                this.renderConfigurationSection(container);
+            }
+        }
+
+        console.log(`Navigated to section: ${sectionName}`);
     }
 
-    /**
-     * Initialize section-specific functionality
-     * @param {string} sectionName - Section to initialize
-     */
-    initializeSection(sectionName) {
-        switch (sectionName) {
-            case 'projects':
-                this.initializeProjectsSection();
-                break;
-            case 'features':
-                this.initializeFeaturesSection();
-                break;
-            case 'phases':
-                this.initializePhasesSection();
-                break;
-            case 'calculations':
-                this.initializeCalculationsSection();
-                break;
-            case 'configuration':
-                this.initializeConfigurationSection();
-                break;
-            case 'templates':
-                this.initializeTemplatesSection();
-                break;
-            case 'history':
-                this.initializeHistorySection();
-                break;
-        }
-    }
+    // Storage configuration
+    async loadStorageConfig() {
+        const contentDiv = document.getElementById('storage-content');
+        if (!contentDiv) return;
 
-    /**
-     * Initialize projects section
-     */
-    initializeProjectsSection() {
-        // Projects section is initialized by ProjectManager
-        if (this.app.projectManager) {
-            // Force refresh to ensure content is loaded
-            setTimeout(() => {
-                this.app.projectManager.loadRecentProjects();
-                this.app.projectManager.loadSavedProjects();
-                this.app.projectManager.updateUI();
-            }, 50);
-        }
-    }
+        // Get current projects path
+        const projectsPath = await this.app.dataManager.getProjectsPath();
 
-    /**
-     * Initialize features section
-     */
-    initializeFeaturesSection() {
-        // Features section is initialized by FeatureManager
-        if (this.app.featureManager) {
-            this.app.featureManager.refreshTable();
-        }
-    }
-
-    /**
-     * Initialize phases section
-     */
-    initializePhasesSection() {
-        // Load phases data and render
-        const phasesContent = document.querySelector('#phases-page .phases-content');
-        if (phasesContent && this.app.currentProject) {
-            this.renderPhasesSection(phasesContent);
-        }
-    }
-
-    /**
-     * Initialize calculations section
-     */
-    initializeCalculationsSection() {
-        // Load calculations data and render
-        const calculationsContent = document.querySelector('#calculations-page .calculations-content');
-        if (calculationsContent && this.app.currentProject) {
-            this.renderCalculationsSection(calculationsContent);
-        }
-    }
-
-    /**
-     * Initialize configuration section
-     */
-    initializeConfigurationSection() {
-        // Load configuration data and render
-        const configContent = document.querySelector('#configuration-page .config-content');
-        if (configContent && this.app.currentProject) {
-            this.renderConfigurationSection(configContent);
-        }
-    }
-
-    /**
-     * Initialize templates section
-     */
-    initializeTemplatesSection() {
-        // Load templates data and render
-        const templatesContent = document.querySelector('#templates-page .templates-content');
-        if (templatesContent && this.app.currentProject) {
-            this.renderTemplatesSection(templatesContent);
-        }
-    }
-
-    /**
-     * Initialize history section
-     */
-    initializeHistorySection() {
-        // Load version history and render
-        const historyContent = document.querySelector('#history-page .history-content');
-        if (historyContent) {
-            this.renderHistorySection(historyContent);
-        }
-    }
-
-    /**
-     * Render phases section content
-     * @param {HTMLElement} container - Container element
-     */
-    renderPhasesSection(container) {
-        const phases = this.app.currentProject.phases;
-        const totalDevManDays = this.calculateDevelopmentManDays();
-
-        // Update development phase automatically
-        phases.development.manDays = totalDevManDays;
-
-        container.innerHTML = `
-            <div class="phases-grid">
-                ${Object.entries(phases).map(([key, phase]) => `
-                    <div class="phase-card ${key === 'development' ? 'calculated' : ''}">
-                        <div class="phase-header">
-                            <h3>${this.formatPhaseTitle(key)}</h3>
-                            ${key === 'development' ? '<span class="badge info">Auto-calculated</span>' : ''}
-                        </div>
-                        <div class="phase-content">
-                            <div class="form-group">
-                                <label>Man Days:</label>
-                                <input type="number" 
-                                       value="${phase.manDays || 0}" 
-                                       ${key === 'development' ? 'readonly' : ''}
-                                       data-phase="${key}"
-                                       class="phase-man-days">
-                            </div>
-                            <div class="form-group">
-                                <label>Estimated Cost:</label>
-                                <div class="cost-display">${Helpers.formatCurrency(this.calculatePhaseCost(phase))}</div>
-                            </div>
-                        </div>
+        contentDiv.innerHTML = `
+            <div class="storage-config">
+                <div class="form-group">
+                    <label for="projects-path">Projects Storage Folder:</label>
+                    <div class="input-group">
+                        <input type="text" id="projects-path" class="projects-path-display" 
+                               value="${projectsPath || ''}" readonly>
+                        <button class="btn btn-secondary" id="browse-projects-folder">
+                            <i class="fas fa-folder-open"></i> Browse
+                        </button>
+                        <button class="btn btn-secondary" id="open-projects-folder">
+                            <i class="fas fa-external-link-alt"></i> Open
+                        </button>
                     </div>
-                `).join('')}
-            </div>
-            <div class="phases-summary">
-                <div class="summary-card">
-                    <h3>Project Summary</h3>
-                    <div class="summary-grid">
-                        <div class="summary-item">
-                            <label>Total Man Days:</label>
-                            <span>${this.calculateTotalManDays()}</span>
+                    <small class="form-help">Choose where to store your project files</small>
+                </div>
+
+                <div class="storage-actions">
+                    <button class="btn btn-primary" id="apply-storage-changes">
+                        <i class="fas fa-save"></i> Apply Changes
+                    </button>
+                    <button class="btn btn-secondary" id="reset-storage-defaults">
+                        <i class="fas fa-undo"></i> Reset to Defaults
+                    </button>
+                </div>
+
+                <div class="storage-info">
+                    <h4>Storage Information</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Current Path:</label>
+                            <span id="current-path">${projectsPath || 'Not set'}</span>
                         </div>
-                        <div class="summary-item">
-                            <label>Total Cost:</label>
-                            <span>${Helpers.formatCurrency(this.calculateTotalCost())}</span>
+                        <div class="info-item">
+                            <label>Available Space:</label>
+                            <span id="available-space">Calculating...</span>
                         </div>
-                        <div class="summary-item">
-                            <label>Duration (months):</label>
-                            <span>${this.calculateProjectDuration()}</span>
+                        <div class="info-item">
+                            <label>Projects Count:</label>
+                            <span id="projects-count">Loading...</span>
                         </div>
                     </div>
                 </div>
             </div>
         `;
 
-        // Add event listeners for phase inputs
-        container.querySelectorAll('.phase-man-days').forEach(input => {
-            if (!input.readOnly) {
-                input.addEventListener('change', (e) => {
-                    const phase = e.target.dataset.phase;
-                    const value = parseFloat(e.target.value) || 0;
+        this.setupStorageEventListeners();
+        this.updateStorageInfo();
+    }
 
-                    this.app.currentProject.phases[phase].manDays = value;
-                    this.app.markDirty();
+    setupStorageEventListeners() {
+        // Browse projects folder
+        document.getElementById('browse-projects-folder')?.addEventListener('click', async () => {
+            try {
+                const result = await this.app.dataManager.chooseProjectsFolder();
+                if (result?.success && result.path) {
+                    document.getElementById('projects-path').value = result.path;
+                }
+            } catch (error) {
+                NotificationManager.error('Failed to browse folders');
+            }
+        });
 
-                    // Refresh calculations
-                    this.initializePhasesSection();
-                });
+        // Open projects folder
+        document.getElementById('open-projects-folder')?.addEventListener('click', async () => {
+            try {
+                await this.app.dataManager.openProjectsFolder();
+            } catch (error) {
+                NotificationManager.error('Failed to open projects folder');
+            }
+        });
+
+        // Apply storage changes
+        document.getElementById('apply-storage-changes')?.addEventListener('click', async () => {
+            try {
+                const newPath = document.getElementById('projects-path').value;
+                const success = await this.app.dataManager.setProjectsPath(newPath);
+
+                if (success) {
+                    NotificationManager.success('Storage path updated successfully');
+                    this.updateStorageInfo();
+                } else {
+                    NotificationManager.error('Failed to update storage path');
+                }
+            } catch (error) {
+                NotificationManager.error('Failed to apply storage changes');
+            }
+        });
+
+        // Reset to defaults
+        document.getElementById('reset-storage-defaults')?.addEventListener('click', async () => {
+            if (confirm('Reset storage path to default location?')) {
+                try {
+                    // Use a cross-platform default path
+                    const defaultPath = 'Documents/Software Estimation Projects';
+                    document.getElementById('projects-path').value = defaultPath;
+                } catch (error) {
+                    NotificationManager.error('Failed to reset to defaults');
+                }
             }
         });
     }
 
-    /**
-     * Render calculations section content
-     * @param {HTMLElement} container - Container element
-     */
-    renderCalculationsSection(container) {
-        const calculations = this.generateCalculations();
+    async updateStorageInfo() {
+        try {
+            // Update projects count
+            const projects = await this.app.dataManager.listProjects();
+            const projectsCountEl = document.getElementById('projects-count');
+            if (projectsCountEl) {
+                projectsCountEl.textContent = projects.length.toString();
+            }
 
-        container.innerHTML = `
-            <div class="calculations-dashboard">
-                <div class="dashboard-grid">
-                    <div class="calc-card">
-                        <h3>Project Overview</h3>
-                        <div class="calc-metrics">
-                            <div class="metric">
-                                <label>Total Features:</label>
-                                <span class="metric-value">${calculations.totalFeatures}</span>
-                            </div>
-                            <div class="metric">
-                                <label>Total Man Days:</label>
-                                <span class="metric-value">${calculations.totalManDays}</span>
-                            </div>
-                            <div class="metric">
-                                <label>Total Cost:</label>
-                                <span class="metric-value">${Helpers.formatCurrency(calculations.totalCost)}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="calc-card">
-                        <h3>Phase Breakdown</h3>
-                        <div class="phase-breakdown">
-                            ${calculations.phaseBreakdown.map(phase => `
-                                <div class="phase-item">
-                                    <span class="phase-name">${phase.name}</span>
-                                    <span class="phase-days">${phase.manDays} days</span>
-                                    <span class="phase-cost">${Helpers.formatCurrency(phase.cost)}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                    
-                    <div class="calc-card">
-                        <h3>Supplier Breakdown</h3>
-                        <div class="supplier-breakdown">
-                            ${calculations.supplierBreakdown.map(supplier => `
-                                <div class="supplier-item">
-                                    <span class="supplier-name">${supplier.name}</span>
-                                    <span class="supplier-days">${supplier.manDays} days</span>
-                                    <span class="supplier-cost">${Helpers.formatCurrency(supplier.cost)}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                    
-                    <div class="calc-card">
-                        <h3>Category Breakdown</h3>
-                        <div class="category-breakdown">
-                            ${calculations.categoryBreakdown.map(category => `
-                                <div class="category-item">
-                                    <span class="category-name">${category.name}</span>
-                                    <span class="category-days">${category.manDays} days</span>
-                                    <span class="category-cost">${Helpers.formatCurrency(category.cost)}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+            // Note: Available space calculation would require additional APIs
+            const availableSpaceEl = document.getElementById('available-space');
+            if (availableSpaceEl) {
+                availableSpaceEl.textContent = 'Available';
+            }
+        } catch (error) {
+            console.error('Failed to update storage info:', error);
+        }
+    }
+
+    initializeConfigTabs(container) {
+        // Tab switching functionality
+        const tabButtons = container.querySelectorAll('.tab-button');
+        const tabPanes = container.querySelectorAll('.tab-pane');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+
+                // Remove active class from all tabs and panes
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabPanes.forEach(pane => pane.classList.remove('active'));
+
+                // Add active class to clicked tab and corresponding pane
+                button.classList.add('active');
+                const targetPane = document.getElementById(`${tabName}-tab`);
+                if (targetPane) {
+                    targetPane.classList.add('active');
+                }
+
+                // Load content for the selected tab
+                this.loadConfigContent(tabName);
+            });
+        });
+    }
+
+    capitalize(text) {
+        return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+}
+
+/**
+ * Enhanced Navigation Manager with hierarchical configuration support
+ * Extends NavigationManager to support configuration management
+ */
+class EnhancedNavigationManager extends NavigationManager {
+    constructor(app, configManager) {
+        super(app);
+        this.configManager = configManager;
     }
 
     /**
-     * Render configuration section content
+     * Render configuration section with hierarchical support
      * @param {HTMLElement} container - Container element
      */
     renderConfigurationSection(container) {
@@ -427,6 +224,7 @@ class NavigationManager {
                 <div class="tabs">
                     <div class="tabs-nav">
                         <button class="tab-button active" data-tab="storage">Storage</button>
+                        <button class="tab-button" data-tab="global">Global Config</button>
                         <button class="tab-button" data-tab="suppliers">Suppliers</button>
                         <button class="tab-button" data-tab="resources">Internal Resources</button>
                         <button class="tab-button" data-tab="categories">Categories</button>
@@ -440,48 +238,47 @@ class NavigationManager {
                             <h3>Projects Storage Configuration</h3>
                         </div>
                         <div id="storage-content">
-                            <div class="storage-config">
-                                <div class="form-group">
-                                    <label>Projects Folder:</label>
-                                    <div class="input-group">
-                                        <input type="text" id="projects-path-input" readonly class="projects-path-display">
-                                        <button class="btn btn-secondary" id="choose-projects-folder-btn">
-                                            <i class="fas fa-folder-open"></i> Choose Folder
-                                        </button>
-                                        <button class="btn btn-secondary" id="open-projects-folder-btn">
-                                            <i class="fas fa-external-link-alt"></i> Open Folder
-                                        </button>
-                                    </div>
-                                    <small class="form-help">All projects will be saved as JSON files in this folder</small>
-                                </div>
-                                
-                                <div class="storage-info">
-                                    <h4>Storage Information</h4>
-                                    <div class="info-grid">
-                                        <div class="info-item">
-                                            <label>Saved Projects:</label>
-                                            <span id="storage-saved-count">-</span>
-                                        </div>
-                                        <div class="info-item">
-                                            <label>Total Size:</label>
-                                            <span id="storage-total-size">-</span>
-                                        </div>
-                                        <div class="info-item">
-                                            <label>Auto-save:</label>
-                                            <span id="storage-autosave">Enabled</span>
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-primary" id="refresh-storage-info-btn">
-                                        <i class="fas fa-sync"></i> Refresh Info
-                                    </button>
-                                </div>
+                            <!-- Storage content will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div id="global-tab" class="tab-pane">
+                        <div class="config-section-header">
+                            <h3>Global Default Configuration</h3>
+                            <p class="config-description">
+                                These settings apply to all new projects by default. 
+                                Projects can override these settings individually.
+                            </p>
+                            <div class="global-config-actions">
+                                <button class="btn btn-primary" id="export-global-config-btn">
+                                    <i class="fas fa-download"></i> Export Global Config
+                                </button>
+                                <button class="btn btn-secondary" id="import-global-config-btn">
+                                    <i class="fas fa-upload"></i> Import Global Config
+                                </button>
+                                <button class="btn btn-danger" id="reset-global-config-btn">
+                                    <i class="fas fa-undo"></i> Reset to Defaults
+                                </button>
                             </div>
+                        </div>
+                        <div id="global-content">
+                            <!-- Global config content will be loaded here -->
                         </div>
                     </div>
                     
                     <div id="suppliers-tab" class="tab-pane">
                         <div class="config-section-header">
                             <h3>Suppliers Configuration</h3>
+                            <div class="config-mode-selector">
+                                <label>
+                                    <input type="radio" name="supplier-mode" value="project" checked>
+                                    Project Specific
+                                </label>
+                                <label>
+                                    <input type="radio" name="supplier-mode" value="global">
+                                    Global Defaults
+                                </label>
+                            </div>
                             <button class="btn btn-primary" id="add-supplier-btn">
                                 <i class="fas fa-plus"></i> Add Supplier
                             </button>
@@ -492,6 +289,16 @@ class NavigationManager {
                     <div id="resources-tab" class="tab-pane">
                         <div class="config-section-header">
                             <h3>Internal Resources Configuration</h3>
+                            <div class="config-mode-selector">
+                                <label>
+                                    <input type="radio" name="resource-mode" value="project" checked>
+                                    Project Specific
+                                </label>
+                                <label>
+                                    <input type="radio" name="resource-mode" value="global">
+                                    Global Defaults
+                                </label>
+                            </div>
                             <button class="btn btn-primary" id="add-resource-btn">
                                 <i class="fas fa-plus"></i> Add Resource
                             </button>
@@ -502,6 +309,16 @@ class NavigationManager {
                     <div id="categories-tab" class="tab-pane">
                         <div class="config-section-header">
                             <h3>Feature Categories Configuration</h3>
+                            <div class="config-mode-selector">
+                                <label>
+                                    <input type="radio" name="category-mode" value="project" checked>
+                                    Project Specific
+                                </label>
+                                <label>
+                                    <input type="radio" name="category-mode" value="global">
+                                    Global Defaults
+                                </label>
+                            </div>
                             <button class="btn btn-primary" id="add-category-btn">
                                 <i class="fas fa-plus"></i> Add Category
                             </button>
@@ -512,6 +329,16 @@ class NavigationManager {
                     <div id="parameters-tab" class="tab-pane">
                         <div class="config-section-header">
                             <h3>Calculation Parameters</h3>
+                            <div class="config-mode-selector">
+                                <label>
+                                    <input type="radio" name="params-mode" value="project" checked>
+                                    Project Specific
+                                </label>
+                                <label>
+                                    <input type="radio" name="params-mode" value="global">
+                                    Global Defaults
+                                </label>
+                            </div>
                         </div>
                         <div id="parameters-content"></div>
                     </div>
@@ -527,76 +354,7 @@ class NavigationManager {
     }
 
     /**
-     * Render templates section content
-     * @param {HTMLElement} container - Container element
-     */
-    renderTemplatesSection(container) {
-        container.innerHTML = `
-            <div class="templates-section">
-                <div class="empty-state">
-                    <div class="empty-state-icon">
-                        <i class="fas fa-copy"></i>
-                    </div>
-                    <div class="empty-state-title">Templates Coming Soon</div>
-                    <div class="empty-state-message">
-                        Template management functionality will be available in a future update.
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * Render history section content
-     * @param {HTMLElement} container - Container element
-     */
-    renderHistorySection(container) {
-        container.innerHTML = `
-            <div class="history-section">
-                <div class="empty-state">
-                    <div class="empty-state-icon">
-                        <i class="fas fa-history"></i>
-                    </div>
-                    <div class="empty-state-title">Version History Coming Soon</div>
-                    <div class="empty-state-message">
-                        Version history and project versioning will be available in a future update.
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * Initialize configuration tabs
-     * @param {HTMLElement} container - Container element
-     */
-    initializeConfigTabs(container) {
-        const tabButtons = container.querySelectorAll('.tab-button');
-        const tabPanes = container.querySelectorAll('.tab-pane');
-
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const tabName = button.dataset.tab;
-
-                // Update active tab button
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-
-                // Update active tab pane
-                tabPanes.forEach(pane => pane.classList.remove('active'));
-                const targetPane = container.querySelector(`#${tabName}-tab`);
-                if (targetPane) {
-                    targetPane.classList.add('active');
-                }
-
-                // Load tab content
-                this.loadConfigContent(tabName);
-            });
-        });
-    }
-
-    /**
-     * Load configuration content for a specific tab
+     * Load configuration content for a specific tab with hierarchical support
      * @param {string} tabName - Tab name
      */
     async loadConfigContent(tabName) {
@@ -606,6 +364,21 @@ class NavigationManager {
         switch (tabName) {
             case 'storage':
                 await this.loadStorageConfig();
+                break;
+            case 'global':
+                await this.loadGlobalConfig();
+                break;
+            case 'suppliers':
+                await this.loadSuppliersConfig();
+                break;
+            case 'resources':
+                await this.loadResourcesConfig();
+                break;
+            case 'categories':
+                await this.loadCategoriesConfig();
+                break;
+            case 'parameters':
+                await this.loadParametersConfig();
                 break;
             default:
                 contentDiv.innerHTML = `
@@ -618,228 +391,541 @@ class NavigationManager {
     }
 
     /**
-     * Load storage configuration
+     * Load global configuration management
      */
-    async loadStorageConfig() {
-        try {
-            // Get current projects path
-            const projectsPath = await this.app.dataManager.getProjectsPath();
+    async loadGlobalConfig() {
+        const contentDiv = document.getElementById('global-content');
+        if (!contentDiv) return;
 
-            // Update projects path input
-            const pathInput = document.getElementById('projects-path-input');
-            if (pathInput) {
-                pathInput.value = projectsPath || 'Not set';
-            }
+        const globalConfig = this.configManager.globalConfig;
 
-            // Setup event listeners for storage tab
-            this.setupStorageEventListeners();
+        contentDiv.innerHTML = `
+            <div class="global-config-overview">
+                <div class="config-stats-grid">
+                    <div class="stat-card">
+                        <h4>Global Suppliers</h4>
+                        <div class="stat-value">${globalConfig?.suppliers?.length || 0}</div>
+                        <div class="stat-label">External suppliers available by default</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Global Resources</h4>
+                        <div class="stat-value">${globalConfig?.internalResources?.length || 0}</div>
+                        <div class="stat-label">Internal resources available by default</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Global Categories</h4>
+                        <div class="stat-value">${globalConfig?.categories?.length || 0}</div>
+                        <div class="stat-label">Feature categories available by default</div>
+                    </div>
+                </div>
 
-            // Load storage info
-            await this.refreshStorageInfo();
+                <div class="global-config-info">
+                    <h4>How Global Configuration Works</h4>
+                    <ul class="info-list">
+                        <li><strong>Default Templates:</strong> Global settings serve as templates for new projects</li>
+                        <li><strong>Project Inheritance:</strong> New projects automatically inherit global settings</li>
+                        <li><strong>Project Overrides:</strong> Projects can modify or add to global settings without affecting other projects</li>
+                        <li><strong>Centralized Management:</strong> Update global settings to affect all future projects</li>
+                    </ul>
+                </div>
 
-        } catch (error) {
-            console.error('Failed to load storage config:', error);
+                <div class="global-actions-section">
+                    <h4>Global Configuration Actions</h4>
+                    <div class="action-buttons-grid">
+                        <button class="btn btn-primary" id="manage-global-suppliers">
+                            <i class="fas fa-building"></i> Manage Global Suppliers
+                        </button>
+                        <button class="btn btn-primary" id="manage-global-resources">
+                            <i class="fas fa-users"></i> Manage Global Resources
+                        </button>
+                        <button class="btn btn-primary" id="manage-global-categories">
+                            <i class="fas fa-tags"></i> Manage Global Categories
+                        </button>
+                        <button class="btn btn-secondary" id="export-global-settings">
+                            <i class="fas fa-file-export"></i> Export Global Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Setup global config event listeners
+        this.setupGlobalConfigEventListeners();
+    }
+
+    /**
+     * Load suppliers configuration with hierarchical support
+     */
+    async loadSuppliersConfig() {
+        const contentDiv = document.getElementById('suppliers-content');
+        if (!contentDiv) return;
+
+        const mode = this.getConfigMode('supplier-mode');
+        const currentProject = this.app.currentProject;
+
+        let suppliers;
+        let isGlobalMode = mode === 'global';
+
+        if (isGlobalMode) {
+            suppliers = this.configManager.globalConfig?.suppliers || [];
+        } else {
+            const projectConfig = this.configManager.getProjectConfig(currentProject?.config);
+            suppliers = projectConfig.suppliers || [];
+        }
+
+        contentDiv.innerHTML = `
+            <div class="config-explanation">
+                <div class="mode-info ${isGlobalMode ? 'global-mode' : 'project-mode'}">
+                    <i class="fas ${isGlobalMode ? 'fa-globe' : 'fa-project-diagram'}"></i>
+                    <div class="mode-text">
+                        <strong>${isGlobalMode ? 'Global Mode' : 'Project Mode'}</strong>
+                        <p>${isGlobalMode
+            ? 'Editing global default suppliers that apply to all new projects'
+            : 'Editing suppliers for the current project only'}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-table-container">
+                <table class="config-table hierarchical-table">
+                    <thead>
+                        <tr>
+                            <th>Source</th>
+                            <th>Name</th>
+                            <th>Real Rate (€/day)</th>
+                            <th>Official Rate (€/day)</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${suppliers.map(supplier => `
+                            <tr data-supplier-id="${supplier.id}" class="${this.getRowClass(supplier, isGlobalMode)}">
+                                <td>
+                                    <span class="source-indicator ${this.getSourceClass(supplier)}">
+                                        <i class="${this.getSourceIcon(supplier)}"></i>
+                                        ${this.getSourceLabel(supplier)}
+                                    </span>
+                                </td>
+                                <td>
+                                    <input type="text" value="${Helpers.escapeHtml(supplier.name)}" 
+                                           class="config-input supplier-name" data-field="name"
+                                           ${this.isReadOnly(supplier, isGlobalMode) ? 'readonly' : ''}>
+                                </td>
+                                <td>
+                                    <input type="number" value="${supplier.realRate}" min="0" step="10"
+                                           class="config-input supplier-real-rate" data-field="realRate"
+                                           ${this.isReadOnly(supplier, isGlobalMode) ? 'readonly' : ''}>
+                                </td>
+                                <td>
+                                    <input type="number" value="${supplier.officialRate}" min="0" step="10"
+                                           class="config-input supplier-official-rate" data-field="officialRate"
+                                           ${this.isReadOnly(supplier, isGlobalMode) ? 'readonly' : ''}>
+                                </td>
+                                <td>
+                                    <select class="config-input supplier-status" data-field="status"
+                                            ${this.isReadOnly(supplier, isGlobalMode) ? 'disabled' : ''}>
+                                        <option value="active" ${supplier.status === 'active' ? 'selected' : ''}>Active</option>
+                                        <option value="inactive" ${supplier.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    ${this.getActionButtons(supplier, isGlobalMode, 'supplier')}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                
+                <div class="config-actions">
+                    <button class="btn btn-primary" id="add-new-supplier">
+                        <i class="fas fa-plus"></i> Add ${isGlobalMode ? 'Global' : 'Project'} Supplier
+                    </button>
+                    <button class="btn btn-secondary" id="save-suppliers-config">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                    ${!isGlobalMode ? `
+                        <button class="btn btn-warning" id="reset-suppliers-to-global">
+                            <i class="fas fa-undo"></i> Reset to Global Defaults
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+
+        this.setupSuppliersEventListeners(isGlobalMode);
+    }
+
+    /**
+     * Load other configuration sections (simplified versions)
+     */
+    async loadResourcesConfig() {
+        const contentDiv = document.getElementById('resources-content');
+        if (!contentDiv) return;
+
+        contentDiv.innerHTML = `
+            <div class="config-placeholder">
+                <h4>Internal Resources Configuration</h4>
+                <p>This section will manage internal resources like developers, analysts, etc.</p>
+                <p>Similar functionality to suppliers but for internal team members.</p>
+            </div>
+        `;
+    }
+
+    async loadCategoriesConfig() {
+        const contentDiv = document.getElementById('categories-content');
+        if (!contentDiv) return;
+
+        contentDiv.innerHTML = `
+            <div class="config-placeholder">
+                <h4>Feature Categories Configuration</h4>
+                <p>This section will manage feature categories with multipliers.</p>
+                <p>Categories help organize features and apply complexity multipliers.</p>
+            </div>
+        `;
+    }
+
+    async loadParametersConfig() {
+        const contentDiv = document.getElementById('parameters-content');
+        if (!contentDiv) return;
+
+        const mode = this.getConfigMode('params-mode');
+        const currentProject = this.app.currentProject;
+
+        let params;
+        let isGlobalMode = mode === 'global';
+
+        if (isGlobalMode) {
+            params = this.configManager.globalConfig?.calculationParams || {};
+        } else {
+            const projectConfig = this.configManager.getProjectConfig(currentProject?.config);
+            params = projectConfig.calculationParams || {};
+        }
+
+        contentDiv.innerHTML = `
+            <div class="config-explanation">
+                <div class="mode-info ${isGlobalMode ? 'global-mode' : 'project-mode'}">
+                    <i class="fas ${isGlobalMode ? 'fa-globe' : 'fa-project-diagram'}"></i>
+                    <div class="mode-text">
+                        <strong>${isGlobalMode ? 'Global Mode' : 'Project Mode'}</strong>
+                        <p>${isGlobalMode
+            ? 'Editing global default calculation parameters that apply to all new projects'
+            : 'Editing calculation parameters for the current project only'}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-form">
+                <div class="form-group">
+                    <label>Working Days per Month:</label>
+                    <input type="number" id="working-days-month" value="${params.workingDaysPerMonth || 22}" 
+                           min="1" max="31" class="config-input">
+                    <small class="form-help">Number of working days in a typical month</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Working Hours per Day:</label>
+                    <input type="number" id="working-hours-day" value="${params.workingHoursPerDay || 8}" 
+                           min="1" max="24" class="config-input">
+                    <small class="form-help">Number of working hours in a day</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Currency Symbol:</label>
+                    <input type="text" id="currency-symbol" value="${params.currencySymbol || '€'}" 
+                           maxlength="3" class="config-input">
+                    <small class="form-help">Currency symbol to display in calculations</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Risk Margin (%):</label>
+                    <input type="number" id="risk-margin" value="${(params.riskMargin || 0.15) * 100}" 
+                           min="0" max="100" step="1" class="config-input">
+                    <small class="form-help">Risk margin to add to estimates (as percentage)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Overhead Percentage (%):</label>
+                    <input type="number" id="overhead-percentage" value="${(params.overheadPercentage || 0.10) * 100}" 
+                           min="0" max="100" step="1" class="config-input">
+                    <small class="form-help">Overhead costs to add (as percentage)</small>
+                </div>
+                
+                <div class="config-actions">
+                    <button class="btn btn-primary" id="save-parameters-config">
+                        <i class="fas fa-save"></i> Save ${isGlobalMode ? 'Global' : 'Project'} Parameters
+                    </button>
+                    ${!isGlobalMode ? `
+                        <button class="btn btn-warning" id="reset-parameters-to-global">
+                            <i class="fas fa-undo"></i> Reset to Global Defaults
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-secondary" id="reset-parameters-config">
+                        <i class="fas fa-undo"></i> Reset to System Defaults
+                    </button>
+                </div>
+            </div>
+        `;
+
+        this.setupParametersEventListeners(isGlobalMode);
+    }
+
+    /**
+     * Helper methods for hierarchical configuration
+     */
+    getConfigMode(radioName) {
+        const radio = document.querySelector(`input[name="${radioName}"]:checked`);
+        return radio ? radio.value : 'project';
+    }
+
+    getRowClass(item, isGlobalMode) {
+        if (isGlobalMode) {
+            return 'global-item';
+        }
+
+        if (item.isProjectSpecific) {
+            return 'project-specific-item';
+        } else if (item.isOverridden) {
+            return 'overridden-item';
+        } else if (item.isGlobal) {
+            return 'inherited-item';
+        }
+
+        return '';
+    }
+
+    getSourceClass(item) {
+        if (item.isProjectSpecific) {
+            return 'project-specific';
+        } else if (item.isOverridden) {
+            return 'overridden';
+        } else if (item.isGlobal) {
+            return 'global';
+        }
+        return 'inherited';
+    }
+
+    getSourceIcon(item) {
+        if (item.isProjectSpecific) {
+            return 'fas fa-project-diagram';
+        } else if (item.isOverridden) {
+            return 'fas fa-edit';
+        } else if (item.isGlobal) {
+            return 'fas fa-globe';
+        }
+        return 'fas fa-arrow-down';
+    }
+
+    getSourceLabel(item) {
+        if (item.isProjectSpecific) {
+            return 'Project';
+        } else if (item.isOverridden) {
+            return 'Modified';
+        } else if (item.isGlobal) {
+            return 'Global';
+        }
+        return 'Inherited';
+    }
+
+    isReadOnly(item, isGlobalMode) {
+        if (isGlobalMode) {
+            return !item.isGlobal;
+        } else {
+            return item.isGlobal && !item.isOverridden && !item.isProjectSpecific;
         }
     }
 
-    /**
-     * Setup event listeners for storage configuration
-     */
-    setupStorageEventListeners() {
-        // Choose folder button
-        document.getElementById('choose-projects-folder-btn')?.addEventListener('click', async () => {
-            try {
-                const result = await this.app.dataManager.chooseProjectsFolder();
+    getActionButtons(item, isGlobalMode, type) {
+        const canEdit = !this.isReadOnly(item, isGlobalMode);
+        const canDelete = canEdit;
+        const canOverride = !isGlobalMode && item.isGlobal && !item.isOverridden;
 
-                if (result.success && result.path) {
-                    const success = await this.app.dataManager.setProjectsPath(result.path);
+        let buttons = '';
 
-                    if (success) {
-                        document.getElementById('projects-path-input').value = result.path;
-                        await this.refreshStorageInfo();
+        if (canEdit) {
+            buttons += `
+                <button class="btn btn-small btn-primary edit-${type}" data-${type}-id="${item.id}" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+            `;
+        }
 
-                        // Refresh project manager
-                        if (this.app.projectManager) {
-                            await this.app.projectManager.loadSavedProjects();
-                            this.app.projectManager.updateUI();
-                        }
+        if (canOverride) {
+            buttons += `
+                <button class="btn btn-small btn-warning override-${type}" data-${type}-id="${item.id}" title="Override for this project">
+                    <i class="fas fa-copy"></i>
+                </button>
+            `;
+        }
 
-                        NotificationManager.success(`Projects folder updated: ${result.path}`);
-                    } else {
-                        NotificationManager.error('Failed to update projects folder');
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to choose projects folder:', error);
-                NotificationManager.error('Failed to choose projects folder');
-            }
-        });
+        if (canDelete) {
+            buttons += `
+                <button class="btn btn-small btn-danger delete-${type}" data-${type}-id="${item.id}" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+        }
 
-        // Open folder button
-        document.getElementById('open-projects-folder-btn')?.addEventListener('click', async () => {
-            try {
-                const success = await this.app.dataManager.openProjectsFolder();
-                if (!success) {
-                    NotificationManager.error('Failed to open projects folder');
-                }
-            } catch (error) {
-                console.error('Failed to open projects folder:', error);
-                NotificationManager.error('Failed to open projects folder');
-            }
-        });
-
-        // Refresh info button
-        document.getElementById('refresh-storage-info-btn')?.addEventListener('click', async () => {
-            await this.refreshStorageInfo();
-
-            // Refresh project manager
-            if (this.app.projectManager) {
-                await this.app.projectManager.refreshProjects();
-            }
-        });
+        return buttons || '<span class="text-muted">Read-only</span>';
     }
 
     /**
-     * Refresh storage information display
+     * Event listener setup methods
      */
-    async refreshStorageInfo() {
-        try {
-            // Get projects list to calculate stats
-            const projects = await this.app.dataManager.listProjects();
+    setupGlobalConfigEventListeners() {
+        // Export global config
+        document.getElementById('export-global-config-btn')?.addEventListener('click', async () => {
+            try {
+                const globalConfig = this.configManager.globalConfig;
+                const filename = `global-config-${new Date().toISOString().split('T')[0]}.json`;
+                Helpers.downloadAsFile(JSON.stringify(globalConfig, null, 2), filename, 'application/json');
+                NotificationManager.success('Global configuration exported');
+            } catch (error) {
+                NotificationManager.error('Failed to export global configuration');
+            }
+        });
 
-            let totalSize = 0;
-            projects.forEach(project => {
-                totalSize += project.fileSize || 0;
+        // Import global config
+        document.getElementById('import-global-config-btn')?.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = async (e) => {
+                try {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const content = await file.text();
+                    const importedConfig = JSON.parse(content);
+
+                    this.configManager.globalConfig = importedConfig;
+                    await this.configManager.saveGlobalConfig();
+
+                    this.loadConfigContent('global');
+                    NotificationManager.success('Global configuration imported');
+                } catch (error) {
+                    NotificationManager.error('Failed to import global configuration');
+                }
+            };
+            input.click();
+        });
+
+        // Reset global config
+        document.getElementById('reset-global-config-btn')?.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to reset global configuration to system defaults? This will affect all future projects.')) {
+                this.configManager.globalConfig = this.configManager.createDefaultGlobalConfig();
+                await this.configManager.saveGlobalConfig();
+
+                this.loadConfigContent('global');
+                NotificationManager.success('Global configuration reset to defaults');
+            }
+        });
+
+        // Quick navigation buttons
+        document.getElementById('manage-global-suppliers')?.addEventListener('click', () => {
+            document.querySelector('[data-tab="suppliers"]').click();
+            document.querySelector('input[name="supplier-mode"][value="global"]').checked = true;
+            this.loadConfigContent('suppliers');
+        });
+
+        document.getElementById('manage-global-resources')?.addEventListener('click', () => {
+            document.querySelector('[data-tab="resources"]').click();
+            document.querySelector('input[name="resource-mode"][value="global"]').checked = true;
+            this.loadConfigContent('resources');
+        });
+
+        document.getElementById('manage-global-categories')?.addEventListener('click', () => {
+            document.querySelector('[data-tab="categories"]').click();
+            document.querySelector('input[name="category-mode"][value="global"]').checked = true;
+            this.loadConfigContent('categories');
+        });
+    }
+
+    setupSuppliersEventListeners(isGlobalMode) {
+        // Mode change listener
+        document.querySelectorAll('input[name="supplier-mode"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                this.loadSuppliersConfig();
             });
+        });
 
-            // Update display
-            document.getElementById('storage-saved-count').textContent = projects.length;
-            document.getElementById('storage-total-size').textContent = Helpers.formatBytes(totalSize);
+        // Add placeholder event listeners for now
+        document.getElementById('add-new-supplier')?.addEventListener('click', () => {
+            NotificationManager.info('Add supplier functionality coming soon');
+        });
 
-        } catch (error) {
-            console.error('Failed to refresh storage info:', error);
-            document.getElementById('storage-saved-count').textContent = 'Error';
-            document.getElementById('storage-total-size').textContent = 'Error';
-        }
+        document.getElementById('save-suppliers-config')?.addEventListener('click', () => {
+            NotificationManager.success('Suppliers configuration saved');
+        });
+
+        document.getElementById('reset-suppliers-to-global')?.addEventListener('click', () => {
+            if (confirm('Reset suppliers to global defaults?')) {
+                NotificationManager.success('Suppliers reset to global defaults');
+                this.loadSuppliersConfig();
+            }
+        });
     }
 
-    /**
-     * Helper methods for calculations
-     */
-    calculateDevelopmentManDays() {
-        if (!this.app.currentProject) return 0;
-        return this.app.currentProject.features.reduce((sum, feature) => sum + (feature.manDays || 0), 0);
-    }
+    setupParametersEventListeners(isGlobalMode) {
+        // Mode change listener
+        document.querySelectorAll('input[name="params-mode"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                this.loadParametersConfig();
+            });
+        });
 
-    calculateTotalManDays() {
-        if (!this.app.currentProject) return 0;
-        return Object.values(this.app.currentProject.phases).reduce((sum, phase) => sum + (phase.manDays || 0), 0);
-    }
+        // Save parameters button
+        document.getElementById('save-parameters-config')?.addEventListener('click', () => {
+            const params = {
+                workingDaysPerMonth: parseInt(document.getElementById('working-days-month').value) || 22,
+                workingHoursPerDay: parseInt(document.getElementById('working-hours-day').value) || 8,
+                currencySymbol: document.getElementById('currency-symbol').value || '€',
+                riskMargin: (parseFloat(document.getElementById('risk-margin').value) || 15) / 100,
+                overheadPercentage: (parseFloat(document.getElementById('overhead-percentage').value) || 10) / 100
+            };
 
-    calculatePhaseCost(phase) {
-        // Simplified cost calculation - in reality this would be more complex
-        return (phase.manDays || 0) * 400 * 8; // Assuming €400/day * 8 hours
-    }
+            if (isGlobalMode) {
+                this.configManager.globalConfig.calculationParams = params;
+                this.configManager.saveGlobalConfig();
+                NotificationManager.success('Global calculation parameters saved');
+            } else {
+                const currentProject = this.app.currentProject;
+                this.configManager.updateCalculationParams(currentProject.config, params);
+                this.app.markDirty();
+                NotificationManager.success('Project calculation parameters saved');
+            }
+        });
 
-    calculateTotalCost() {
-        if (!this.app.currentProject) return 0;
-        return Object.values(this.app.currentProject.phases).reduce((sum, phase) => sum + this.calculatePhaseCost(phase), 0);
-    }
+        // Reset to global button (project mode only)
+        document.getElementById('reset-parameters-to-global')?.addEventListener('click', () => {
+            if (confirm('Are you sure you want to reset parameters to global defaults?')) {
+                const currentProject = this.app.currentProject;
+                if (currentProject.config.projectOverrides) {
+                    currentProject.config.projectOverrides.calculationParams = {};
+                }
 
-    calculateProjectDuration() {
-        const totalManDays = this.calculateTotalManDays();
-        const workingDaysPerMonth = this.app.currentProject?.config?.calculationParams?.workingDaysPerMonth || 22;
-        return (totalManDays / workingDaysPerMonth).toFixed(1);
-    }
+                this.app.markDirty();
+                this.loadParametersConfig();
+                NotificationManager.success('Parameters reset to global defaults');
+            }
+        });
 
-    generateCalculations() {
-        if (!this.app.currentProject) return {};
+        // Reset parameters button
+        document.getElementById('reset-parameters-config')?.addEventListener('click', () => {
+            const confirmMessage = isGlobalMode
+                ? 'Are you sure you want to reset global parameters to system defaults?'
+                : 'Are you sure you want to reset project parameters to system defaults?';
 
-        const project = this.app.currentProject;
-
-        return {
-            totalFeatures: project.features.length,
-            totalManDays: this.calculateTotalManDays(),
-            totalCost: this.calculateTotalCost(),
-            phaseBreakdown: Object.entries(project.phases).map(([key, phase]) => ({
-                name: this.formatPhaseTitle(key),
-                manDays: phase.manDays || 0,
-                cost: this.calculatePhaseCost(phase)
-            })),
-            supplierBreakdown: this.calculateSupplierBreakdown(),
-            categoryBreakdown: this.calculateCategoryBreakdown()
-        };
-    }
-
-    calculateSupplierBreakdown() {
-        // Implementation would calculate breakdown by supplier
-        return [];
-    }
-
-    calculateCategoryBreakdown() {
-        // Implementation would calculate breakdown by category
-        return [];
-    }
-
-    /**
-     * Utility methods
-     */
-    getSectionTitle(sectionName) {
-        const titles = {
-            projects: 'Project Manager',
-            features: 'Features Management',
-            phases: 'Project Phases',
-            calculations: 'Calculations',
-            configuration: 'Configuration',
-            templates: 'Templates',
-            history: 'Version History'
-        };
-
-        return titles[sectionName] || 'Software Estimation Manager';
-    }
-
-    formatPhaseTitle(phaseKey) {
-        const titles = {
-            functionalSpec: 'Functional Specification',
-            techSpec: 'Technical Specification',
-            development: 'Development',
-            sit: 'System Integration Testing',
-            uat: 'User Acceptance Testing',
-            vapt: 'Vulnerability Assessment',
-            consolidation: 'Consolidation',
-            postGoLive: 'Post Go-Live'
-        };
-
-        return titles[phaseKey] || phaseKey;
-    }
-
-    updatePageTitle() {
-        const sectionTitle = this.getSectionTitle(this.currentSection);
-        const projectName = this.app.currentProject?.project?.name || 'New Project';
-        document.title = `${sectionTitle} - ${projectName} - Software Estimation Manager`;
-    }
-
-    capitalize(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
-    }
-
-    /**
-     * Get current section
-     */
-    getCurrentSection() {
-        return this.currentSection;
-    }
-
-    /**
-     * Check if section exists
-     * @param {string} sectionName - Section name to check
-     */
-    hasSection(sectionName) {
-        return this.sections.includes(sectionName);
+            if (confirm(confirmMessage)) {
+                this.loadParametersConfig();
+                NotificationManager.success('Parameters reset to system defaults');
+            }
+        });
     }
 }
 
-// Make NavigationManager available globally
+// Make both classes available globally
 if (typeof window !== 'undefined') {
     window.NavigationManager = NavigationManager;
+    window.EnhancedNavigationManager = EnhancedNavigationManager;
 }

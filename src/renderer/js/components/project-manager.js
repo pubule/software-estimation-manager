@@ -1,5 +1,6 @@
 /**
  * Project Manager - Handles project loading, saving, and management
+ * FIXED: Removed calls to non-existent populateDropdowns method
  */
 
 class ProjectManager {
@@ -16,7 +17,7 @@ class ProjectManager {
     init() {
         this.loadRecentProjects();
 
-        // AUTO-LOAD: Carica automaticamente i progetti salvati all'avvio
+        // AUTO-LOAD: Load saved projects automatically at startup
         this.loadSavedProjects().then(() => {
             console.log(`Loaded ${this.savedProjects.length} saved projects at startup`);
         });
@@ -155,12 +156,12 @@ class ProjectManager {
         try {
             console.log('=== Creating new project from modal ===');
 
-            // Prova prima il metodo normale, poi quello alternativo
+            // Try normal method first, then alternative method
             let formData = this.getNewProjectFormData();
 
             console.log('Form data (normal method):', formData);
 
-            // Se il nome è vuoto, prova il metodo alternativo
+            // If name is empty, try alternative method
             if (!formData.name) {
                 console.log('Name empty, trying alternative method...');
                 formData = this.getNewProjectFormDataAlternative();
@@ -194,7 +195,7 @@ class ProjectManager {
     }
 
     /**
-     * CORREZIONE: Metodo createNewProject mancante
+     * FIXED: Create new project method
      */
     async createNewProject(formData) {
         try {
@@ -205,7 +206,7 @@ class ProjectManager {
                 if (save) await this.app.saveProject();
             }
 
-            // Create new project with form data invece di chiamare app.newProject()
+            // Create new project with form data instead of calling app.newProject()
             const newProject = {
                 project: {
                     id: this.generateProjectId(),
@@ -234,7 +235,7 @@ class ProjectManager {
             this.app.currentProject = newProject;
             this.app.isDirty = true;
 
-            // AUTO-SAVE: Salva automaticamente il nuovo progetto
+            // AUTO-SAVE: Save new project automatically
             console.log('Auto-saving new project...');
             const saveResult = await this.app.dataManager.saveProject(newProject);
 
@@ -257,8 +258,8 @@ class ProjectManager {
                 NotificationManager.warning('Project created but auto-save failed');
             }
 
-            // Update dropdowns
-            await this.app.populateDropdowns();
+            // FIXED: Update dropdowns through refreshDropdowns instead of populateDropdowns
+            this.app.refreshDropdowns();
 
             // Update UI
             this.app.updateUI();
@@ -284,7 +285,7 @@ class ProjectManager {
      * Get new project form data
      */
     getNewProjectFormData() {
-        // Debug: log per verificare i valori
+        // Debug: log to verify values
         const codeEl = document.getElementById('project-code');
         const nameEl = document.getElementById('project-name');
         const descEl = document.getElementById('project-description');
@@ -307,25 +308,25 @@ class ProjectManager {
     }
 
     /**
-     * Get new project form data (versione alternativa più robusta)
+     * Get new project form data (more robust alternative version)
      */
     getNewProjectFormDataAlternative() {
-        // Prova metodi alternativi per trovare i campi
+        // Try alternative methods to find fields
         let codeValue = '';
         let nameValue = '';
         let descValue = '';
 
-        // Metodo 1: getElementById
+        // Method 1: getElementById
         const codeEl1 = document.getElementById('project-code');
         const nameEl1 = document.getElementById('project-name');
         const descEl1 = document.getElementById('project-description');
 
-        // Metodo 2: querySelector
+        // Method 2: querySelector
         const codeEl2 = document.querySelector('#project-code');
         const nameEl2 = document.querySelector('#project-name');
         const descEl2 = document.querySelector('#project-description');
 
-        // Metodo 3: querySelector by name
+        // Method 3: querySelector by name
         const codeEl3 = document.querySelector('input[name="code"]');
         const nameEl3 = document.querySelector('input[name="name"]');
         const descEl3 = document.querySelector('textarea[name="description"]');
@@ -336,7 +337,7 @@ class ProjectManager {
             byName: { code: !!codeEl3, name: !!nameEl3, desc: !!descEl3 }
         });
 
-        // Prova a ottenere i valori con diversi metodi
+        // Try to get values with different methods
         codeValue = (codeEl1?.value || codeEl2?.value || codeEl3?.value || '').trim().toUpperCase();
         nameValue = (nameEl1?.value || nameEl2?.value || nameEl3?.value || '').trim();
         descValue = (descEl1?.value || descEl2?.value || descEl3?.value || '').trim();
@@ -615,7 +616,7 @@ class ProjectManager {
     }
 
     /**
-     * Load project data into application
+     * FIXED: Load project data into application
      */
     async loadProjectData(projectData, filePath = null) {
         // Set project data
@@ -627,8 +628,8 @@ class ProjectManager {
             this.app.dataManager.currentProjectPath = filePath;
         }
 
-        // Update dropdowns
-        await this.app.populateDropdowns();
+        // FIXED: Update dropdowns through refreshDropdowns instead of populateDropdowns
+        this.app.refreshDropdowns();
 
         // Update all UI components
         this.app.updateUI();
@@ -662,7 +663,7 @@ class ProjectManager {
 
                 this.updateCurrentProjectUI();
 
-                // AUTO-REFRESH: Refresh saved projects list ogni volta che si salva
+                // AUTO-REFRESH: Refresh saved projects list every time we save
                 await this.loadSavedProjects();
                 this.renderSavedProjects();
 
@@ -690,8 +691,8 @@ class ProjectManager {
             this.app.currentProject = this.app.createNewProject();
             this.app.isDirty = false;
 
-            // Update UI
-            await this.app.populateDropdowns();
+            // FIXED: Update dropdowns through refreshDropdowns instead of populateDropdowns
+            this.app.refreshDropdowns();
             this.app.updateUI();
             this.updateCurrentProjectUI();
 
@@ -803,7 +804,7 @@ class ProjectManager {
             this.loadRecentProjects();
             await this.loadSavedProjects();
 
-            // AUTO-UPDATE: Aggiorna entrambe le UI
+            // AUTO-UPDATE: Update both UIs
             this.updateRecentProjectsUI();
             this.renderSavedProjects();
 
@@ -900,7 +901,7 @@ class ProjectManager {
      */
     updateCurrentProjectUI() {
         const project = this.app.currentProject?.project;
-        // Solo progetti realmente caricati, non il "New Project" di default
+        // Only really loaded projects, not the default "New Project"
         const hasLoadedProject = project && project.name !== 'New Project' && this.app.dataManager.currentProjectPath;
 
         // Update project info
@@ -1007,7 +1008,7 @@ class ProjectManager {
         const container = document.getElementById('saved-projects-list');
         if (!container) return;
 
-        // AUTO-LOAD: Carica automaticamente i progetti salvati se non ci sono
+        // AUTO-LOAD: Load saved projects automatically if there are none
         if (this.savedProjects.length === 0) {
             this.loadSavedProjects().then(() => {
                 if (this.savedProjects.length > 0) {
@@ -1092,7 +1093,7 @@ class ProjectManager {
     }
 
     /**
-     * Load recent project
+     * FIXED: Load recent project
      */
     async loadRecentProject(projectId) {
         try {
@@ -1158,7 +1159,7 @@ class ProjectManager {
     }
 
     /**
-     * Load saved project
+     * FIXED: Load saved project
      */
     async loadSavedProject(filePath) {
         try {

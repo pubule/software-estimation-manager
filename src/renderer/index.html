@@ -6,139 +6,9 @@
     <title>Software Estimation Manager</title>
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/themes/vscode-dark.css">
+    <!-- NUOVO: CSS per configurazione gerarchica -->
+    <link rel="stylesheet" href="styles/hierarchical-config.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Custom Title Bar Styles */
-        .custom-title-bar {
-            height: 40px;
-            background-color: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-primary);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 var(--spacing-md);
-            -webkit-app-region: drag;
-            user-select: none;
-            position: relative;
-            z-index: 1000;
-        }
-
-        .title-bar-left {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-md);
-            -webkit-app-region: no-drag;
-        }
-
-        .app-info {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-        }
-
-        .app-icon {
-            color: var(--text-accent);
-            font-size: var(--font-size-lg);
-        }
-
-        .app-title {
-            font-size: var(--font-size-base);
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-
-        .title-bar-center {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .project-info {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-        }
-
-        #project-name {
-            font-size: var(--font-size-sm);
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-
-        #project-status {
-            font-size: var(--font-size-base);
-            line-height: 1;
-        }
-
-        #project-status.saved {
-            color: var(--success);
-        }
-
-        #project-status.unsaved {
-            color: var(--warning);
-        }
-
-        .title-bar-right {
-            display: flex;
-            -webkit-app-region: no-drag;
-        }
-
-        .window-controls {
-            display: flex;
-        }
-
-        .window-control-btn {
-            width: 46px;
-            height: 40px;
-            border: none;
-            background: transparent;
-            color: var(--text-primary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color var(--transition-fast);
-            font-size: var(--font-size-sm);
-        }
-
-        .window-control-btn:hover {
-            background-color: var(--bg-hover);
-        }
-
-        .window-control-btn.close:hover {
-            background-color: var(--error);
-            color: white;
-        }
-
-        /* Adjust main container to account for custom title bar */
-        .main-container {
-            height: calc(100vh - 40px - 22px); /* Custom title bar + status bar */
-        }
-
-        /* Make sure the app takes full height */
-        #app {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        /* Status bar stays the same */
-        .status-bar {
-            height: 22px;
-            background-color: var(--bg-secondary);
-            border-top: 1px solid var(--border-primary);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 var(--spacing-md);
-            font-size: var(--font-size-sm);
-            color: var(--text-secondary);
-        }
-    </style>
 </head>
 <body>
 <div id="app">
@@ -163,10 +33,10 @@
         <div class="title-bar-right">
             <div class="window-controls">
                 <button class="window-control-btn minimize" onclick="window.electronAPI?.minimize()" title="Minimize">
-                    <i class="fas fa-minus"></i>
+                    <i class="fas fa-window-minimize"></i>
                 </button>
-                <button class="window-control-btn maximize" onclick="window.electronAPI?.maximize()" title="Maximize">
-                    <i class="far fa-square"></i>
+                <button class="window-control-btn maximize" onclick="window.electronAPI?.maximize()" title="Maximize/Restore">
+                    <i class="fas fa-window-maximize"></i>
                 </button>
                 <button class="window-control-btn close" onclick="window.electronAPI?.close()" title="Close">
                     <i class="fas fa-times"></i>
@@ -584,14 +454,30 @@
 <!-- Notification Container -->
 <div id="notifications" class="notifications-container"></div>
 
-<!-- Scripts -->
+<!-- Scripts - FIXED LOADING ORDER -->
+<!-- Core utilities first -->
 <script src="js/utils/helpers.js"></script>
+
+<!-- Data layer -->
 <script src="js/data-manager.js"></script>
+
+<!-- UI components (no dependencies on other managers) -->
 <script src="js/components/notification-manager.js"></script>
 <script src="js/components/modal.js"></script>
+
+<!-- Configuration system (depends on data-manager) -->
+<script src="js/components/configuration-manager.js"></script>
+
+<!-- Feature management (depends on data-manager and configuration-manager) -->
 <script src="js/components/feature-manager.js"></script>
-<script src="js/components/project-manager.js"></script>
+
+<!-- Navigation (depends on configuration-manager) -->
 <script src="js/components/navigation.js"></script>
+
+<!-- Project management (depends on other managers) -->
+<script src="js/components/project-manager.js"></script>
+
+<!-- Main application (depends on all other components) -->
 <script src="js/main.js"></script>
 </body>
 </html>
