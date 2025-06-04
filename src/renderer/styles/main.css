@@ -2153,3 +2153,577 @@
         margin-top: var(--spacing-sm);
     }
 }
+
+/**
+ * CSS per la sezione Suppliers Configuration
+ * Aggiungi questo al file main.css o crea suppliers-config.css
+ */
+
+/* Suppliers Configuration Container */
+.suppliers-config-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Scope Selector per Suppliers */
+.suppliers-scope-selector {
+    margin-bottom: var(--spacing-lg);
+}
+
+.scope-tabs {
+    display: flex;
+    gap: var(--spacing-xs);
+    border-bottom: 2px solid var(--border-primary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.scope-tab {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all var(--transition-fast);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.scope-tab:hover:not(.disabled) {
+    color: var(--text-primary);
+    background-color: var(--bg-hover);
+}
+
+.scope-tab.active {
+    color: var(--text-accent);
+    border-bottom-color: var(--text-accent);
+    background-color: rgba(0, 127, 212, 0.1);
+}
+
+.scope-tab.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.scope-tab .count {
+    background-color: var(--bg-quaternary);
+    color: var(--text-secondary);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+}
+
+.scope-tab.active .count {
+    background-color: var(--text-accent);
+    color: white;
+}
+
+/* Suppliers Scope Content */
+.suppliers-scope-content {
+    display: none;
+}
+
+.suppliers-scope-content.active {
+    display: block;
+}
+
+/* Suppliers Actions */
+.suppliers-actions {
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.suppliers-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Suppliers Grid */
+.suppliers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+/* Supplier Card */
+.supplier-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.supplier-card:hover {
+    border-color: var(--text-accent);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+/* Supplier Header */
+.supplier-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-md);
+}
+
+.supplier-header h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.supplier-status {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.supplier-status.active {
+    background-color: rgba(40, 167, 69, 0.2);
+    color: var(--success);
+    border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.supplier-status.inactive {
+    background-color: rgba(108, 117, 125, 0.2);
+    color: var(--text-muted);
+    border: 1px solid rgba(108, 117, 125, 0.3);
+}
+
+/* Supplier Details */
+.supplier-details {
+    margin-bottom: var(--spacing-lg);
+}
+
+.rate-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.rate-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+}
+
+.rate-label {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.rate-value {
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.supplier-notes {
+    background-color: var(--bg-tertiary);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-top: var(--spacing-sm);
+}
+
+/* Supplier Badges */
+.supplier-badge {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.supplier-badge.project-specific {
+    background-color: rgba(0, 123, 255, 0.2);
+    color: var(--info);
+    border: 1px solid rgba(0, 123, 255, 0.3);
+}
+
+.supplier-badge.overridden {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: var(--warning);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+/* Supplier Actions */
+.supplier-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-primary);
+}
+
+.supplier-actions .btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+}
+
+/* Empty State */
+.empty-suppliers-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+    background-color: var(--bg-tertiary);
+    border: 2px dashed var(--border-primary);
+    border-radius: var(--radius-lg);
+}
+
+.empty-suppliers-state i {
+    font-size: 48px;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.5;
+}
+
+.empty-suppliers-state h4 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.empty-suppliers-state p {
+    font-size: var(--font-size-base);
+    opacity: 0.7;
+    margin: 0;
+}
+
+/* No Project Message */
+.no-project-message {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+}
+
+.no-project-message i {
+    font-size: 48px;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.5;
+}
+
+.no-project-message h4 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.no-project-message p {
+    font-size: var(--font-size-base);
+    margin: 0;
+}
+
+/* Modal Enhancements per Suppliers */
+#supplier-modal .modal-content {
+    max-width: 500px;
+    width: 90vw;
+}
+
+#supplier-modal .form-group input:focus,
+#supplier-modal .form-group select:focus,
+#supplier-modal .form-group textarea:focus {
+    outline: none;
+    border-color: var(--input-focus);
+    box-shadow: 0 0 0 2px rgba(0, 127, 212, 0.2);
+}
+
+#supplier-modal .form-group input::placeholder,
+#supplier-modal .form-group textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .suppliers-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+
+    .suppliers-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .suppliers-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .scope-tabs {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .scope-tab {
+        border-bottom: 1px solid var(--border-primary);
+        border-radius: 0;
+        justify-content: center;
+    }
+
+    .scope-tab.active {
+        border-bottom-color: var(--text-accent);
+        border-left: 3px solid var(--text-accent);
+    }
+
+    .supplier-actions {
+        flex-direction: column;
+    }
+
+    .rate-info {
+        gap: var(--spacing-xs);
+    }
+
+    .rate-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+    }
+
+    .rate-value {
+        align-self: flex-end;
+    }
+
+    #supplier-modal .modal-content {
+        width: 95vw;
+        max-width: none;
+        margin: var(--spacing-md);
+    }
+}
+
+@media (max-width: 480px) {
+    .suppliers-config-container {
+        padding: 0 var(--spacing-sm);
+    }
+
+    .supplier-card {
+        padding: var(--spacing-md);
+    }
+
+    .supplier-header h4 {
+        font-size: var(--font-size-base);
+    }
+
+    .supplier-badge {
+        position: static;
+        margin-top: var(--spacing-sm);
+        display: inline-block;
+    }
+
+    .empty-suppliers-state,
+    .no-project-message {
+        padding: var(--spacing-lg);
+    }
+
+    .empty-suppliers-state i,
+    .no-project-message i {
+        font-size: 36px;
+    }
+}
+
+/* Animation for new suppliers */
+.supplier-card.newly-added {
+    animation: supplierAdded 0.5s ease-out;
+}
+
+@keyframes supplierAdded {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Loading state */
+.suppliers-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+}
+
+.suppliers-loading .spinner {
+    margin-right: var(--spacing-md);
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-primary);
+    border-top: 2px solid var(--text-accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error state */
+.suppliers-error {
+    background-color: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    color: var(--error);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    text-align: center;
+}
+
+.suppliers-error i {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-md);
+}
+
+/* Success state */
+.suppliers-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.3);
+    color: var(--success);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .supplier-card {
+        border-width: 2px;
+    }
+
+    .supplier-card:hover {
+        border-width: 3px;
+    }
+
+    .supplier-badge {
+        border-width: 2px;
+        font-weight: 700;
+    }
+
+    .scope-tab.active {
+        border-bottom-width: 4px;
+        font-weight: 700;
+    }
+}
+
+/* Dark mode specific adjustments */
+@media (prefers-color-scheme: dark) {
+    .empty-suppliers-state,
+    .no-project-message {
+        background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .supplier-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* Print styles */
+@media print {
+    .suppliers-actions,
+    .supplier-actions,
+    .scope-tabs,
+    #supplier-modal {
+        display: none !important;
+    }
+
+    .suppliers-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-md);
+    }
+
+    .supplier-card {
+        border: 2px solid #000;
+        break-inside: avoid;
+    }
+
+    .suppliers-scope-content {
+        display: block !important;
+    }
+}
+
+/* Accessibility improvements */
+.supplier-card:focus-within {
+    outline: 2px solid var(--text-accent);
+    outline-offset: 2px;
+}
+
+.scope-tab:focus {
+    outline: 2px solid var(--text-accent);
+    outline-offset: 2px;
+}
+
+/* Validation states */
+.form-group.error input,
+.form-group.error select,
+.form-group.error textarea {
+    border-color: var(--error);
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+}
+
+.form-group .error-message {
+    color: var(--error);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-xs);
+    display: block;
+} {
+    margin-bottom: var(--spacing-md);
+}
+
+#supplier-modal .form-group label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+#supplier-modal .form-group input,
+#supplier-modal .form-group select,
+#supplier-modal .form-group textarea {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    transition: border-color var(--transition-fast);
+}
+
+#supplier-modal .form-group

@@ -1197,6 +1197,7 @@ class SoftwareEstimationApp {
             this.configManager.clearCache();
         }
     }
+
 }
 
 // Initialize the application when DOM is loaded

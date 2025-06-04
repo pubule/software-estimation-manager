@@ -868,7 +868,507 @@ class EnhancedNavigationManager extends NavigationManager {
             container.insertBefore(statusSection, configContent);
         }
     }
+
+    async loadSuppliersConfig() {
+        const contentDiv = document.getElementById('suppliers-content');
+        if (!contentDiv) return;
+
+        // Ottieni i suppliers usando i metodi esistenti del ConfigurationManager
+        const globalSuppliers = this.configManager?.globalConfig?.suppliers || [];
+        const currentProject = this.app.currentProject;
+        const projectSuppliers = currentProject ? this.configManager.getSuppliers(currentProject.config) : [];
+
+        contentDiv.innerHTML = `
+        <div class="suppliers-config-container">
+            <!-- Scope Selector -->
+            <div class="suppliers-scope-selector">
+                <div class="scope-tabs">
+                    <button class="scope-tab active" data-scope="global">
+                        <i class="fas fa-globe"></i> Global Suppliers
+                        <span class="count">(${globalSuppliers.length})</span>
+                    </button>
+                    <button class="scope-tab ${!currentProject ? 'disabled' : ''}" data-scope="project" ${!currentProject ? 'disabled' : ''}>
+                        <i class="fas fa-project-diagram"></i> Project Suppliers
+                        <span class="count">(${projectSuppliers.length})</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Global Suppliers Section -->
+            <div id="global-suppliers-section" class="suppliers-scope-content active">
+                <div class="suppliers-actions">
+                    <button class="btn btn-primary" id="add-global-supplier">
+                        <i class="fas fa-plus"></i> Add Global Supplier
+                    </button>
+                    <button class="btn btn-secondary" id="export-global-suppliers">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+
+                <div class="suppliers-list">
+                    ${this.renderSuppliersList(globalSuppliers, 'global')}
+                </div>
+            </div>
+
+            <!-- Project Suppliers Section -->
+            <div id="project-suppliers-section" class="suppliers-scope-content">
+                ${currentProject ? `
+                    <div class="suppliers-actions">
+                        <button class="btn btn-primary" id="add-project-supplier">
+                            <i class="fas fa-plus"></i> Add Project Supplier
+                        </button>
+                        <button class="btn btn-secondary" id="copy-suppliers-from-global">
+                            <i class="fas fa-copy"></i> Copy from Global
+                        </button>
+                    </div>
+
+                    <div class="suppliers-list">
+                        ${this.renderSuppliersList(projectSuppliers, 'project')}
+                    </div>
+                ` : `
+                    <div class="no-project-message">
+                        <i class="fas fa-info-circle"></i>
+                        <h4>No Project Loaded</h4>
+                        <p>Load or create a project to manage project-specific suppliers</p>
+                    </div>
+                `}
+            </div>
+        </div>
+
+        <!-- Supplier Modal -->
+        <div id="supplier-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="supplier-modal-title">Add Supplier</h3>
+                    <button class="modal-close" onclick="closeSuppliersModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="supplier-form">
+                        <div class="form-group">
+                            <label for="supplier-name">Supplier Name:</label>
+                            <input type="text" id="supplier-name" name="name" required maxlength="100" 
+                                   placeholder="Enter supplier company name">
+                        </div>
+                        <div class="form-group">
+                            <label for="supplier-real-rate">Real Rate (€/day):</label>
+                            <input type="number" id="supplier-real-rate" name="realRate" min="0" step="0.01" required
+                                   placeholder="Actual daily rate">
+                        </div>
+                        <div class="form-group">
+                            <label for="supplier-official-rate">Official Rate (€/day):</label>
+                            <input type="number" id="supplier-official-rate" name="officialRate" min="0" step="0.01" required
+                                   placeholder="Official/invoiced daily rate">
+                        </div>
+                        <div class="form-group">
+                            <label for="supplier-status">Status:</label>
+                            <select id="supplier-status" name="status" required>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="supplier-notes">Notes (Optional):</label>
+                            <textarea id="supplier-notes" name="notes" rows="3" maxlength="500" 
+                                      placeholder="Additional notes about this supplier"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeSuppliersModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSuppliersModal()">Save Supplier</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+        // Setup event listeners dopo aver creato il DOM
+        this.setupSuppliersEventListeners();
+    }
+
+// Aggiungi questo metodo per renderizzare la lista suppliers
+    renderSuppliersList(suppliers, scope) {
+        if (!suppliers || suppliers.length === 0) {
+            return `
+            <div class="empty-suppliers-state">
+                <i class="fas fa-users"></i>
+                <h4>No suppliers configured</h4>
+                <p>Add suppliers to get started with project estimation</p>
+            </div>
+        `;
+        }
+
+        return `
+        <div class="suppliers-grid">
+            ${suppliers.map(supplier => `
+                <div class="supplier-card" data-supplier-id="${supplier.id}" data-scope="${scope}">
+                    <div class="supplier-header">
+                        <h4>${this.escapeHtml(supplier.name)}</h4>
+                        <div class="supplier-status ${supplier.status || 'active'}">
+                            ${supplier.status === 'inactive' ? 'Inactive' : 'Active'}
+                        </div>
+                    </div>
+                    <div class="supplier-details">
+                        <div class="rate-info">
+                            <div class="rate-item">
+                                <span class="rate-label">Real Rate:</span>
+                                <span class="rate-value">€${supplier.realRate}/day</span>
+                            </div>
+                            <div class="rate-item">
+                                <span class="rate-label">Official Rate:</span>
+                                <span class="rate-value">€${supplier.officialRate}/day</span>
+                            </div>
+                        </div>
+                        ${supplier.notes ? `
+                            <div class="supplier-notes">
+                                <strong>Notes:</strong> ${this.escapeHtml(supplier.notes)}
+                            </div>
+                        ` : ''}
+                        ${supplier.isProjectSpecific ? `
+                            <div class="supplier-badge project-specific">Project Specific</div>
+                        ` : supplier.isOverridden ? `
+                            <div class="supplier-badge overridden">Modified</div>
+                        ` : ''}
+                    </div>
+                    <div class="supplier-actions">
+                        <button class="btn btn-small btn-secondary" onclick="editSupplier('${supplier.id}', '${scope}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        ${scope === 'global' || supplier.isProjectSpecific ? `
+                            <button class="btn btn-small btn-danger" onclick="deleteSupplier('${supplier.id}', '${scope}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        ` : `
+                            <button class="btn btn-small btn-warning" onclick="disableSupplier('${supplier.id}')">
+                                <i class="fas fa-ban"></i> Disable
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    }
+
+// Aggiungi questo metodo per gestire gli event listeners
+    setupSuppliersEventListeners() {
+        // Scope tabs switching
+        document.querySelectorAll('.suppliers-config-container .scope-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                if (tab.disabled) return;
+
+                const scope = tab.dataset.scope;
+
+                // Update active tab
+                document.querySelectorAll('.suppliers-config-container .scope-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Update content sections
+                document.querySelectorAll('.suppliers-scope-content').forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(`${scope}-suppliers-section`).classList.add('active');
+            });
+        });
+
+        // Add supplier buttons
+        document.getElementById('add-global-supplier')?.addEventListener('click', () => {
+            showSuppliersModal('global');
+        });
+
+        document.getElementById('add-project-supplier')?.addEventListener('click', () => {
+            showSuppliersModal('project');
+        });
+
+        // Copy from global button
+        document.getElementById('copy-suppliers-from-global')?.addEventListener('click', () => {
+            this.copyGlobalSuppliersToProject();
+        });
+
+        // Export button
+        document.getElementById('export-global-suppliers')?.addEventListener('click', () => {
+            this.exportGlobalSuppliers();
+        });
+    }
+
+// Escape HTML helper
+    escapeHtml(text) {
+        if (typeof Helpers !== 'undefined' && Helpers.escapeHtml) {
+            return Helpers.escapeHtml(text);
+        }
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+// Metodo per copiare suppliers globali al progetto corrente
+    async copyGlobalSuppliersToProject() {
+        try {
+            if (!this.app.currentProject || !this.configManager) {
+                NotificationManager.warning('No project loaded or configuration manager not available');
+                return;
+            }
+
+            const globalSuppliers = this.configManager.globalConfig?.suppliers || [];
+            if (globalSuppliers.length === 0) {
+                NotificationManager.info('No global suppliers to copy');
+                return;
+            }
+
+            let copiedCount = 0;
+            for (const supplier of globalSuppliers) {
+                // Crea una copia come supplier specifico del progetto
+                const projectSupplier = {
+                    ...supplier,
+                    id: this.generateId('supplier_proj_'),
+                    isProjectSpecific: true,
+                    isGlobal: false
+                };
+
+                // Usa il metodo esistente del ConfigurationManager
+                this.configManager.addSupplierToProject(this.app.currentProject.config, projectSupplier);
+                copiedCount++;
+            }
+
+            this.app.markDirty();
+            await this.loadSuppliersConfig(); // Ricarica la sezione
+            this.app.refreshDropdowns(); // Aggiorna i dropdown
+
+            NotificationManager.success(`Copied ${copiedCount} suppliers from global configuration`);
+        } catch (error) {
+            console.error('Failed to copy suppliers from global:', error);
+            NotificationManager.error('Failed to copy suppliers from global configuration');
+        }
+    }
+
+// Metodo per esportare suppliers globali
+    exportGlobalSuppliers() {
+        try {
+            const globalSuppliers = this.configManager?.globalConfig?.suppliers || [];
+
+            if (globalSuppliers.length === 0) {
+                NotificationManager.info('No global suppliers to export');
+                return;
+            }
+
+            const exportData = {
+                metadata: {
+                    type: 'suppliers',
+                    version: '1.0.0',
+                    exportDate: new Date().toISOString(),
+                    count: globalSuppliers.length
+                },
+                suppliers: globalSuppliers
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const filename = `suppliers-export-${new Date().toISOString().split('T')[0]}.json`;
+
+            // Usa il metodo helper se disponibile
+            if (typeof Helpers !== 'undefined' && Helpers.downloadAsFile) {
+                Helpers.downloadAsFile(dataStr, filename, 'application/json');
+            } else {
+                // Fallback per download
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            NotificationManager.success('Global suppliers exported successfully');
+        } catch (error) {
+            console.error('Export failed:', error);
+            NotificationManager.error('Failed to export suppliers');
+        }
+    }
+
+// Genera ID univoco
+    generateId(prefix = 'supplier_') {
+        return prefix + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
 }
+
+// Funzioni globali per gestire il modal (da chiamare dall'HTML)
+window.showSuppliersModal = function(scope, supplier = null) {
+    const modal = document.getElementById('supplier-modal');
+    const title = document.getElementById('supplier-modal-title');
+    const form = document.getElementById('supplier-form');
+
+    if (!modal || !title || !form) return;
+
+    title.textContent = supplier ? 'Edit Supplier' : 'Add Supplier';
+
+    if (supplier) {
+        // Popola il form con i dati esistenti
+        document.getElementById('supplier-name').value = supplier.name || '';
+        document.getElementById('supplier-real-rate').value = supplier.realRate || '';
+        document.getElementById('supplier-official-rate').value = supplier.officialRate || '';
+        document.getElementById('supplier-status').value = supplier.status || 'active';
+        document.getElementById('supplier-notes').value = supplier.notes || '';
+    } else {
+        // Reset form per nuovo supplier
+        form.reset();
+    }
+
+    // Salva i dati nel modal per uso successivo
+    modal.dataset.scope = scope;
+    modal.dataset.supplierId = supplier?.id || '';
+
+    modal.classList.add('active');
+
+    // Focus sul primo campo
+    setTimeout(() => {
+        document.getElementById('supplier-name')?.focus();
+    }, 100);
+};
+
+window.closeSuppliersModal = function() {
+    const modal = document.getElementById('supplier-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+};
+
+window.saveSuppliersModal = function() {
+    const modal = document.getElementById('supplier-modal');
+    const scope = modal.dataset.scope;
+    const supplierId = modal.dataset.supplierId;
+    const form = document.getElementById('supplier-form');
+
+    if (!form || !window.app?.configManager) return;
+
+    const formData = new FormData(form);
+    const supplierData = {
+        id: supplierId || window.app.navigationManager.generateId('supplier_'),
+        name: formData.get('name').trim(),
+        realRate: parseFloat(formData.get('realRate')) || 0,
+        officialRate: parseFloat(formData.get('officialRate')) || 0,
+        status: formData.get('status'),
+        notes: formData.get('notes').trim(),
+        isGlobal: scope === 'global'
+    };
+
+    // Validazione base
+    if (!supplierData.name) {
+        NotificationManager.error('Supplier name is required');
+        return;
+    }
+    if (supplierData.realRate <= 0 || supplierData.officialRate <= 0) {
+        NotificationManager.error('Rates must be greater than 0');
+        return;
+    }
+
+    try {
+        if (scope === 'global') {
+            // Usa i metodi esistenti per gestire global config
+            if (supplierId) {
+                // Modifica supplier esistente
+                const index = window.app.configManager.globalConfig.suppliers.findIndex(s => s.id === supplierId);
+                if (index >= 0) {
+                    window.app.configManager.globalConfig.suppliers[index] = supplierData;
+                }
+            } else {
+                // Aggiungi nuovo supplier
+                window.app.configManager.globalConfig.suppliers.push(supplierData);
+            }
+            window.app.configManager.saveGlobalConfig();
+        } else {
+            // Usa il metodo esistente addSupplierToProject del ConfigurationManager
+            window.app.configManager.addSupplierToProject(window.app.currentProject.config, supplierData);
+            window.app.markDirty();
+        }
+
+        closeSuppliersModal();
+
+        // Ricarica la sezione suppliers
+        window.app.navigationManager.loadSuppliersConfig();
+
+        // Refresh dropdowns
+        window.app.refreshDropdowns();
+
+        NotificationManager.success('Supplier saved successfully');
+    } catch (error) {
+        console.error('Failed to save supplier:', error);
+        NotificationManager.error('Failed to save supplier');
+    }
+};
+
+window.editSupplier = function(supplierId, scope) {
+    let supplier;
+
+    if (scope === 'global') {
+        supplier = window.app.configManager.globalConfig.suppliers.find(s => s.id === supplierId);
+    } else {
+        const projectSuppliers = window.app.configManager.getSuppliers(window.app.currentProject.config);
+        supplier = projectSuppliers.find(s => s.id === supplierId);
+    }
+
+    if (supplier) {
+        showSuppliersModal(scope, supplier);
+    }
+};
+
+window.deleteSupplier = function(supplierId, scope) {
+    if (!confirm('Are you sure you want to delete this supplier?')) return;
+
+    try {
+        if (scope === 'global') {
+            window.app.configManager.globalConfig.suppliers =
+                window.app.configManager.globalConfig.suppliers.filter(s => s.id !== supplierId);
+            window.app.configManager.saveGlobalConfig();
+        } else {
+            // Usa il metodo esistente deleteSupplierFromProject
+            window.app.configManager.deleteSupplierFromProject(window.app.currentProject.config, supplierId);
+            window.app.markDirty();
+        }
+
+        // Ricarica la sezione
+        window.app.navigationManager.loadSuppliersConfig();
+        window.app.refreshDropdowns();
+
+        NotificationManager.success('Supplier deleted successfully');
+    } catch (error) {
+        console.error('Failed to delete supplier:', error);
+        NotificationManager.error('Failed to delete supplier');
+    }
+};
+
+window.disableSupplier = function(supplierId) {
+    try {
+        if (!window.app.currentProject) return;
+
+        // Usa la logica esistente per disabilitare supplier per il progetto
+        if (!window.app.currentProject.config.projectOverrides) {
+            window.app.currentProject.config.projectOverrides = {
+                suppliers: [], internalResources: [], categories: [], calculationParams: {}
+            };
+        }
+
+        const existingOverride = window.app.currentProject.config.projectOverrides.suppliers.find(s => s.id === supplierId);
+        if (existingOverride) {
+            existingOverride.status = 'inactive';
+        } else {
+            window.app.currentProject.config.projectOverrides.suppliers.push({
+                id: supplierId,
+                status: 'inactive'
+            });
+        }
+
+        window.app.markDirty();
+        window.app.navigationManager.loadSuppliersConfig();
+        window.app.refreshDropdowns();
+
+        NotificationManager.success('Supplier disabled for this project');
+    } catch (error) {
+        console.error('Failed to disable supplier:', error);
+        NotificationManager.error('Failed to disable supplier');
+    }
+};
 
 // Utility functions for navigation state management
 class NavigationStateManager {
