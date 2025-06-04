@@ -1191,7 +1191,579 @@ class EnhancedNavigationManager extends NavigationManager {
         return prefix + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
+    async loadResourcesConfig() {
+        const contentDiv = document.getElementById('resources-content');
+        if (!contentDiv) return;
+
+        // Ottieni le risorse interne usando i metodi esistenti del ConfigurationManager
+        const globalResources = this.configManager?.globalConfig?.internalResources || [];
+        const currentProject = this.app.currentProject;
+        const projectResources = currentProject ? this.configManager.getInternalResources(currentProject.config) : [];
+
+        contentDiv.innerHTML = `
+        <div class="resources-config-container">
+            <!-- Scope Selector -->
+            <div class="resources-scope-selector">
+                <div class="scope-tabs">
+                    <button class="scope-tab active" data-scope="global">
+                        <i class="fas fa-globe"></i> Global Resources
+                        <span class="count">(${globalResources.length})</span>
+                    </button>
+                    <button class="scope-tab ${!currentProject ? 'disabled' : ''}" data-scope="project" ${!currentProject ? 'disabled' : ''}>
+                        <i class="fas fa-project-diagram"></i> Project Resources
+                        <span class="count">(${projectResources.length})</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Global Resources Section -->
+            <div id="global-resources-section" class="resources-scope-content active">
+                <div class="resources-actions">
+                    <button class="btn btn-primary" id="add-global-resource">
+                        <i class="fas fa-plus"></i> Add Global Resource
+                    </button>
+                    <button class="btn btn-secondary" id="export-global-resources">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+
+                <div class="resources-list">
+                    ${this.renderResourcesList(globalResources, 'global')}
+                </div>
+            </div>
+
+            <!-- Project Resources Section -->
+            <div id="project-resources-section" class="resources-scope-content">
+                ${currentProject ? `
+                    <div class="resources-actions">
+                        <button class="btn btn-primary" id="add-project-resource">
+                            <i class="fas fa-plus"></i> Add Project Resource
+                        </button>
+                        <button class="btn btn-secondary" id="copy-resources-from-global">
+                            <i class="fas fa-copy"></i> Copy from Global
+                        </button>
+                    </div>
+
+                    <div class="resources-list">
+                        ${this.renderResourcesList(projectResources, 'project')}
+                    </div>
+                ` : `
+                    <div class="no-project-message">
+                        <i class="fas fa-info-circle"></i>
+                        <h4>No Project Loaded</h4>
+                        <p>Load or create a project to manage project-specific resources</p>
+                    </div>
+                `}
+            </div>
+        </div>
+
+        <!-- Resource Modal -->
+        <div id="resource-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="resource-modal-title">Add Internal Resource</h3>
+                    <button class="modal-close" onclick="closeResourcesModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="resource-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="resource-name">Resource Name:</label>
+                                <input type="text" id="resource-name" name="name" required maxlength="100" 
+                                       placeholder="e.g., John Doe">
+                            </div>
+                            <div class="form-group">
+                                <label for="resource-role">Role:</label>
+                                <input type="text" id="resource-role" name="role" required maxlength="100"
+                                       placeholder="e.g., Senior Developer">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="resource-department">Department:</label>
+                                <select id="resource-department" name="department" required>
+                                    <option value="">Select Department</option>
+                                    <option value="IT">IT</option>
+                                    <option value="Development">Development</option>
+                                    <option value="QA">QA</option>
+                                    <option value="DevOps">DevOps</option>
+                                    <option value="Business Analysis">Business Analysis</option>
+                                    <option value="Project Management">Project Management</option>
+                                    <option value="Security">Security</option>
+                                    <option value="Architecture">Architecture</option>
+                                    <option value="UX/UI Design">UX/UI Design</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="resource-status">Status:</label>
+                                <select id="resource-status" name="status" required>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                    <option value="on-leave">On Leave</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="resource-real-rate">Real Rate (€/day):</label>
+                                <input type="number" id="resource-real-rate" name="realRate" min="0" step="0.01" required
+                                       placeholder="e.g., 350.00">
+                            </div>
+                            <div class="form-group">
+                                <label for="resource-official-rate">Official Rate (€/day):</label>
+                                <input type="number" id="resource-official-rate" name="officialRate" min="0" step="0.01" required
+                                       placeholder="e.g., 400.00">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="resource-skills">Skills & Technologies:</label>
+                            <textarea id="resource-skills" name="skills" rows="2" maxlength="500" 
+                                      placeholder="e.g., Java, React, Spring Boot, Docker, AWS"></textarea>
+                            <small class="form-help">List main skills and technologies (optional)</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="resource-notes">Notes:</label>
+                            <textarea id="resource-notes" name="notes" rows="3" maxlength="500" 
+                                      placeholder="Additional notes about this resource"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeResourcesModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveResourcesModal()">Save Resource</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+        // Setup event listeners dopo aver creato il DOM
+        this.setupResourcesEventListeners();
+    }
+
+// Aggiungi questo metodo per renderizzare la lista resources
+    renderResourcesList(resources, scope) {
+        if (!resources || resources.length === 0) {
+            return `
+            <div class="empty-resources-state">
+                <i class="fas fa-user-friends"></i>
+                <h4>No internal resources configured</h4>
+                <p>Add internal team members to track their utilization and costs</p>
+            </div>
+        `;
+        }
+
+        return `
+        <div class="resources-grid">
+            ${resources.map(resource => `
+                <div class="resource-card" data-resource-id="${resource.id}" data-scope="${scope}">
+                    <div class="resource-header">
+                        <div class="resource-title">
+                            <h4>${this.escapeHtml(resource.name)}</h4>
+                            <span class="resource-role">${this.escapeHtml(resource.role)}</span>
+                        </div>
+                        <div class="resource-status ${resource.status || 'active'}">
+                            ${this.getResourceStatusDisplay(resource.status)}
+                        </div>
+                    </div>
+                    
+                    <div class="resource-details">
+                        <div class="detail-section">
+                            <div class="detail-item">
+                                <span class="detail-label">Department:</span>
+                                <span class="detail-value">${this.escapeHtml(resource.department)}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="rate-section">
+                            <div class="rate-item">
+                                <span class="rate-label">Real Rate:</span>
+                                <span class="rate-value">€${resource.realRate}/day</span>
+                            </div>
+                            <div class="rate-item">
+                                <span class="rate-label">Official Rate:</span>
+                                <span class="rate-value">€${resource.officialRate}/day</span>
+                            </div>
+                        </div>
+                        
+                        ${resource.skills ? `
+                            <div class="skills-section">
+                                <span class="skills-label">Skills:</span>
+                                <div class="skills-tags">
+                                    ${resource.skills.split(',').map(skill =>
+            `<span class="skill-tag">${this.escapeHtml(skill.trim())}</span>`
+        ).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${resource.notes ? `
+                            <div class="resource-notes">
+                                <strong>Notes:</strong> ${this.escapeHtml(resource.notes)}
+                            </div>
+                        ` : ''}
+                        
+                        ${resource.isProjectSpecific ? `
+                            <div class="resource-badge project-specific">Project Specific</div>
+                        ` : resource.isOverridden ? `
+                            <div class="resource-badge overridden">Modified</div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="resource-actions">
+                        <button class="btn btn-small btn-secondary" onclick="editResource('${resource.id}', '${scope}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        ${scope === 'global' || resource.isProjectSpecific ? `
+                            <button class="btn btn-small btn-danger" onclick="deleteResource('${resource.id}', '${scope}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        ` : `
+                            <button class="btn btn-small btn-warning" onclick="disableResource('${resource.id}')">
+                                <i class="fas fa-ban"></i> Disable
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    }
+
+// Metodo helper per il display dello status
+    getResourceStatusDisplay(status) {
+        const statusMap = {
+            'active': 'Active',
+            'inactive': 'Inactive',
+            'on-leave': 'On Leave'
+        };
+        return statusMap[status] || 'Active';
+    }
+
+// Aggiungi questo metodo per gestire gli event listeners
+    setupResourcesEventListeners() {
+        // Scope tabs switching
+        document.querySelectorAll('.resources-config-container .scope-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                if (tab.disabled) return;
+
+                const scope = tab.dataset.scope;
+
+                // Update active tab
+                document.querySelectorAll('.resources-config-container .scope-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Update content sections
+                document.querySelectorAll('.resources-scope-content').forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(`${scope}-resources-section`).classList.add('active');
+            });
+        });
+
+        // Add resource buttons
+        document.getElementById('add-global-resource')?.addEventListener('click', () => {
+            showResourcesModal('global');
+        });
+
+        document.getElementById('add-project-resource')?.addEventListener('click', () => {
+            showResourcesModal('project');
+        });
+
+        // Copy from global button
+        document.getElementById('copy-resources-from-global')?.addEventListener('click', () => {
+            this.copyGlobalResourcesToProject();
+        });
+
+        // Export button
+        document.getElementById('export-global-resources')?.addEventListener('click', () => {
+            this.exportGlobalResources();
+        });
+    }
+
+// Metodo per copiare resources globali al progetto corrente
+    async copyGlobalResourcesToProject() {
+        try {
+            if (!this.app.currentProject || !this.configManager) {
+                NotificationManager.warning('No project loaded or configuration manager not available');
+                return;
+            }
+
+            const globalResources = this.configManager.globalConfig?.internalResources || [];
+            if (globalResources.length === 0) {
+                NotificationManager.info('No global resources to copy');
+                return;
+            }
+
+            let copiedCount = 0;
+            for (const resource of globalResources) {
+                // Crea una copia come resource specifico del progetto
+                const projectResource = {
+                    ...resource,
+                    id: this.generateId('resource_proj_'),
+                    isProjectSpecific: true,
+                    isGlobal: false
+                };
+
+                // Usa il metodo esistente del ConfigurationManager
+                this.configManager.addInternalResourceToProject(this.app.currentProject.config, projectResource);
+                copiedCount++;
+            }
+
+            this.app.markDirty();
+            await this.loadResourcesConfig(); // Ricarica la sezione
+            this.app.refreshDropdowns(); // Aggiorna i dropdown
+
+            NotificationManager.success(`Copied ${copiedCount} resources from global configuration`);
+        } catch (error) {
+            console.error('Failed to copy resources from global:', error);
+            NotificationManager.error('Failed to copy resources from global configuration');
+        }
+    }
+
+// Metodo per esportare resources globali
+    exportGlobalResources() {
+        try {
+            const globalResources = this.configManager?.globalConfig?.internalResources || [];
+
+            if (globalResources.length === 0) {
+                NotificationManager.info('No global resources to export');
+                return;
+            }
+
+            const exportData = {
+                metadata: {
+                    type: 'internalResources',
+                    version: '1.0.0',
+                    exportDate: new Date().toISOString(),
+                    count: globalResources.length
+                },
+                internalResources: globalResources
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const filename = `internal-resources-export-${new Date().toISOString().split('T')[0]}.json`;
+
+            // Usa il metodo helper se disponibile
+            if (typeof Helpers !== 'undefined' && Helpers.downloadAsFile) {
+                Helpers.downloadAsFile(dataStr, filename, 'application/json');
+            } else {
+                // Fallback per download
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            NotificationManager.success('Global internal resources exported successfully');
+        } catch (error) {
+            console.error('Export failed:', error);
+            NotificationManager.error('Failed to export resources');
+        }
+    }
+
+
+
 }
+
+// Funzioni globali per gestire il modal (da chiamare dall'HTML)
+window.showResourcesModal = function(scope, resource = null) {
+    const modal = document.getElementById('resource-modal');
+    const title = document.getElementById('resource-modal-title');
+    const form = document.getElementById('resource-form');
+
+    if (!modal || !title || !form) return;
+
+    title.textContent = resource ? 'Edit Internal Resource' : 'Add Internal Resource';
+
+    if (resource) {
+        // Popola il form con i dati esistenti
+        document.getElementById('resource-name').value = resource.name || '';
+        document.getElementById('resource-role').value = resource.role || '';
+        document.getElementById('resource-department').value = resource.department || '';
+        document.getElementById('resource-real-rate').value = resource.realRate || '';
+        document.getElementById('resource-official-rate').value = resource.officialRate || '';
+        document.getElementById('resource-status').value = resource.status || 'active';
+        document.getElementById('resource-skills').value = resource.skills || '';
+        document.getElementById('resource-notes').value = resource.notes || '';
+    } else {
+        // Reset form per nuovo resource
+        form.reset();
+    }
+
+    // Salva i dati nel modal per uso successivo
+    modal.dataset.scope = scope;
+    modal.dataset.resourceId = resource?.id || '';
+
+    modal.classList.add('active');
+
+    // Focus sul primo campo
+    setTimeout(() => {
+        document.getElementById('resource-name')?.focus();
+    }, 100);
+};
+
+window.closeResourcesModal = function() {
+    const modal = document.getElementById('resource-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+};
+
+window.saveResourcesModal = function() {
+    const modal = document.getElementById('resource-modal');
+    const scope = modal.dataset.scope;
+    const resourceId = modal.dataset.resourceId;
+    const form = document.getElementById('resource-form');
+
+    if (!form || !window.app?.configManager) return;
+
+    const formData = new FormData(form);
+    const resourceData = {
+        id: resourceId || window.app.navigationManager.generateId('resource_'),
+        name: formData.get('name').trim(),
+        role: formData.get('role').trim(),
+        department: formData.get('department'),
+        realRate: parseFloat(formData.get('realRate')) || 0,
+        officialRate: parseFloat(formData.get('officialRate')) || 0,
+        status: formData.get('status'),
+        skills: formData.get('skills').trim(),
+        notes: formData.get('notes').trim(),
+        isGlobal: scope === 'global'
+    };
+
+    // Validazione base
+    if (!resourceData.name) {
+        NotificationManager.error('Resource name is required');
+        return;
+    }
+    if (!resourceData.role) {
+        NotificationManager.error('Role is required');
+        return;
+    }
+    if (!resourceData.department) {
+        NotificationManager.error('Department is required');
+        return;
+    }
+    if (resourceData.realRate <= 0 || resourceData.officialRate <= 0) {
+        NotificationManager.error('Rates must be greater than 0');
+        return;
+    }
+
+    try {
+        if (scope === 'global') {
+            // Usa i metodi esistenti per gestire global config
+            if (resourceId) {
+                // Modifica resource esistente
+                const index = window.app.configManager.globalConfig.internalResources.findIndex(r => r.id === resourceId);
+                if (index >= 0) {
+                    window.app.configManager.globalConfig.internalResources[index] = resourceData;
+                }
+            } else {
+                // Aggiungi nuovo resource
+                window.app.configManager.globalConfig.internalResources.push(resourceData);
+            }
+            window.app.configManager.saveGlobalConfig();
+        } else {
+            // Usa il metodo esistente addInternalResourceToProject del ConfigurationManager
+            window.app.configManager.addInternalResourceToProject(window.app.currentProject.config, resourceData);
+            window.app.markDirty();
+        }
+
+        closeResourcesModal();
+
+        // Ricarica la sezione resources
+        window.app.navigationManager.loadResourcesConfig();
+
+        // Refresh dropdowns
+        window.app.refreshDropdowns();
+
+        NotificationManager.success('Internal resource saved successfully');
+    } catch (error) {
+        console.error('Failed to save resource:', error);
+        NotificationManager.error('Failed to save internal resource');
+    }
+};
+
+window.editResource = function(resourceId, scope) {
+    let resource;
+
+    if (scope === 'global') {
+        resource = window.app.configManager.globalConfig.internalResources.find(r => r.id === resourceId);
+    } else {
+        const projectResources = window.app.configManager.getInternalResources(window.app.currentProject.config);
+        resource = projectResources.find(r => r.id === resourceId);
+    }
+
+    if (resource) {
+        showResourcesModal(scope, resource);
+    }
+};
+
+window.deleteResource = function(resourceId, scope) {
+    if (!confirm('Are you sure you want to delete this internal resource?')) return;
+
+    try {
+        if (scope === 'global') {
+            window.app.configManager.globalConfig.internalResources =
+                window.app.configManager.globalConfig.internalResources.filter(r => r.id !== resourceId);
+            window.app.configManager.saveGlobalConfig();
+        } else {
+            // Usa il metodo esistente deleteInternalResourceFromProject
+            window.app.configManager.deleteInternalResourceFromProject(window.app.currentProject.config, resourceId);
+            window.app.markDirty();
+        }
+
+        // Ricarica la sezione
+        window.app.navigationManager.loadResourcesConfig();
+        window.app.refreshDropdowns();
+
+        NotificationManager.success('Internal resource deleted successfully');
+    } catch (error) {
+        console.error('Failed to delete resource:', error);
+        NotificationManager.error('Failed to delete internal resource');
+    }
+};
+
+window.disableResource = function(resourceId) {
+    try {
+        if (!window.app.currentProject) return;
+
+        // Usa la logica esistente per disabilitare resource per il progetto
+        if (!window.app.currentProject.config.projectOverrides) {
+            window.app.currentProject.config.projectOverrides = {
+                suppliers: [], internalResources: [], categories: [], calculationParams: {}
+            };
+        }
+
+        const existingOverride = window.app.currentProject.config.projectOverrides.internalResources.find(r => r.id === resourceId);
+        if (existingOverride) {
+            existingOverride.status = 'inactive';
+        } else {
+            window.app.currentProject.config.projectOverrides.internalResources.push({
+                id: resourceId,
+                status: 'inactive'
+            });
+        }
+
+        window.app.markDirty();
+        window.app.navigationManager.loadResourcesConfig();
+        window.app.refreshDropdowns();
+
+        NotificationManager.success('Internal resource disabled for this project');
+    } catch (error) {
+        console.error('Failed to disable resource:', error);
+        NotificationManager.error('Failed to disable internal resource');
+    }
+};
 
 // Funzioni globali per gestire il modal (da chiamare dall'HTML)
 window.showSuppliersModal = function(scope, supplier = null) {
