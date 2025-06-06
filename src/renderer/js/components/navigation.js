@@ -1570,9 +1570,555 @@ class EnhancedNavigationManager extends NavigationManager {
         }
     }
 
+// Aggiungi questo metodo alla classe EnhancedNavigationManager nel file navigation.js esistente
 
+    async loadCategoriesConfig() {
+        const contentDiv = document.getElementById('categories-content');
+        if (!contentDiv) return;
+
+        // Ottieni le categorie usando i metodi esistenti del ConfigurationManager
+        const globalCategories = this.configManager?.globalConfig?.categories || [];
+        const currentProject = this.app.currentProject;
+        const projectCategories = currentProject ? this.configManager.getCategories(currentProject.config) : [];
+
+        contentDiv.innerHTML = `
+        <div class="categories-config-container">
+            <!-- Scope Selector -->
+            <div class="categories-scope-selector">
+                <div class="scope-tabs">
+                    <button class="scope-tab active" data-scope="global">
+                        <i class="fas fa-globe"></i> Global Categories
+                        <span class="count">(${globalCategories.length})</span>
+                    </button>
+                    <button class="scope-tab ${!currentProject ? 'disabled' : ''}" data-scope="project" ${!currentProject ? 'disabled' : ''}>
+                        <i class="fas fa-project-diagram"></i> Project Categories
+                        <span class="count">(${projectCategories.length})</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Global Categories Section -->
+            <div id="global-categories-section" class="categories-scope-content active">
+                <div class="categories-actions">
+                    <button class="btn btn-primary" id="add-global-category">
+                        <i class="fas fa-plus"></i> Add Global Category
+                    </button>
+                    <button class="btn btn-secondary" id="export-global-categories">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+
+                <div class="categories-list">
+                    ${this.renderCategoriesList(globalCategories, 'global')}
+                </div>
+            </div>
+
+            <!-- Project Categories Section -->
+            <div id="project-categories-section" class="categories-scope-content">
+                ${currentProject ? `
+                    <div class="categories-actions">
+                        <button class="btn btn-primary" id="add-project-category">
+                            <i class="fas fa-plus"></i> Add Project Category
+                        </button>
+                        <button class="btn btn-secondary" id="copy-categories-from-global">
+                            <i class="fas fa-copy"></i> Copy from Global
+                        </button>
+                    </div>
+
+                    <div class="categories-list">
+                        ${this.renderCategoriesList(projectCategories, 'project')}
+                    </div>
+                ` : `
+                    <div class="no-project-message">
+                        <i class="fas fa-info-circle"></i>
+                        <h4>No Project Loaded</h4>
+                        <p>Load or create a project to manage project-specific categories</p>
+                    </div>
+                `}
+            </div>
+        </div>
+
+        <!-- Category Modal -->
+        <div id="category-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="category-modal-title">Add Category</h3>
+                    <button class="modal-close" onclick="closeCategoriesModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="category-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="category-name">Category Name:</label>
+                                <input type="text" id="category-name" name="name" required maxlength="100" 
+                                       placeholder="e.g., Security Features">
+                            </div>
+                            <div class="form-group">
+                                <label for="category-color">Color:</label>
+                                <div class="color-input-group">
+                                    <select id="category-color" name="color">
+                                        <option value="#007bff" data-color="#007bff">Blue</option>
+                                        <option value="#28a745" data-color="#28a745">Green</option>
+                                        <option value="#ffc107" data-color="#ffc107">Yellow</option>
+                                        <option value="#fd7e14" data-color="#fd7e14">Orange</option>
+                                        <option value="#dc3545" data-color="#dc3545">Red</option>
+                                        <option value="#6f42c1" data-color="#6f42c1">Purple</option>
+                                        <option value="#20c997" data-color="#20c997">Teal</option>
+                                        <option value="#6c757d" data-color="#6c757d">Gray</option>
+                                    </select>
+                                    <div class="color-preview" id="color-preview"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="category-description">Description:</label>
+                            <textarea id="category-description" name="description" rows="3" maxlength="500" 
+                                      placeholder="Describe the types of features in this category"></textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="category-multiplier">Complexity Multiplier:</label>
+                                <input type="number" id="category-multiplier" name="multiplier" min="0.1" max="5.0" step="0.1" value="1.0" required>
+                                <small class="form-help">1.0 = normal, 1.5 = 50% more complex, 0.8 = 20% simpler</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="category-status">Status:</label>
+                                <select id="category-status" name="status" required>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="multiplier-preview">
+                            <strong>Preview:</strong> 
+                            <span>10 days × <span id="multiplier-display">1.0</span> = <span id="result-display">10.0</span> days</span>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeCategoriesModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCategoriesModal()">Save Category</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+        // Setup event listeners dopo aver creato il DOM
+        this.setupCategoriesEventListeners();
+    }
+
+// Aggiungi questo metodo per renderizzare la lista categories
+    renderCategoriesList(categories, scope) {
+        if (!categories || categories.length === 0) {
+            return `
+            <div class="empty-categories-state">
+                <i class="fas fa-tags"></i>
+                <h4>No categories configured</h4>
+                <p>Add categories to organize and calculate feature complexity</p>
+            </div>
+        `;
+        }
+
+        return `
+        <div class="categories-grid">
+            ${categories.map(category => `
+                <div class="category-card" data-category-id="${category.id}" data-scope="${scope}">
+                    <div class="category-header">
+                        <div class="category-title">
+                            <div class="category-color-dot" style="background-color: ${category.color || '#007bff'}"></div>
+                            <h4>${this.escapeHtml(category.name)}</h4>
+                        </div>
+                        <div class="category-status ${category.status || 'active'}">
+                            ${category.status === 'inactive' ? 'Inactive' : 'Active'}
+                        </div>
+                    </div>
+                    
+                    <div class="category-details">
+                        ${category.description ? `
+                            <div class="category-description">
+                                ${this.escapeHtml(category.description)}
+                            </div>
+                        ` : ''}
+                        
+                        <div class="multiplier-section">
+                            <div class="multiplier-display">
+                                <span class="multiplier-label">Complexity Multiplier:</span>
+                                <span class="multiplier-value ${this.getMultiplierClass(category.multiplier)}">${category.multiplier}x</span>
+                            </div>
+                            <div class="multiplier-explanation">
+                                ${this.getMultiplierExplanation(category.multiplier)}
+                            </div>
+                        </div>
+                        
+                        <div class="example-calculation">
+                            <strong>Example:</strong> 10 days × ${category.multiplier} = ${(10 * category.multiplier).toFixed(1)} days
+                        </div>
+                        
+                        ${category.isProjectSpecific ? `
+                            <div class="category-badge project-specific">Project Specific</div>
+                        ` : category.isOverridden ? `
+                            <div class="category-badge overridden">Modified</div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="category-actions">
+                        <button class="btn btn-small btn-secondary" onclick="editCategory('${category.id}', '${scope}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        ${scope === 'global' || category.isProjectSpecific ? `
+                            <button class="btn btn-small btn-danger" onclick="deleteCategory('${category.id}', '${scope}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        ` : `
+                            <button class="btn btn-small btn-warning" onclick="disableCategory('${category.id}')">
+                                <i class="fas fa-ban"></i> Disable
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    }
+
+// Helper methods per categories
+    getMultiplierClass(multiplier) {
+        if (multiplier < 0.8) return 'simple';
+        if (multiplier > 1.5) return 'complex';
+        if (multiplier > 1.2) return 'moderate';
+        return 'normal';
+    }
+
+    getMultiplierExplanation(multiplier) {
+        if (multiplier < 0.8) return 'Simpler than average features';
+        if (multiplier > 1.5) return 'Significantly more complex features';
+        if (multiplier > 1.2) return 'More complex than average';
+        if (multiplier < 1.0) return 'Slightly simpler features';
+        return 'Standard complexity features';
+    }
+
+// Event listeners per categories
+    setupCategoriesEventListeners() {
+        // Scope tabs switching
+        document.querySelectorAll('.categories-config-container .scope-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                if (tab.disabled) return;
+
+                const scope = tab.dataset.scope;
+
+                // Update active tab
+                document.querySelectorAll('.categories-config-container .scope-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Update content sections
+                document.querySelectorAll('.categories-scope-content').forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(`${scope}-categories-section`).classList.add('active');
+            });
+        });
+
+        // Add category buttons
+        document.getElementById('add-global-category')?.addEventListener('click', () => {
+            showCategoriesModal('global');
+        });
+
+        document.getElementById('add-project-category')?.addEventListener('click', () => {
+            showCategoriesModal('project');
+        });
+
+        // Copy from global button
+        document.getElementById('copy-categories-from-global')?.addEventListener('click', () => {
+            this.copyGlobalCategoriesToProject();
+        });
+
+        // Export button
+        document.getElementById('export-global-categories')?.addEventListener('click', () => {
+            this.exportGlobalCategories();
+        });
+
+        // Multiplier preview update
+        document.addEventListener('input', (e) => {
+            if (e.target.id === 'category-multiplier') {
+                this.updateMultiplierPreview();
+            }
+        });
+
+        // Color preview update
+        document.addEventListener('change', (e) => {
+            if (e.target.id === 'category-color') {
+                this.updateColorPreview();
+            }
+        });
+    }
+
+    updateMultiplierPreview() {
+        const multiplier = parseFloat(document.getElementById('category-multiplier')?.value) || 1.0;
+        const result = (10 * multiplier).toFixed(1);
+
+        document.getElementById('multiplier-display').textContent = multiplier.toFixed(1);
+        document.getElementById('result-display').textContent = result;
+    }
+
+    updateColorPreview() {
+        const colorSelect = document.getElementById('category-color');
+        const colorPreview = document.getElementById('color-preview');
+        const selectedColor = colorSelect?.value || '#007bff';
+
+        if (colorPreview) {
+            colorPreview.style.backgroundColor = selectedColor;
+        }
+    }
+
+// Copy e Export methods
+    async copyGlobalCategoriesToProject() {
+        try {
+            if (!this.app.currentProject || !this.configManager) {
+                NotificationManager.warning('No project loaded or configuration manager not available');
+                return;
+            }
+
+            const globalCategories = this.configManager.globalConfig?.categories || [];
+            if (globalCategories.length === 0) {
+                NotificationManager.info('No global categories to copy');
+                return;
+            }
+
+            let copiedCount = 0;
+            for (const category of globalCategories) {
+                const projectCategory = {
+                    ...category,
+                    id: this.generateId('category_proj_'),
+                    isProjectSpecific: true,
+                    isGlobal: false
+                };
+
+                this.configManager.addCategoryToProject(this.app.currentProject.config, projectCategory);
+                copiedCount++;
+            }
+
+            this.app.markDirty();
+            await this.loadCategoriesConfig();
+            this.app.refreshDropdowns();
+
+            NotificationManager.success(`Copied ${copiedCount} categories from global configuration`);
+        } catch (error) {
+            console.error('Failed to copy categories from global:', error);
+            NotificationManager.error('Failed to copy categories from global configuration');
+        }
+    }
+
+    exportGlobalCategories() {
+        try {
+            const globalCategories = this.configManager?.globalConfig?.categories || [];
+
+            if (globalCategories.length === 0) {
+                NotificationManager.info('No global categories to export');
+                return;
+            }
+
+            const exportData = {
+                metadata: {
+                    type: 'categories',
+                    version: '1.0.0',
+                    exportDate: new Date().toISOString(),
+                    count: globalCategories.length
+                },
+                categories: globalCategories
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const filename = `categories-export-${new Date().toISOString().split('T')[0]}.json`;
+
+            if (typeof Helpers !== 'undefined' && Helpers.downloadAsFile) {
+                Helpers.downloadAsFile(dataStr, filename, 'application/json');
+            } else {
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            NotificationManager.success('Global categories exported successfully');
+        } catch (error) {
+            console.error('Export failed:', error);
+            NotificationManager.error('Failed to export categories');
+        }
+    }
 
 }
+
+window.showCategoriesModal = function(scope, category = null) {
+    const modal = document.getElementById('category-modal');
+    const title = document.getElementById('category-modal-title');
+    const form = document.getElementById('category-form');
+
+    if (!modal || !title || !form) return;
+
+    title.textContent = category ? 'Edit Category' : 'Add Category';
+
+    if (category) {
+        document.getElementById('category-name').value = category.name || '';
+        document.getElementById('category-description').value = category.description || '';
+        document.getElementById('category-multiplier').value = category.multiplier || 1.0;
+        document.getElementById('category-color').value = category.color || '#007bff';
+        document.getElementById('category-status').value = category.status || 'active';
+    } else {
+        form.reset();
+        document.getElementById('category-multiplier').value = 1.0;
+        document.getElementById('category-color').value = '#007bff';
+    }
+
+    modal.dataset.scope = scope;
+    modal.dataset.categoryId = category?.id || '';
+
+    modal.classList.add('active');
+
+    // Update previews
+    window.app.navigationManager.updateMultiplierPreview();
+    window.app.navigationManager.updateColorPreview();
+
+    setTimeout(() => {
+        document.getElementById('category-name')?.focus();
+    }, 100);
+};
+
+window.closeCategoriesModal = function() {
+    document.getElementById('category-modal')?.classList.remove('active');
+};
+
+window.saveCategoriesModal = function() {
+    const modal = document.getElementById('category-modal');
+    const scope = modal.dataset.scope;
+    const categoryId = modal.dataset.categoryId;
+    const form = document.getElementById('category-form');
+
+    if (!form || !window.app?.configManager) return;
+
+    const formData = new FormData(form);
+    const categoryData = {
+        id: categoryId || window.app.navigationManager.generateId('category_'),
+        name: formData.get('name').trim(),
+        description: formData.get('description').trim(),
+        multiplier: parseFloat(formData.get('multiplier')) || 1.0,
+        color: formData.get('color'),
+        status: formData.get('status'),
+        isGlobal: scope === 'global'
+    };
+
+    // Validazione
+    if (!categoryData.name) {
+        NotificationManager.error('Category name is required');
+        return;
+    }
+    if (categoryData.multiplier <= 0 || categoryData.multiplier > 10) {
+        NotificationManager.error('Multiplier must be between 0.1 and 10');
+        return;
+    }
+
+    try {
+        if (scope === 'global') {
+            if (categoryId) {
+                const index = window.app.configManager.globalConfig.categories.findIndex(c => c.id === categoryId);
+                if (index >= 0) {
+                    window.app.configManager.globalConfig.categories[index] = categoryData;
+                }
+            } else {
+                window.app.configManager.globalConfig.categories.push(categoryData);
+            }
+            window.app.configManager.saveGlobalConfig();
+        } else {
+            window.app.configManager.addCategoryToProject(window.app.currentProject.config, categoryData);
+            window.app.markDirty();
+        }
+
+        closeCategoriesModal();
+        window.app.navigationManager.loadCategoriesConfig();
+        window.app.refreshDropdowns();
+
+        NotificationManager.success('Category saved successfully');
+    } catch (error) {
+        console.error('Failed to save category:', error);
+        NotificationManager.error('Failed to save category');
+    }
+};
+
+window.editCategory = function(categoryId, scope) {
+    let category;
+
+    if (scope === 'global') {
+        category = window.app.configManager.globalConfig.categories.find(c => c.id === categoryId);
+    } else {
+        const projectCategories = window.app.configManager.getCategories(window.app.currentProject.config);
+        category = projectCategories.find(c => c.id === categoryId);
+    }
+
+    if (category) {
+        showCategoriesModal(scope, category);
+    }
+};
+
+window.deleteCategory = function(categoryId, scope) {
+    if (!confirm('Are you sure you want to delete this category?')) return;
+
+    try {
+        if (scope === 'global') {
+            window.app.configManager.globalConfig.categories =
+                window.app.configManager.globalConfig.categories.filter(c => c.id !== categoryId);
+            window.app.configManager.saveGlobalConfig();
+        } else {
+            window.app.configManager.deleteCategoryFromProject(window.app.currentProject.config, categoryId);
+            window.app.markDirty();
+        }
+
+        window.app.navigationManager.loadCategoriesConfig();
+        window.app.refreshDropdowns();
+
+        NotificationManager.success('Category deleted successfully');
+    } catch (error) {
+        console.error('Failed to delete category:', error);
+        NotificationManager.error('Failed to delete category');
+    }
+};
+
+window.disableCategory = function(categoryId) {
+    try {
+        if (!window.app.currentProject) return;
+
+        if (!window.app.currentProject.config.projectOverrides) {
+            window.app.currentProject.config.projectOverrides = {
+                suppliers: [], internalResources: [], categories: [], calculationParams: {}
+            };
+        }
+
+        const existingOverride = window.app.currentProject.config.projectOverrides.categories.find(c => c.id === categoryId);
+        if (existingOverride) {
+            existingOverride.status = 'inactive';
+        } else {
+            window.app.currentProject.config.projectOverrides.categories.push({
+                id: categoryId,
+                status: 'inactive'
+            });
+        }
+
+        window.app.markDirty();
+        window.app.navigationManager.loadCategoriesConfig();
+        window.app.refreshDropdowns();
+
+        NotificationManager.success('Category disabled for this project');
+    } catch (error) {
+        console.error('Failed to disable category:', error);
+        NotificationManager.error('Failed to disable category');
+    }
+};
 
 // Funzioni globali per gestire il modal (da chiamare dall'HTML)
 window.showResourcesModal = function(scope, resource = null) {
