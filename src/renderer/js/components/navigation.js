@@ -695,54 +695,6 @@ class EnhancedNavigationManager extends NavigationManager {
         `;
     }
 
-    async loadSuppliersConfig() {
-        const contentDiv = document.getElementById('suppliers-content');
-        if (!contentDiv) return;
-
-        contentDiv.innerHTML = `
-            <div class="config-placeholder">
-                <h4>Suppliers Configuration</h4>
-                <p>This section will manage external suppliers and their rates.</p>
-                <p>Configuration will include both global defaults and project-specific overrides.</p>
-                <div style="margin-top: var(--spacing-lg);">
-                    <p><strong>Note:</strong> Project-specific supplier configuration is available in the Features Management section when working on a specific project.</p>
-                </div>
-            </div>
-        `;
-    }
-
-    async loadResourcesConfig() {
-        const contentDiv = document.getElementById('resources-content');
-        if (!contentDiv) return;
-
-        contentDiv.innerHTML = `
-            <div class="config-placeholder">
-                <h4>Internal Resources Configuration</h4>
-                <p>This section will manage internal resources like developers, analysts, etc.</p>
-                <p>Similar functionality to suppliers but for internal team members.</p>
-                <div style="margin-top: var(--spacing-lg);">
-                    <p><strong>Note:</strong> Project-specific resource allocation is available in the Project Phases section when working on a specific project.</p>
-                </div>
-            </div>
-        `;
-    }
-
-    async loadCategoriesConfig() {
-        const contentDiv = document.getElementById('categories-content');
-        if (!contentDiv) return;
-
-        contentDiv.innerHTML = `
-            <div class="config-placeholder">
-                <h4>Feature Categories Configuration</h4>
-                <p>This section will manage feature categories with multipliers.</p>
-                <p>Categories help organize features and apply complexity multipliers.</p>
-                <div style="margin-top: var(--spacing-lg);">
-                    <p><strong>Note:</strong> Project-specific categories can be added in the Features Management section when working on a specific project.</p>
-                </div>
-            </div>
-        `;
-    }
-
     async loadParametersConfig() {
         const contentDiv = document.getElementById('parameters-content');
         if (!contentDiv) return;

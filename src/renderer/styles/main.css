@@ -2105,54 +2105,121 @@
     opacity: 0.3;
 }
 
-/* ========================================
-   SUPPLIERS SPECIFIC STYLES
-   ======================================== */
+.suppliers-config-container {
+    height: calc(100vh - 180px);
+    min-height: 600px;
+}
 
 .suppliers-config-container .item-indicator {
     background-color: #007bff;
+    border: 2px solid var(--bg-primary);
+    transition: all var(--transition-fast);
 }
 
 .suppliers-config-container .item-meta .rate {
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-accent);
+    font-family: 'Courier New', monospace;
+    background-color: rgba(0, 127, 212, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
 }
 
+.suppliers-config-container .item-meta .separator {
+    color: var(--text-muted);
+    margin: 0 4px;
+    font-size: 10px;
+}
+
+.suppliers-config-container .project-badge {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: var(--warning);
+    padding: 1px 4px;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.suppliers-config-container .override-badge {
+    background-color: rgba(156, 39, 176, 0.2);
+    color: #9c27b0;
+    padding: 1px 4px;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Enhanced Detail Panel for Suppliers */
 .suppliers-detail .rate-comparison {
     display: flex;
     gap: var(--spacing-lg);
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
 }
 
 .rate-card {
     flex: 1;
-    background-color: var(--bg-tertiary);
-    padding: var(--spacing-lg);
-    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-quaternary));
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-xl);
     text-align: center;
-    border: 1px solid var(--border-primary);
+    border: 2px solid var(--border-primary);
+    transition: all var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+}
+
+.rate-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--border-secondary);
+}
+
+.rate-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    opacity: 0.8;
 }
 
 .rate-card.real {
     border-color: rgba(40, 167, 69, 0.3);
 }
 
+.rate-card.real::before {
+    background: linear-gradient(90deg, #28a745, #20c997);
+}
+
 .rate-card.official {
     border-color: rgba(0, 123, 255, 0.3);
 }
 
+.rate-card.official::before {
+    background: linear-gradient(90deg, #007bff, #6610f2);
+}
+
 .rate-label {
-    font-size: var(--font-size-xs);
-    font-weight: 600;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
     color: var(--text-secondary);
     text-transform: uppercase;
-    margin-bottom: var(--spacing-xs);
+    letter-spacing: 1px;
+    margin-bottom: var(--spacing-sm);
 }
 
 .rate-value {
-    font-size: var(--font-size-xl);
-    font-weight: 700;
+    font-size: 2.5rem;
+    font-weight: 800;
     color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: var(--spacing-xs);
 }
 
 .rate-card.real .rate-value {
@@ -2161,6 +2228,376 @@
 
 .rate-card.official .rate-value {
     color: var(--info);
+}
+
+/* Status Indicator */
+.status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: var(--spacing-xs);
+    vertical-align: middle;
+}
+
+.status-indicator.active {
+    background-color: var(--success);
+    box-shadow: 0 0 6px rgba(40, 167, 69, 0.6);
+}
+
+.status-indicator.inactive {
+    background-color: var(--text-muted);
+}
+
+/* Rate Analysis Styles */
+.rate-analysis-grid {
+    display: grid;
+    gap: var(--spacing-xl);
+}
+
+.analysis-item {
+    background-color: var(--bg-tertiary);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-primary);
+}
+
+.analysis-label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--spacing-md);
+}
+
+.rate-bar-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.rate-bar {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    color: white;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    min-width: 120px;
+    transition: all var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+}
+
+.rate-bar:hover {
+    transform: translateX(4px);
+    box-shadow: var(--shadow-md);
+}
+
+.rate-bar.real {
+    background: linear-gradient(90deg, #28a745, #20c997);
+}
+
+.rate-bar.official {
+    background: linear-gradient(90deg, #007bff, #6610f2);
+}
+
+.rate-bar span {
+    position: relative;
+    z-index: 2;
+}
+
+/* Cost Estimate Table */
+.cost-estimate-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: var(--spacing-md);
+    font-size: var(--font-size-sm);
+}
+
+.cost-estimate-table th,
+.cost-estimate-table td {
+    padding: var(--spacing-sm);
+    text-align: left;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.cost-estimate-table th {
+    background-color: var(--bg-quaternary);
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: var(--font-size-xs);
+}
+
+.cost-estimate-table td {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.cost-estimate-table .positive {
+    color: var(--success);
+    font-weight: 700;
+}
+
+.cost-estimate-table .negative {
+    color: var(--error);
+    font-weight: 700;
+}
+
+.cost-estimate-table tr:hover {
+    background-color: var(--bg-hover);
+}
+
+/* Empty State Actions */
+.empty-state-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: var(--spacing-lg);
+}
+
+/* Enhanced Search and Filter Styles */
+.suppliers-config-container .master-search {
+    position: relative;
+}
+
+.suppliers-config-container .master-search .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    pointer-events: none;
+}
+
+.suppliers-config-container .master-search input {
+    padding-left: 36px;
+    background-color: var(--input-bg);
+    border: 2px solid var(--input-border);
+    transition: all var(--transition-fast);
+}
+
+.suppliers-config-container .master-search input:focus {
+    border-color: var(--text-accent);
+    box-shadow: 0 0 0 3px rgba(0, 127, 212, 0.1);
+    background-color: var(--bg-primary);
+}
+
+/* Enhanced Filter Chips */
+.suppliers-config-container .filter-chip {
+    position: relative;
+    overflow: hidden;
+}
+
+.suppliers-config-container .filter-chip::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--text-accent);
+    transform: translateX(-100%);
+    transition: transform var(--transition-fast);
+}
+
+.suppliers-config-container .filter-chip.active::before {
+    transform: translateX(0);
+}
+
+.suppliers-config-container .filter-chip .count {
+    transition: all var(--transition-fast);
+}
+
+.suppliers-config-container .filter-chip.active .count {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* Responsive Enhancements */
+@media (max-width: 1200px) {
+    .rate-comparison {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .cost-estimate-table {
+        font-size: var(--font-size-xs);
+    }
+
+    .cost-estimate-table th,
+    .cost-estimate-table td {
+        padding: var(--spacing-xs);
+    }
+}
+
+@media (max-width: 768px) {
+    .suppliers-config-container {
+        height: auto;
+        min-height: 500px;
+    }
+
+    .rate-value {
+        font-size: 2rem;
+    }
+
+    .rate-analysis-grid {
+        gap: var(--spacing-lg);
+    }
+
+    .analysis-item {
+        padding: var(--spacing-md);
+    }
+
+    .rate-bar-container {
+        gap: var(--spacing-xs);
+    }
+
+    .rate-bar {
+        padding: var(--spacing-xs);
+        font-size: var(--font-size-xs);
+    }
+
+    .empty-state-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .empty-state-actions .btn {
+        width: 100%;
+        max-width: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cost-estimate-table {
+        font-size: 10px;
+    }
+
+    .cost-estimate-table th,
+    .cost-estimate-table td {
+        padding: 4px;
+    }
+
+    .rate-card {
+        padding: var(--spacing-lg);
+    }
+
+    .rate-value {
+        font-size: 1.8rem;
+    }
+
+    .analysis-item {
+        padding: var(--spacing-sm);
+    }
+}
+
+/* Animation Enhancements */
+.supplier-item {
+    animation: slideInLeft 0.3s ease-out;
+}
+
+.supplier-item:nth-child(even) {
+    animation-delay: 0.1s;
+}
+
+.supplier-item:nth-child(odd) {
+    animation-delay: 0.2s;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Enhanced Detail Panel Animation */
+.enhanced-detail-panel {
+    animation: slideInRight 0.4s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Loading State for Suppliers */
+.supplier-item.loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.supplier-item.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .rate-card {
+        border-width: 3px;
+    }
+
+    .status-indicator {
+        border: 2px solid var(--text-primary);
+    }
+
+    .filter-chip.active {
+        font-weight: 800;
+        text-decoration: underline;
+    }
+
+    .rate-bar {
+        border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+}
+
+/* Print Styles */
+@media print {
+    .master-panel {
+        display: none;
+    }
+
+    .detail-panel {
+        width: 100%;
+        flex: none;
+    }
+
+    .enhanced-detail-actions {
+        display: none;
+    }
+
+    .rate-card {
+        break-inside: avoid;
+    }
+
+    .cost-estimate-table {
+        break-inside: avoid;
+    }
 }
 
 /* ========================================
