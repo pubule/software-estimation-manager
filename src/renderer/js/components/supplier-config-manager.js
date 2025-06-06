@@ -23,6 +23,19 @@ class SupplierConfigManager {
         this.searchQuery = '';
         this.sortField = 'name';
         this.sortDirection = 'asc';
+
+        // Bind methods to window for global access
+        this.exposeGlobalMethods();
+    }
+
+    exposeGlobalMethods() {
+        window.showSuppliersModal = this.showModal.bind(this);
+        window.closeSuppliersModal = this.closeModal.bind(this);
+        window.saveSuppliersModal = this.saveSupplier.bind(this);
+        window.editSupplier = this.startEditingRow.bind(this);
+        window.deleteSupplier = this.deleteSupplier.bind(this);
+        window.disableSupplier = this.disableSupplier.bind(this);
+        window.duplicateSupplier = this.duplicateSupplier.bind(this);
     }
 
     /**
@@ -53,7 +66,7 @@ class SupplierConfigManager {
                 ${this.generateScopeSelector(data)}
                 ${this.generateTableControls()}
                 ${this.generateSuppliersTable()}
-                                        ${this.generateSupplierModal()}
+                ${this.generateSupplierModal()}
             </div>
         `;
     }
@@ -62,11 +75,47 @@ class SupplierConfigManager {
      * Setup degli event listener principali
      */
     setupEventListeners() {
+        console.log('Setting up event listeners');
+        this.cleanupEventListeners();
+
         this.setupScopeTabEvents();
         this.setupTableControls();
         this.setupTableEvents();
         this.setupScrollInfinito();
         this.setupKeyboardShortcuts();
+    }
+
+    cleanupEventListeners() {
+        // Rimuovi listener dai controlli principali
+        const addBtn = document.getElementById('add-supplier-btn');
+        if (addBtn) {
+            addBtn.replaceWith(addBtn.cloneNode(true));
+        }
+
+        const bulkBtn = document.getElementById('bulk-actions-btn');
+        if (bulkBtn) {
+            bulkBtn.replaceWith(bulkBtn.cloneNode(true));
+        }
+
+        const selectAllCheckbox = document.getElementById('select-all-suppliers');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.replaceWith(selectAllCheckbox.cloneNode(true));
+        }
+
+        const searchInput = document.getElementById('supplier-search');
+        if (searchInput) {
+            searchInput.replaceWith(searchInput.cloneNode(true));
+        }
+
+        // Rimuovi listener dai filtri
+        document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.replaceWith(chip.cloneNode(true));
+        });
+
+        // Rimuovi listener dai tab
+        document.querySelectorAll('.suppliers-config-container .scope-tab').forEach(tab => {
+            tab.replaceWith(tab.cloneNode(true));
+        });
     }
 
     /**
@@ -343,6 +392,154 @@ class SupplierConfigManager {
     }
 
     /**
+     * Mostra o nasconde lo stato di loading per una riga della tabella
+     * @param {HTMLElement} row - L'elemento riga della tabella
+     * @param {boolean} show - Se true mostra il loading, se false lo nasconde
+     */
+    showRowLoading(row, show) {
+        const actionsCell = row.querySelector('.actions-cell');
+        if (!actionsCell) return;
+
+        if (show) {
+            // Salva il contenuto originale per ripristinarlo dopo
+            if (!actionsCell.dataset.originalContent) {
+                actionsCell.dataset.originalContent = actionsCell.innerHTML;
+            }
+
+            // Mostra indicatore di loading
+            actionsCell.innerHTML = `
+            <div class="saving-indicator">
+                <i class="fas fa-spinner fa-spin"></i> 
+                <span>Saving...</span>
+            </div>
+        `;
+
+            // Disabilita la riga durante il salvataggio
+            row.style.opacity = '0.7';
+            row.style.pointerEvents = 'none';
+
+            // Disabilita tutti gli input nella riga
+            const inputs = row.querySelectorAll('input, select, textarea, button');
+            inputs.forEach(input => {
+                input.disabled = true;
+                input.dataset.wasDisabled = input.disabled;
+            });
+
+        } else {
+            // Ripristina il contenuto originale
+            if (actionsCell.dataset.originalContent) {
+                actionsCell.innerHTML = actionsCell.dataset.originalContent;
+                delete actionsCell.dataset.originalContent;
+            } else {
+                // Fallback: ricostruisce le azioni per riga in editing
+                if (row.classList.contains('editing')) {
+                    actionsCell.innerHTML = `
+                    <div class="edit-actions">
+                        <button class="btn btn-small btn-success save-btn" title="Save">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-small btn-secondary cancel-btn" title="Cancel">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                }
+            }
+
+            // Riabilita la riga
+            row.style.opacity = '';
+            row.style.pointerEvents = '';
+
+            // Riabilita tutti gli input nella riga
+            const inputs = row.querySelectorAll('input, select, textarea, button');
+            inputs.forEach(input => {
+                // Ripristina lo stato disabled originale
+                if (input.dataset.wasDisabled !== undefined) {
+                    input.disabled = input.dataset.wasDisabled === 'true';
+                    delete input.dataset.wasDisabled;
+                } else {
+                    input.disabled = false;
+                }
+            });
+        }
+    }
+
+    /**
+     * Valida i dati del supplier
+     * @param {Object} supplierData - Dati del supplier da validare
+     * @returns {Object} - Oggetto con isValid (boolean) e errors (array)
+     */
+    validateSupplierData(supplierData) {
+        const errors = [];
+
+        // Validazione nome
+        if (!supplierData.name || !supplierData.name.trim()) {
+            errors.push('Supplier name is required');
+        } else if (supplierData.name.trim().length > 100) {
+            errors.push('Supplier name must be 100 characters or less');
+        } else if (supplierData.name.trim().length < 2) {
+            errors.push('Supplier name must be at least 2 characters');
+        }
+
+        // Validazione real rate
+        if (supplierData.realRate === undefined || supplierData.realRate === null) {
+            errors.push('Real rate is required');
+        } else if (isNaN(supplierData.realRate) || supplierData.realRate <= 0) {
+            errors.push('Real rate must be a positive number');
+        } else if (supplierData.realRate > 10000) {
+            errors.push('Real rate seems unreasonably high (max 10,000 €/day)');
+        }
+
+        // Validazione official rate
+        if (supplierData.officialRate === undefined || supplierData.officialRate === null) {
+            errors.push('Official rate is required');
+        } else if (isNaN(supplierData.officialRate) || supplierData.officialRate <= 0) {
+            errors.push('Official rate must be a positive number');
+        } else if (supplierData.officialRate > 10000) {
+            errors.push('Official rate seems unreasonably high (max 10,000 €/day)');
+        }
+
+        // Validazione status
+        const validStatuses = ['active', 'inactive'];
+        if (!supplierData.status || !validStatuses.includes(supplierData.status)) {
+            errors.push('Status must be either "active" or "inactive"');
+        }
+
+        // Validazione notes (opzionale)
+        if (supplierData.notes && supplierData.notes.length > 500) {
+            errors.push('Notes must be 500 characters or less');
+        }
+
+        // Validazione ID (se presente)
+        if (supplierData.id && typeof supplierData.id !== 'string') {
+            errors.push('Supplier ID must be a string');
+        }
+
+        // Validazione duplicati (controllo nome univoco)
+        if (supplierData.name && supplierData.name.trim()) {
+            const duplicateSupplier = this.suppliers.find(s =>
+                s.id !== supplierData.id &&
+                s.name.toLowerCase().trim() === supplierData.name.toLowerCase().trim()
+            );
+
+            if (duplicateSupplier) {
+                errors.push('A supplier with this name already exists');
+            }
+        }
+
+        // Validazione logica di business
+        if (supplierData.realRate && supplierData.officialRate &&
+            supplierData.realRate > supplierData.officialRate * 2) {
+            errors.push('Real rate seems unusually high compared to official rate');
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    }
+
+    /**
      * Cancella editing di una riga
      */
     async cancelEditingRow(supplierId) {
@@ -446,8 +643,6 @@ class SupplierConfigManager {
         }, 2000);
     }
 
-
-
     /**
      * Aggiorna header di ordinamento
      */
@@ -472,8 +667,6 @@ class SupplierConfigManager {
     findSupplier(supplierId) {
         return this.suppliers.find(s => s.id === supplierId);
     }
-
-
 
     /**
      * Setup scroll infinito
@@ -607,7 +800,7 @@ class SupplierConfigManager {
                     <h3>No suppliers found</h3>
                     <p>Try adjusting your search or filters, or add a new supplier to get started.</p>
                 </div>
-            </tbody>
+            </div>
         `;
     }
 
@@ -858,167 +1051,9 @@ class SupplierConfigManager {
         document.getElementById('table-empty')?.classList.add('hidden');
     }
 
-    showRowError(row, message) {
-        const actionsCell = row.querySelector('.actions-cell');
-        if (actionsCell) {
-            actionsCell.innerHTML = `<div class="error-indicator"><i class="fas fa-exclamation-triangle"></i> ${message}</div>`;
-            setTimeout(() => {
-                // Ripristina azioni dopo 3 secondi
-                if (row.classList.contains('editing')) {
-                    actionsCell.innerHTML = `
-                        <div class="edit-actions">
-                            <button class="btn btn-small btn-success save-btn" title="Save">
-                                <i class="fas fa-check"></i>
-                            </button>
-                            <button class="btn btn-small btn-secondary cancel-btn" title="Cancel">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    `;
-                }
-            }, 3000);
-        }
-    }
-
     /**
      * Utility functions per UI
      */
-    showRowLoading(row, show) {
-        const actionsCell = row.querySelector('.actions-cell');
-        if (!actionsCell) return;
-
-        if (show) {
-            actionsCell.innerHTML = '<div class="saving-indicator"><i class="fas fa-spinner fa-spin"></i> Saving...</div>';
-        }
-    }
-
-    showFieldError(field, message) {
-        field.classList.add('error');
-        field.title = message;
-
-        // Aggiungi classe al parent per styling
-        const cell = field.closest('td');
-        if (cell) {
-            cell.classList.add('field-error');
-        }
-    }
-
-    clearFieldError(field) {
-        field.classList.remove('error');
-        field.title = '';
-
-        const cell = field.closest('td');
-        if (cell) {
-            cell.classList.remove('field-error');
-        }
-    }
-
-    toggleEditButtons(enabled) {
-        document.querySelectorAll('.edit-btn, .delete-btn, .duplicate-btn').forEach(btn => {
-            btn.disabled = !enabled;
-            btn.style.opacity = enabled ? '1' : '0.5';
-        });
-    }
-
-    handleRowSelection(supplierId, checked) {
-        // Implementazione selezione multipla per bulk actions future
-        if (!this.selectedRows) this.selectedRows = new Set();
-
-        if (checked) {
-            this.selectedRows.add(supplierId);
-        } else {
-            this.selectedRows.delete(supplierId);
-        }
-
-        this.updateBulkActionsState();
-    }
-
-    toggleSelectAll(checked) {
-        if (!this.selectedRows) this.selectedRows = new Set();
-
-        document.querySelectorAll('.row-checkbox').forEach(checkbox => {
-            checkbox.checked = checked;
-            const supplierId = checkbox.dataset.supplierId;
-            if (checked) {
-                this.selectedRows.add(supplierId);
-            } else {
-                this.selectedRows.delete(supplierId);
-            }
-        });
-
-        this.updateBulkActionsState();
-    }
-
-    updateBulkActionsState() {
-        const bulkBtn = document.getElementById('bulk-actions-btn');
-        if (bulkBtn) {
-            const count = this.selectedRows ? this.selectedRows.size : 0;
-            bulkBtn.disabled = count === 0;
-            bulkBtn.innerHTML = count > 0 ?
-                `<i class="fas fa-ellipsis-h"></i> Bulk Actions (${count})` :
-                `<i class="fas fa-ellipsis-h"></i> Bulk Actions`;
-        }
-    }
-
-    updateFilterCounts() {
-        const activeCount = this.suppliers.filter(s => s.status === 'active').length;
-        const inactiveCount = this.suppliers.filter(s => s.status === 'inactive').length;
-
-        document.querySelector('[data-filter="all"] .count').textContent = `(${this.suppliers.length})`;
-        document.querySelector('[data-filter="active"] .count').textContent = `(${activeCount})`;
-        document.querySelector('[data-filter="inactive"] .count').textContent = `(${inactiveCount})`;
-    }
-
-    refreshTable() {
-        this.applyFiltersAndSort();
-        this.loadInitialItems();
-        this.updateFilterCounts();
-        this.updateSortHeaders();
-    }
-
-    handleTabNavigation(e, row) {
-        // Gestisce navigazione con Tab tra campi in editing
-        const inputs = row.querySelectorAll('input, select, textarea');
-        const currentIndex = Array.from(inputs).indexOf(e.target);
-
-        if (e.shiftKey && currentIndex === 0) {
-            // Shift+Tab sul primo campo: vai all'ultimo
-            e.preventDefault();
-            inputs[inputs.length - 1].focus();
-        } else if (!e.shiftKey && currentIndex === inputs.length - 1) {
-            // Tab sull'ultimo campo: salva
-            e.preventDefault();
-            this.saveEditingRow(row.dataset.supplierId);
-        }
-    }
-
-    showBulkActionsMenu() {
-        // Implementazione menu bulk actions
-        console.log('Bulk actions menu - to be implemented');
-    }
-
-    duplicateSupplier(supplierId) {
-        const supplier = this.findSupplier(supplierId);
-        if (!supplier) return;
-
-        // Crea copia con nuovo ID
-        const duplicate = {
-            ...supplier,
-            id: this.generateId('supplier_'),
-            name: `${supplier.name} (Copy)`
-        };
-
-        this.showModal(this.currentScope, duplicate);
-    }
-    showRowLoading(row, show) {
-        const actionsCell = row.querySelector('.actions-cell');
-        if (!actionsCell) return;
-
-        if (show) {
-            actionsCell.innerHTML = '<div class="saving-indicator"><i class="fas fa-spinner fa-spin"></i> Saving...</div>';
-        }
-    }
-
     showRowError(row, message) {
         const actionsCell = row.querySelector('.actions-cell');
         if (actionsCell) {
@@ -1158,18 +1193,6 @@ class SupplierConfigManager {
         };
 
         this.showModal(this.currentScope, duplicate);
-    }
-
-    /**
-     * Setup eventi per i tab di scope
-     */
-    setupScopeTabEvents() {
-        document.querySelectorAll('.suppliers-config-container .scope-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                if (tab.disabled) return;
-                this.switchScope(tab.dataset.scope);
-            });
-        });
     }
 
     /**
@@ -1251,36 +1274,128 @@ class SupplierConfigManager {
         if (!form) return;
 
         try {
+            // Mostra loading nel modal
+            this.showModalLoading(true);
+
+            // Estrai dati dal form
             const supplierData = this.extractFormData(form, supplierId, scope);
 
-            if (!this.validateSupplierData(supplierData).isValid) {
+            // Valida dati
+            const validation = this.validateSupplierData(supplierData);
+            if (!validation.isValid) {
+                this.showModalErrors(validation.errors);
+                this.showModalLoading(false);
                 return;
             }
 
+            // Persiste il supplier
             await this.persistSupplier(supplierData, scope, supplierId);
+
+            // Aggiorna la lista locale
+            if (supplierId) {
+                // Modifica esistente
+                const index = this.suppliers.findIndex(s => s.id === supplierId);
+                if (index >= 0) {
+                    this.suppliers[index] = supplierData;
+                }
+            } else {
+                // Nuovo supplier
+                this.suppliers.push(supplierData);
+            }
+
+            // Chiudi modal e aggiorna UI
             this.closeModal();
             await this.loadSuppliersConfig();
             this.app.refreshDropdowns();
 
-            NotificationManager.success('Supplier saved successfully');
+            NotificationManager.success(
+                supplierId ? 'Supplier updated successfully' : 'Supplier created successfully'
+            );
+
         } catch (error) {
             console.error('Failed to save supplier:', error);
+            this.showModalErrors(['Failed to save supplier: ' + error.message]);
             NotificationManager.error('Failed to save supplier');
+        } finally {
+            this.showModalLoading(false);
         }
+    }
+
+    showModalLoading(show) {
+        const saveBtn = document.querySelector('#supplier-modal .btn-primary');
+        const cancelBtn = document.querySelector('#supplier-modal .btn-secondary');
+        const form = document.getElementById('supplier-form');
+
+        if (show) {
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            }
+            if (cancelBtn) cancelBtn.disabled = true;
+            if (form) {
+                const inputs = form.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => input.disabled = true);
+            }
+        } else {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Save Supplier';
+            }
+            if (cancelBtn) cancelBtn.disabled = false;
+            if (form) {
+                const inputs = form.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => input.disabled = false);
+            }
+        }
+    }
+
+    showModalErrors(errors) {
+        // Rimuovi errori precedenti
+        const existingErrors = document.querySelector('#supplier-modal .modal-errors');
+        if (existingErrors) {
+            existingErrors.remove();
+        }
+
+        // Crea container errori
+        const errorContainer = document.createElement('div');
+        errorContainer.className = 'modal-errors alert alert-danger';
+        errorContainer.innerHTML = `
+        <ul class="mb-0">
+            ${errors.map(error => `<li>${this.escapeHtml(error)}</li>`).join('')}
+        </ul>
+    `;
+
+        // Inserisci errori all'inizio del modal body
+        const modalBody = document.querySelector('#supplier-modal .modal-body');
+        if (modalBody) {
+            modalBody.insertBefore(errorContainer, modalBody.firstChild);
+        }
+
+        // Auto-rimuovi dopo 5 secondi
+        setTimeout(() => {
+            if (errorContainer.parentNode) {
+                errorContainer.remove();
+            }
+        }, 5000);
     }
 
     /**
      * Estrae i dati dal form del modal
      */
     extractFormData(form, supplierId, scope) {
-        const formData = new FormData(form);
+        const nameField = document.getElementById('supplier-name');
+        const realRateField = document.getElementById('supplier-real-rate');
+        const officialRateField = document.getElementById('supplier-official-rate');
+        const statusField = document.getElementById('supplier-status');
+        const notesField = document.getElementById('supplier-notes');
+
         return {
             id: supplierId || this.generateId('supplier_'),
-            name: formData.get('name').trim(),
-            realRate: parseFloat(formData.get('realRate')) || 0,
-            officialRate: parseFloat(formData.get('officialRate')) || 0,
-            status: formData.get('status'),
-            notes: formData.get('notes').trim(),
+            name: nameField?.value?.trim() || '',
+            realRate: parseFloat(realRateField?.value) || 0,
+            officialRate: parseFloat(officialRateField?.value) || 0,
+            status: statusField?.value || 'active',
+            notes: notesField?.value?.trim() || '',
             isGlobal: scope === 'global'
         };
     }
@@ -1505,7 +1620,7 @@ class SupplierConfigManager {
             URL.revokeObjectURL(url);
         }
     }
-    // Mantengo le funzioni esistenti per scope selector e modal
+
     generateScopeSelector(data) {
         return `
             <div class="suppliers-scope-selector">
@@ -1585,35 +1700,6 @@ class SupplierConfigManager {
         };
     }
 }
-
-// Funzioni globali per compatibilità con l'HTML esistente
-window.showSuppliersModal = function(scope, supplier = null) {
-    window.app.supplierConfigManager.showModal(scope, supplier);
-};
-
-window.closeSuppliersModal = function() {
-    window.app.supplierConfigManager.closeModal();
-};
-
-window.saveSuppliersModal = function() {
-    window.app.supplierConfigManager.saveSupplier();
-};
-
-window.editSupplier = function(supplierId, scope) {
-    window.app.supplierConfigManager.startEditingRow(supplierId);
-};
-
-window.deleteSupplier = function(supplierId, scope) {
-    window.app.supplierConfigManager.deleteSupplier(supplierId, scope);
-};
-
-window.disableSupplier = function(supplierId) {
-    window.app.supplierConfigManager.disableSupplier(supplierId);
-};
-
-window.duplicateSupplier = function(supplierId) {
-    window.app.supplierConfigManager.duplicateSupplier(supplierId);
-};
 
 // Esporta la classe
 if (typeof window !== 'undefined') {
