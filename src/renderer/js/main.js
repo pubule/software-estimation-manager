@@ -17,6 +17,7 @@ class SoftwareEstimationApp {
         this.navigationManager = null;
         this.modalManager = null;
         this.projectManager = null;
+        this.configurationUI = null;
 
         this.init();
     }
@@ -86,6 +87,9 @@ class SoftwareEstimationApp {
 
         // Wait for configuration manager to initialize
         await this.configManager.init();
+
+        // Inizializza Configuration UI Manager
+        this.configurationUI = new ConfigurationUIManager(this, this.configManager);
 
         this.featureManager = new FeatureManager(this.dataManager, this.configManager);
         this.navigationManager = new EnhancedNavigationManager(this, this.configManager);
