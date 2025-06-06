@@ -1471,81 +1471,6 @@ class SupplierConfigManager {
     }
 
     /**
-     * Copia supplier globali al progetto corrente
-     */
-    async copyGlobalSuppliersToProject() {
-        try {
-            if (!this.app.currentProject || !this.configManager) {
-                NotificationManager.warning('No project loaded or configuration manager not available');
-                return;
-            }
-
-            const globalSuppliers = this.configManager.globalConfig?.suppliers || [];
-            if (globalSuppliers.length === 0) {
-                NotificationManager.info('No global suppliers to copy');
-                return;
-            }
-
-            let copiedCount = 0;
-            for (const supplier of globalSuppliers) {
-                const projectSupplier = {
-                    ...supplier,
-                    id: this.generateId('supplier_proj_'),
-                    isProjectSpecific: true,
-                    isGlobal: false
-                };
-
-                this.configManager.addSupplierToProject(this.app.currentProject.config, projectSupplier);
-                copiedCount++;
-            }
-
-            this.app.markDirty();
-            await this.loadSuppliersConfig();
-            this.app.refreshDropdowns();
-
-            NotificationManager.success(`Copied ${copiedCount} suppliers from global configuration`);
-        } catch (error) {
-            console.error('Failed to copy suppliers from global:', error);
-            NotificationManager.error('Failed to copy suppliers from global configuration');
-        }
-    }
-
-    /**
-     * Esporta supplier globali
-     */
-    exportGlobalSuppliers() {
-        try {
-            const globalSuppliers = this.configManager?.globalConfig?.suppliers || [];
-
-            if (globalSuppliers.length === 0) {
-                NotificationManager.info('No global suppliers to export');
-                return;
-            }
-
-            const exportData = {
-                metadata: {
-                    type: 'suppliers',
-                    version: '1.0.0',
-                    exportDate: new Date().toISOString(),
-                    count: globalSuppliers.length
-                },
-                suppliers: globalSuppliers
-            };
-
-            this.downloadFile(
-                JSON.stringify(exportData, null, 2),
-                `suppliers-export-${new Date().toISOString().split('T')[0]}.json`,
-                'application/json'
-            );
-
-            NotificationManager.success('Global suppliers exported successfully');
-        } catch (error) {
-            console.error('Export failed:', error);
-            NotificationManager.error('Failed to export suppliers');
-        }
-    }
-
-    /**
      * Disabilita supplier per il progetto corrente
      */
     async disableSupplier(supplierId) {
@@ -1603,22 +1528,6 @@ class SupplierConfigManager {
 
     generateId(prefix = 'supplier_') {
         return prefix + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    }
-
-    downloadFile(content, filename, mimeType) {
-        if (typeof Helpers !== 'undefined' && Helpers.downloadAsFile) {
-            Helpers.downloadAsFile(content, filename, mimeType);
-        } else {
-            const blob = new Blob([content], { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
     }
 
     generateScopeSelector(data) {
