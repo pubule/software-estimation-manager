@@ -168,6 +168,9 @@ class ProjectPhasesManager {
     renderPhasesPage(container) {
         if (!container) return;
 
+        // SEMPRE ricalcola la fase Development prima del render
+        this.calculateDevelopmentPhase();
+
         container.innerHTML = `
             <div class="phases-configuration">
                 <div class="phases-header">
@@ -356,17 +359,12 @@ class ProjectPhasesManager {
     }
 
     calculateManDaysByResource(totalManDays, effort) {
-        const total = Object.values(effort).reduce((sum, val) => sum + val, 0);
-
-        if (total === 0) {
-            return { G1: 0, G2: 0, TA: 0, PM: 0 };
-        }
-
+        // Calculate man days per resource: Man Days * (% Effort Distribution / 100)
         return {
-            G1: (totalManDays * effort.G1) / total,
-            G2: (totalManDays * effort.G2) / total,
-            TA: (totalManDays * effort.TA) / total,
-            PM: (totalManDays * effort.PM) / total
+            G1: (totalManDays * effort.G1) / 100,
+            G2: (totalManDays * effort.G2) / 100,
+            TA: (totalManDays * effort.TA) / 100,
+            PM: (totalManDays * effort.PM) / 100
         };
     }
 
@@ -726,6 +724,28 @@ class ProjectPhasesManager {
         if (container) {
             this.renderPhasesPage(container.parentElement);
         }
+    }
+
+    // New method: Call this when a project is loaded to ensure phases are synchronized
+    synchronizeWithProject() {
+        console.log('Synchronizing phases with current project...');
+        
+        // Re-initialize phases from current project
+        this.initializePhases();
+        
+        // Force recalculation of development phase from features
+        this.calculateDevelopmentPhase();
+        
+        // Save the synchronized state
+        this.savePhaseToProject();
+        
+        // Update UI if phases page is currently visible
+        const container = document.querySelector('.phases-configuration');
+        if (container) {
+            this.renderPhasesPage(container.parentElement);
+        }
+        
+        console.log('Phases synchronized successfully');
     }
 
     getProjectPhases() {

@@ -388,6 +388,11 @@ class SoftwareEstimationApp {
                     this.currentProject = this.migrateProjectConfig(result.data);
                     this.isDirty = false;
 
+                    // Synchronize phases with loaded project features
+                    if (this.phasesManager) {
+                        this.phasesManager.synchronizeWithProject();
+                    }
+
                     // Update navigation state - project is now loaded
                     this.navigationManager.onProjectLoaded();
 
@@ -697,6 +702,11 @@ class SoftwareEstimationApp {
                 // Migrate configuration format if needed
                 this.currentProject = this.migrateProjectConfig(lastProject);
 
+                // Synchronize phases with loaded project features
+                if (this.phasesManager) {
+                    this.phasesManager.synchronizeWithProject();
+                }
+
                 // Update navigation state
                 this.updateNavigationState();
 
@@ -941,6 +951,12 @@ class SoftwareEstimationApp {
                     if (backupData.currentProject) {
                         this.currentProject = this.migrateProjectConfig(backupData.currentProject);
                         this.isDirty = false;
+                        
+                        // Synchronize phases with restored project features
+                        if (this.phasesManager) {
+                            this.phasesManager.synchronizeWithProject();
+                        }
+                        
                         this.navigationManager.onProjectLoaded();
                     }
 
