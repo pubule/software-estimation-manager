@@ -1,0 +1,604 @@
+/**
+ * Configuration Scrollable Styles
+ * Ensures all configuration tabs have proper scrolling functionality
+ */
+
+/* Main Configuration Container */
+.config-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Configuration Tabs Container */
+.config-tabs {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Tabs Navigation - Fixed at top */
+.tabs {
+    flex-shrink: 0;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tabs-nav {
+    display: flex;
+    gap: 0;
+    padding: 0 1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.tabs-nav::-webkit-scrollbar {
+    height: 4px;
+}
+
+.tabs-nav::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+.tabs-nav::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 2px;
+}
+
+.tab-button {
+    flex-shrink: 0;
+    padding: 1rem 1.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+}
+
+.tab-button:hover {
+    color: var(--text-primary);
+    background: var(--hover-bg);
+}
+
+.tab-button.active {
+    color: var(--accent-color);
+    border-bottom-color: var(--accent-color);
+    background: var(--bg-primary);
+}
+
+/* Tab Content - Scrollable */
+.tab-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.tab-pane {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.tab-pane.active {
+    display: flex;
+}
+
+/* Configuration Section Header - Fixed */
+.config-section-header {
+    flex-shrink: 0;
+    padding: 1.5rem;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.config-section-header h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.config-description {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* Tab Content Container - Scrollable */
+.tab-content-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.tab-content-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tab-content-container::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 4px;
+}
+
+.tab-content-container::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+.tab-content-container::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+/* Individual Tab Content Areas */
+#storage-content,
+#suppliers-content,
+#resources-content,
+#categories-content,
+#parameters-content,
+#global-content {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+#storage-content::-webkit-scrollbar,
+#suppliers-content::-webkit-scrollbar,
+#resources-content::-webkit-scrollbar,
+#categories-content::-webkit-scrollbar,
+#parameters-content::-webkit-scrollbar,
+#global-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+#storage-content::-webkit-scrollbar-track,
+#suppliers-content::-webkit-scrollbar-track,
+#resources-content::-webkit-scrollbar-track,
+#categories-content::-webkit-scrollbar-track,
+#parameters-content::-webkit-scrollbar-track,
+#global-content::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 4px;
+}
+
+#storage-content::-webkit-scrollbar-thumb,
+#suppliers-content::-webkit-scrollbar-thumb,
+#resources-content::-webkit-scrollbar-thumb,
+#categories-content::-webkit-scrollbar-thumb,
+#parameters-content::-webkit-scrollbar-thumb,
+#global-content::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+#storage-content::-webkit-scrollbar-thumb:hover,
+#suppliers-content::-webkit-scrollbar-thumb:hover,
+#resources-content::-webkit-scrollbar-thumb:hover,
+#categories-content::-webkit-scrollbar-thumb:hover,
+#parameters-content::-webkit-scrollbar-thumb:hover,
+#global-content::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+/* Storage Configuration Scrollable */
+.storage-config-container {
+    max-height: none;
+    padding: 1.5rem;
+}
+
+/* Suppliers/Resources Table Wrappers - Enhanced Scrolling */
+.suppliers-table-wrapper,
+.resources-table-wrapper {
+    max-height: 60vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.suppliers-table-wrapper::-webkit-scrollbar,
+.resources-table-wrapper::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.suppliers-table-wrapper::-webkit-scrollbar-track,
+.resources-table-wrapper::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 4px;
+}
+
+.suppliers-table-wrapper::-webkit-scrollbar-thumb,
+.resources-table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+.suppliers-table-wrapper::-webkit-scrollbar-thumb:hover,
+.resources-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+.suppliers-table-wrapper::-webkit-scrollbar-corner,
+.resources-table-wrapper::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
+}
+
+/* Table Container Enhancements */
+.suppliers-table-container,
+.resources-table-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: none;
+}
+
+.suppliers-scope-selector,
+.resources-scope-selector {
+    flex-shrink: 0;
+    margin-bottom: 1rem;
+}
+
+.table-controls {
+    flex-shrink: 0;
+    margin-bottom: 1rem;
+}
+
+/* Modals - Ensure proper scrolling */
+.modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 3px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+/* Configuration Preview Scrolling */
+.config-preview-content {
+    max-height: 300px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.config-preview-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.config-preview-content::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 3px;
+}
+
+.config-preview-content::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+/* Storage Statistics Grid - Responsive Scrolling */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.stats-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.stats-grid::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 3px;
+}
+
+.stats-grid::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+/* Storage Actions Scrolling */
+.storage-actions {
+    max-height: 30vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.storage-actions::-webkit-scrollbar {
+    width: 6px;
+}
+
+.storage-actions::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 3px;
+}
+
+.storage-actions::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+/* Configuration Comparison Scrolling */
+.config-comparison-column {
+    max-height: 50vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.config-comparison-column::-webkit-scrollbar {
+    width: 6px;
+}
+
+.config-comparison-column::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 3px;
+}
+
+.config-comparison-column::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+/* Hierarchical Tables Scrolling */
+.hierarchical-table-wrapper {
+    max-height: 60vh;
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.hierarchical-table-wrapper::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.hierarchical-table-wrapper::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 4px;
+}
+
+.hierarchical-table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+.hierarchical-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+.hierarchical-table-wrapper::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
+}
+
+/* Scroll to Top Button */
+.scroll-to-top {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 3rem;
+    height: 3rem;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 100;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.scroll-to-top:hover {
+    background: var(--accent-color-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.scroll-to-top.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Smooth scroll behavior */
+.tab-content-container,
+#storage-content,
+#suppliers-content,
+#resources-content,
+#categories-content,
+#parameters-content,
+#global-content {
+    scroll-behavior: smooth;
+}
+
+/* CSS Variables for Scrollbar Colors */
+:root {
+    --scrollbar-track: rgba(0, 0, 0, 0.1);
+    --scrollbar-thumb: rgba(0, 0, 0, 0.3);
+    --scrollbar-thumb-hover: rgba(0, 0, 0, 0.5);
+}
+
+/* Dark theme scrollbar adjustments */
+[data-theme="dark"] {
+    --scrollbar-track: rgba(255, 255, 255, 0.1);
+    --scrollbar-thumb: rgba(255, 255, 255, 0.3);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.5);
+}
+
+/* Responsive Scrolling Adjustments */
+@media (max-width: 768px) {
+    .suppliers-table-wrapper,
+    .resources-table-wrapper {
+        max-height: 50vh;
+    }
+    
+    .stats-grid {
+        max-height: 30vh;
+        grid-template-columns: 1fr;
+    }
+    
+    .storage-actions {
+        max-height: 25vh;
+    }
+    
+    .config-comparison-column {
+        max-height: 40vh;
+    }
+    
+    .hierarchical-table-wrapper {
+        max-height: 50vh;
+    }
+    
+    .modal-body {
+        max-height: 50vh;
+    }
+}
+
+@media (max-width: 480px) {
+    .suppliers-table-wrapper,
+    .resources-table-wrapper {
+        max-height: 40vh;
+    }
+    
+    .stats-grid {
+        max-height: 25vh;
+    }
+    
+    .storage-actions {
+        max-height: 20vh;
+    }
+    
+    .scroll-to-top {
+        bottom: 1rem;
+        right: 1rem;
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1rem;
+    }
+}
+
+/* Focus and accessibility for scrollable areas */
+.tab-content-container:focus,
+#storage-content:focus,
+#suppliers-content:focus,
+#resources-content:focus,
+#categories-content:focus,
+#parameters-content:focus,
+#global-content:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: -2px;
+}
+
+/* Loading states with scrolling */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Scroll indicators */
+.scroll-indicator {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to bottom, transparent, var(--accent-color), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.scrollable-container:hover .scroll-indicator {
+    opacity: 0.3;
+}
+
+/* Enhanced table scrolling with sticky headers */
+.suppliers-table,
+.resources-table {
+    position: relative;
+}
+
+.suppliers-table thead,
+.resources-table thead {
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+    z-index: 5;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Configuration sections with better spacing for scrolling */
+.storage-section {
+    margin-bottom: 2rem;
+}
+
+.storage-section:last-child {
+    margin-bottom: 3rem; /* Extra space at bottom for scroll */
+}
+
+/* Ensure minimum height for scroll areas */
+.tab-content-container {
+    min-height: 200px;
+}
+
+#storage-content,
+#suppliers-content,
+#resources-content,
+#categories-content,
+#parameters-content,
+#global-content {
+    min-height: 300px;
+}
