@@ -154,8 +154,12 @@ class ConfigurationUIManager {
      * Carica configurazione storage
      */
     async loadStorageConfig(contentDiv) {
-        // Implementa logica storage
-        contentDiv.innerHTML = '<p>Storage configuration will be implemented here...</p>';
+        if (!this.subManagers.has('storage')) {
+            this.subManagers.set('storage', new StorageConfigManager(this.app.dataManager, this.app));
+        }
+
+        const storageManager = this.subManagers.get('storage');
+        await storageManager.loadStorageConfig();
     }
 
     /**
