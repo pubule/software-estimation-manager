@@ -170,8 +170,12 @@ class ConfigurationUIManager {
      * Carica configurazione risorse
      */
     async loadResourcesConfig(contentDiv) {
-        // Implementa logica resources o delega a ResourcesConfigManager
-        contentDiv.innerHTML = '<p>Resources configuration will be implemented here...</p>';
+        if (!this.subManagers.has('resources')) {
+            this.subManagers.set('resources', new InternalResourcesConfigManager(this.configManager, this.app));
+        }
+
+        const resourcesManager = this.subManagers.get('resources');
+        await resourcesManager.loadResourcesConfig();
     }
 
     /**
