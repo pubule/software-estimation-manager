@@ -200,7 +200,6 @@ class ProjectPhasesManager {
                     <strong>Development Phase:</strong> 
                     Man Days are automatically calculated from ${featuresCount} features 
                     (Total: ${developmentDays} days). You can configure effort distribution percentages.
-                    <br><strong>Manual Save Required:</strong> Remember to save your project to persist phase changes.
                 </div>
             </div>
         `;
