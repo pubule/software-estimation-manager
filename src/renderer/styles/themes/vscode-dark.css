@@ -525,7 +525,7 @@
     font-family: monospace;
 }
 
-#project-name {
+#title-project-name {
     font-weight: 500;
 }
 
@@ -1415,7 +1415,7 @@ body {
     gap: var(--spacing-xs);
 }
 
-#project-name {
+#title-project-name {
     font-size: var(--font-size-sm);
     color: var(--text-primary);
 }

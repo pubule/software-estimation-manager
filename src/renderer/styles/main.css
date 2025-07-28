@@ -620,7 +620,7 @@
     gap: var(--spacing-sm);
 }
 
-#project-name {
+#title-project-name {
     font-size: var(--font-size-sm);
     color: var(--text-primary);
     font-weight: 500;
@@ -755,7 +755,7 @@
         display: none;
     }
 
-    #project-name {
+    #title-project-name {
         max-width: 200px;
     }
 
@@ -773,7 +773,7 @@
         gap: var(--spacing-xs);
     }
 
-    #project-name {
+    #title-project-name {
         max-width: 150px;
     }
 
@@ -825,7 +825,7 @@
 }
 
 .window-unfocused .custom-title-bar .app-title,
-.window-unfocused .custom-title-bar #project-name {
+.window-unfocused .custom-title-bar #title-project-name {
     color: var(--text-muted);
 }
 
@@ -834,12 +834,12 @@
 }
 
 /* Custom scrollbar for title if needed */
-#project-name {
+#title-project-name {
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
 
-#project-name::-webkit-scrollbar {
+#title-project-name::-webkit-scrollbar {
     display: none;
 }
 

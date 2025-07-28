@@ -786,7 +786,7 @@ class SoftwareEstimationApp {
     updateProjectInfo() {
         if (!this.currentProject) return;
 
-        const projectNameEl = document.getElementById('project-name');
+        const projectNameEl = document.getElementById('title-project-name');
         if (projectNameEl) {
             projectNameEl.textContent = this.currentProject.project.name;
         }
