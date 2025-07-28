@@ -534,6 +534,33 @@
     min-height: 60px;
 }
 
+/* Feature Form Styles */
+.calculated-field {
+    position: relative;
+}
+
+.calculated-field input[readonly] {
+    background-color: var(--bg-quaternary);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    font-weight: 500;
+}
+
+.calculated-field::before {
+    content: '📊';
+    position: absolute;
+    right: 10px;
+    top: 28px;
+    font-size: 16px;
+    opacity: 0.6;
+}
+
+.form-help {
+    font-style: italic;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
 /* Project Manager Styles */
 .current-project-section,
 .recent-projects-section,

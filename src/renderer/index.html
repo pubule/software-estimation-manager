@@ -448,8 +448,19 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="feature-man-days">Man Days:</label>
-                    <input type="number" id="feature-man-days" name="manDays" min="0.1" step="0.1" required>
+                    <label for="feature-real-man-days">Real Man Days:</label>
+                    <input type="number" id="feature-real-man-days" name="realManDays" min="0.1" step="0.1" required>
+                    <small class="form-help">Actual effort needed without considering expertise level</small>
+                </div>
+                <div class="form-group">
+                    <label for="feature-expertise">Expertise (%):</label>
+                    <input type="number" id="feature-expertise" name="expertise" min="1" max="100" step="1" value="100" required>
+                    <small class="form-help">Team expertise level (100% = fully experienced, 50% = less experienced)</small>
+                </div>
+                <div class="form-group calculated-field">
+                    <label for="feature-calculated-man-days">Calculated Man Days:</label>
+                    <input type="number" id="feature-calculated-man-days" name="manDays" readonly>
+                    <small class="form-help">Automatically calculated: Real Man Days × 100 ÷ Expertise</small>
                 </div>
                 <div class="form-group">
                     <label for="feature-notes">Notes:</label>

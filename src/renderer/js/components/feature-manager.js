@@ -65,6 +65,54 @@ class FeatureManager {
                 }
             }
         });
+
+        // Add event listeners for real-time calculation updates
+        this.setupCalculationListeners();
+    }
+
+    /**
+     * Setup event listeners for real-time calculation updates
+     */
+    setupCalculationListeners() {
+        // Listen for changes to Real Man Days and Expertise fields
+        const realManDaysField = document.getElementById('feature-real-man-days');
+        const expertiseField = document.getElementById('feature-expertise');
+
+        if (realManDaysField) {
+            realManDaysField.addEventListener('input', () => {
+                this.updateCalculatedManDays();
+            });
+        }
+
+        if (expertiseField) {
+            expertiseField.addEventListener('input', () => {
+                this.updateCalculatedManDays();
+            });
+        }
+    }
+
+    /**
+     * Update the calculated man days field in real-time
+     */
+    updateCalculatedManDays() {
+        const realManDaysInput = document.getElementById('feature-real-man-days');
+        const expertiseInput = document.getElementById('feature-expertise');
+        const calculatedInput = document.getElementById('feature-calculated-man-days');
+
+        if (!realManDaysInput || !expertiseInput || !calculatedInput) {
+            return;
+        }
+
+        const realManDays = parseFloat(realManDaysInput.value) || 0;
+        const expertise = parseFloat(expertiseInput.value) || 100;
+
+        // Calculate using the formula: Real Man Days * 100 / Expertise
+        const calculatedManDays = expertise > 0 ? (realManDays * 100) / expertise : 0;
+
+        // Update the calculated field
+        calculatedInput.value = calculatedManDays.toFixed(2);
+
+        console.log(`Calculation update: ${realManDays} * 100 / ${expertise} = ${calculatedManDays.toFixed(2)}`);
     }
 
     /**
@@ -469,7 +517,9 @@ class FeatureManager {
             'feature-description',
             'feature-category',
             'feature-supplier',
-            'feature-man-days',
+            'feature-real-man-days',
+            'feature-expertise',
+            'feature-calculated-man-days',
             'feature-notes'
         ];
 
@@ -478,7 +528,9 @@ class FeatureManager {
             'feature-description': 'description',
             'feature-category': 'category',
             'feature-supplier': 'supplier',
-            'feature-man-days': 'manDays',
+            'feature-real-man-days': 'realManDays',
+            'feature-expertise': 'expertise',
+            'feature-calculated-man-days': 'manDays',
             'feature-notes': 'notes'
         };
 
@@ -487,9 +539,12 @@ class FeatureManager {
             const dataKey = mapping[fieldId];
 
             if (element && dataKey in feature) {
-                element.value = feature[dataKey] || '';
+                element.value = feature[dataKey] || (dataKey === 'expertise' ? 100 : '');
             }
         });
+
+        // Trigger calculation update for display
+        this.updateCalculatedManDays();
     }
 
     /**
@@ -679,12 +734,20 @@ class FeatureManager {
      * Get form data as object
      */
     getFormData() {
+        const realManDays = parseFloat(document.getElementById('feature-real-man-days')?.value) || 0;
+        const expertise = parseFloat(document.getElementById('feature-expertise')?.value) || 100;
+        
+        // Calculate Man Days using the formula: Real Man Days * 100 / Expertise
+        const calculatedManDays = expertise > 0 ? (realManDays * 100) / expertise : 0;
+        
         const data = {
             id: document.getElementById('feature-id')?.value?.trim() || '',
             description: document.getElementById('feature-description')?.value?.trim() || '',
             category: document.getElementById('feature-category')?.value || '',
             supplier: document.getElementById('feature-supplier')?.value || '',
-            manDays: parseFloat(document.getElementById('feature-man-days')?.value) || 0,
+            realManDays: realManDays,
+            expertise: expertise,
+            manDays: calculatedManDays, // This is now calculated, not input directly
             notes: document.getElementById('feature-notes')?.value?.trim() || ''
         };
 
