@@ -1,6 +1,6 @@
 /**
  * Updated Project Phases Manager
- * Auto-salva le fasi con il progetto, rimosso il bottone Save Configuration separato
+ * Manual save system - removed auto-save functionality, added Save Configuration button
  */
 
 class ProjectPhasesManager {
@@ -94,7 +94,7 @@ class ProjectPhasesManager {
         this.loadResourceRates();
         this.initializePhases();
         this.setupEventListeners();
-        console.log('Project Phases Manager initialized with auto-save');
+        console.log('Project Phases Manager initialized');
     }
 
     loadResourceRates() {
@@ -175,7 +175,7 @@ class ProjectPhasesManager {
             <div class="phases-configuration">
                 <div class="phases-header">
                     <h2><i class="fas fa-project-diagram"></i> Project Phases Configuration</h2>
-                    <p class="phases-description">Configure effort distribution and costs for each project phase across different resource types. Changes are automatically saved with the project.</p>
+                    <p class="phases-description">Configure effort distribution and costs for each project phase across different resource types. Remember to save your configuration to persist changes.</p>
                 </div>
 
                 ${this.renderDevelopmentNotice()}
@@ -200,7 +200,7 @@ class ProjectPhasesManager {
                     <strong>Development Phase:</strong> 
                     Man Days are automatically calculated from ${featuresCount} features 
                     (Total: ${developmentDays} days). You can configure effort distribution percentages.
-                    <br><strong>Auto-Save:</strong> All changes are automatically saved with the project.
+                    <br><strong>Manual Save Required:</strong> Remember to save your project to persist phase changes.
                 </div>
             </div>
         `;
@@ -236,9 +236,9 @@ class ProjectPhasesManager {
                     <button class="btn btn-secondary" data-action="export-phases">
                         <i class="fas fa-download"></i> Export Phases
                     </button>
-                    <div class="auto-save-indicator">
-                        <i class="fas fa-save"></i> <span>Auto-Save Enabled</span>
-                    </div>
+                    <button class="btn btn-primary" data-action="save-phases">
+                        <i class="fas fa-save"></i> Save Configuration
+                    </button>
                 </div>
             </div>
         `;
@@ -439,12 +439,12 @@ class ProjectPhasesManager {
 
         if (field === 'manDays' && !phase.calculated) {
             phase.manDays = value;
-            this.savePhaseToProject();
+            this.markDirty();
             this.updatePhaseCalculations(phaseId);
         } else if (field === 'effort') {
             const resource = input.dataset.resource;
             phase.effort[resource] = value;
-            this.savePhaseToProject();
+            this.markDirty();
             this.updatePhaseCalculations(phaseId);
             this.validateEffortDistribution(phaseId);
         }
@@ -567,6 +567,9 @@ class ProjectPhasesManager {
             case 'export-phases':
                 this.exportPhases();
                 break;
+            case 'save-phases':
+                this.savePhaseToProject();
+                break;
         }
     }
 
@@ -578,8 +581,8 @@ class ProjectPhasesManager {
         this.currentPhases = this.createDefaultPhases();
         this.calculateDevelopmentPhase();
 
-        // Save to project immediately
-        this.savePhaseToProject();
+        // Mark as dirty for manual save
+        this.markDirty();
 
         // Re-render the table
         const container = document.querySelector('.phases-configuration');
@@ -587,13 +590,46 @@ class ProjectPhasesManager {
             this.renderPhasesPage(container.parentElement);
         }
 
-        NotificationManager.success('Phases configuration reset to defaults and saved');
+        NotificationManager.success('Phases configuration reset to defaults. Remember to save your project.');
     }
 
     /**
-     * NEW: Auto-save phases to project - called on every change
+     * Mark project as dirty to indicate unsaved changes
      */
-    savePhaseToProject() {
+    markDirty() {
+        this.isDirty = true;
+        
+        // Update the app's dirty state as well
+        if (this.app && typeof this.app.markDirty === 'function') {
+            this.app.markDirty();
+        }
+        
+        // Update UI to show unsaved changes indicator
+        this.updateSaveButtonState();
+    }
+
+    /**
+     * Update save button state to reflect dirty status
+     */
+    updateSaveButtonState() {
+        const saveButton = document.querySelector('[data-action="save-phases"]');
+        if (saveButton) {
+            if (this.isDirty) {
+                saveButton.classList.add('dirty');
+                saveButton.innerHTML = '<i class="fas fa-save"></i> Save Configuration *';
+                saveButton.title = 'Configuration has unsaved changes';
+            } else {
+                saveButton.classList.remove('dirty');
+                saveButton.innerHTML = '<i class="fas fa-save"></i> Save Configuration';
+                saveButton.title = 'Save phase configuration';
+            }
+        }
+    }
+
+    /**
+     * Save phases to project - called manually
+     */
+    async savePhaseToProject() {
         try {
             if (!this.app.currentProject) {
                 console.warn('No current project to save phases to');
@@ -625,14 +661,24 @@ class ProjectPhasesManager {
             // Save to project
             this.app.currentProject.phases = phasesObject;
 
-            // Mark project as dirty to trigger auto-save
+            // Mark project as dirty and save manually
             this.app.markDirty();
+            
+            // Save the project
+            if (this.app.saveProject) {
+                await this.app.saveProject();
+            }
+
+            // Mark as clean after successful save
+            this.isDirty = false;
+            this.updateSaveButtonState();
 
             console.log('Phases configuration saved to project');
+            NotificationManager.success('Phases configuration saved successfully');
 
         } catch (error) {
             console.error('Failed to save phases to project:', error);
-            NotificationManager.warning('Failed to auto-save phases configuration');
+            NotificationManager.warning('Failed to save phases configuration');
         }
     }
 
@@ -717,8 +763,8 @@ class ProjectPhasesManager {
     // Public methods for integration
     refreshFromFeatures() {
         this.calculateDevelopmentPhase();
-        // Auto-save when features change
-        this.savePhaseToProject();
+        // Mark as dirty when features change
+        this.markDirty();
 
         const container = document.querySelector('.phases-configuration');
         if (container) {
@@ -736,8 +782,8 @@ class ProjectPhasesManager {
         // Force recalculation of development phase from features
         this.calculateDevelopmentPhase();
         
-        // Save the synchronized state
-        this.savePhaseToProject();
+        // Mark as dirty after synchronization
+        this.markDirty();
         
         // Update UI if phases page is currently visible
         const container = document.querySelector('.phases-configuration');
