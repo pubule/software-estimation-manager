@@ -74,21 +74,58 @@ class FeatureManager {
      * Setup event listeners for real-time calculation updates
      */
     setupCalculationListeners() {
-        // Listen for changes to Real Man Days and Expertise fields
-        const realManDaysField = document.getElementById('feature-real-man-days');
-        const expertiseField = document.getElementById('feature-expertise');
+        // Function to wait for element to be available
+        const waitForElement = (id, callback, maxAttempts = 10) => {
+            let attempts = 0;
+            const checkElement = () => {
+                const element = document.getElementById(id);
+                if (element) {
+                    callback(element);
+                } else if (attempts < maxAttempts) {
+                    attempts++;
+                    setTimeout(checkElement, 50);
+                } else {
+                    console.warn(`Element ${id} not found after ${maxAttempts} attempts`);
+                }
+            };
+            checkElement();
+        };
 
-        if (realManDaysField) {
-            realManDaysField.addEventListener('input', () => {
+        // Setup listener for Real Man Days field
+        waitForElement('feature-real-man-days', (realManDaysField) => {
+            // Clone the node to remove all event listeners
+            const newRealManDaysField = realManDaysField.cloneNode(true);
+            realManDaysField.parentNode.replaceChild(newRealManDaysField, realManDaysField);
+            
+            newRealManDaysField.addEventListener('input', () => {
                 this.updateCalculatedManDays();
             });
-        }
+            console.log('Real man days listener attached');
+        });
 
-        if (expertiseField) {
-            expertiseField.addEventListener('input', () => {
+        // Setup listener for Expertise field
+        waitForElement('feature-expertise', (expertiseField) => {
+            // Clone the node to remove all event listeners
+            const newExpertiseField = expertiseField.cloneNode(true);
+            expertiseField.parentNode.replaceChild(newExpertiseField, expertiseField);
+            
+            newExpertiseField.addEventListener('input', () => {
                 this.updateCalculatedManDays();
             });
-        }
+            console.log('Expertise listener attached');
+        });
+
+        // Setup listener for Risk Margin field
+        waitForElement('feature-risk-margin', (riskMarginField) => {
+            // Clone the node to remove all event listeners
+            const newRiskMarginField = riskMarginField.cloneNode(true);
+            riskMarginField.parentNode.replaceChild(newRiskMarginField, riskMarginField);
+            
+            newRiskMarginField.addEventListener('input', () => {
+                this.updateCalculatedManDays();
+            });
+            console.log('Risk margin listener attached');
+        });
     }
 
     /**
@@ -97,22 +134,24 @@ class FeatureManager {
     updateCalculatedManDays() {
         const realManDaysInput = document.getElementById('feature-real-man-days');
         const expertiseInput = document.getElementById('feature-expertise');
+        const riskMarginInput = document.getElementById('feature-risk-margin');
         const calculatedInput = document.getElementById('feature-calculated-man-days');
 
-        if (!realManDaysInput || !expertiseInput || !calculatedInput) {
+        if (!realManDaysInput || !expertiseInput || !riskMarginInput || !calculatedInput) {
             return;
         }
 
         const realManDays = parseFloat(realManDaysInput.value) || 0;
         const expertise = parseFloat(expertiseInput.value) || 100;
+        const riskMargin = parseFloat(riskMarginInput.value) || 0;
 
-        // Calculate using the formula: Real Man Days * 100 / Expertise
-        const calculatedManDays = expertise > 0 ? (realManDays * 100) / expertise : 0;
+        // Calculate using the new formula: Real Man Days * (100 + Risk Margin) / Expertise
+        const calculatedManDays = expertise > 0 ? (realManDays * (100 + riskMargin)) / expertise : 0;
 
         // Update the calculated field
         calculatedInput.value = calculatedManDays.toFixed(2);
 
-        console.log(`Calculation update: ${realManDays} * 100 / ${expertise} = ${calculatedManDays.toFixed(2)}`);
+        console.log(`Calculation update: ${realManDays} * (100 + ${riskMargin}) / ${expertise} = ${calculatedManDays.toFixed(2)}`);
     }
 
     /**
@@ -504,7 +543,30 @@ class FeatureManager {
         // Clear any validation errors
         this.clearFormErrors();
 
-        console.log('Feature form reset');
+        // Ensure all input fields are enabled and editable (except readonly calculated field)
+        const inputFields = form?.querySelectorAll('input, textarea, select');
+        if (inputFields) {
+            inputFields.forEach(field => {
+                // Remove disabled attribute from all fields
+                field.removeAttribute('disabled');
+                
+                // Only keep readonly on the calculated man days field
+                if (field.id !== 'feature-calculated-man-days') {
+                    field.removeAttribute('readonly');
+                }
+                
+                // Ensure fields are not marked as invalid
+                field.classList.remove('error');
+            });
+        }
+
+        // Re-setup calculation listeners to ensure they work after reset
+        // Use longer timeout and ensure DOM is ready
+        setTimeout(() => {
+            this.setupCalculationListeners();
+        }, 300);
+
+        console.log('Feature form reset with input fields enabled');
     }
 
     /**
@@ -519,6 +581,7 @@ class FeatureManager {
             'feature-supplier',
             'feature-real-man-days',
             'feature-expertise',
+            'feature-risk-margin',
             'feature-calculated-man-days',
             'feature-notes'
         ];
@@ -530,6 +593,7 @@ class FeatureManager {
             'feature-supplier': 'supplier',
             'feature-real-man-days': 'realManDays',
             'feature-expertise': 'expertise',
+            'feature-risk-margin': 'riskMargin',
             'feature-calculated-man-days': 'manDays',
             'feature-notes': 'notes'
         };
@@ -539,7 +603,7 @@ class FeatureManager {
             const dataKey = mapping[fieldId];
 
             if (element && dataKey in feature) {
-                element.value = feature[dataKey] || (dataKey === 'expertise' ? 100 : '');
+                element.value = feature[dataKey] || (dataKey === 'expertise' ? 100 : dataKey === 'riskMargin' ? 10 : '');
             }
         });
 
@@ -731,14 +795,68 @@ class FeatureManager {
     }
 
     /**
+     * Duplicate a feature
+     * @param {Object} feature - Feature to duplicate
+     */
+    duplicateFeature(feature) {
+        if (!feature) return;
+
+        // Create copy with new ID and modified description
+        const duplicate = {
+            ...feature,
+            id: this.generateFeatureId(),
+            description: `${feature.description} (Copy)`,
+            // Remove timestamps so new ones will be generated when saved
+            created: undefined,
+            modified: undefined
+        };
+
+        // Show the modal with the duplicated data (similar to supplier duplication)
+        this.showDuplicateFeatureModal(duplicate);
+    }
+
+    /**
+     * Show the duplicate feature modal
+     * @param {Object} duplicateFeature - Feature data to populate the modal with
+     */
+    showDuplicateFeatureModal(duplicateFeature) {
+        this.editingFeature = null; // This is a new feature, not editing existing one
+
+        // Populate dropdowns before populating the form
+        this.populateModalDropdowns();
+        this.populateFeatureForm(duplicateFeature);
+
+        const modal = document.getElementById('feature-modal');
+        const modalTitle = document.getElementById('modal-title');
+
+        if (modalTitle) {
+            modalTitle.textContent = 'Duplicate Feature';
+        }
+
+        if (modal) {
+            modal.classList.add('active');
+
+            // Focus description field for editing the copied description
+            const descField = document.getElementById('feature-description');
+            if (descField) {
+                setTimeout(() => {
+                    descField.focus();
+                    descField.select();
+                }, 100);
+            }
+        }
+    }
+
+    /**
      * Get form data as object
      */
     getFormData() {
         const realManDays = parseFloat(document.getElementById('feature-real-man-days')?.value) || 0;
         const expertise = parseFloat(document.getElementById('feature-expertise')?.value) || 100;
+        const riskMargin = parseFloat(document.getElementById('feature-risk-margin')?.value) || 0;
         
-        // Calculate Man Days using the formula: Real Man Days * 100 / Expertise
-        const calculatedManDays = expertise > 0 ? (realManDays * 100) / expertise : 0;
+        // Calculate Man Days using the new formula: Real Man Days * (100 + Risk Margin) / Expertise
+        const calculatedManDays = expertise > 0 ? (realManDays * (100 + riskMargin)) / expertise : 0;
         
         const data = {
             id: document.getElementById('feature-id')?.value?.trim() || '',
@@ -747,6 +865,7 @@ class FeatureManager {
             supplier: document.getElementById('feature-supplier')?.value || '',
             realManDays: realManDays,
             expertise: expertise,
+            riskMargin: riskMargin,
             manDays: calculatedManDays, // This is now calculated, not input directly
             notes: document.getElementById('feature-notes')?.value?.trim() || ''
         };
@@ -1066,7 +1185,7 @@ class FeatureManager {
             // Show empty state
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td colspan="7" class="empty-state">
+                <td colspan="10" class="empty-state">
                     <div class="empty-state-icon">
                         <i class="fas fa-inbox"></i>
                     </div>
@@ -1110,14 +1229,23 @@ class FeatureManager {
                 <span class="badge">${this.escapeHtml(categoryName)}</span>
             </td>
             <td class="feature-supplier">${this.escapeHtml(supplierName)}</td>
-            <td class="feature-man-days text-right">${feature.manDays}</td>
+            <td class="feature-real-man-days text-right">${feature.realManDays || 0}</td>
+            <td class="feature-expertise text-right">${feature.expertise || 100}%</td>
+            <td class="feature-risk-margin text-right">${feature.riskMargin || 0}%</td>
+            <td class="feature-man-days text-right"><strong>${feature.manDays}</strong></td>
             <td class="feature-notes">${this.escapeHtml(feature.notes || '')}</td>
             <td class="feature-actions">
-                <div class="action-buttons">
-                    <button class="action-btn edit" data-action="edit" data-feature-id="${feature.id}" title="Edit Feature">
+                <div class="row-actions">
+                    <button class="btn btn-small btn-secondary edit-btn" 
+                            data-action="edit" data-feature-id="${feature.id}" title="Edit Feature">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="action-btn delete" data-action="delete" data-feature-id="${feature.id}" title="Delete Feature">
+                    <button class="btn btn-small btn-secondary duplicate-btn" 
+                            data-action="duplicate" data-feature-id="${feature.id}" title="Duplicate Feature">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button class="btn btn-small btn-danger delete-btn" 
+                            data-action="delete" data-feature-id="${feature.id}" title="Delete Feature">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -1125,12 +1253,19 @@ class FeatureManager {
         `;
 
         // Add event listeners for action buttons
-        const editBtn = row.querySelector('[data-action="edit"]');
-        const deleteBtn = row.querySelector('[data-action="delete"]');
+        const editBtn = row.querySelector('.edit-btn');
+        const duplicateBtn = row.querySelector('.duplicate-btn');
+        const deleteBtn = row.querySelector('.delete-btn');
 
         if (editBtn) {
             editBtn.addEventListener('click', () => {
                 this.showEditFeatureModal(feature);
+            });
+        }
+
+        if (duplicateBtn) {
+            duplicateBtn.addEventListener('click', () => {
+                this.duplicateFeature(feature);
             });
         }
 
@@ -1181,7 +1316,10 @@ class FeatureManager {
             'Description',
             'Category',
             'Supplier',
-            'Man Days',
+            'Real Man Days',
+            'Expertise %',
+            'Risk Margin %',
+            'Calculated Man Days',
             'Notes',
             'Created',
             'Modified'
@@ -1193,6 +1331,9 @@ class FeatureManager {
             this.escapeCsvField(feature.description || ''),
             this.escapeCsvField(this.getCategoryName(currentProject, feature.category)),
             this.escapeCsvField(this.getSupplierName(currentProject, feature.supplier)),
+            feature.realManDays || 0,
+            feature.expertise || 100,
+            feature.riskMargin || 0,
             feature.manDays || 0,
             this.escapeCsvField(feature.notes || ''),
             feature.created || '',

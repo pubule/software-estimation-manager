@@ -236,7 +236,10 @@
                             <th data-sort="description">Description <i class="fas fa-sort"></i></th>
                             <th data-sort="category">Category <i class="fas fa-sort"></i></th>
                             <th data-sort="supplier">Supplier <i class="fas fa-sort"></i></th>
-                            <th data-sort="manDays">Man Days <i class="fas fa-sort"></i></th>
+                            <th data-sort="realManDays">Real MD <i class="fas fa-sort"></i></th>
+                            <th data-sort="expertise">Expertise % <i class="fas fa-sort"></i></th>
+                            <th data-sort="riskMargin">Risk % <i class="fas fa-sort"></i></th>
+                            <th data-sort="manDays">Calc MD <i class="fas fa-sort"></i></th>
                             <th>Notes</th>
                             <th>Actions</th>
                         </tr>
@@ -457,10 +460,15 @@
                     <input type="number" id="feature-expertise" name="expertise" min="1" max="100" step="1" value="100" required>
                     <small class="form-help">Team expertise level (100% = fully experienced, 50% = less experienced)</small>
                 </div>
+                <div class="form-group">
+                    <label for="feature-risk-margin">Risk Margin (%):</label>
+                    <input type="number" id="feature-risk-margin" name="riskMargin" min="0" max="100" step="1" value="10" required>
+                    <small class="form-help">Risk buffer to account for unexpected issues (0% = no buffer, 20% = high risk)</small>
+                </div>
                 <div class="form-group calculated-field">
                     <label for="feature-calculated-man-days">Calculated Man Days:</label>
                     <input type="number" id="feature-calculated-man-days" name="manDays" readonly>
-                    <small class="form-help">Automatically calculated: Real Man Days × 100 ÷ Expertise</small>
+                    <small class="form-help">Calculated: Real Man Days × (100 + Risk Margin) ÷ Expertise</small>
                 </div>
                 <div class="form-group">
                     <label for="feature-notes">Notes:</label>
