@@ -9,12 +9,19 @@ class ProjectPhasesManager {
         this.configManager = configManager;
         this.isDirty = false;
 
-        // Resource rates (daily) - potrebbero venire dalla configurazione
+        // Resource rates (daily) - ora vengono da supplier selezionati
+        this.selectedSuppliers = {
+            G1: null,  // Grade 1 Developer
+            G2: null,  // Grade 2 Developer
+            TA: null,  // Technical Analyst
+            PM: null   // Project Manager
+        };
+        
         this.resourceRates = {
-            G1: 450,  // Grade 1 Developer
-            G2: 380,  // Grade 2 Developer
-            TA: 420,  // Technical Analyst
-            PM: 500   // Project Manager
+            G1: 450,  // Grade 1 Developer (default)
+            G2: 380,  // Grade 2 Developer (default)
+            TA: 420,  // Technical Analyst (default)
+            PM: 500   // Project Manager (default)
         };
 
         // Phase definitions con configurazioni di default
@@ -98,22 +105,38 @@ class ProjectPhasesManager {
     }
 
     loadResourceRates() {
-        // Carica i rates dalle configurazioni se disponibili
-        if (this.configManager && this.app.currentProject) {
-            const projectConfig = this.configManager.getProjectConfig(this.app.currentProject.config);
-            const internalResources = projectConfig.internalResources;
-
-            // Mappa i resources interni ai nostri ruoli standard
-            const g1Resource = internalResources.find(r => r.role?.toLowerCase().includes('developer') && r.name?.toLowerCase().includes('senior'));
-            const g2Resource = internalResources.find(r => r.role?.toLowerCase().includes('developer') && !r.name?.toLowerCase().includes('senior'));
-            const taResource = internalResources.find(r => r.role?.toLowerCase().includes('analyst'));
-            const pmResource = internalResources.find(r => r.role?.toLowerCase().includes('manager'));
-
-            if (g1Resource) this.resourceRates.G1 = g1Resource.officialRate || g1Resource.realRate || this.resourceRates.G1;
-            if (g2Resource) this.resourceRates.G2 = g2Resource.officialRate || g2Resource.realRate || this.resourceRates.G2;
-            if (taResource) this.resourceRates.TA = taResource.officialRate || taResource.realRate || this.resourceRates.TA;
-            if (pmResource) this.resourceRates.PM = pmResource.officialRate || pmResource.realRate || this.resourceRates.PM;
+        // Carica i supplier selezionati dal progetto corrente
+        if (this.app.currentProject && this.app.currentProject.phases) {
+            const phasesConfig = this.app.currentProject.phases;
+            if (phasesConfig.selectedSuppliers) {
+                this.selectedSuppliers = { ...phasesConfig.selectedSuppliers };
+                this.updateRatesFromSelectedSuppliers();
+            }
         }
+    }
+    
+    updateRatesFromSelectedSuppliers() {
+        if (!this.configManager || !this.app.currentProject) return;
+        
+        const projectConfig = this.configManager.getProjectConfig(this.app.currentProject.config);
+        const allSuppliers = [...projectConfig.suppliers, ...projectConfig.internalResources];
+        
+        Object.keys(this.selectedSuppliers).forEach(resourceType => {
+            const selectedSupplierId = this.selectedSuppliers[resourceType];
+            if (selectedSupplierId) {
+                const supplier = allSuppliers.find(s => s.id === selectedSupplierId);
+                if (supplier) {
+                    this.resourceRates[resourceType] = supplier.realRate || supplier.officialRate;
+                }
+            }
+        });
+    }
+    
+    getAvailableSuppliers() {
+        if (!this.configManager || !this.app.currentProject) return [];
+        
+        const projectConfig = this.configManager.getProjectConfig(this.app.currentProject.config);
+        return [...projectConfig.suppliers, ...projectConfig.internalResources];
     }
 
     initializePhases() {
@@ -206,25 +229,32 @@ class ProjectPhasesManager {
     }
 
     renderPhasesControls() {
+        const availableSuppliers = this.getAvailableSuppliers();
+        
         return `
             <div class="phases-controls">
                 <div class="controls-left">
-                    <div class="resource-rates">
-                        <div class="rate-info tooltip" data-tooltip="Grade 1 Developer Rate">
-                            <span>G1:</span>
-                            <span class="rate-value">€${this.resourceRates.G1}/day</span>
+                    <div class="supplier-selectors">
+                        <div class="supplier-selector">
+                            <label for="g1-supplier">G1 (Grade 1 Developer):</label>
+                            ${this.renderSupplierDropdown('G1', 'g1-supplier', availableSuppliers)}
+                            <span class="current-rate" id="g1-rate">€${this.resourceRates.G1}/day</span>
                         </div>
-                        <div class="rate-info tooltip" data-tooltip="Grade 2 Developer Rate">
-                            <span>G2:</span>
-                            <span class="rate-value">€${this.resourceRates.G2}/day</span>
+                        <div class="supplier-selector">
+                            <label for="g2-supplier">G2 (Grade 2 Developer):</label>
+                            ${this.renderSupplierDropdown('G2', 'g2-supplier', availableSuppliers)}
+                            <span class="current-rate" id="g2-rate">€${this.resourceRates.G2}/day</span>
+                            <small class="supplier-note">Note: Development phase uses feature-specific suppliers</small>
                         </div>
-                        <div class="rate-info tooltip" data-tooltip="Technical Analyst Rate">
-                            <span>TA:</span>
-                            <span class="rate-value">€${this.resourceRates.TA}/day</span>
+                        <div class="supplier-selector">
+                            <label for="ta-supplier">TA (Technical Analyst):</label>
+                            ${this.renderSupplierDropdown('TA', 'ta-supplier', availableSuppliers)}
+                            <span class="current-rate" id="ta-rate">€${this.resourceRates.TA}/day</span>
                         </div>
-                        <div class="rate-info tooltip" data-tooltip="Project Manager Rate">
-                            <span>PM:</span>
-                            <span class="rate-value">€${this.resourceRates.PM}/day</span>
+                        <div class="supplier-selector">
+                            <label for="pm-supplier">PM (Project Manager):</label>
+                            ${this.renderSupplierDropdown('PM', 'pm-supplier', availableSuppliers)}
+                            <span class="current-rate" id="pm-rate">€${this.resourceRates.PM}/day</span>
                         </div>
                     </div>
                 </div>
@@ -241,6 +271,19 @@ class ProjectPhasesManager {
                 </div>
             </div>
         `;
+    }
+    
+    renderSupplierDropdown(resourceType, selectId, suppliers) {
+        const selectedValue = this.selectedSuppliers[resourceType] || '';
+        
+        let options = '<option value="">Select Supplier</option>';
+        suppliers.forEach(supplier => {
+            const selected = supplier.id === selectedValue ? 'selected' : '';
+            const rate = supplier.realRate || supplier.officialRate || 0;
+            options += `<option value="${supplier.id}" data-rate="${rate}" ${selected}>${supplier.name} (€${rate}/day)</option>`;
+        });
+        
+        return `<select id="${selectId}" data-resource="${resourceType}" class="supplier-select">${options}</select>`;
     }
 
     renderPhasesTable() {
@@ -287,7 +330,7 @@ class ProjectPhasesManager {
         return this.currentPhases.map(phase => {
             const effort = phase.effort;
             const manDaysByResource = this.calculateManDaysByResource(phase.manDays, effort);
-            const costByResource = this.calculateCostByResource(manDaysByResource);
+            const costByResource = this.calculateCostByResource(manDaysByResource, phase);
             const effortTotal = Object.values(effort).reduce((sum, val) => sum + val, 0);
             const effortClass = effortTotal === 100 ? 'valid' : (effortTotal > 100 ? 'invalid' : 'warning');
 
@@ -367,10 +410,47 @@ class ProjectPhasesManager {
         };
     }
 
-    calculateCostByResource(manDaysByResource) {
+    calculateCostByResource(manDaysByResource, phase = null) {
+        // Per la fase Development, usa una logica speciale per G2
+        if (phase && phase.id === 'development') {
+            return this.calculateDevelopmentCosts(phase);
+        }
+        
         return {
             G1: Math.round(manDaysByResource.G1 * this.resourceRates.G1),
             G2: Math.round(manDaysByResource.G2 * this.resourceRates.G2),
+            TA: Math.round(manDaysByResource.TA * this.resourceRates.TA),
+            PM: Math.round(manDaysByResource.PM * this.resourceRates.PM)
+        };
+    }
+    
+    calculateDevelopmentCosts(developmentPhase) {
+        // Per Development: somma di (ogni feature: Calc MDs * rate supplier specifico della feature * effort % G2)
+        let g2Cost = 0;
+        
+        if (this.app.currentProject && this.app.currentProject.features) {
+            const g2EffortPercent = developmentPhase.effort.G2 / 100;
+            const projectConfig = this.configManager ? this.configManager.getProjectConfig(this.app.currentProject.config) : null;
+            const allSuppliers = projectConfig ? [...projectConfig.suppliers, ...projectConfig.internalResources] : [];
+            
+            this.app.currentProject.features.forEach(feature => {
+                const featureManDays = parseFloat(feature.manDays) || 0;
+                
+                // Trova il supplier specifico di questa feature
+                const featureSupplier = allSuppliers.find(s => s.id === feature.supplier);
+                const featureRate = featureSupplier ? (featureSupplier.realRate || featureSupplier.officialRate || 0) : 0;
+                
+                // Calcola il costo usando il rate specifico della feature
+                g2Cost += featureManDays * featureRate * g2EffortPercent;
+            });
+        }
+        
+        // Per gli altri resource types, usa il calcolo normale
+        const manDaysByResource = this.calculateManDaysByResource(developmentPhase.manDays, developmentPhase.effort);
+        
+        return {
+            G1: Math.round(manDaysByResource.G1 * this.resourceRates.G1),
+            G2: Math.round(g2Cost),
             TA: Math.round(manDaysByResource.TA * this.resourceRates.TA),
             PM: Math.round(manDaysByResource.PM * this.resourceRates.PM)
         };
@@ -386,7 +466,7 @@ class ProjectPhasesManager {
         this.currentPhases.forEach(phase => {
             const effort = phase.effort;
             const manDaysByResource = this.calculateManDaysByResource(phase.manDays, effort);
-            const costByResource = this.calculateCostByResource(manDaysByResource);
+            const costByResource = this.calculateCostByResource(manDaysByResource, phase);
 
             totals.manDays += phase.manDays;
             totals.manDaysByResource.G1 += manDaysByResource.G1;
@@ -410,6 +490,13 @@ class ProjectPhasesManager {
             }
         });
 
+        // Supplier dropdown changes
+        container.addEventListener('change', (e) => {
+            if (e.target.classList.contains('supplier-select')) {
+                this.handleSupplierChange(e.target);
+            }
+        });
+
         // Action buttons
         container.addEventListener('click', (e) => {
             const action = e.target.closest('[data-action]')?.dataset.action;
@@ -424,6 +511,45 @@ class ProjectPhasesManager {
                 this.validateInput(e.target);
             }
         }, true);
+    }
+    
+    handleSupplierChange(select) {
+        const resourceType = select.dataset.resource;
+        const selectedSupplierId = select.value;
+        
+        // Update selected supplier
+        this.selectedSuppliers[resourceType] = selectedSupplierId;
+        
+        // Update rate
+        if (selectedSupplierId) {
+            const selectedOption = select.querySelector(`option[value="${selectedSupplierId}"]`);
+            const rate = parseFloat(selectedOption.dataset.rate);
+            this.resourceRates[resourceType] = rate;
+            
+            // Update rate display
+            const rateDisplay = document.getElementById(`${resourceType.toLowerCase()}-rate`);
+            if (rateDisplay) {
+                rateDisplay.textContent = `€${rate}/day`;
+            }
+        }
+        
+        // Mark as dirty and recalculate
+        this.markDirty();
+        
+        // Ricalcola solo le fasi NON-Development, perché Development dipende dai supplier delle singole feature
+        this.updateCalculationsExceptDevelopment();
+    }
+    
+    updateCalculationsExceptDevelopment() {
+        this.currentPhases.forEach(phase => {
+            if (phase.id !== 'development') {
+                this.updatePhaseCalculations(phase.id);
+                this.validateEffortDistribution(phase.id);
+            }
+        });
+        
+        // Aggiorna i totali (che includeranno anche Development con i suoi calcoli originali)
+        this.updateTotals();
     }
 
     handleInputChange(input) {
@@ -444,6 +570,9 @@ class ProjectPhasesManager {
             const resource = input.dataset.resource;
             phase.effort[resource] = value;
             this.markDirty();
+            
+            // Per la fase Development, solo il cambio di effort G2 deve triggerare il ricalcolo del costo
+            // perché usa i supplier delle singole feature, non il supplier G2 globale
             this.updatePhaseCalculations(phaseId);
             this.validateEffortDistribution(phaseId);
         }
@@ -513,7 +642,7 @@ class ProjectPhasesManager {
 
         const effort = phase.effort;
         const manDaysByResource = this.calculateManDaysByResource(phase.manDays, effort);
-        const costByResource = this.calculateCostByResource(manDaysByResource);
+        const costByResource = this.calculateCostByResource(manDaysByResource, phase);
 
         // Update calculated fields
         const cells = row.cells;
@@ -657,6 +786,9 @@ class ProjectPhasesManager {
                 };
             });
 
+            // Save selected suppliers
+            phasesObject.selectedSuppliers = { ...this.selectedSuppliers };
+
             // Save to project
             this.app.currentProject.phases = phasesObject;
 
@@ -683,7 +815,7 @@ class ProjectPhasesManager {
 
     calculatePhaseTotalCost(phase) {
         const manDaysByResource = this.calculateManDaysByResource(phase.manDays, phase.effort);
-        const costByResource = this.calculateCostByResource(manDaysByResource);
+        const costByResource = this.calculateCostByResource(manDaysByResource, phase);
         return Object.values(costByResource).reduce((sum, cost) => sum + cost, 0);
     }
 
@@ -724,7 +856,7 @@ class ProjectPhasesManager {
                     ...phase,
                     totalCost: this.calculatePhaseTotalCost(phase),
                     manDaysByResource: this.calculateManDaysByResource(phase.manDays, phase.effort),
-                    costByResource: this.calculateCostByResource(this.calculateManDaysByResource(phase.manDays, phase.effort))
+                    costByResource: this.calculateCostByResource(this.calculateManDaysByResource(phase.manDays, phase.effort), phase)
                 })),
                 totals: {
                     ...totals,

@@ -104,6 +104,72 @@
     font-family: monospace;
 }
 
+/* Supplier Selectors */
+.supplier-selectors {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    font-size: var(--font-size-sm);
+}
+
+.supplier-selector {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-secondary);
+}
+
+.supplier-selector label {
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 180px;
+    margin: 0;
+}
+
+.supplier-select {
+    flex: 1;
+    min-width: 200px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-fast);
+}
+
+.supplier-select:focus {
+    outline: none;
+    border-color: var(--text-accent);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.supplier-select:hover {
+    border-color: var(--border-hover);
+}
+
+.current-rate {
+    font-weight: 600;
+    color: var(--text-accent);
+    min-width: 80px;
+    text-align: right;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: rgba(59, 130, 246, 0.1);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    font-family: monospace;
+}
+
+.supplier-note {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    font-style: italic;
+    margin-left: var(--spacing-sm);
+}
+
 /* Phases Table Container */
 .phases-table-container {
     background-color: var(--bg-secondary);
@@ -526,6 +592,17 @@
     .resource-rates {
         justify-content: center;
     }
+    
+    .supplier-selector {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-xs);
+    }
+    
+    .supplier-selector label {
+        min-width: auto;
+        text-align: center;
+    }
 
     .phases-table th.phase-name {
         min-width: 180px;
@@ -578,6 +655,23 @@
 
     .rate-info {
         justify-content: space-between;
+    }
+    
+    .supplier-selectors {
+        gap: var(--spacing-sm);
+    }
+    
+    .supplier-selector {
+        padding: var(--spacing-xs);
+    }
+    
+    .supplier-select {
+        min-width: auto;
+    }
+    
+    .current-rate {
+        min-width: 70px;
+        font-size: var(--font-size-xs);
     }
 }
 
