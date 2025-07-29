@@ -1182,10 +1182,10 @@ class FeatureManager {
         tbody.innerHTML = '';
 
         if (this.filteredFeatures.length === 0) {
-            // Show empty state
+            // Show empty state (8 columns now instead of 10)
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td colspan="10" class="empty-state">
+                <td colspan="8" class="empty-state">
                     <div class="empty-state-icon">
                         <i class="fas fa-inbox"></i>
                     </div>
@@ -1198,10 +1198,17 @@ class FeatureManager {
             return;
         }
 
-        // Render feature rows
+        // Render feature rows with expandable details
         this.filteredFeatures.forEach(feature => {
-            const row = this.createFeatureRow(feature);
-            tbody.appendChild(row);
+            console.log('Creating rows for feature:', feature.id);
+            const mainRow = this.createFeatureRow(feature);
+            const detailsRow = this.createFeatureDetailsRow(feature);
+            
+            console.log('Main row classes:', mainRow.className);
+            console.log('Details row classes:', detailsRow.className);
+            
+            tbody.appendChild(mainRow);
+            tbody.appendChild(detailsRow);
         });
 
         console.log(`Rendered ${this.filteredFeatures.length} feature rows`);
@@ -1214,26 +1221,28 @@ class FeatureManager {
     createFeatureRow(feature) {
         const row = document.createElement('tr');
         row.dataset.featureId = feature.id;
+        row.classList.add('feature-main-row');
 
         const currentProject = window.app?.currentProject;
         const categoryName = this.getCategoryName(currentProject, feature.category);
         const supplierName = this.getSupplierName(currentProject, feature.supplier);
 
         row.innerHTML = `
+            <td class="expand-col">
+                <button class="expand-btn" data-feature-id="${feature.id}" title="Expand details">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </td>
             <td class="feature-id">${this.escapeHtml(feature.id)}</td>
             <td class="feature-description">
                 <div class="description-main">${this.escapeHtml(feature.description)}</div>
-                ${feature.notes ? `<div class="description-notes">${this.escapeHtml(feature.notes)}</div>` : ''}
             </td>
             <td class="feature-category">
                 <span class="badge">${this.escapeHtml(categoryName)}</span>
             </td>
             <td class="feature-supplier">${this.escapeHtml(supplierName)}</td>
             <td class="feature-real-man-days text-right">${feature.realManDays || 0}</td>
-            <td class="feature-expertise text-right">${feature.expertise || 100}%</td>
-            <td class="feature-risk-margin text-right">${feature.riskMargin || 0}%</td>
             <td class="feature-man-days text-right"><strong>${feature.manDays}</strong></td>
-            <td class="feature-notes">${this.escapeHtml(feature.notes || '')}</td>
             <td class="feature-actions">
                 <div class="row-actions">
                     <button class="btn btn-small btn-secondary edit-btn" 
@@ -1256,6 +1265,7 @@ class FeatureManager {
         const editBtn = row.querySelector('.edit-btn');
         const duplicateBtn = row.querySelector('.duplicate-btn');
         const deleteBtn = row.querySelector('.delete-btn');
+        const expandBtn = row.querySelector('.expand-btn');
 
         if (editBtn) {
             editBtn.addEventListener('click', () => {
@@ -1275,7 +1285,115 @@ class FeatureManager {
             });
         }
 
+        if (expandBtn) {
+            expandBtn.addEventListener('click', () => {
+                console.log('Expand button clicked for feature:', feature.id);
+                this.toggleFeatureDetails(feature.id);
+            });
+        } else {
+            console.log('Expand button not found for feature:', feature.id);
+        }
+
         return row;
+    }
+
+    /**
+     * Create expandable details row for a feature
+     * @param {Object} feature - Feature data
+     */
+    createFeatureDetailsRow(feature) {
+        const detailsRow = document.createElement('tr');
+        detailsRow.dataset.featureId = feature.id;
+        detailsRow.classList.add('feature-details-row', 'collapsed');
+
+        detailsRow.innerHTML = `
+            <td colspan="8" class="feature-details">
+                <div class="details-container">
+                    <div class="details-grid">
+                        <div class="detail-group">
+                            <label>Expertise Level:</label>
+                            <span class="detail-value">${feature.expertise || 100}%</span>
+                        </div>
+                        <div class="detail-group">
+                            <label>Risk Margin:</label>
+                            <span class="detail-value">${feature.riskMargin || 0}%</span>
+                        </div>
+                        <div class="detail-group full-width">
+                            <label>Notes:</label>
+                            <div class="detail-value notes">${this.escapeHtml(feature.notes || 'No notes')}</div>
+                        </div>
+                        <div class="detail-group">
+                            <label>Created:</label>
+                            <span class="detail-value">${feature.created ? new Date(feature.created).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                        <div class="detail-group">
+                            <label>Modified:</label>
+                            <span class="detail-value">${feature.modified ? new Date(feature.modified).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        `;
+
+        return detailsRow;
+    }
+
+    /**
+     * Toggle the visibility of feature details
+     * @param {string} featureId - Feature ID
+     */
+    toggleFeatureDetails(featureId) {
+        console.log('toggleFeatureDetails called with featureId:', featureId);
+        
+        // Find all rows with the matching feature ID
+        const allRows = document.querySelectorAll(`tr[data-feature-id="${featureId}"]`);
+        console.log('Found rows with matching feature ID:', allRows.length);
+        
+        let mainRow = null;
+        let detailsRow = null;
+        
+        // Identify main row and details row
+        allRows.forEach(row => {
+            if (row.classList.contains('feature-main-row')) {
+                mainRow = row;
+            } else if (row.classList.contains('feature-details-row')) {
+                detailsRow = row;
+            }
+        });
+        
+        const expandBtn = mainRow?.querySelector('.expand-btn i');
+
+        console.log('Elements found:', {
+            mainRow: !!mainRow,
+            detailsRow: !!detailsRow,
+            expandBtn: !!expandBtn
+        });
+
+        if (!mainRow || !detailsRow || !expandBtn) {
+            console.log('Missing elements, returning early');
+            return;
+        }
+
+        const isExpanded = !detailsRow.classList.contains('collapsed');
+        console.log('Current state - isExpanded:', isExpanded);
+
+        if (isExpanded) {
+            // Collapse
+            console.log('Collapsing...');
+            detailsRow.classList.add('collapsed');
+            expandBtn.classList.remove('fa-chevron-down');
+            expandBtn.classList.add('fa-chevron-right');
+            mainRow.classList.remove('expanded');
+        } else {
+            // Expand
+            console.log('Expanding...');
+            detailsRow.classList.remove('collapsed');
+            expandBtn.classList.remove('fa-chevron-right');
+            expandBtn.classList.add('fa-chevron-down');
+            mainRow.classList.add('expanded');
+        }
+        
+        console.log('After toggle - collapsed class present:', detailsRow.classList.contains('collapsed'));
     }
 
     /**
