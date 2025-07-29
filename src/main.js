@@ -22,7 +22,6 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js')
         },
         // RIMOZIONE TITLE BAR: Rimuove completamente la title bar di sistema
-        titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
         frame: false,           // Rimuove il frame della finestra
         backgroundColor: '#1e1e1e',
         show: false,
