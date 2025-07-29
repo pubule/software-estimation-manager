@@ -53,6 +53,7 @@ class SoftwareEstimationApp {
         console.log('EnhancedNavigationManager:', typeof EnhancedNavigationManager);
         console.log('ModalManager:', typeof ModalManager);
         console.log('ProjectManager:', typeof ProjectManager);
+        console.log('CategoriesConfigManager:', typeof CategoriesConfigManager);
         console.log('NotificationManager:', typeof NotificationManager);
         console.log('Helpers:', typeof Helpers);
         console.log('electronAPI:', typeof window.electronAPI);
@@ -96,6 +97,10 @@ class SoftwareEstimationApp {
 
         this.projectPhasesManager = new ProjectPhasesManager(this, this.configManager);
         console.log('Project Phases Manager initialized and integrated');
+
+        // Initialize Categories Config Manager after ConfigurationManager is ready
+        this.categoriesConfigManager = new CategoriesConfigManager(this, this.configManager);
+        console.log('Categories Config Manager initialized and integrated');
 
         console.log('All managers initialized successfully with hierarchical configuration and nested navigation');
 

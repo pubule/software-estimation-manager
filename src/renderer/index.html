@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="styles/project-phases.css">
     <link rel="stylesheet" href="styles/storage-config.css">
     <link rel="stylesheet" href="styles/configuration-scrollable.css">
+    <link rel="stylesheet" href="styles/categories-config.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -300,9 +301,31 @@
             <div id="configuration-page" class="page">
                 <div class="page-header">
                     <h2>Configuration</h2>
+                    <p class="page-description">Manage global and project-specific configuration settings</p>
                 </div>
+                
+                <!-- Configuration Content -->
                 <div class="config-content">
-                    <p>Configuration settings will be implemented here...</p>
+                    <!-- Suppliers Configuration -->
+                    <div id="suppliers-config-tab" class="config-tab-content active">
+                        <div class="suppliers-config-container">
+                            <!-- Suppliers content will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Internal Resources Configuration -->
+                    <div id="internal-resources-config-tab" class="config-tab-content">
+                        <div class="resources-config-container">
+                            <!-- Internal resources content will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Categories Configuration -->
+                    <div id="categories-config-tab" class="config-tab-content">
+                        <div class="categories-config-wrapper">
+                            <!-- Categories content will be populated by CategoriesConfigManager -->
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -515,6 +538,9 @@
 
 <!-- Configuration system (depends on data-manager) -->
 <script src="js/components/configuration-manager.js"></script>
+
+<!-- Categories management (depends on configuration-manager) -->
+<script src="js/components/categories-config-manager.js"></script>
 
 
 

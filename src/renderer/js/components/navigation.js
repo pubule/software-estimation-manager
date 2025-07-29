@@ -163,6 +163,7 @@ class EnhancedNavigationManager extends NavigationManager {
         console.log(`Navigated to section: ${sectionName}`);
     }
 
+
     // Special method for phases page
     showPhasesPage() {
         // Verify project is loaded

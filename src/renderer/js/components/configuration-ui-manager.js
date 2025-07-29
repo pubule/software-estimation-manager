@@ -186,8 +186,12 @@ class ConfigurationUIManager {
      * Carica configurazione categorie
      */
     async loadCategoriesConfig(contentDiv) {
-        // Implementa logica categories o delega a CategoriesConfigManager
-        contentDiv.innerHTML = '<p>Categories configuration will be implemented here...</p>';
+        if (!this.subManagers.has('categories')) {
+            this.subManagers.set('categories', new CategoriesConfigManager(this.app, this.configManager));
+        }
+
+        const categoriesManager = this.subManagers.get('categories');
+        categoriesManager.renderCategoriesPage(contentDiv);
     }
 
     /**
