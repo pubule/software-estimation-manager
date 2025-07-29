@@ -24,6 +24,49 @@ class InternalResourcesConfigManager {
         this.sortField = 'name';
         this.sortDirection = 'asc';
 
+        // Flags to prevent double operations
+        this.isResetting = false;
+        
+        // Default internal resources with the provided values
+        this.defaultInternalResources = [
+            {
+                id: 'developer-g2',
+                name: 'Developer',
+                role: 'G2',
+                department: 'IT',
+                realRate: 624,
+                officialRate: 624,
+                isGlobal: true
+            },
+            {
+                id: 'developer-g2-ro',
+                name: 'Developer',
+                role: 'G2',
+                department: 'RO',
+                realRate: 362,
+                officialRate: 352,
+                isGlobal: true
+            },
+            {
+                id: 'tech-analyst-it',
+                name: 'Tech Analyst',
+                role: 'Tech Analyst',
+                department: 'IT',
+                realRate: 624,
+                officialRate: 624,
+                isGlobal: true
+            },
+            {
+                id: 'tech-analyst-ro',
+                name: 'Tech Analyst',
+                role: 'Tech Analyst',
+                department: 'RO',
+                realRate: 352,
+                officialRate: 352,
+                isGlobal: true
+            }
+        ];
+
         // Bind methods to window for global access
         this.exposeGlobalMethods();
     }
@@ -48,6 +91,9 @@ class InternalResourcesConfigManager {
             return;
         }
 
+        // Ensure default internal resources exist
+        this.ensureDefaultInternalResources();
+
         const resourceData = this.getResourceData();
         this.resources = this.currentScope === 'global' ? resourceData.global : resourceData.project;
 
@@ -55,6 +101,31 @@ class InternalResourcesConfigManager {
         this.setupEventListeners();
         this.applyFiltersAndSort();
         this.loadInitialItems();
+    }
+
+    /**
+     * Ensure default internal resources exist in global configuration
+     */
+    ensureDefaultInternalResources(forceReset = false) {
+        console.log('ensureDefaultInternalResources called, forceReset:', forceReset);
+        
+        if (!this.configManager || !this.configManager.globalConfig) {
+            console.log('ConfigManager or globalConfig not available');
+            return;
+        }
+        
+        const existingResources = this.configManager.globalConfig.internalResources;
+        console.log('Existing internal resources:', existingResources?.length || 0);
+        
+        if (!existingResources || existingResources.length === 0 || forceReset) {
+            console.log('Initializing default internal resources:', this.defaultInternalResources.length);
+            console.log('Force reset:', forceReset);
+            this.configManager.globalConfig.internalResources = [...this.defaultInternalResources];
+            this.configManager.saveGlobalConfig();
+            console.log('Default internal resources initialized successfully');
+        } else {
+            console.log('Internal resources already exist, skipping initialization');
+        }
     }
 
     /**
@@ -177,6 +248,11 @@ class InternalResourcesConfigManager {
         // Select all checkbox
         document.getElementById('select-all-resources')?.addEventListener('change', (e) => {
             this.toggleSelectAll(e.target.checked);
+        });
+
+        // Reset to default button
+        document.getElementById('reset-internal-resources-btn')?.addEventListener('click', () => {
+            this.resetToDefaultInternalResources();
         });
     }
 
@@ -1225,6 +1301,59 @@ class InternalResourcesConfigManager {
     }
 
     /**
+     * Reset internal resources to default values
+     */
+    async resetToDefaultInternalResources() {
+        // Prevent multiple simultaneous reset operations
+        if (this.isResetting) {
+            console.log('Reset already in progress, ignoring...');
+            return;
+        }
+        
+        // Set flag immediately to prevent double execution
+        this.isResetting = true;
+        
+        try {
+            if (!confirm('Are you sure you want to reset all internal resources to default values? This will remove all custom resources.')) {
+                // User cancelled, reset flag and return
+                this.isResetting = false;
+                return;
+            }
+
+            console.log('Resetting internal resources to default values');
+            
+            // Force reset to default internal resources
+            this.ensureDefaultInternalResources(true);
+            
+            // Reload the data and refresh the display
+            await this.loadResourcesConfig();
+            
+            // Refresh dropdowns in the main app
+            if (this.app && this.app.refreshDropdowns) {
+                this.app.refreshDropdowns();
+            }
+            
+            // Show success notification
+            if (window.NotificationManager) {
+                window.NotificationManager.success('Internal resources have been reset to default values');
+            } else {
+                console.log('SUCCESS: Internal resources have been reset to default values');
+            }
+            
+        } catch (error) {
+            console.error('Error resetting internal resources to default:', error);
+            if (window.NotificationManager) {
+                window.NotificationManager.error('Error resetting internal resources to default');
+            } else {
+                console.log('ERROR: Error resetting internal resources to default');
+            }
+        } finally {
+            // Always reset the flag
+            this.isResetting = false;
+        }
+    }
+
+    /**
      * Cambia scope (global/project)
      */
     switchScope(scope) {
@@ -1571,6 +1700,11 @@ class InternalResourcesConfigManager {
                             data-scope="project" ${!data.hasProject ? 'disabled' : ''}>
                         <i class="fas fa-project-diagram"></i> Project Resources
                         <span class="count">(${data.project.length})</span>
+                    </button>
+                </div>
+                <div class="scope-actions">
+                    <button class="btn btn-small btn-secondary" id="reset-internal-resources-btn" title="Reset to Default Internal Resources">
+                        <i class="fas fa-undo"></i> Reset to Default
                     </button>
                 </div>
             </div>
