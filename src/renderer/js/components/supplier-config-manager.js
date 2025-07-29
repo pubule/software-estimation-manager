@@ -24,6 +24,94 @@ class SupplierConfigManager {
         this.sortField = 'name';
         this.sortDirection = 'asc';
 
+        // Flags to prevent double operations
+        this.isResetting = false;
+        
+        // Default suppliers with the provided values
+        this.defaultSuppliers = [
+            {
+                id: 'reply-g1-it',
+                name: 'Reply G1 IT',
+                realRate: 463.00,
+                officialRate: 463.00,
+                status: 'active',
+                notes: 'Role: G1, Department: IT',
+                isGlobal: true
+            },
+            {
+                id: 'quid-g1-it',
+                name: 'Quid G1 IT',
+                realRate: 506.30,
+                officialRate: 506.30,
+                status: 'active',
+                notes: 'Role: G1, Department: IT',
+                isGlobal: true
+            },
+            {
+                id: 'pwc-g1-it',
+                name: 'PwC G1 IT',
+                realRate: 402.60,
+                officialRate: 402.60,
+                status: 'active',
+                notes: 'Role: G1, Department: IT',
+                isGlobal: true
+            },
+            {
+                id: 'reply-pm-it',
+                name: 'Reply PM IT',
+                realRate: 463.00,
+                officialRate: 463.00,
+                status: 'active',
+                notes: 'Role: PM, Department: IT',
+                isGlobal: true
+            },
+            {
+                id: 'quid-pm-it',
+                name: 'Quid PM IT',
+                realRate: 506.30,
+                officialRate: 506.30,
+                status: 'active',
+                notes: 'Role: PM, Department: IT',
+                isGlobal: true
+            },
+            {
+                id: 'pwc-pm-it',
+                name: 'PwC PM IT',
+                realRate: 402.60,
+                officialRate: 402.60,
+                status: 'active',
+                notes: 'Role: PM, Department: IT',
+                isGlobal: true
+            },
+            {
+                id: 'reply-g2-it',
+                name: 'Reply G2 IT',
+                realRate: 323.30,
+                officialRate: 323.30,
+                status: 'active',
+                notes: 'Role: G2, Department: IT',
+                isGlobal: true
+            },
+            {
+                id: 'quid-g2-it',
+                name: 'Quid G2 IT',
+                realRate: 375.76,
+                officialRate: 375.76,
+                status: 'active',
+                notes: 'Role: G2, Department: IT',
+                isGlobal: true
+            },
+            {
+                id: 'pwc-g2-it',
+                name: 'PwC G2 IT',
+                realRate: 317.20,
+                officialRate: 317.20,
+                status: 'active',
+                notes: 'Role: G2, Department: IT',
+                isGlobal: true
+            }
+        ];
+
         // Bind methods to window for global access
         this.exposeGlobalMethods();
     }
@@ -48,6 +136,9 @@ class SupplierConfigManager {
             return;
         }
 
+        // Ensure default suppliers exist
+        this.ensureDefaultSuppliers();
+
         const supplierData = this.getSupplierData();
         this.suppliers = this.currentScope === 'global' ? supplierData.global : supplierData.project;
 
@@ -55,6 +146,31 @@ class SupplierConfigManager {
         this.setupEventListeners();
         this.applyFiltersAndSort();
         this.loadInitialItems();
+    }
+
+    /**
+     * Ensure default suppliers exist in global configuration
+     */
+    ensureDefaultSuppliers(forceReset = false) {
+        console.log('ensureDefaultSuppliers called, forceReset:', forceReset);
+        
+        if (!this.configManager || !this.configManager.globalConfig) {
+            console.log('ConfigManager or globalConfig not available');
+            return;
+        }
+        
+        const existingSuppliers = this.configManager.globalConfig.suppliers;
+        console.log('Existing suppliers:', existingSuppliers?.length || 0);
+        
+        if (!existingSuppliers || existingSuppliers.length === 0 || forceReset) {
+            console.log('Initializing default suppliers:', this.defaultSuppliers.length);
+            console.log('Force reset:', forceReset);
+            this.configManager.globalConfig.suppliers = [...this.defaultSuppliers];
+            this.configManager.saveGlobalConfig();
+            console.log('Default suppliers initialized successfully');
+        } else {
+            console.log('Suppliers already exist, skipping initialization');
+        }
     }
 
     /**
@@ -177,6 +293,11 @@ class SupplierConfigManager {
         // Select all checkbox
         document.getElementById('select-all-suppliers')?.addEventListener('change', (e) => {
             this.toggleSelectAll(e.target.checked);
+        });
+
+        // Reset to default button
+        document.getElementById('reset-suppliers-btn')?.addEventListener('click', () => {
+            this.resetToDefaultSuppliers();
         });
     }
 
@@ -1196,6 +1317,59 @@ class SupplierConfigManager {
     }
 
     /**
+     * Reset suppliers to default values
+     */
+    async resetToDefaultSuppliers() {
+        // Prevent multiple simultaneous reset operations
+        if (this.isResetting) {
+            console.log('Reset already in progress, ignoring...');
+            return;
+        }
+        
+        // Set flag immediately to prevent double execution
+        this.isResetting = true;
+        
+        try {
+            if (!confirm('Are you sure you want to reset all suppliers to default values? This will remove all custom suppliers.')) {
+                // User cancelled, reset flag and return
+                this.isResetting = false;
+                return;
+            }
+
+            console.log('Resetting suppliers to default values');
+            
+            // Force reset to default suppliers
+            this.ensureDefaultSuppliers(true);
+            
+            // Reload the data and refresh the display
+            await this.loadSuppliersConfig();
+            
+            // Refresh dropdowns in the main app
+            if (this.app && this.app.refreshDropdowns) {
+                this.app.refreshDropdowns();
+            }
+            
+            // Show success notification
+            if (window.NotificationManager) {
+                window.NotificationManager.success('Suppliers have been reset to default values');
+            } else {
+                console.log('SUCCESS: Suppliers have been reset to default values');
+            }
+            
+        } catch (error) {
+            console.error('Error resetting suppliers to default:', error);
+            if (window.NotificationManager) {
+                window.NotificationManager.error('Error resetting suppliers to default');
+            } else {
+                console.log('ERROR: Error resetting suppliers to default');
+            }
+        } finally {
+            // Always reset the flag
+            this.isResetting = false;
+        }
+    }
+
+    /**
      * Cambia scope (global/project)
      */
     switchScope(scope) {
@@ -1542,6 +1716,11 @@ class SupplierConfigManager {
                             data-scope="project" ${!data.hasProject ? 'disabled' : ''}>
                         <i class="fas fa-project-diagram"></i> Project Suppliers
                         <span class="count">(${data.project.length})</span>
+                    </button>
+                </div>
+                <div class="scope-actions">
+                    <button class="btn btn-small btn-secondary" id="reset-suppliers-btn" title="Reset to Default Suppliers">
+                        <i class="fas fa-undo"></i> Reset to Default
                     </button>
                 </div>
             </div>
