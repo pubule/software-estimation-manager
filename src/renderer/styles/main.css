@@ -546,11 +546,69 @@
     }
 
     .table-container {
-        overflow: visible;
+        overflow: auto;
+        max-height: calc(100vh - 280px); /* Altezza massima che lascia spazio per header, filtri e summary */
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-primary);
+        background-color: var(--bg-secondary);
+    }
+    
+    /* Migliora l'aspetto della scroll bar */
+    .table-container::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    .table-container::-webkit-scrollbar-track {
+        background: var(--bg-tertiary);
+        border-radius: var(--radius-sm);
+    }
+    
+    .table-container::-webkit-scrollbar-thumb {
+        background: var(--border-primary);
+        border-radius: var(--radius-sm);
+    }
+    
+    .table-container::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
     }
 
     .data-table {
         font-size: 12px;
+    }
+    
+    /* Mantieni l'header della tabella fisso durante lo scroll */
+    .data-table thead th {
+        position: sticky;
+        top: 0;
+        background-color: var(--bg-secondary);
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Responsive adjustments for table container */
+    @media (max-width: 1200px) {
+        .table-container {
+            max-height: calc(100vh - 320px); /* Più spazio per elementi compressi */
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .table-container {
+            max-height: calc(100vh - 360px); /* Ancora più spazio su mobile */
+            font-size: 11px;
+        }
+        
+        .data-table {
+            min-width: 800px; /* Forza scroll orizzontale su mobile se necessario */
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .table-container {
+            max-height: calc(100vh - 400px);
+            font-size: 10px;
+        }
     }
 
     .data-table th,

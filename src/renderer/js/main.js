@@ -7,7 +7,6 @@ class SoftwareEstimationApp {
     constructor() {
         this.currentProject = null;
         this.isDirty = false;
-        this.autoSaveInterval = null;
         this.currentPage = 'projects';
 
         // Managers for hierarchical configuration and nested navigation
@@ -26,7 +25,6 @@ class SoftwareEstimationApp {
         try {
             await this.initializeComponents();
             this.setupEventListeners();
-            this.setupAutoSave();
             await this.loadLastProject();
 
             // Verifica e aggiorna lo stato della navigazione dopo il caricamento
@@ -271,14 +269,7 @@ class SoftwareEstimationApp {
         });
     }
 
-    setupAutoSave() {
-        // Auto-save every 2 minutes
-        this.autoSaveInterval = setInterval(() => {
-            if (this.isDirty) {
-                this.autoSave();
-            }
-        }, 120000);
-    }
+    // Auto-save removed - only manual save now
 
     async handleMenuAction(action) {
         try {
@@ -453,14 +444,9 @@ class SoftwareEstimationApp {
         // Save phases configuration from ProjectPhasesManager to current project
         if (this.projectPhasesManager && this.currentProject) {
             try {
-                console.log('=== SAVING PHASES CONFIGURATION ===');
-                
                 // Get current phases configuration
                 const currentPhases = this.projectPhasesManager.getProjectPhases();
                 const selectedSuppliers = this.projectPhasesManager.selectedSuppliers;
-                
-                console.log('Current phases:', currentPhases);
-                console.log('Selected suppliers:', selectedSuppliers);
 
                 // Convert phases array back to object format for storage
                 const phasesObject = {};
@@ -477,21 +463,12 @@ class SoftwareEstimationApp {
                 // Save selected suppliers
                 phasesObject.selectedSuppliers = { ...selectedSuppliers };
 
-                console.log('Phases object to save:', phasesObject);
-
                 // Update project with phases configuration
                 this.currentProject.phases = phasesObject;
-
-                console.log('Project phases configuration saved automatically');
-                console.log('Current project phases after save:', this.currentProject.phases);
             } catch (error) {
                 console.error('Failed to save phases configuration:', error);
                 // Don't throw - allow main save to continue
             }
-        } else {
-            console.log('Cannot save phases - missing projectPhasesManager or currentProject');
-            console.log('projectPhasesManager:', !!this.projectPhasesManager);
-            console.log('currentProject:', !!this.currentProject);
         }
     }
 
@@ -575,24 +552,7 @@ class SoftwareEstimationApp {
         }
     }
 
-    async autoSave() {
-        if (!this.currentProject || !this.isDirty) return;
-
-        try {
-            // Ensure hierarchical config format before auto-save
-            if (!this.currentProject.config.projectOverrides) {
-                this.currentProject.config = this.configManager.migrateProjectConfig(this.currentProject.config);
-            }
-
-            // Save phases configuration in auto-save
-            await this.saveProjectPhasesConfiguration();
-
-            await this.dataManager.saveProject(this.currentProject, 'autosave');
-            this.updateLastSaved();
-        } catch (error) {
-            console.error('Auto-save failed:', error);
-        }
-    }
+    // Auto-save method removed - only manual save available
 
     async exportProject(format) {
         if (!this.currentProject) return;
@@ -1246,10 +1206,6 @@ class SoftwareEstimationApp {
     }
 
     destroy() {
-        if (this.autoSaveInterval) {
-            clearInterval(this.autoSaveInterval);
-        }
-
         // Save navigation state before destroying
         if (this.navigationManager && NavigationStateManager) {
             NavigationStateManager.saveState(this.navigationManager);

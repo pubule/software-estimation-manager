@@ -98,9 +98,6 @@ class ProjectPhasesManager {
     }
 
     init() {
-        console.log('=== PROJECT PHASES MANAGER INIT ===');
-        console.log('Current project at init:', this.app.currentProject);
-        
         this.loadResourceRates();
         this.initializePhases();
         this.setupEventListeners();
@@ -108,27 +105,14 @@ class ProjectPhasesManager {
     }
 
     loadResourceRates() {
-        console.log('=== LOADING RESOURCE RATES ===');
-        console.log('Current project:', this.app.currentProject);
-        
         // Carica i supplier selezionati dal progetto corrente
         if (this.app.currentProject && this.app.currentProject.phases) {
             const phasesConfig = this.app.currentProject.phases;
-            console.log('Phases config from project:', phasesConfig);
             
             if (phasesConfig.selectedSuppliers) {
-                console.log('Loading selected suppliers:', phasesConfig.selectedSuppliers);
                 this.selectedSuppliers = { ...phasesConfig.selectedSuppliers };
                 this.updateRatesFromSelectedSuppliers();
-                console.log('Selected suppliers after load:', this.selectedSuppliers);
-                console.log('Resource rates after load:', this.resourceRates);
-            } else {
-                console.log('No selectedSuppliers found in phases config');
             }
-        } else {
-            console.log('No project or phases found');
-            console.log('currentProject exists:', !!this.app.currentProject);
-            console.log('phases exists:', !!(this.app.currentProject && this.app.currentProject.phases));
         }
     }
     
@@ -157,16 +141,10 @@ class ProjectPhasesManager {
     }
 
     initializePhases() {
-        console.log('=== INITIALIZING PHASES ===');
-        console.log('Current project:', this.app.currentProject);
-        
         // Inizializza le fasi dal progetto corrente o dai default
         if (this.app.currentProject && this.app.currentProject.phases) {
-            console.log('Loading phases from project:', this.app.currentProject.phases);
             this.currentPhases = this.mergeProjectPhases(this.app.currentProject.phases);
-            console.log('Merged phases:', this.currentPhases);
         } else {
-            console.log('Creating default phases');
             this.currentPhases = this.createDefaultPhases();
         }
 
@@ -185,14 +163,9 @@ class ProjectPhasesManager {
     }
 
     mergeProjectPhases(existingPhases) {
-        console.log('=== MERGING PROJECT PHASES ===');
-        console.log('Existing phases from project:', existingPhases);
-        
-        const result = this.phaseDefinitions.map(def => {
+        return this.phaseDefinitions.map(def => {
             const existing = existingPhases[def.id] || {};
-            console.log(`Merging phase ${def.id}:`, existing);
-            
-            const merged = {
+            return {
                 ...def,
                 manDays: existing.manDays || 0,
                 effort: existing.effort || { ...def.defaultEffort },
@@ -200,13 +173,7 @@ class ProjectPhasesManager {
                 cost: existing.cost || 0,
                 lastModified: existing.lastModified || new Date().toISOString()
             };
-            
-            console.log(`Merged phase ${def.id}:`, merged);
-            return merged;
         });
-        
-        console.log('Final merged phases:', result);
-        return result;
     }
 
     calculateDevelopmentPhase() {
@@ -224,9 +191,6 @@ class ProjectPhasesManager {
 
     renderPhasesPage(container) {
         if (!container) return;
-
-        console.log('=== RENDERING PHASES PAGE ===');
-        console.log('Current project at render:', this.app.currentProject);
 
         // Assicurati che i dati siano sincronizzati prima del render
         this.synchronizeWithProject();
@@ -817,11 +781,7 @@ class ProjectPhasesManager {
 
     // New method: Call this when a project is loaded to ensure phases are synchronized
     synchronizeWithProject() {
-        console.log('=== SYNCHRONIZING WITH PROJECT ===');
-        console.log('Current project:', this.app.currentProject);
-        
         if (!this.app.currentProject) {
-            console.log('No current project - skipping synchronization');
             return;
         }
         
@@ -834,10 +794,6 @@ class ProjectPhasesManager {
         
         // Mark as dirty after synchronization
         this.markDirty();
-        
-        console.log('Phases synchronized successfully');
-        console.log('Current phases after sync:', this.currentPhases);
-        console.log('Selected suppliers after sync:', this.selectedSuppliers);
     }
 
     getProjectPhases() {

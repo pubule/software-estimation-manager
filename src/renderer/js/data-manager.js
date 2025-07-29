@@ -5,7 +5,6 @@
 class DataManager {
     constructor() {
         this.currentProjectPath = null;
-        this.autoSaveInterval = null;
     }
 
     /**
@@ -267,19 +266,7 @@ class DataManager {
         }
     }
 
-    /**
-     * Auto-save current project
-     */
-    async autoSave(projectData) {
-        if (!this.currentProjectPath || !projectData) return;
-
-        try {
-            await this.saveProject(projectData);
-            console.log('Auto-save completed');
-        } catch (error) {
-            console.error('Auto-save failed:', error);
-        }
-    }
+    // Auto-save method removed
 
     /**
      * Get application settings

@@ -28,7 +28,10 @@ function createWindow() {
         icon: path.join(__dirname, '../assets/icon.png'),
         // Menu già rimosso
         autoHideMenuBar: true,
-        menuBarVisible: false
+        menuBarVisible: false,
+        // Fullscreen all'avvio
+        fullscreen: false,      // Non usare true fullscreen (nasconde tutto)
+        maximize: true          // Invece massimizza la finestra
     });
 
     // Menu già disabilitato
@@ -40,6 +43,7 @@ function createWindow() {
     // Show window when ready to prevent visual flash
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
+        mainWindow.maximize();  // Massimizza la finestra all'avvio
     });
 
     // Open DevTools in development
@@ -86,8 +90,6 @@ async function loadSettings() {
     } catch (error) {
         return {
             projectsPath: defaultProjectsPath,
-            autoSave: true,
-            autoSaveInterval: 120000, // 2 minutes
             maxRecentProjects: 10
         };
     }
