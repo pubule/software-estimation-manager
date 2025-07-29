@@ -827,20 +827,8 @@ class SoftwareEstimationApp {
         const features = this.currentProject.features;
         const totalFeatures = features.length;
 
-        // Calculate total man days using hierarchical configuration
-        let totalManDays = 0;
-        if (this.configManager) {
-            const projectConfig = this.configManager.getProjectConfig(this.currentProject.config);
-            const categories = projectConfig.categories;
-
-            totalManDays = features.reduce((sum, feature) => {
-                const category = categories.find(c => c.id === feature.category);
-                const multiplier = category ? category.multiplier : 1.0;
-                return sum + ((feature.manDays || 0) * multiplier);
-            }, 0);
-        } else {
-            totalManDays = features.reduce((sum, feature) => sum + (feature.manDays || 0), 0);
-        }
+        // Calculate total man days without category multiplier
+        const totalManDays = features.reduce((sum, feature) => sum + (feature.manDays || 0), 0);
 
         const averageManDays = totalFeatures > 0 ? (totalManDays / totalFeatures).toFixed(1) : 0;
 
