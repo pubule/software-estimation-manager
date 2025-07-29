@@ -12,6 +12,12 @@ class CategoriesConfigManager {
         this.editingItem = null;
         this.editingFeatureType = null;
         
+        // Flags to prevent double operations
+        this.isDeleting = false;
+        this.isDeletingFeatureType = false;
+        this.isSavingCategory = false;
+        this.isSavingFeatureType = false;
+        
         // Default categories with feature types based on provided data
         this.defaultCategories = [
             {
@@ -179,65 +185,111 @@ class CategoriesConfigManager {
      * Setup event listeners for the categories configuration
      */
     setupEventListeners() {
+        // Remove existing listeners first to prevent duplicates
+        if (this.boundClickHandler) {
+            document.removeEventListener('click', this.boundClickHandler);
+        }
+        if (this.boundSubmitHandler) {
+            document.removeEventListener('submit', this.boundSubmitHandler);
+        }
+
+        // Create bound handlers
+        this.boundClickHandler = this.handleClick.bind(this);
+        this.boundSubmitHandler = this.handleSubmit.bind(this);
+
+        // Add single delegated event listeners
+        document.addEventListener('click', this.boundClickHandler);
+        document.addEventListener('submit', this.boundSubmitHandler);
+    }
+
+    /**
+     * Handle all click events
+     */
+    handleClick(e) {
         // Tab switching
-        document.addEventListener('click', (e) => {
-            if (e.target.matches('.categories-scope-tab')) {
-                this.switchScope(e.target.dataset.scope);
-            }
-        });
+        if (e.target.matches('.categories-scope-tab')) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.switchScope(e.target.dataset.scope);
+            return;
+        }
 
-        // Category selection
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.category-item')) {
-                const categoryId = e.target.closest('.category-item').dataset.categoryId;
-                this.selectCategory(categoryId);
-            }
-        });
+        // Category selection (but not if clicking on action buttons)
+        if (e.target.closest('.category-item') && !e.target.closest('.category-actions')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const categoryId = e.target.closest('.category-item').dataset.categoryId;
+            this.selectCategory(categoryId);
+            return;
+        }
 
-        // Action buttons
-        document.addEventListener('click', (e) => {
-            const action = e.target.dataset.action;
-            if (!action) return;
+        // Action buttons - check both target and closest button for action
+        const actionButton = e.target.closest('[data-action]');
+        if (!actionButton) return;
+        
+        const action = actionButton.dataset.action;
+        if (!action) return;
 
-            switch (action) {
-                case 'add-category':
-                    this.showAddCategoryModal();
-                    break;
-                case 'edit-category':
-                    this.editCategory(e.target.dataset.categoryId);
-                    break;
-                case 'duplicate-category':
-                    this.duplicateCategory(e.target.dataset.categoryId);
-                    break;
-                case 'delete-category':
-                    this.deleteCategory(e.target.dataset.categoryId);
-                    break;
-                case 'add-feature-type':
-                    this.showAddFeatureTypeModal();
-                    break;
-                case 'edit-feature-type':
-                    this.editFeatureType(e.target.dataset.featureTypeId);
-                    break;
-                case 'duplicate-feature-type':
-                    this.duplicateFeatureType(e.target.dataset.featureTypeId);
-                    break;
-                case 'delete-feature-type':
-                    this.deleteFeatureType(e.target.dataset.featureTypeId);
-                    break;
-            }
-        });
+        // Prevent double execution
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log(`Action triggered: ${action}`);
 
-        // Form submissions
-        document.addEventListener('submit', (e) => {
-            if (e.target.id === 'category-form') {
-                e.preventDefault();
+        switch (action) {
+            case 'add-category':
+                this.showAddCategoryModal();
+                break;
+            case 'edit-category':
+                this.editCategory(actionButton.dataset.categoryId);
+                break;
+            case 'duplicate-category':
+                this.duplicateCategory(actionButton.dataset.categoryId);
+                break;
+            case 'delete-category':
+                console.log(`Delete category called for: ${actionButton.dataset.categoryId}`);
+                this.deleteCategory(actionButton.dataset.categoryId);
+                break;
+            case 'add-feature-type':
+                this.showAddFeatureTypeModal();
+                break;
+            case 'edit-feature-type':
+                this.editFeatureType(actionButton.dataset.featureTypeId);
+                break;
+            case 'duplicate-feature-type':
+                this.duplicateFeatureType(actionButton.dataset.featureTypeId);
+                break;
+            case 'delete-feature-type':
+                console.log(`Delete feature type called for: ${actionButton.dataset.featureTypeId}`);
+                this.deleteFeatureType(actionButton.dataset.featureTypeId);
+                break;
+        }
+    }
+
+    /**
+     * Handle all form submissions
+     */
+    handleSubmit(e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        
+        console.log('Form submitted:', e.target.id);
+        
+        if (e.target.id === 'category-form') {
+            // Additional check to prevent double execution
+            if (!this.isSavingCategory) {
                 this.saveCategoryForm();
+            } else {
+                console.log('Category form submission ignored - save in progress');
             }
-            if (e.target.id === 'feature-type-form') {
-                e.preventDefault();
+        } else if (e.target.id === 'feature-type-form') {
+            // Additional check to prevent double execution
+            if (!this.isSavingFeatureType) {
                 this.saveFeatureTypeForm();
+            } else {
+                console.log('Feature type form submission ignored - save in progress');
             }
-        });
+        }
     }
 
     /**
@@ -404,8 +456,7 @@ class CategoriesConfigManager {
         }
 
         if (this.currentScope === 'global') {
-            const categories = this.configManager.globalConfig?.categories || [];
-            return categories;
+            return this.configManager.globalConfig?.categories || [];
         } else {
             const currentProject = this.app?.currentProject;
             if (!currentProject) {
@@ -414,9 +465,7 @@ class CategoriesConfigManager {
             }
             
             const projectConfig = this.configManager.getProjectConfig(currentProject.config);
-            const categories = projectConfig.categories || [];
-            console.log('Project categories found:', categories.length);
-            return categories;
+            return projectConfig.categories || [];
         }
     }
 
@@ -642,67 +691,113 @@ class CategoriesConfigManager {
     }
 
     async deleteCategory(categoryId) {
-        const categories = this.getCurrentCategories();
-        const category = categories.find(cat => cat.id === categoryId);
-        
-        if (!category) return;
-
-        if (!confirm(`Are you sure you want to delete the category "${category.name}"? This will also delete all associated feature types.`)) {
+        // Prevent multiple simultaneous delete operations
+        if (this.isDeleting) {
+            console.log('Delete already in progress, ignoring...');
             return;
         }
-
-        // Remove category
-        const index = categories.findIndex(cat => cat.id === categoryId);
-        if (index !== -1) {
-            categories.splice(index, 1);
-        }
-
-        // Clear selection if deleted category was selected
-        if (this.selectedCategory?.id === categoryId) {
-            this.selectedCategory = null;
-        }
-
-        await this.saveCurrentConfiguration();
-        this.refreshCategoriesDisplay();
         
-        this.showNotification(`Category "${category.name}" deleted successfully`, 'success');
+        this.isDeleting = true;
+        
+        try {
+            const categories = this.getCurrentCategories();
+            const category = categories.find(cat => cat.id === categoryId);
+            
+            if (!category) {
+                console.log('Category not found:', categoryId);
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete the category "${category.name}"? This will also delete all associated feature types.`)) {
+                return;
+            }
+
+            console.log('Proceeding with category deletion:', categoryId);
+
+            // Remove category
+            const index = categories.findIndex(cat => cat.id === categoryId);
+            if (index !== -1) {
+                categories.splice(index, 1);
+            }
+
+            // Clear selection if deleted category was selected
+            if (this.selectedCategory?.id === categoryId) {
+                this.selectedCategory = null;
+            }
+
+            await this.saveCurrentConfiguration();
+            this.refreshCategoriesDisplay();
+            
+            this.showNotification(`Category "${category.name}" deleted successfully`, 'success');
+        } finally {
+            // Always reset the flag
+            this.isDeleting = false;
+        }
     }
 
     async saveCategoryForm() {
-        const formData = {
-            name: document.getElementById('category-name').value.trim(),
-            description: document.getElementById('category-description').value.trim(),
-            status: document.getElementById('category-status').value
-        };
-
-        // Validation
-        if (!formData.name) {
-            this.showNotification('Category name is required', 'error');
+        // Prevent multiple simultaneous save operations
+        if (this.isSavingCategory) {
+            console.log('Category save already in progress, ignoring...');
             return;
         }
-
-        const categories = this.getCurrentCategories();
-
-        if (this.editingItem) {
-            // Update existing category
-            Object.assign(this.editingItem, formData);
-        } else {
-            // Create new category
-            const newCategory = {
-                id: this.generateId('cat-'),
-                ...formData,
-                featureTypes: [],
-                isGlobal: this.currentScope === 'global'
-            };
-            categories.push(newCategory);
-        }
-
-        await this.saveCurrentConfiguration();
-        this.closeModal('category-modal');
-        this.refreshCategoriesDisplay();
         
-        const action = this.editingItem ? 'updated' : 'created';
-        this.showNotification(`Category "${formData.name}" ${action} successfully`, 'success');
+        this.isSavingCategory = true;
+        
+        // Disable submit button to prevent double clicks
+        const submitButton = document.querySelector('#category-modal button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
+        }
+        
+        try {
+            const formData = {
+                name: document.getElementById('category-name').value.trim(),
+                description: document.getElementById('category-description').value.trim(),
+                status: document.getElementById('category-status').value
+            };
+
+            // Validation
+            if (!formData.name) {
+                this.showNotification('Category name is required', 'error');
+                return;
+            }
+
+            console.log('Saving category:', formData.name, 'Edit mode:', !!this.editingItem);
+
+            const categories = this.getCurrentCategories();
+
+            if (this.editingItem) {
+                // Update existing category
+                Object.assign(this.editingItem, formData);
+                console.log('Updated existing category');
+            } else {
+                // Create new category
+                const newCategory = {
+                    id: this.generateId('cat-'),
+                    ...formData,
+                    featureTypes: [],
+                    isGlobal: this.currentScope === 'global'
+                };
+                categories.push(newCategory);
+                console.log('Created new category with ID:', newCategory.id);
+            }
+
+            await this.saveCurrentConfiguration();
+            this.closeModal('category-modal');
+            this.refreshCategoriesDisplay();
+            
+            const action = this.editingItem ? 'updated' : 'created';
+            this.showNotification(`Category "${formData.name}" ${action} successfully`, 'success');
+        } finally {
+            // Always reset the flag and re-enable button
+            this.isSavingCategory = false;
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Save Category';
+            }
+        }
     }
 
     // Feature Type CRUD Operations
@@ -743,70 +838,122 @@ class CategoriesConfigManager {
     }
 
     async deleteFeatureType(featureTypeId) {
-        if (!this.selectedCategory) return;
-
-        const featureType = this.selectedCategory.featureTypes?.find(ft => ft.id === featureTypeId);
-        if (!featureType) return;
-
-        if (!confirm(`Are you sure you want to delete the feature type "${featureType.name}"?`)) {
+        // Prevent multiple simultaneous delete operations
+        if (this.isDeletingFeatureType) {
+            console.log('Feature type delete already in progress, ignoring...');
             return;
         }
-
-        // Remove feature type
-        const index = this.selectedCategory.featureTypes.findIndex(ft => ft.id === featureTypeId);
-        if (index !== -1) {
-            this.selectedCategory.featureTypes.splice(index, 1);
-        }
-
-        await this.saveCurrentConfiguration();
-        this.renderCategoryDetails();
         
-        this.showNotification(`Feature type "${featureType.name}" deleted successfully`, 'success');
+        this.isDeletingFeatureType = true;
+        
+        try {
+            if (!this.selectedCategory) {
+                console.log('No selected category for feature type deletion');
+                return;
+            }
+
+            const featureType = this.selectedCategory.featureTypes?.find(ft => ft.id === featureTypeId);
+            if (!featureType) {
+                console.log('Feature type not found:', featureTypeId);
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete the feature type "${featureType.name}"?`)) {
+                return;
+            }
+
+            console.log('Proceeding with feature type deletion:', featureTypeId);
+
+            // Remove feature type
+            const index = this.selectedCategory.featureTypes.findIndex(ft => ft.id === featureTypeId);
+            if (index !== -1) {
+                this.selectedCategory.featureTypes.splice(index, 1);
+            }
+
+            await this.saveCurrentConfiguration();
+            this.renderCategoryDetails();
+            
+            this.showNotification(`Feature type "${featureType.name}" deleted successfully`, 'success');
+        } finally {
+            // Always reset the flag
+            this.isDeletingFeatureType = false;
+        }
     }
 
     async saveFeatureTypeForm() {
-        if (!this.selectedCategory) return;
-
-        const formData = {
-            name: document.getElementById('feature-type-name').value.trim(),
-            description: document.getElementById('feature-type-description').value.trim(),
-            averageMDs: parseFloat(document.getElementById('feature-type-average-mds').value)
-        };
-
-        // Validation
-        if (!formData.name) {
-            this.showNotification('Feature type name is required', 'error');
+        // Prevent multiple simultaneous save operations
+        if (this.isSavingFeatureType) {
+            console.log('Feature type save already in progress, ignoring...');
             return;
         }
-
-        if (!formData.averageMDs || formData.averageMDs <= 0) {
-            this.showNotification('Average Man Days must be greater than 0', 'error');
-            return;
-        }
-
-        if (!this.selectedCategory.featureTypes) {
-            this.selectedCategory.featureTypes = [];
-        }
-
-        if (this.editingFeatureType) {
-            // Update existing feature type
-            Object.assign(this.editingFeatureType, formData);
-        } else {
-            // Create new feature type
-            const newFeatureType = {
-                id: this.generateId('ft-'),
-                ...formData
-            };
-            this.selectedCategory.featureTypes.push(newFeatureType);
-        }
-
-        await this.saveCurrentConfiguration();
-        this.closeModal('feature-type-modal');
-        this.renderCategoryDetails();
-        this.refreshCategoriesDisplay(); // Update counts
         
-        const action = this.editingFeatureType ? 'updated' : 'created';
-        this.showNotification(`Feature type "${formData.name}" ${action} successfully`, 'success');
+        this.isSavingFeatureType = true;
+        
+        // Disable submit button to prevent double clicks
+        const submitButton = document.querySelector('#feature-type-modal button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
+        }
+        
+        try {
+            if (!this.selectedCategory) {
+                console.log('No selected category for feature type save');
+                return;
+            }
+
+            const formData = {
+                name: document.getElementById('feature-type-name').value.trim(),
+                description: document.getElementById('feature-type-description').value.trim(),
+                averageMDs: parseFloat(document.getElementById('feature-type-average-mds').value)
+            };
+
+            // Validation
+            if (!formData.name) {
+                this.showNotification('Feature type name is required', 'error');
+                return;
+            }
+
+            if (!formData.averageMDs || formData.averageMDs <= 0) {
+                this.showNotification('Average Man Days must be greater than 0', 'error');
+                return;
+            }
+
+            console.log('Saving feature type:', formData.name, 'Edit mode:', !!this.editingFeatureType);
+
+            if (!this.selectedCategory.featureTypes) {
+                this.selectedCategory.featureTypes = [];
+            }
+
+            if (this.editingFeatureType) {
+                // Update existing feature type
+                Object.assign(this.editingFeatureType, formData);
+                console.log('Updated existing feature type');
+            } else {
+                // Create new feature type
+                const newFeatureType = {
+                    id: this.generateId('ft-'),
+                    ...formData
+                };
+                this.selectedCategory.featureTypes.push(newFeatureType);
+                console.log('Created new feature type with ID:', newFeatureType.id);
+            }
+
+            await this.saveCurrentConfiguration();
+            this.closeModal('feature-type-modal');
+            this.renderCategoryDetails();
+            this.refreshCategoriesDisplay(); // Update counts
+            
+            const action = this.editingFeatureType ? 'updated' : 'created';
+            this.showNotification(`Feature type "${formData.name}" ${action} successfully`, 'success');
+        } finally {
+            // Always reset the flag and re-enable button
+            this.isSavingFeatureType = false;
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Save Feature Type';
+            }
+        }
     }
 
     /**
@@ -858,6 +1005,18 @@ class CategoriesConfigManager {
             window.NotificationManager.show(message, type);
         } else {
             console.log(`${type.toUpperCase()}: ${message}`);
+        }
+    }
+
+    /**
+     * Cleanup method to remove event listeners
+     */
+    destroy() {
+        if (this.boundClickHandler) {
+            document.removeEventListener('click', this.boundClickHandler);
+        }
+        if (this.boundSubmitHandler) {
+            document.removeEventListener('submit', this.boundSubmitHandler);
         }
     }
 }
