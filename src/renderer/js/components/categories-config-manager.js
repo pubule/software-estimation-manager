@@ -17,6 +17,7 @@ class CategoriesConfigManager {
         this.isDeletingFeatureType = false;
         this.isSavingCategory = false;
         this.isSavingFeatureType = false;
+        this.isResetting = false;
         
         // Default categories with feature types based on provided data
         this.defaultCategories = [
@@ -49,7 +50,7 @@ class CategoriesConfigManager {
                         id: 'db-dao-crud',
                         name: 'DAO/CRUD operations',
                         description: 'Data Access Object and CRUD implementations',
-                        averageMDs: 2
+                        averageMDs: 3
                     }
                 ]
             },
@@ -97,13 +98,13 @@ class CategoriesConfigManager {
                         id: 'frontend-new-page',
                         name: 'Develop new page/component',
                         description: 'Create new frontend pages or components',
-                        averageMDs: 7
+                        averageMDs: 3
                     },
                     {
                         id: 'frontend-modify-page',
                         name: 'Modify existing page',
                         description: 'Update existing frontend pages',
-                        averageMDs: 3
+                        averageMDs: 7
                     },
                     {
                         id: 'frontend-form-management',
@@ -233,6 +234,7 @@ class CategoriesConfigManager {
         // Prevent double execution
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
         
         console.log(`Action triggered: ${action}`);
 
@@ -249,6 +251,9 @@ class CategoriesConfigManager {
             case 'delete-category':
                 console.log(`Delete category called for: ${actionButton.dataset.categoryId}`);
                 this.deleteCategory(actionButton.dataset.categoryId);
+                break;
+            case 'reset-to-default':
+                this.resetToDefaultCategories();
                 break;
             case 'add-feature-type':
                 this.showAddFeatureTypeModal();
@@ -325,6 +330,11 @@ class CategoriesConfigManager {
                             <i class="fas fa-project-diagram"></i>
                             Project Categories
                             <span class="count" id="project-categories-count">0</span>
+                        </button>
+                    </div>
+                    <div class="scope-actions">
+                        <button class="btn btn-small btn-secondary" data-action="reset-to-default" title="Reset to Default Categories">
+                            <i class="fas fa-undo"></i> Reset to Default
                         </button>
                     </div>
                 </div>
@@ -732,6 +742,44 @@ class CategoriesConfigManager {
         } finally {
             // Always reset the flag
             this.isDeleting = false;
+        }
+    }
+
+    async resetToDefaultCategories() {
+        // Prevent multiple simultaneous reset operations
+        if (this.isResetting) {
+            console.log('Reset already in progress, ignoring...');
+            return;
+        }
+        
+        // Set flag immediately to prevent double execution
+        this.isResetting = true;
+        
+        try {
+            if (!confirm('Are you sure you want to reset all categories to default values? This will remove all custom categories and feature types.')) {
+                // User cancelled, reset flag and return
+                this.isResetting = false;
+                return;
+            }
+
+            console.log('Resetting categories to default values');
+            
+            // Force reset to default categories
+            this.ensureDefaultCategories(true);
+            
+            // Clear selection since categories have changed
+            this.selectedCategory = null;
+            
+            // Refresh the display
+            this.refreshCategoriesDisplay();
+            
+            this.showNotification('Categories have been reset to default values', 'success');
+        } catch (error) {
+            console.error('Error resetting categories to default:', error);
+            this.showNotification('Error resetting categories to default', 'error');
+        } finally {
+            // Always reset the flag
+            this.isResetting = false;
         }
     }
 

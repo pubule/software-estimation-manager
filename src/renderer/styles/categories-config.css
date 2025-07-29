@@ -36,11 +36,20 @@
     background-color: var(--bg-tertiary);
     border-radius: var(--border-radius);
     padding: var(--spacing-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .scope-tabs {
     display: flex;
     gap: var(--spacing-xs);
+}
+
+.scope-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    align-items: center;
 }
 
 .categories-scope-tab {
@@ -121,6 +130,12 @@
     margin: 0;
     color: var(--text-primary);
     font-size: var(--font-size-md);
+}
+
+.panel-header-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    align-items: center;
 }
 
 /* Categories List */
@@ -531,8 +546,18 @@
         border-bottom: 1px solid var(--border-color);
     }
     
-    .scope-tabs {
+    .categories-scope-selector {
         flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    
+    .scope-tabs {
+        width: 100%;
+    }
+    
+    .scope-actions {
+        width: 100%;
+        justify-content: center;
     }
     
     .category-detail-header {
