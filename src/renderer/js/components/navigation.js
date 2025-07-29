@@ -186,13 +186,13 @@ class EnhancedNavigationManager extends NavigationManager {
             targetPage.classList.add('active');
 
             // Initialize phases manager if not exists
-            if (!this.app.phasesManager) {
-                this.app.phasesManager = new ProjectPhasesManager(this.app, this.configManager);
+            if (!this.app.projectPhasesManager) {
+                this.app.projectPhasesManager = new ProjectPhasesManager(this.app, this.configManager);
             }
 
             // Render phases content
             setTimeout(() => {
-                this.app.phasesManager.renderPhasesPage(targetPage);
+                this.app.projectPhasesManager.renderPhasesPage(targetPage);
             }, 100);
         }
 

@@ -98,6 +98,9 @@ class ProjectPhasesManager {
     }
 
     init() {
+        console.log('=== PROJECT PHASES MANAGER INIT ===');
+        console.log('Current project at init:', this.app.currentProject);
+        
         this.loadResourceRates();
         this.initializePhases();
         this.setupEventListeners();
@@ -105,13 +108,27 @@ class ProjectPhasesManager {
     }
 
     loadResourceRates() {
+        console.log('=== LOADING RESOURCE RATES ===');
+        console.log('Current project:', this.app.currentProject);
+        
         // Carica i supplier selezionati dal progetto corrente
         if (this.app.currentProject && this.app.currentProject.phases) {
             const phasesConfig = this.app.currentProject.phases;
+            console.log('Phases config from project:', phasesConfig);
+            
             if (phasesConfig.selectedSuppliers) {
+                console.log('Loading selected suppliers:', phasesConfig.selectedSuppliers);
                 this.selectedSuppliers = { ...phasesConfig.selectedSuppliers };
                 this.updateRatesFromSelectedSuppliers();
+                console.log('Selected suppliers after load:', this.selectedSuppliers);
+                console.log('Resource rates after load:', this.resourceRates);
+            } else {
+                console.log('No selectedSuppliers found in phases config');
             }
+        } else {
+            console.log('No project or phases found');
+            console.log('currentProject exists:', !!this.app.currentProject);
+            console.log('phases exists:', !!(this.app.currentProject && this.app.currentProject.phases));
         }
     }
     
@@ -140,10 +157,16 @@ class ProjectPhasesManager {
     }
 
     initializePhases() {
+        console.log('=== INITIALIZING PHASES ===');
+        console.log('Current project:', this.app.currentProject);
+        
         // Inizializza le fasi dal progetto corrente o dai default
         if (this.app.currentProject && this.app.currentProject.phases) {
+            console.log('Loading phases from project:', this.app.currentProject.phases);
             this.currentPhases = this.mergeProjectPhases(this.app.currentProject.phases);
+            console.log('Merged phases:', this.currentPhases);
         } else {
+            console.log('Creating default phases');
             this.currentPhases = this.createDefaultPhases();
         }
 
@@ -162,9 +185,14 @@ class ProjectPhasesManager {
     }
 
     mergeProjectPhases(existingPhases) {
-        return this.phaseDefinitions.map(def => {
+        console.log('=== MERGING PROJECT PHASES ===');
+        console.log('Existing phases from project:', existingPhases);
+        
+        const result = this.phaseDefinitions.map(def => {
             const existing = existingPhases[def.id] || {};
-            return {
+            console.log(`Merging phase ${def.id}:`, existing);
+            
+            const merged = {
                 ...def,
                 manDays: existing.manDays || 0,
                 effort: existing.effort || { ...def.defaultEffort },
@@ -172,7 +200,13 @@ class ProjectPhasesManager {
                 cost: existing.cost || 0,
                 lastModified: existing.lastModified || new Date().toISOString()
             };
+            
+            console.log(`Merged phase ${def.id}:`, merged);
+            return merged;
         });
+        
+        console.log('Final merged phases:', result);
+        return result;
     }
 
     calculateDevelopmentPhase() {
@@ -190,6 +224,12 @@ class ProjectPhasesManager {
 
     renderPhasesPage(container) {
         if (!container) return;
+
+        console.log('=== RENDERING PHASES PAGE ===');
+        console.log('Current project at render:', this.app.currentProject);
+
+        // Assicurati che i dati siano sincronizzati prima del render
+        this.synchronizeWithProject();
 
         // SEMPRE ricalcola la fase Development prima del render
         this.calculateDevelopmentPhase();
@@ -259,15 +299,7 @@ class ProjectPhasesManager {
                     </div>
                 </div>
                 <div class="controls-right">
-                    <button class="btn btn-secondary" data-action="reset-defaults">
-                        <i class="fas fa-undo"></i> Reset to Defaults
-                    </button>
-                    <button class="btn btn-secondary" data-action="export-phases">
-                        <i class="fas fa-download"></i> Export Phases
-                    </button>
-                    <button class="btn btn-primary" data-action="save-phases">
-                        <i class="fas fa-save"></i> Save Configuration
-                    </button>
+                    <!-- Buttons removed - saving is handled by main Save button -->
                 </div>
             </div>
         `;
@@ -688,38 +720,11 @@ class ProjectPhasesManager {
     }
 
     handleAction(action, button) {
-        switch (action) {
-            case 'reset-defaults':
-                this.resetToDefaults();
-                break;
-            case 'export-phases':
-                this.exportPhases();
-                break;
-            case 'save-phases':
-                this.savePhaseToProject();
-                break;
-        }
+        // No more local actions - phases are now saved with main project save
+        console.log('Phase action:', action, 'but handled by main app');
     }
 
-    resetToDefaults() {
-        if (!confirm('Are you sure you want to reset all phases to default configurations? This will overwrite all current settings.')) {
-            return;
-        }
-
-        this.currentPhases = this.createDefaultPhases();
-        this.calculateDevelopmentPhase();
-
-        // Mark as dirty for manual save
-        this.markDirty();
-
-        // Re-render the table
-        const container = document.querySelector('.phases-configuration');
-        if (container) {
-            this.renderPhasesPage(container.parentElement);
-        }
-
-        NotificationManager.success('Phases configuration reset to defaults. Remember to save your project.');
-    }
+    // Method removed - reset functionality no longer available
 
     /**
      * Mark project as dirty to indicate unsaved changes
@@ -737,80 +742,18 @@ class ProjectPhasesManager {
     }
 
     /**
-     * Update save button state to reflect dirty status
+     * Update save button state - now handled by main app save button
      */
     updateSaveButtonState() {
-        const saveButton = document.querySelector('[data-action="save-phases"]');
-        if (saveButton) {
-            if (this.isDirty) {
-                saveButton.classList.add('dirty');
-                saveButton.innerHTML = '<i class="fas fa-save"></i> Save Configuration *';
-                saveButton.title = 'Configuration has unsaved changes';
-            } else {
-                saveButton.classList.remove('dirty');
-                saveButton.innerHTML = '<i class="fas fa-save"></i> Save Configuration';
-                saveButton.title = 'Save phase configuration';
-            }
-        }
+        // Save button is now the main app save button - no local button to update
     }
 
     /**
-     * Save phases to project - called manually
+     * Save phases to project - now handled automatically by main app save
+     * This method is kept for compatibility but is no longer used
      */
     async savePhaseToProject() {
-        try {
-            if (!this.app.currentProject) {
-                console.warn('No current project to save phases to');
-                return;
-            }
-
-            // Validate all phases before saving
-            const validation = this.validateAllPhases();
-            if (!validation.isValid) {
-                console.warn('Phase validation failed:', validation.errors);
-                // Save anyway but show warning
-                if (validation.errors.length > 0) {
-                    NotificationManager.warning(`Phase validation: ${validation.errors[0]}`);
-                }
-            }
-
-            // Convert phases array back to object format for storage
-            const phasesObject = {};
-            this.currentPhases.forEach(phase => {
-                phasesObject[phase.id] = {
-                    manDays: phase.manDays,
-                    effort: phase.effort,
-                    assignedResources: phase.assignedResources,
-                    cost: this.calculatePhaseTotalCost(phase),
-                    lastModified: phase.lastModified
-                };
-            });
-
-            // Save selected suppliers
-            phasesObject.selectedSuppliers = { ...this.selectedSuppliers };
-
-            // Save to project
-            this.app.currentProject.phases = phasesObject;
-
-            // Mark project as dirty and save manually
-            this.app.markDirty();
-            
-            // Save the project
-            if (this.app.saveProject) {
-                await this.app.saveProject();
-            }
-
-            // Mark as clean after successful save
-            this.isDirty = false;
-            this.updateSaveButtonState();
-
-            console.log('Phases configuration saved to project');
-            NotificationManager.success('Phases configuration saved successfully');
-
-        } catch (error) {
-            console.error('Failed to save phases to project:', error);
-            NotificationManager.warning('Failed to save phases configuration');
-        }
+        console.log('Phases are now saved automatically with project - use main Save button');
     }
 
     calculatePhaseTotalCost(phase) {
@@ -842,38 +785,7 @@ class ProjectPhasesManager {
         };
     }
 
-    exportPhases() {
-        try {
-            const totals = this.calculateTotals();
-            const exportData = {
-                metadata: {
-                    projectName: this.app.currentProject?.project?.name || 'Unknown Project',
-                    exportDate: new Date().toISOString(),
-                    version: '1.0.0'
-                },
-                resourceRates: this.resourceRates,
-                phases: this.currentPhases.map(phase => ({
-                    ...phase,
-                    totalCost: this.calculatePhaseTotalCost(phase),
-                    manDaysByResource: this.calculateManDaysByResource(phase.manDays, phase.effort),
-                    costByResource: this.calculateCostByResource(this.calculateManDaysByResource(phase.manDays, phase.effort), phase)
-                })),
-                totals: {
-                    ...totals,
-                    totalProjectCost: Object.values(totals.costByResource).reduce((sum, cost) => sum + cost, 0)
-                }
-            };
-
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const filename = `project-phases-${this.app.currentProject?.project?.name || 'export'}-${new Date().toISOString().split('T')[0]}.json`;
-
-            Helpers.downloadAsFile(dataStr, filename, 'application/json');
-            NotificationManager.success('Project phases exported successfully');
-        } catch (error) {
-            console.error('Export failed:', error);
-            NotificationManager.error('Failed to export phases configuration');
-        }
-    }
+    // Method removed - export functionality moved to main app export
 
     setupEventListeners() {
         // Listen for feature changes to update development phase
@@ -905,9 +817,16 @@ class ProjectPhasesManager {
 
     // New method: Call this when a project is loaded to ensure phases are synchronized
     synchronizeWithProject() {
-        console.log('Synchronizing phases with current project...');
+        console.log('=== SYNCHRONIZING WITH PROJECT ===');
+        console.log('Current project:', this.app.currentProject);
+        
+        if (!this.app.currentProject) {
+            console.log('No current project - skipping synchronization');
+            return;
+        }
         
         // Re-initialize phases from current project
+        this.loadResourceRates();  // Reload rates first
         this.initializePhases();
         
         // Force recalculation of development phase from features
@@ -916,13 +835,9 @@ class ProjectPhasesManager {
         // Mark as dirty after synchronization
         this.markDirty();
         
-        // Update UI if phases page is currently visible
-        const container = document.querySelector('.phases-configuration');
-        if (container) {
-            this.renderPhasesPage(container.parentElement);
-        }
-        
         console.log('Phases synchronized successfully');
+        console.log('Current phases after sync:', this.currentPhases);
+        console.log('Selected suppliers after sync:', this.selectedSuppliers);
     }
 
     getProjectPhases() {

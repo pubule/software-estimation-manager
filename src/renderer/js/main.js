@@ -96,7 +96,7 @@ class SoftwareEstimationApp {
         this.modalManager = new ModalManager();
         this.projectManager = new ProjectManager(this);
 
-        this.phasesManager = new ProjectPhasesManager(this, this.configManager);
+        this.projectPhasesManager = new ProjectPhasesManager(this, this.configManager);
         console.log('Project Phases Manager initialized and integrated');
 
         console.log('All managers initialized successfully with hierarchical configuration and nested navigation');
@@ -154,12 +154,12 @@ class SoftwareEstimationApp {
 
     // Nuovo metodo per ottenere il riepilogo delle fasi
     getPhasesSummary() {
-        if (this.phasesManager) {
+        if (this.projectPhasesManager) {
             return {
-                totalCost: this.phasesManager.getTotalProjectCost(),
-                totalManDays: this.phasesManager.getTotalProjectManDays(),
-                phases: this.phasesManager.getProjectPhases(),
-                validation: this.phasesManager.validateAllPhases()
+                totalCost: this.projectPhasesManager.getTotalProjectCost(),
+                totalManDays: this.projectPhasesManager.getTotalProjectManDays(),
+                phases: this.projectPhasesManager.getProjectPhases(),
+                validation: this.projectPhasesManager.validateAllPhases()
             };
         }
         return null;
@@ -389,8 +389,8 @@ class SoftwareEstimationApp {
                     this.isDirty = false;
 
                     // Synchronize phases with loaded project features
-                    if (this.phasesManager) {
-                        this.phasesManager.synchronizeWithProject();
+                    if (this.projectPhasesManager) {
+                        this.projectPhasesManager.synchronizeWithProject();
                     }
 
                     // Update navigation state - project is now loaded
@@ -449,6 +449,52 @@ class SoftwareEstimationApp {
         return projectData;
     }
 
+    async saveProjectPhasesConfiguration() {
+        // Save phases configuration from ProjectPhasesManager to current project
+        if (this.projectPhasesManager && this.currentProject) {
+            try {
+                console.log('=== SAVING PHASES CONFIGURATION ===');
+                
+                // Get current phases configuration
+                const currentPhases = this.projectPhasesManager.getProjectPhases();
+                const selectedSuppliers = this.projectPhasesManager.selectedSuppliers;
+                
+                console.log('Current phases:', currentPhases);
+                console.log('Selected suppliers:', selectedSuppliers);
+
+                // Convert phases array back to object format for storage
+                const phasesObject = {};
+                currentPhases.forEach(phase => {
+                    phasesObject[phase.id] = {
+                        manDays: phase.manDays,
+                        effort: phase.effort,
+                        assignedResources: phase.assignedResources || [],
+                        cost: this.projectPhasesManager.calculatePhaseTotalCost(phase),
+                        lastModified: phase.lastModified
+                    };
+                });
+
+                // Save selected suppliers
+                phasesObject.selectedSuppliers = { ...selectedSuppliers };
+
+                console.log('Phases object to save:', phasesObject);
+
+                // Update project with phases configuration
+                this.currentProject.phases = phasesObject;
+
+                console.log('Project phases configuration saved automatically');
+                console.log('Current project phases after save:', this.currentProject.phases);
+            } catch (error) {
+                console.error('Failed to save phases configuration:', error);
+                // Don't throw - allow main save to continue
+            }
+        } else {
+            console.log('Cannot save phases - missing projectPhasesManager or currentProject');
+            console.log('projectPhasesManager:', !!this.projectPhasesManager);
+            console.log('currentProject:', !!this.currentProject);
+        }
+    }
+
     async saveProject() {
         if (!this.currentProject) return;
 
@@ -462,6 +508,9 @@ class SoftwareEstimationApp {
             if (!this.currentProject.config.projectOverrides) {
                 this.currentProject.config = this.configManager.migrateProjectConfig(this.currentProject.config);
             }
+
+            // Save phases configuration automatically
+            await this.saveProjectPhasesConfiguration();
 
             // Save to localStorage with unique key
             const projectKey = `software-estimation-project-${this.currentProject.project.id}`;
@@ -498,6 +547,9 @@ class SoftwareEstimationApp {
         try {
             this.showLoading('Saving project...');
 
+            // Save phases configuration before creating copy
+            await this.saveProjectPhasesConfiguration();
+
             // Create a copy with new timestamp
             const projectCopy = Helpers.deepClone(this.currentProject);
             projectCopy.project.lastModified = new Date().toISOString();
@@ -531,6 +583,9 @@ class SoftwareEstimationApp {
             if (!this.currentProject.config.projectOverrides) {
                 this.currentProject.config = this.configManager.migrateProjectConfig(this.currentProject.config);
             }
+
+            // Save phases configuration in auto-save
+            await this.saveProjectPhasesConfiguration();
 
             await this.dataManager.saveProject(this.currentProject, 'autosave');
             this.updateLastSaved();
@@ -758,14 +813,14 @@ class SoftwareEstimationApp {
         this.updateProjectStatus();
 
         // Se sono state modificate le features, aggiorna le fasi
-        if (this.phasesManager) {
-            this.phasesManager.calculateDevelopmentPhase();
+        if (this.projectPhasesManager) {
+            this.projectPhasesManager.calculateDevelopmentPhase();
 
             // Aggiorna la UI solo se siamo nella pagina phases
             if (this.navigationManager.currentSection === 'phases') {
                 const phasesPage = document.getElementById('phases-page');
                 if (phasesPage && phasesPage.classList.contains('active')) {
-                    this.phasesManager.updateCalculations();
+                    this.projectPhasesManager.updateCalculations();
                 }
             }
         }
@@ -778,8 +833,8 @@ class SoftwareEstimationApp {
         this.updateSummary();
         this.updateConfigurationStatus();
         // Aggiorna il phases manager se esiste e siamo nella pagina corretta
-        if (this.phasesManager && this.navigationManager.currentSection === 'phases') {
-            this.phasesManager.refreshFromFeatures();
+        if (this.projectPhasesManager && this.navigationManager.currentSection === 'phases') {
+            this.projectPhasesManager.refreshFromFeatures();
         }
     }
 
