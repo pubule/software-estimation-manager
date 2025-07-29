@@ -243,20 +243,14 @@ class CategoriesConfigManager {
     /**
      * Render the categories configuration page
      */
-    renderCategoriesPage(container) {
-        console.log('renderCategoriesPage called');
-        console.log('Container:', container);
-        console.log('Container ID:', container?.id);
-        console.log('Container className:', container?.className);
-        
+    renderCategoriesPage(container) {        
         if (!container) {
-            console.log('No container provided');
+            console.log('No container provided to renderCategoriesPage');
             return;
         }
 
         // Ensure default categories are initialized before rendering
-        // Force reset on first render to ensure we have the correct structure
-        this.ensureDefaultCategories(true);
+        this.ensureDefaultCategories();
 
         container.innerHTML = `
             <div class="categories-config-container">
@@ -411,8 +405,6 @@ class CategoriesConfigManager {
 
         if (this.currentScope === 'global') {
             const categories = this.configManager.globalConfig?.categories || [];
-            console.log('Global categories found:', categories.length);
-            console.log('Categories data:', JSON.stringify(categories, null, 2));
             return categories;
         } else {
             const currentProject = this.app?.currentProject;
@@ -494,21 +486,21 @@ class CategoriesConfigManager {
                             <i class="fas fa-list"></i>
                             ${category.featureTypes?.length || 0} feature types
                         </span>
+                        <div class="category-actions">
+                            <button class="btn btn-small btn-secondary" data-action="edit-category" 
+                                    data-category-id="${category.id}" title="Edit Category">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-small btn-secondary" data-action="duplicate-category" 
+                                    data-category-id="${category.id}" title="Duplicate Category">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="btn btn-small btn-danger" data-action="delete-category" 
+                                    data-category-id="${category.id}" title="Delete Category">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div class="category-actions">
-                    <button class="btn btn-small btn-secondary" data-action="edit-category" 
-                            data-category-id="${category.id}" title="Edit Category">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-small btn-secondary" data-action="duplicate-category" 
-                            data-category-id="${category.id}" title="Duplicate Category">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                    <button class="btn btn-small btn-danger" data-action="delete-category" 
-                            data-category-id="${category.id}" title="Delete Category">
-                        <i class="fas fa-trash"></i>
-                    </button>
                 </div>
             </div>
         `).join('');
