@@ -128,6 +128,26 @@
     flex: 1;
     overflow-y: auto;
     padding: var(--spacing-sm);
+    max-height: 450px; /* Set maximum height to enable scrolling */
+}
+
+/* Custom scrollbar for categories list */
+.categories-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.categories-list::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.categories-list::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.categories-list::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-secondary);
 }
 
 .category-item {
@@ -289,6 +309,26 @@
     flex: 1;
     padding: var(--spacing-md);
     overflow-y: auto;
+    max-height: 450px; /* Set maximum height to enable scrolling */
+}
+
+/* Custom scrollbar for feature types section */
+.feature-types-section::-webkit-scrollbar {
+    width: 8px;
+}
+
+.feature-types-section::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.feature-types-section::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.feature-types-section::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-secondary);
 }
 
 .feature-types-section h4 {
@@ -302,6 +342,26 @@
     border-radius: var(--border-radius);
     overflow: hidden;
     border: 1px solid var(--border-color);
+    max-height: 300px; /* Limit table height */
+    overflow-y: auto; /* Enable vertical scrolling for table */
+}
+
+/* Custom scrollbar for feature types table */
+.feature-types-table::-webkit-scrollbar {
+    width: 8px;
+}
+
+.feature-types-table::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+.feature-types-table::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.feature-types-table::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-secondary);
 }
 
 .feature-types-table .data-table {

@@ -186,11 +186,16 @@ class ConfigurationUIManager {
      * Carica configurazione categorie
      */
     async loadCategoriesConfig(contentDiv) {
+        console.log('ConfigurationUIManager: loadCategoriesConfig called');
+        console.log('contentDiv:', contentDiv);
+        
         if (!this.subManagers.has('categories')) {
+            console.log('Creating new CategoriesConfigManager');
             this.subManagers.set('categories', new CategoriesConfigManager(this.app, this.configManager));
         }
 
         const categoriesManager = this.subManagers.get('categories');
+        console.log('Calling renderCategoriesPage');
         categoriesManager.renderCategoriesPage(contentDiv);
     }
 

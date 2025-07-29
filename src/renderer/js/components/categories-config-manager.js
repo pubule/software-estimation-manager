@@ -43,7 +43,7 @@ class CategoriesConfigManager {
                         id: 'db-dao-crud',
                         name: 'DAO/CRUD operations',
                         description: 'Data Access Object and CRUD implementations',
-                        averageMDs: 3
+                        averageMDs: 2
                     }
                 ]
             },
@@ -91,13 +91,13 @@ class CategoriesConfigManager {
                         id: 'frontend-new-page',
                         name: 'Develop new page/component',
                         description: 'Create new frontend pages or components',
-                        averageMDs: 3
+                        averageMDs: 7
                     },
                     {
                         id: 'frontend-modify-page',
                         name: 'Modify existing page',
                         description: 'Update existing frontend pages',
-                        averageMDs: 7
+                        averageMDs: 3
                     },
                     {
                         id: 'frontend-form-management',
@@ -135,20 +135,43 @@ class CategoriesConfigManager {
 
     init() {
         console.log('CategoriesConfigManager initialized');
-        this.ensureDefaultCategories();
+        // Delay initialization to ensure ConfigurationManager is ready
+        setTimeout(() => {
+            this.ensureDefaultCategories();
+        }, 100);
         this.setupEventListeners();
     }
 
     /**
      * Ensure default categories exist in global configuration
      */
-    ensureDefaultCategories() {
-        if (!this.configManager || !this.configManager.globalConfig) return;
+    ensureDefaultCategories(forceReset = false) {
+        console.log('ensureDefaultCategories called, forceReset:', forceReset);
+        console.log('configManager:', !!this.configManager);
+        console.log('globalConfig:', !!this.configManager?.globalConfig);
         
-        if (!this.configManager.globalConfig.categories || this.configManager.globalConfig.categories.length === 0) {
+        if (!this.configManager || !this.configManager.globalConfig) {
+            console.log('ConfigManager or globalConfig not available');
+            return;
+        }
+        
+        const existingCategories = this.configManager.globalConfig.categories;
+        console.log('Existing categories:', existingCategories?.length || 0);
+        
+        if (!existingCategories || existingCategories.length === 0 || forceReset) {
+            console.log('Initializing default categories:', this.defaultCategories.length);
+            console.log('Force reset:', forceReset);
             this.configManager.globalConfig.categories = [...this.defaultCategories];
             this.configManager.saveGlobalConfig();
-            console.log('Default categories initialized');
+            console.log('Default categories initialized successfully');
+        } else {
+            console.log('Categories already exist, skipping initialization');
+            // Log the existing categories to see their structure
+            console.log('Existing categories structure:', JSON.stringify(existingCategories.map(cat => ({
+                id: cat.id,
+                name: cat.name,
+                featureTypesCount: cat.featureTypes?.length || 0
+            })), null, 2));
         }
     }
 
@@ -221,7 +244,19 @@ class CategoriesConfigManager {
      * Render the categories configuration page
      */
     renderCategoriesPage(container) {
-        if (!container) return;
+        console.log('renderCategoriesPage called');
+        console.log('Container:', container);
+        console.log('Container ID:', container?.id);
+        console.log('Container className:', container?.className);
+        
+        if (!container) {
+            console.log('No container provided');
+            return;
+        }
+
+        // Ensure default categories are initialized before rendering
+        // Force reset on first render to ensure we have the correct structure
+        this.ensureDefaultCategories(true);
 
         container.innerHTML = `
             <div class="categories-config-container">
@@ -367,16 +402,29 @@ class CategoriesConfigManager {
      * Get categories for current scope
      */
     getCurrentCategories() {
-        if (!this.configManager) return [];
+        console.log('getCurrentCategories called, scope:', this.currentScope);
+        
+        if (!this.configManager) {
+            console.log('No configManager available');
+            return [];
+        }
 
         if (this.currentScope === 'global') {
-            return this.configManager.globalConfig?.categories || [];
+            const categories = this.configManager.globalConfig?.categories || [];
+            console.log('Global categories found:', categories.length);
+            console.log('Categories data:', JSON.stringify(categories, null, 2));
+            return categories;
         } else {
             const currentProject = this.app?.currentProject;
-            if (!currentProject) return [];
+            if (!currentProject) {
+                console.log('No current project available');
+                return [];
+            }
             
             const projectConfig = this.configManager.getProjectConfig(currentProject.config);
-            return projectConfig.categories || [];
+            const categories = projectConfig.categories || [];
+            console.log('Project categories found:', categories.length);
+            return categories;
         }
     }
 
@@ -793,6 +841,14 @@ class CategoriesConfigManager {
     }
 
     escapeHtml(text) {
+        // Handle null, undefined, or empty values
+        if (text === null || text === undefined || text === '') {
+            return '';
+        }
+        
+        // Convert to string if not already
+        text = String(text);
+        
         if (typeof Helpers !== 'undefined' && Helpers.escapeHtml) {
             return Helpers.escapeHtml(text);
         }
