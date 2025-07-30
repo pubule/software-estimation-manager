@@ -242,23 +242,19 @@ class ProjectPhasesManager {
                         <div class="supplier-selector">
                             <label for="g1-supplier">G1 (Grade 1 Developer):</label>
                             ${this.renderSupplierDropdown('G1', 'g1-supplier', availableSuppliers)}
-                            <span class="current-rate" id="g1-rate">€${this.resourceRates.G1}/day</span>
                         </div>
                         <div class="supplier-selector">
                             <label for="g2-supplier">G2 (Grade 2 Developer):</label>
                             ${this.renderSupplierDropdown('G2', 'g2-supplier', availableSuppliers)}
-                            <span class="current-rate" id="g2-rate">€${this.resourceRates.G2}/day</span>
                             <small class="supplier-note">Note: Development phase uses feature-specific suppliers</small>
                         </div>
                         <div class="supplier-selector">
                             <label for="ta-supplier">TA (Technical Analyst):</label>
                             ${this.renderSupplierDropdown('TA', 'ta-supplier', availableSuppliers)}
-                            <span class="current-rate" id="ta-rate">€${this.resourceRates.TA}/day</span>
                         </div>
                         <div class="supplier-selector">
                             <label for="pm-supplier">PM (Project Manager):</label>
                             ${this.renderSupplierDropdown('PM', 'pm-supplier', availableSuppliers)}
-                            <span class="current-rate" id="pm-rate">€${this.resourceRates.PM}/day</span>
                         </div>
                     </div>
                 </div>
