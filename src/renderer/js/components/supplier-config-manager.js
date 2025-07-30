@@ -31,83 +31,83 @@ class SupplierConfigManager {
         this.defaultSuppliers = [
             {
                 id: 'reply-g1-it',
-                name: 'Reply G1 IT',
+                name: 'Reply',
+                role: 'G1',
+                department: 'IT',
                 realRate: 463.00,
                 officialRate: 463.00,
-                status: 'active',
-                notes: 'Role: G1, Department: IT',
                 isGlobal: true
             },
             {
                 id: 'quid-g1-it',
-                name: 'Quid G1 IT',
+                name: 'Quid',
+                role: 'G1',
+                department: 'IT',
                 realRate: 506.30,
                 officialRate: 506.30,
-                status: 'active',
-                notes: 'Role: G1, Department: IT',
                 isGlobal: true
             },
             {
                 id: 'pwc-g1-it',
-                name: 'PwC G1 IT',
+                name: 'PwC',
+                role: 'G1',
+                department: 'IT',
                 realRate: 402.60,
                 officialRate: 402.60,
-                status: 'active',
-                notes: 'Role: G1, Department: IT',
                 isGlobal: true
             },
             {
                 id: 'reply-pm-it',
-                name: 'Reply PM IT',
+                name: 'Reply',
+                role: 'PM',
+                department: 'IT',
                 realRate: 463.00,
                 officialRate: 463.00,
-                status: 'active',
-                notes: 'Role: PM, Department: IT',
                 isGlobal: true
             },
             {
                 id: 'quid-pm-it',
-                name: 'Quid PM IT',
+                name: 'Quid',
+                role: 'PM',
+                department: 'IT',
                 realRate: 506.30,
                 officialRate: 506.30,
-                status: 'active',
-                notes: 'Role: PM, Department: IT',
                 isGlobal: true
             },
             {
                 id: 'pwc-pm-it',
-                name: 'PwC PM IT',
+                name: 'PwC',
+                role: 'PM',
+                department: 'IT',
                 realRate: 402.60,
                 officialRate: 402.60,
-                status: 'active',
-                notes: 'Role: PM, Department: IT',
                 isGlobal: true
             },
             {
                 id: 'reply-g2-it',
-                name: 'Reply G2 IT',
+                name: 'Reply',
+                role: 'G2',
+                department: 'IT',
                 realRate: 323.30,
                 officialRate: 323.30,
-                status: 'active',
-                notes: 'Role: G2, Department: IT',
                 isGlobal: true
             },
             {
                 id: 'quid-g2-it',
-                name: 'Quid G2 IT',
+                name: 'Quid',
+                role: 'G2',
+                department: 'IT',
                 realRate: 375.76,
                 officialRate: 375.76,
-                status: 'active',
-                notes: 'Role: G2, Department: IT',
                 isGlobal: true
             },
             {
                 id: 'pwc-g2-it',
-                name: 'PwC G2 IT',
+                name: 'PwC',
+                role: 'G2',
+                department: 'IT',
                 realRate: 317.20,
                 officialRate: 317.20,
-                status: 'active',
-                notes: 'Role: G2, Department: IT',
                 isGlobal: true
             }
         ];
@@ -602,6 +602,20 @@ class SupplierConfigManager {
             errors.push('Supplier name must be at least 2 characters');
         }
 
+        // Validazione role
+        if (!supplierData.role || !supplierData.role.trim()) {
+            errors.push('Role is required');
+        } else if (supplierData.role.trim().length > 100) {
+            errors.push('Role must be 100 characters or less');
+        }
+
+        // Validazione department
+        if (!supplierData.department || !supplierData.department.trim()) {
+            errors.push('Department is required');
+        } else if (supplierData.department.trim().length > 50) {
+            errors.push('Department must be 50 characters or less');
+        }
+
         // Validazione real rate
         if (supplierData.realRate === undefined || supplierData.realRate === null) {
             errors.push('Real rate is required');
@@ -618,17 +632,6 @@ class SupplierConfigManager {
             errors.push('Official rate must be a positive number');
         } else if (supplierData.officialRate > 10000) {
             errors.push('Official rate seems unreasonably high (max 10,000 €/day)');
-        }
-
-        // Validazione status
-        const validStatuses = ['active', 'inactive'];
-        if (!supplierData.status || !validStatuses.includes(supplierData.status)) {
-            errors.push('Status must be either "active" or "inactive"');
-        }
-
-        // Validazione notes (opzionale)
-        if (supplierData.notes && supplierData.notes.length > 500) {
-            errors.push('Notes must be 500 characters or less');
         }
 
         // Validazione ID (se presente)
@@ -686,18 +689,18 @@ class SupplierConfigManager {
      */
     extractRowFormData(row) {
         const nameInput = row.querySelector('.name-input');
+        const roleInput = row.querySelector('.role-input');
+        const departmentInput = row.querySelector('.department-input');
         const realRateInput = row.querySelector('.rate-input');
         const officialRateInput = row.querySelectorAll('.rate-input')[1];
-        const statusSelect = row.querySelector('.status-select');
-        const notesInput = row.querySelector('.notes-input');
 
         return {
             id: row.dataset.supplierId,
             name: nameInput.value.trim(),
+            role: roleInput.value.trim(),
+            department: departmentInput.value.trim(),
             realRate: parseFloat(realRateInput.value) || 0,
             officialRate: parseFloat(officialRateInput.value) || 0,
-            status: statusSelect.value,
-            notes: notesInput.value.trim(),
             isGlobal: this.currentScope === 'global'
         };
     }
@@ -707,9 +710,10 @@ class SupplierConfigManager {
      */
     validateField(field) {
         const row = field.closest('.supplier-row');
-        const fieldName = field.className.includes('name-input') ? 'name' :
-            field.className.includes('rate-input') ? 'rate' :
-                field.className.includes('notes-input') ? 'notes' : '';
+        const fieldType = field.className.includes('name-input') ? 'name' :
+            field.className.includes('role-input') ? 'role' :
+                field.className.includes('department-input') ? 'department' :
+                    field.className.includes('rate-input') ? 'rate' : '';
 
         // Rimuovi errori precedenti
         this.clearFieldError(field);
@@ -718,7 +722,7 @@ class SupplierConfigManager {
         let isValid = true;
         let errorMessage = '';
 
-        if (fieldName === 'name') {
+        if (fieldType === 'name') {
             if (!field.value.trim()) {
                 isValid = false;
                 errorMessage = 'Name is required';
@@ -726,16 +730,27 @@ class SupplierConfigManager {
                 isValid = false;
                 errorMessage = 'Name too long';
             }
-        } else if (fieldName === 'rate') {
+        } else if (fieldType === 'role') {
+            if (!field.value.trim()) {
+                isValid = false;
+                errorMessage = 'Role is required';
+            } else if (field.value.length > 100) {
+                isValid = false;
+                errorMessage = 'Role too long';
+            }
+        } else if (fieldType === 'department') {
+            if (!field.value.trim()) {
+                isValid = false;
+                errorMessage = 'Department is required';
+            } else if (field.value.length > 50) {
+                isValid = false;
+                errorMessage = 'Department too long';
+            }
+        } else if (fieldType === 'rate') {
             const value = parseFloat(field.value);
             if (isNaN(value) || value <= 0) {
                 isValid = false;
                 errorMessage = 'Must be greater than 0';
-            }
-        } else if (fieldName === 'notes') {
-            if (field.value.length > 500) {
-                isValid = false;
-                errorMessage = 'Notes too long';
             }
         }
 
@@ -837,6 +852,8 @@ class SupplierConfigManager {
      * Genera i controlli della tabella (filtri, ricerca, azioni)
      */
     generateTableControls() {
+        const departments = [...new Set(this.suppliers.map(s => s.department).filter(d => d))];
+        
         return `
             <div class="table-controls">
                 <div class="controls-left">
@@ -850,14 +867,12 @@ class SupplierConfigManager {
                                 data-filter="all">
                             All <span class="count">(${this.suppliers.length})</span>
                         </button>
-                        <button class="filter-chip ${this.currentFilter === 'active' ? 'active' : ''}" 
-                                data-filter="active">
-                            Active <span class="count">(${this.suppliers.filter(s => s.status === 'active').length})</span>
-                        </button>
-                        <button class="filter-chip ${this.currentFilter === 'inactive' ? 'active' : ''}" 
-                                data-filter="inactive">
-                            Inactive <span class="count">(${this.suppliers.filter(s => s.status === 'inactive').length})</span>
-                        </button>
+                        ${departments.map(dept => `
+                            <button class="filter-chip ${this.currentFilter === dept ? 'active' : ''}" 
+                                    data-filter="${dept}">
+                                ${dept} <span class="count">(${this.suppliers.filter(s => s.department === dept).length})</span>
+                            </button>
+                        `).join('')}
                     </div>
                 </div>
                 <div class="controls-right">
@@ -889,6 +904,16 @@ class SupplierConfigManager {
                                 Name 
                                 <i class="fas fa-sort${this.getSortIcon('name')}"></i>
                             </th>
+                            <th class="role-col sortable ${this.sortField === 'role' ? 'sorted' : ''}" 
+                                data-field="role">
+                                Role
+                                <i class="fas fa-sort${this.getSortIcon('role')}"></i>
+                            </th>
+                            <th class="department-col sortable ${this.sortField === 'department' ? 'sorted' : ''}" 
+                                data-field="department">
+                                Department
+                                <i class="fas fa-sort${this.getSortIcon('department')}"></i>
+                            </th>
                             <th class="rate-col sortable ${this.sortField === 'realRate' ? 'sorted' : ''}" 
                                 data-field="realRate">
                                 Real Rate (€/day)
@@ -899,12 +924,6 @@ class SupplierConfigManager {
                                 Official Rate (€/day)
                                 <i class="fas fa-sort${this.getSortIcon('officialRate')}"></i>
                             </th>
-                            <th class="status-col sortable ${this.sortField === 'status' ? 'sorted' : ''}" 
-                                data-field="status">
-                                Status
-                                <i class="fas fa-sort${this.getSortIcon('status')}"></i>
-                            </th>
-                            <th class="notes-col">Notes</th>
                             <th class="actions-col">Actions</th>
                         </tr>
                     </thead>
@@ -948,19 +967,17 @@ class SupplierConfigManager {
                         ${this.generateSupplierBadges(supplier)}
                     </div>
                 </td>
+                <td class="role-cell">
+                    <span class="role-value">${this.escapeHtml(supplier.role || '')}</span>
+                </td>
+                <td class="department-cell">
+                    <span class="department-badge dept-${(supplier.department || '').toLowerCase().replace(/\s+/g, '-')}">${this.escapeHtml(supplier.department || '')}</span>
+                </td>
                 <td class="rate-cell">
                     <span class="rate-value">€${supplier.realRate.toLocaleString()}</span>
                 </td>
                 <td class="rate-cell">
                     <span class="rate-value">€${supplier.officialRate.toLocaleString()}</span>
-                </td>
-                <td class="status-cell">
-                    <span class="status-badge status-${supplier.status}">${supplier.status}</span>
-                </td>
-                <td class="notes-cell">
-                    <span class="notes-content" title="${this.escapeHtml(supplier.notes || '')}">
-                        ${supplier.notes ? this.truncateText(supplier.notes, 50) : '-'}
-                    </span>
                 </td>
                 <td class="actions-cell">
                     ${this.generateRowActions(supplier)}
@@ -982,6 +999,14 @@ class SupplierConfigManager {
                     <input type="text" class="edit-input name-input" value="${this.escapeHtml(supplier.name)}" 
                            maxlength="100" required>
                 </td>
+                <td class="role-cell">
+                    <input type="text" class="edit-input role-input" value="${this.escapeHtml(supplier.role || '')}" 
+                           maxlength="100" required>
+                </td>
+                <td class="department-cell">
+                    <input type="text" class="edit-input department-input" value="${this.escapeHtml(supplier.department || '')}" 
+                           maxlength="50" required>
+                </td>
                 <td class="rate-cell">
                     <input type="number" class="edit-input rate-input" value="${supplier.realRate}" 
                            min="0" step="0.01" required>
@@ -989,16 +1014,6 @@ class SupplierConfigManager {
                 <td class="rate-cell">
                     <input type="number" class="edit-input rate-input" value="${supplier.officialRate}" 
                            min="0" step="0.01" required>
-                </td>
-                <td class="status-cell">
-                    <select class="edit-select status-select" required>
-                        <option value="active" ${supplier.status === 'active' ? 'selected' : ''}>Active</option>
-                        <option value="inactive" ${supplier.status === 'inactive' ? 'selected' : ''}>Inactive</option>
-                    </select>
-                </td>
-                <td class="notes-cell">
-                    <textarea class="edit-textarea notes-input" maxlength="500" 
-                              placeholder="Optional notes...">${this.escapeHtml(supplier.notes || '')}</textarea>
                 </td>
                 <td class="actions-cell">
                     <div class="edit-actions">
@@ -1047,13 +1062,15 @@ class SupplierConfigManager {
                 const searchLower = this.searchQuery.toLowerCase();
                 const matchesSearch =
                     supplier.name.toLowerCase().includes(searchLower) ||
-                    (supplier.notes && supplier.notes.toLowerCase().includes(searchLower));
+                    (supplier.role || '').toLowerCase().includes(searchLower) ||
+                    (supplier.department || '').toLowerCase().includes(searchLower);
                 if (!matchesSearch) return false;
             }
 
-            // Filtro per status
-            if (this.currentFilter === 'active') return supplier.status === 'active';
-            if (this.currentFilter === 'inactive') return supplier.status === 'inactive';
+            // Filtro per department
+            if (this.currentFilter !== 'all') {
+                return supplier.department === this.currentFilter;
+            }
 
             return true; // 'all' filter
         });
@@ -1266,12 +1283,17 @@ class SupplierConfigManager {
     }
 
     updateFilterCounts() {
-        const activeCount = this.suppliers.filter(s => s.status === 'active').length;
-        const inactiveCount = this.suppliers.filter(s => s.status === 'inactive').length;
-
+        const departments = [...new Set(this.suppliers.map(s => s.department).filter(d => d))];
+        
         document.querySelector('[data-filter="all"] .count').textContent = `(${this.suppliers.length})`;
-        document.querySelector('[data-filter="active"] .count').textContent = `(${activeCount})`;
-        document.querySelector('[data-filter="inactive"] .count').textContent = `(${inactiveCount})`;
+        
+        departments.forEach(dept => {
+            const count = this.suppliers.filter(s => s.department === dept).length;
+            const chip = document.querySelector(`[data-filter="${dept}"] .count`);
+            if (chip) {
+                chip.textContent = `(${count})`;
+            }
+        });
     }
 
     refreshTable() {
@@ -1420,11 +1442,11 @@ class SupplierConfigManager {
      * Popola il form con i dati del supplier
      */
     populateForm(supplier) {
-        const fields = ['name', 'realRate', 'officialRate', 'status', 'notes'];
+        const fields = ['name', 'role', 'department', 'realRate', 'officialRate'];
         fields.forEach(field => {
             const element = document.getElementById(`supplier-${field.replace(/([A-Z])/g, '-$1').toLowerCase()}`);
             if (element) {
-                element.value = supplier[field] || (field === 'status' ? 'active' : '');
+                element.value = supplier[field] || '';
             }
         });
     }
@@ -1558,18 +1580,18 @@ class SupplierConfigManager {
      */
     extractFormData(form, supplierId, scope) {
         const nameField = document.getElementById('supplier-name');
+        const roleField = document.getElementById('supplier-role');
+        const departmentField = document.getElementById('supplier-department');
         const realRateField = document.getElementById('supplier-real-rate');
         const officialRateField = document.getElementById('supplier-official-rate');
-        const statusField = document.getElementById('supplier-status');
-        const notesField = document.getElementById('supplier-notes');
 
         return {
             id: supplierId || this.generateId('supplier_'),
             name: nameField?.value?.trim() || '',
+            role: roleField?.value?.trim() || '',
+            department: departmentField?.value?.trim() || '',
             realRate: parseFloat(realRateField?.value) || 0,
             officialRate: parseFloat(officialRateField?.value) || 0,
-            status: statusField?.value || 'active',
-            notes: notesField?.value?.trim() || '',
             isGlobal: scope === 'global'
         };
     }
@@ -1743,6 +1765,16 @@ class SupplierConfigManager {
                                        placeholder="Enter supplier company name">
                             </div>
                             <div class="form-group">
+                                <label for="supplier-role">Role:</label>
+                                <input type="text" id="supplier-role" name="role" required maxlength="100" 
+                                       placeholder="e.g., G1, G2, PM, Tech Lead">
+                            </div>
+                            <div class="form-group">
+                                <label for="supplier-department">Department:</label>
+                                <input type="text" id="supplier-department" name="department" required maxlength="50" 
+                                       placeholder="e.g., IT, Development, Operations">
+                            </div>
+                            <div class="form-group">
                                 <label for="supplier-real-rate">Real Rate (€/day):</label>
                                 <input type="number" id="supplier-real-rate" name="realRate" min="0" step="0.01" required
                                        placeholder="Actual daily rate">
@@ -1751,18 +1783,6 @@ class SupplierConfigManager {
                                 <label for="supplier-official-rate">Official Rate (€/day):</label>
                                 <input type="number" id="supplier-official-rate" name="officialRate" min="0" step="0.01" required
                                        placeholder="Official/invoiced daily rate">
-                            </div>
-                            <div class="form-group">
-                                <label for="supplier-status">Status:</label>
-                                <select id="supplier-status" name="status" required>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="supplier-notes">Notes (Optional):</label>
-                                <textarea id="supplier-notes" name="notes" rows="3" maxlength="500" 
-                                          placeholder="Additional notes about this supplier"></textarea>
                             </div>
                         </form>
                     </div>

@@ -3656,7 +3656,16 @@
     transform: translateY(-50%) !important;
 }
 
-.resources-scope-selector {
+/* Specific rule for suppliers reset button positioning */
+.suppliers-scope-selector .scope-actions {
+    position: absolute !important;
+    right: var(--spacing-lg) !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+}
+
+.resources-scope-selector,
+.suppliers-scope-selector {
     position: relative !important;
 }
 
