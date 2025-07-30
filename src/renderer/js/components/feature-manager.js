@@ -487,6 +487,9 @@ class FeatureManager {
         // Populate supplier filter dropdown
         this.populateSupplierFilterDropdown(projectConfig.suppliers, projectConfig.internalResources);
 
+        // Populate feature type filter dropdown
+        this.populateFeatureTypeFilterDropdown(projectConfig.categories);
+
         console.log('Filter dropdowns populated from merged project configuration');
     }
 
@@ -594,6 +597,57 @@ class FeatureManager {
     }
 
     /**
+     * Populate feature type filter dropdown
+     * @param {Array} categories - Array of categories from merged config
+     */
+    populateFeatureTypeFilterDropdown(categories) {
+        const featureTypeFilterSelect = document.getElementById('feature-type-filter');
+        if (!featureTypeFilterSelect) return;
+
+        // Store current selection
+        const currentValue = featureTypeFilterSelect.value;
+
+        // Clear existing options (except first)
+        while (featureTypeFilterSelect.children.length > 1) {
+            featureTypeFilterSelect.removeChild(featureTypeFilterSelect.lastChild);
+        }
+
+        // Collect all feature types from all categories
+        const allFeatureTypes = [];
+        categories.forEach(category => {
+            if (category.featureTypes && category.featureTypes.length > 0) {
+                category.featureTypes.forEach(featureType => {
+                    if (featureType.id && featureType.name) {
+                        allFeatureTypes.push({
+                            id: featureType.id,
+                            name: featureType.name,
+                            categoryName: category.name
+                        });
+                    }
+                });
+            }
+        });
+
+        // Sort feature types by name
+        allFeatureTypes.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Add feature types to dropdown
+        allFeatureTypes.forEach(featureType => {
+            const option = document.createElement('option');
+            option.value = featureType.id;
+            option.textContent = featureType.name;
+            featureTypeFilterSelect.appendChild(option);
+        });
+
+        // Restore previous selection if it still exists
+        if (currentValue) {
+            featureTypeFilterSelect.value = currentValue;
+        }
+
+        console.log(`Populated ${allFeatureTypes.length} feature types in filter dropdown`);
+    }
+
+    /**
      * Clear dropdowns when no configuration data is available
      */
     clearModalDropdowns() {
@@ -617,6 +671,7 @@ class FeatureManager {
     clearFilterDropdowns() {
         const categoryFilterSelect = document.getElementById('category-filter');
         const supplierFilterSelect = document.getElementById('supplier-filter');
+        const featureTypeFilterSelect = document.getElementById('feature-type-filter');
 
         if (categoryFilterSelect) {
             categoryFilterSelect.innerHTML = '<option value="">All Categories</option>';
@@ -624,6 +679,10 @@ class FeatureManager {
 
         if (supplierFilterSelect) {
             supplierFilterSelect.innerHTML = '<option value="">All Suppliers</option>';
+        }
+
+        if (featureTypeFilterSelect) {
+            featureTypeFilterSelect.innerHTML = '<option value="">All Feature Types</option>';
         }
 
         console.log('Filter dropdowns cleared - no configuration data available');
@@ -1223,6 +1282,12 @@ class FeatureManager {
             features = features.filter(f => f.supplier === supplierFilter);
         }
 
+        // Feature type filter
+        const featureTypeFilter = document.getElementById('feature-type-filter')?.value;
+        if (featureTypeFilter) {
+            features = features.filter(f => f.featureType === featureTypeFilter);
+        }
+
         // Search filter
         const searchTerm = document.getElementById('search-input')?.value?.toLowerCase();
         if (searchTerm) {
@@ -1322,10 +1387,10 @@ class FeatureManager {
         tbody.innerHTML = '';
 
         if (this.filteredFeatures.length === 0) {
-            // Show empty state (8 columns now instead of 10)
+            // Show empty state (7 columns now without category)
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td colspan="8" class="empty-state">
+                <td colspan="7" class="empty-state">
                     <div class="empty-state-icon">
                         <i class="fas fa-inbox"></i>
                     </div>
@@ -1376,9 +1441,6 @@ class FeatureManager {
             <td class="feature-id">${this.escapeHtml(feature.id)}</td>
             <td class="feature-description">
                 <div class="description-main">${this.escapeHtml(feature.description)}</div>
-            </td>
-            <td class="feature-category">
-                <span class="badge">${this.escapeHtml(categoryName)}</span>
             </td>
             <td class="feature-supplier">${this.escapeHtml(supplierName)}</td>
             <td class="feature-real-man-days text-right">${feature.realManDays || 0}</td>
@@ -1446,10 +1508,22 @@ class FeatureManager {
         detailsRow.dataset.featureId = feature.id;
         detailsRow.classList.add('feature-details-row', 'collapsed');
 
+        const currentProject = window.app?.currentProject;
+        const categoryName = this.getCategoryName(currentProject, feature.category);
+        const featureTypeName = this.getFeatureTypeName(currentProject, feature.featureType);
+
         detailsRow.innerHTML = `
-            <td colspan="8" class="feature-details">
+            <td colspan="7" class="feature-details">
                 <div class="details-container">
                     <div class="details-grid">
+                        <div class="detail-group">
+                            <label>Category:</label>
+                            <span class="detail-value">${this.escapeHtml(categoryName)}</span>
+                        </div>
+                        <div class="detail-group">
+                            <label>Feature Type:</label>
+                            <span class="detail-value">${this.escapeHtml(featureTypeName)}</span>
+                        </div>
                         <div class="detail-group">
                             <label>Expertise Level:</label>
                             <span class="detail-value">${feature.expertise || 100}%</span>
@@ -1556,6 +1630,30 @@ class FeatureManager {
         if (!project || !supplierId || !this.configManager) return 'Unassigned';
 
         return this.configManager.getSupplierDisplayName(project.config, supplierId);
+    }
+
+    /**
+     * Get feature type name by ID using ConfigurationManager
+     * @param {Object} project - Project data
+     * @param {string} featureTypeId - Feature type ID
+     */
+    getFeatureTypeName(project, featureTypeId) {
+        if (!project || !featureTypeId || !this.configManager) return 'No Feature Type';
+
+        // Get project config
+        const projectConfig = this.configManager.getProjectConfig(project.config);
+        
+        // Search through all categories to find the feature type
+        for (const category of projectConfig.categories || []) {
+            if (category.featureTypes) {
+                const featureType = category.featureTypes.find(ft => ft.id === featureTypeId);
+                if (featureType) {
+                    return featureType.name;
+                }
+            }
+        }
+        
+        return 'Unknown Feature Type';
     }
 
     /**
