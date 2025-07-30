@@ -151,17 +151,6 @@
     border-color: var(--border-hover);
 }
 
-.current-rate {
-    font-weight: 600;
-    color: var(--text-accent);
-    min-width: 80px;
-    text-align: right;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background-color: rgba(59, 130, 246, 0.1);
-    border-radius: var(--radius-sm);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    font-family: monospace;
-}
 
 .supplier-note {
     font-size: var(--font-size-xs);
@@ -669,10 +658,6 @@
         min-width: auto;
     }
     
-    .current-rate {
-        min-width: 70px;
-        font-size: var(--font-size-xs);
-    }
 }
 
 @media (max-width: 480px) {

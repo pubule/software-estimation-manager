@@ -13,6 +13,7 @@ class SoftwareEstimationApp {
         this.configManager = null;
         this.dataManager = null;
         this.featureManager = null;
+        this.calculationsManager = null;
         this.navigationManager = null;
         this.modalManager = null;
         this.projectManager = null;
@@ -50,6 +51,7 @@ class SoftwareEstimationApp {
         console.log('DataManager:', typeof DataManager);
         console.log('ConfigurationManager:', typeof ConfigurationManager);
         console.log('FeatureManager:', typeof FeatureManager);
+        console.log('CalculationsManager:', typeof CalculationsManager);
         console.log('EnhancedNavigationManager:', typeof EnhancedNavigationManager);
         console.log('ModalManager:', typeof ModalManager);
         console.log('ProjectManager:', typeof ProjectManager);
@@ -91,6 +93,7 @@ class SoftwareEstimationApp {
         this.configurationUI = new ConfigurationUIManager(this, this.configManager);
 
         this.featureManager = new FeatureManager(this.dataManager, this.configManager);
+        this.calculationsManager = new CalculationsManager(this, this.configManager);
         this.navigationManager = new EnhancedNavigationManager(this, this.configManager);
         this.modalManager = new ModalManager();
         this.projectManager = new ProjectManager(this);
@@ -800,6 +803,10 @@ class SoftwareEstimationApp {
         // Aggiorna il phases manager se esiste e siamo nella pagina corretta
         if (this.projectPhasesManager && this.navigationManager.currentSection === 'phases') {
             this.projectPhasesManager.refreshFromFeatures();
+        }
+        // Aggiorna il calculations manager se esiste e siamo nella pagina corretta
+        if (this.calculationsManager && this.navigationManager.currentSection === 'calculations') {
+            this.calculationsManager.refresh();
         }
     }
 

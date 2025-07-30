@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="styles/storage-config.css">
     <link rel="stylesheet" href="styles/configuration-scrollable.css">
     <link rel="stylesheet" href="styles/categories-config.css">
+    <link rel="stylesheet" href="styles/calculations.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -302,7 +303,7 @@
                     <h2>Calculations Dashboard</h2>
                 </div>
                 <div class="calculations-content">
-                    <p>Calculations dashboard will be implemented here...</p>
+                    <!-- Calculations content will be populated by CalculationsManager -->
                 </div>
             </div>
 
@@ -562,6 +563,9 @@
 
 <!-- Feature management (depends on data-manager and configuration-manager) -->
 <script src="js/components/feature-manager.js"></script>
+
+<!-- Calculations management (depends on data-manager and configuration-manager) -->
+<script src="js/components/calculations-manager.js"></script>
 
 <!-- Navigation (depends on configuration-manager) -->
 <script src="js/components/navigation.js"></script>

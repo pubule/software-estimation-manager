@@ -131,6 +131,12 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
+        // Special handling for calculations navigation
+        if (sectionName === 'calculations') {
+            this.showCalculationsPage();
+            return;
+        }
+
         // Hide all pages
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
@@ -207,6 +213,51 @@ class EnhancedNavigationManager extends NavigationManager {
         }
 
         console.log('Navigated to phases page');
+    }
+
+    // Special method for calculations page
+    showCalculationsPage() {
+        // Verify project is loaded
+        if (!this.projectLoaded) {
+            console.warn('Cannot navigate to calculations: No project loaded');
+            NotificationManager.warning('Please load or create a project first to view calculations');
+            return;
+        }
+
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // Update active states
+        this.updateActiveStates('calculations');
+
+        // Show target page
+        const targetPage = document.getElementById('calculations-page');
+        if (targetPage) {
+            targetPage.classList.add('active');
+
+            // Initialize calculations manager if not exists
+            if (!this.app.calculationsManager) {
+                this.app.calculationsManager = new CalculationsManager(this.app, this.configManager);
+            }
+
+            // Render calculations content
+            setTimeout(() => {
+                this.app.calculationsManager.render();
+            }, 100);
+        }
+
+        // Store current section
+        this.currentSection = 'calculations';
+
+        // Ensure projects is expanded
+        if (!this.projectsExpanded) {
+            this.projectsExpanded = true;
+            this.updateProjectsExpansion();
+        }
+
+        console.log('Navigated to calculations page');
     }
 
     updateActiveStates(activeSectionName) {
