@@ -26,6 +26,7 @@ class InternalResourcesConfigManager {
 
         // Flags to prevent double operations
         this.isResetting = false;
+        this.isSavingResource = false;
         
         // Default internal resources with the provided values
         this.defaultInternalResources = [
@@ -74,17 +75,23 @@ class InternalResourcesConfigManager {
     exposeGlobalMethods() {
         window.showResourcesModal = this.showModal.bind(this);
         window.closeResourcesModal = this.closeModal.bind(this);
-        window.saveResourcesModal = this.saveResource.bind(this);
-        window.editResource = this.startEditingRow.bind(this);
-        window.deleteResource = this.deleteResource.bind(this);
+        // Removed: window.saveResourcesModal - now using form submission
+        // window.editResource = this.startEditingRow.bind(this); // Rimosso - usa solo delegazione eventi
+        // window.deleteResource = this.deleteResource.bind(this); // Rimosso - usa solo delegazione eventi
         window.disableResource = this.disableResource.bind(this);
-        window.duplicateResource = this.duplicateResource.bind(this);
+        // window.duplicateResource = this.duplicateResource.bind(this); // Rimosso - usa solo delegazione eventi
     }
 
     /**
      * Carica e renderizza la configurazione risorse interne
      */
     async loadResourcesConfig() {
+        // Previene il reload durante la duplicazione
+        if (this.isDuplicating) {
+            console.log('Skipping reload during duplication');
+            return;
+        }
+        
         const contentDiv = document.getElementById(this.containerId);
         if (!contentDiv) {
             console.error('Resources content container not found');
@@ -98,9 +105,11 @@ class InternalResourcesConfigManager {
         this.resources = this.currentScope === 'global' ? resourceData.global : resourceData.project;
 
         contentDiv.innerHTML = this.generateResourcesHTML(resourceData);
+        this.eventListenersSetup = false; // Reset flag when HTML is regenerated
         this.setupEventListeners();
         this.applyFiltersAndSort();
         this.loadInitialItems();
+        
     }
 
     /**
@@ -108,6 +117,12 @@ class InternalResourcesConfigManager {
      */
     ensureDefaultInternalResources(forceReset = false) {
         console.log('ensureDefaultInternalResources called, forceReset:', forceReset);
+        
+        // Previene il reload durante la duplicazione
+        if (this.isDuplicating && !forceReset) {
+            console.log('Skipping ensureDefaultInternalResources during duplication');
+            return;
+        }
         
         if (!this.configManager || !this.configManager.globalConfig) {
             console.log('ConfigManager or globalConfig not available');
@@ -147,6 +162,13 @@ class InternalResourcesConfigManager {
      */
     setupEventListeners() {
         console.log('Setting up event listeners');
+        
+        // Previene setup multipli
+        if (this.eventListenersSetup) {
+            console.log('Event listeners already setup, skipping');
+            return;
+        }
+        
         this.cleanupEventListeners();
 
         this.setupScopeTabEvents();
@@ -154,9 +176,13 @@ class InternalResourcesConfigManager {
         this.setupTableEvents();
         this.setupScrollInfinito();
         this.setupKeyboardShortcuts();
+        this.setupFormSubmission();
+        
+        this.eventListenersSetup = true;
     }
 
     cleanupEventListeners() {
+        this.eventListenersSetup = false;
         // Rimuovi listener dai controlli principali
         const addBtn = document.getElementById('add-resource-btn');
         if (addBtn) {
@@ -263,6 +289,23 @@ class InternalResourcesConfigManager {
         const table = document.querySelector('.resources-table');
         if (!table) return;
 
+        // Rimuovi listener esistenti prima di aggiungerne di nuovi
+        if (this.tableClickHandler) {
+            const tbody = document.getElementById('resources-table-body');
+            if (tbody) {
+                tbody.removeEventListener('click', this.tableClickHandler);
+                tbody.removeEventListener('change', this.tableChangeHandler);
+                tbody.removeEventListener('input', this.tableInputHandler);
+                tbody.removeEventListener('keydown', this.tableKeydownHandler);
+            }
+        }
+
+        // Crea bound handlers che possono essere rimossi
+        this.tableClickHandler = this.handleTableClick.bind(this);
+        this.tableChangeHandler = this.handleTableChange.bind(this);
+        this.tableInputHandler = this.handleTableInput.bind(this);
+        this.tableKeydownHandler = this.handleTableKeydown.bind(this);
+
         // Ordinamento colonne
         table.addEventListener('click', (e) => {
             const sortableHeader = e.target.closest('.sortable');
@@ -274,10 +317,10 @@ class InternalResourcesConfigManager {
         // Delegazione eventi per righe dinamiche
         const tbody = document.getElementById('resources-table-body');
         if (tbody) {
-            tbody.addEventListener('click', this.handleTableClick.bind(this));
-            tbody.addEventListener('change', this.handleTableChange.bind(this));
-            tbody.addEventListener('input', this.handleTableInput.bind(this));
-            tbody.addEventListener('keydown', this.handleTableKeydown.bind(this));
+            tbody.addEventListener('click', this.tableClickHandler);
+            tbody.addEventListener('change', this.tableChangeHandler);
+            tbody.addEventListener('input', this.tableInputHandler);
+            tbody.addEventListener('keydown', this.tableKeydownHandler);
         }
     }
 
@@ -330,6 +373,8 @@ class InternalResourcesConfigManager {
         // Duplicate button
         else if (target.closest('.duplicate-btn')) {
             e.preventDefault();
+            console.log('Duplicate button clicked for resource:', resourceId);
+            
             this.duplicateResource(resourceId);
         }
         // Row checkbox
@@ -816,6 +861,48 @@ class InternalResourcesConfigManager {
     }
 
     /**
+     * Setup form submission handling
+     */
+    setupFormSubmission() {
+        // Add listener directly to the form when modal is shown
+        // This will be handled in showModal method
+    }
+
+    /**
+     * Setup form submit listener for the modal
+     */
+    setupModalFormListener() {
+        const form = document.getElementById('resource-form');
+        if (form) {
+            // Remove existing listener
+            if (this.boundFormSubmitHandler) {
+                form.removeEventListener('submit', this.boundFormSubmitHandler);
+            }
+            
+            // Create and add bound handler
+            this.boundFormSubmitHandler = this.handleFormSubmit.bind(this);
+            form.addEventListener('submit', this.boundFormSubmitHandler);
+        }
+    }
+
+    /**
+     * Handle form submissions
+     */
+    handleFormSubmit(e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        
+        console.log('Resource form submitted');
+        
+        // Prevent double submission
+        if (!this.isSavingResource) {
+            this.saveResource();
+        } else {
+            console.log('Resource form submission ignored - save in progress');
+        }
+    }
+
+    /**
      * Genera i controlli della tabella (filtri, ricerca, azioni)
      */
     generateTableControls() {
@@ -1002,16 +1089,13 @@ class InternalResourcesConfigManager {
     generateRowActions(resource) {
         return `
             <div class="row-actions">
-                <button class="btn btn-small btn-secondary edit-btn" 
-                        onclick="editResource('${resource.id}')" title="Edit">
+                <button class="btn btn-small btn-secondary edit-btn" title="Edit">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="btn btn-small btn-secondary duplicate-btn" 
-                        onclick="duplicateResource('${resource.id}')" title="Duplicate">
+                <button class="btn btn-small btn-secondary duplicate-btn" title="Duplicate">
                     <i class="fas fa-copy"></i>
                 </button>
-                <button class="btn btn-small btn-danger delete-btn" 
-                        onclick="deleteResource('${resource.id}')" title="Delete">
+                <button class="btn btn-small btn-danger delete-btn" title="Delete">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -1287,17 +1371,31 @@ class InternalResourcesConfigManager {
     }
 
     duplicateResource(resourceId) {
+        console.log('duplicateResource called with:', resourceId);
         const resource = this.findResource(resourceId);
-        if (!resource) return;
+        console.log('Found resource:', resource);
+        if (!resource) {
+            console.error('Resource not found for ID:', resourceId);
+            return;
+        }
 
-        // Crea copia con nuovo ID
-        const duplicate = {
-            ...resource,
-            id: this.generateId('internal_'),
-            name: `${resource.name} (Copy)`
-        };
+        // Set flag to prevent config reload during duplication
+        this.isDuplicating = true;
 
-        this.showModal(this.currentScope, duplicate);
+        // Apri modal vuota per nuova risorsa
+        this.showModal(this.currentScope, null, true);
+        
+        // Popola i campi manualmente DOPO aver aperto la modal (come fa categories)
+        setTimeout(() => {
+            document.getElementById('resource-name').value = `${resource.name} (Copy)`;
+            document.getElementById('resource-role').value = resource.role || '';
+            document.getElementById('resource-department').value = resource.department || '';
+            document.getElementById('resource-real-rate').value = resource.realRate || '';
+            document.getElementById('resource-official-rate').value = resource.officialRate || '';
+            
+            // Update modal title
+            document.getElementById('resource-modal-title').textContent = 'Duplicate Internal Resource';
+        }, 10);
     }
 
     /**
@@ -1326,12 +1424,15 @@ class InternalResourcesConfigManager {
             this.ensureDefaultInternalResources(true);
             
             // Reload the data and refresh the display
+            console.log('Reset: calling loadResourcesConfig');
             await this.loadResourcesConfig();
             
-            // Refresh dropdowns in the main app
-            if (this.app && this.app.refreshDropdowns) {
-                this.app.refreshDropdowns();
-            }
+            // Refresh dropdowns in the main app - DISABLED to prevent double event listeners
+            // console.log('Reset: calling refreshDropdowns');
+            // if (this.app && this.app.refreshDropdowns) {
+            //     this.app.refreshDropdowns();
+            // }
+            // console.log('Reset: refreshDropdowns completed');
             
             // Show success notification
             if (window.NotificationManager) {
@@ -1376,7 +1477,7 @@ class InternalResourcesConfigManager {
     /**
      * Mostra modal per aggiungere/modificare risorsa
      */
-    showModal(scope, resource = null) {
+    showModal(scope, resource = null, isNewResource = false) {
         const modal = document.getElementById('resource-modal');
         const title = document.getElementById('resource-modal-title');
         const form = document.getElementById('resource-form');
@@ -1384,9 +1485,11 @@ class InternalResourcesConfigManager {
         if (!modal || !title || !form) return;
 
         // Configura modal
-        title.textContent = resource ? 'Edit Internal Resource' : 'Add Internal Resource';
+        title.textContent = resource && !isNewResource ? 'Edit Internal Resource' : 'Add Internal Resource';
         modal.dataset.scope = scope;
-        modal.dataset.resourceId = resource?.id || '';
+        // Solo per editing di risorsa esistente imposta l'ID
+        modal.dataset.resourceId = (resource && !isNewResource) ? resource.id : '';
+        modal.dataset.isNewResource = isNewResource ? 'true' : 'false';
 
         // Popola o resetta form
         if (resource) {
@@ -1395,6 +1498,9 @@ class InternalResourcesConfigManager {
             form.reset();
         }
 
+        // Setup form submission listener
+        this.setupModalFormListener();
+        
         // Mostra modal
         modal.classList.add('active');
         setTimeout(() => document.getElementById('resource-name')?.focus(), 100);
@@ -1424,19 +1530,31 @@ class InternalResourcesConfigManager {
      * Salva la risorsa dal modal
      */
     async saveResource() {
+        // Prevent multiple simultaneous save operations
+        if (this.isSavingResource) {
+            console.log('Resource save already in progress, ignoring...');
+            return;
+        }
+        
+        this.isSavingResource = true;
+        
         const modal = document.getElementById('resource-modal');
         const scope = modal.dataset.scope;
         const resourceId = modal.dataset.resourceId;
+        const isNewResource = modal.dataset.isNewResource === 'true';
         const form = document.getElementById('resource-form');
 
-        if (!form) return;
+        if (!form) {
+            this.isSavingResource = false;
+            return;
+        }
 
         try {
             // Mostra loading nel modal
             this.showModalLoading(true);
 
             // Estrai dati dal form
-            const resourceData = this.extractFormData(form, resourceId, scope);
+            const resourceData = this.extractFormData(form, resourceId, scope, isNewResource);
 
             // Valida dati
             const validation = this.validateResourceData(resourceData);
@@ -1447,27 +1565,34 @@ class InternalResourcesConfigManager {
             }
 
             // Persiste la risorsa
-            await this.persistResource(resourceData, scope, resourceId);
+            await this.persistResource(resourceData, scope, isNewResource ? null : resourceId);
 
-            // Aggiorna la lista locale
-            if (resourceId) {
-                // Modifica esistente
-                const index = this.resources.findIndex(r => r.id === resourceId);
-                if (index >= 0) {
-                    this.resources[index] = resourceData;
-                }
-            } else {
-                // Nuova risorsa
-                this.resources.push(resourceData);
-            }
+            // Ricarica la lista dalla configurazione aggiornata invece di aggiungere manualmente
+            const reloadedData = this.getResourceData();
+            this.resources = this.currentScope === 'global' ? reloadedData.global : reloadedData.project;
 
             // Chiudi modal e aggiorna UI
             this.closeModal();
-            await this.loadResourcesConfig();
+            
+            // Reset flag di duplicazione se attivo
+            const wasDuplicating = this.isDuplicating;
+            if (this.isDuplicating) {
+                this.isDuplicating = false;
+            }
+            
+            // Only reload if not duplicating to prevent double event listeners
+            if (!wasDuplicating) {
+                await this.loadResourcesConfig();
+            } else {
+                // Just refresh the table display without full reload
+                this.applyFiltersAndSort();
+                this.loadInitialItems(); // Re-renderizza la tabella HTML
+                this.updateFilterCounts(); // Aggiorna i contatori dei filtri
+            }
             this.app.refreshDropdowns();
 
             NotificationManager.success(
-                resourceId ? 'Internal resource updated successfully' : 'Internal resource created successfully'
+                (resourceId && !isNewResource) ? 'Internal resource updated successfully' : 'Internal resource created successfully'
             );
 
         } catch (error) {
@@ -1476,6 +1601,7 @@ class InternalResourcesConfigManager {
             NotificationManager.error('Failed to save resource');
         } finally {
             this.showModalLoading(false);
+            this.isSavingResource = false;
         }
     }
 
@@ -1540,7 +1666,7 @@ class InternalResourcesConfigManager {
     /**
      * Estrae i dati dal form del modal
      */
-    extractFormData(form, resourceId, scope) {
+    extractFormData(form, resourceId, scope, isNewResource = false) {
         const nameField = document.getElementById('resource-name');
         const roleField = document.getElementById('resource-role');
         const departmentField = document.getElementById('resource-department');
@@ -1548,7 +1674,7 @@ class InternalResourcesConfigManager {
         const officialRateField = document.getElementById('resource-official-rate');
 
         return {
-            id: resourceId || this.generateId('internal_'),
+            id: (isNewResource || !resourceId) ? this.generateId('internal_') : resourceId,
             name: nameField?.value?.trim() || '',
             role: roleField?.value?.trim() || '',
             department: departmentField?.value?.trim() || '',
@@ -1750,7 +1876,7 @@ class InternalResourcesConfigManager {
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" onclick="closeResourcesModal()">Cancel</button>
-                        <button type="button" class="btn btn-primary" onclick="saveResourcesModal()">Save Resource</button>
+                        <button type="submit" class="btn btn-primary" form="resource-form">Save Resource</button>
                     </div>
                 </div>
             </div>
