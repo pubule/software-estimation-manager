@@ -241,6 +241,9 @@ class FeatureManager {
         // Populate supplier dropdown in modal (include both suppliers and internal resources)
         this.populateSupplierDropdown(projectConfig.suppliers, projectConfig.internalResources);
 
+        // Setup event listeners for dynamic behavior
+        this.setupFeatureTypeListeners();
+
         console.log('Modal dropdowns populated from merged project configuration');
     }
 
@@ -277,6 +280,57 @@ class FeatureManager {
         });
 
         console.log(`Populated ${categories.length} categories in modal dropdown`);
+    }
+
+    /**
+     * Populate feature type dropdown based on selected category
+     * @param {string} categoryId - Selected category ID
+     */
+    populateFeatureTypeDropdown(categoryId) {
+        const featureTypeSelect = document.getElementById('feature-type');
+        if (!featureTypeSelect) return;
+
+        // Clear existing options
+        featureTypeSelect.innerHTML = '<option value="">Select Feature Type</option>';
+
+        if (!categoryId) {
+            featureTypeSelect.disabled = true;
+            return;
+        }
+
+        // Get current project configuration
+        const currentProject = window.app?.currentProject;
+        if (!currentProject || !this.configManager) {
+            console.warn('No project or configuration manager found for feature types');
+            featureTypeSelect.disabled = true;
+            return;
+        }
+
+        // Get merged configuration for current project
+        const projectConfig = this.configManager.getProjectConfig(currentProject.config);
+        
+        // Find the selected category
+        const selectedCategory = projectConfig.categories.find(cat => cat.id === categoryId);
+        if (!selectedCategory || !selectedCategory.featureTypes) {
+            featureTypeSelect.disabled = true;
+            return;
+        }
+
+        // Enable dropdown and populate feature types
+        featureTypeSelect.disabled = false;
+        selectedCategory.featureTypes.forEach(featureType => {
+            if (featureType.id && featureType.name) {
+                const option = document.createElement('option');
+                option.value = featureType.id;
+                option.textContent = featureType.name;
+                option.title = `${featureType.description || featureType.name} (Average: ${featureType.averageMDs} MDs)`;
+                // Store the averageMDs for later use
+                option.dataset.averageMds = featureType.averageMDs;
+                featureTypeSelect.appendChild(option);
+            }
+        });
+
+        console.log(`Populated ${selectedCategory.featureTypes.length} feature types for category ${categoryId}`);
     }
 
     /**
@@ -334,6 +388,82 @@ class FeatureManager {
         });
 
         console.log(`Populated ${suppliers.length} suppliers and ${internalResources.length} internal resources in modal dropdown`);
+    }
+
+    /**
+     * Setup event listeners for feature type functionality
+     */
+    setupFeatureTypeListeners() {
+        console.log('Setting up feature type listeners...');
+        
+        const categorySelect = document.getElementById('feature-category');
+        const featureTypeSelect = document.getElementById('feature-type');
+        const realManDaysField = document.getElementById('feature-real-man-days');
+
+        if (!categorySelect || !featureTypeSelect || !realManDaysField) {
+            console.warn('Feature type elements not found:', {
+                categorySelect: !!categorySelect,
+                featureTypeSelect: !!featureTypeSelect,
+                realManDaysField: !!realManDaysField
+            });
+            return;
+        }
+
+        // Remove existing listeners by storing reference and cleaning up properly
+        if (this.categoryChangeHandler) {
+            categorySelect.removeEventListener('change', this.categoryChangeHandler);
+        }
+        if (this.featureTypeChangeHandler) {
+            featureTypeSelect.removeEventListener('change', this.featureTypeChangeHandler);
+        }
+
+        // Create bound handlers
+        this.categoryChangeHandler = (e) => {
+            const selectedCategoryId = e.target.value;
+            console.log('Category changed to:', selectedCategoryId);
+            
+            // Populate feature types for selected category
+            this.populateFeatureTypeDropdown(selectedCategoryId);
+            
+            // Clear real man days when category changes
+            const realManDaysField = document.getElementById('feature-real-man-days');
+            if (realManDaysField && !selectedCategoryId) {
+                realManDaysField.value = '';
+                realManDaysField.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        };
+
+        this.featureTypeChangeHandler = (e) => {
+            console.log('Feature type change event triggered');
+            const selectedOption = e.target.selectedOptions[0];
+            const realManDaysField = document.getElementById('feature-real-man-days');
+            
+            if (!realManDaysField) {
+                console.warn('Real man days field not found during feature type change');
+                return;
+            }
+            
+            if (selectedOption && selectedOption.dataset.averageMds) {
+                const averageMDs = parseFloat(selectedOption.dataset.averageMds);
+                console.log('Feature type changed, setting real MDs to:', averageMDs);
+                realManDaysField.value = averageMDs;
+                
+                // Trigger the input event to update calculated man days
+                realManDaysField.dispatchEvent(new Event('input', { bubbles: true }));
+                console.log('Real MDs field updated and input event triggered');
+            } else if (!selectedOption || !selectedOption.value) {
+                // Clear real man days if no feature type selected
+                console.log('Clearing real MDs field - no feature type selected');
+                realManDaysField.value = '';
+                realManDaysField.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        };
+
+        // Attach the listeners
+        categorySelect.addEventListener('change', this.categoryChangeHandler);
+        featureTypeSelect.addEventListener('change', this.featureTypeChangeHandler);
+
+        console.log('Feature type listeners setup completed');
     }
 
     /**
@@ -578,6 +708,7 @@ class FeatureManager {
             'feature-id',
             'feature-description',
             'feature-category',
+            'feature-type',
             'feature-supplier',
             'feature-real-man-days',
             'feature-expertise',
@@ -590,6 +721,7 @@ class FeatureManager {
             'feature-id': 'id',
             'feature-description': 'description',
             'feature-category': 'category',
+            'feature-type': 'featureType',
             'feature-supplier': 'supplier',
             'feature-real-man-days': 'realManDays',
             'feature-expertise': 'expertise',
@@ -606,6 +738,13 @@ class FeatureManager {
                 element.value = feature[dataKey] || (dataKey === 'expertise' ? 100 : dataKey === 'riskMargin' ? 10 : '');
             }
         });
+
+        // If editing a feature with a category, populate feature types for that category
+        if (feature.category) {
+            setTimeout(() => {
+                this.populateFeatureTypeDropdown(feature.category);
+            }, 50); // Small delay to ensure DOM is ready
+        }
 
         // Trigger calculation update for display
         this.updateCalculatedManDays();
@@ -862,6 +1001,7 @@ class FeatureManager {
             id: document.getElementById('feature-id')?.value?.trim() || '',
             description: document.getElementById('feature-description')?.value?.trim() || '',
             category: document.getElementById('feature-category')?.value || '',
+            featureType: document.getElementById('feature-type')?.value || '',
             supplier: document.getElementById('feature-supplier')?.value || '',
             realManDays: realManDays,
             expertise: expertise,

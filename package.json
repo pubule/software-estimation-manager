@@ -30,7 +30,7 @@
     "nodemon": "^3.0.2"
   },
   "dependencies": {
-    "@anthropic-ai/claude-code": "^1.0.62",
+    "@anthropic-ai/claude-code": "^1.0.63",
     "electron-store": "^8.1.0",
     "papaparse": "^5.4.1",
     "uuid": "^9.0.1",
