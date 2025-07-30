@@ -26,6 +26,7 @@ class SupplierConfigManager {
 
         // Flags to prevent double operations
         this.isResetting = false;
+        this.isSavingSupplier = false;
         
         // Default suppliers with the provided values
         this.defaultSuppliers = [
@@ -119,17 +120,23 @@ class SupplierConfigManager {
     exposeGlobalMethods() {
         window.showSuppliersModal = this.showModal.bind(this);
         window.closeSuppliersModal = this.closeModal.bind(this);
-        window.saveSuppliersModal = this.saveSupplier.bind(this);
-        window.editSupplier = this.startEditingRow.bind(this);
-        window.deleteSupplier = this.deleteSupplier.bind(this);
+        // Removed: window.saveSuppliersModal - now using form submission
+        // window.editSupplier = this.startEditingRow.bind(this); // Rimosso - usa solo delegazione eventi
+        // window.deleteSupplier = this.deleteSupplier.bind(this); // Rimosso - usa solo delegazione eventi  
         window.disableSupplier = this.disableSupplier.bind(this);
-        window.duplicateSupplier = this.duplicateSupplier.bind(this);
+        // window.duplicateSupplier = this.duplicateSupplier.bind(this); // Rimosso - usa solo delegazione eventi
     }
 
     /**
      * Carica e renderizza la configurazione supplier
      */
     async loadSuppliersConfig() {
+        // Previene il reload durante la duplicazione
+        if (this.isDuplicating) {
+            console.log('Skipping reload during duplication');
+            return;
+        }
+        
         const contentDiv = document.getElementById(this.containerId);
         if (!contentDiv) {
             console.error('Suppliers content container not found');
@@ -143,9 +150,11 @@ class SupplierConfigManager {
         this.suppliers = this.currentScope === 'global' ? supplierData.global : supplierData.project;
 
         contentDiv.innerHTML = this.generateSuppliersHTML(supplierData);
+        this.eventListenersSetup = false; // Reset flag when HTML is regenerated
         this.setupEventListeners();
         this.applyFiltersAndSort();
         this.loadInitialItems();
+        
     }
 
     /**
@@ -153,6 +162,12 @@ class SupplierConfigManager {
      */
     ensureDefaultSuppliers(forceReset = false) {
         console.log('ensureDefaultSuppliers called, forceReset:', forceReset);
+        
+        // Previene il reload durante la duplicazione
+        if (this.isDuplicating && !forceReset) {
+            console.log('Skipping ensureDefaultSuppliers during duplication');
+            return;
+        }
         
         if (!this.configManager || !this.configManager.globalConfig) {
             console.log('ConfigManager or globalConfig not available');
@@ -192,6 +207,13 @@ class SupplierConfigManager {
      */
     setupEventListeners() {
         console.log('Setting up event listeners');
+        
+        // Previene setup multipli
+        if (this.eventListenersSetup) {
+            console.log('Event listeners already setup, skipping');
+            return;
+        }
+        
         this.cleanupEventListeners();
 
         this.setupScopeTabEvents();
@@ -199,9 +221,13 @@ class SupplierConfigManager {
         this.setupTableEvents();
         this.setupScrollInfinito();
         this.setupKeyboardShortcuts();
+        this.setupFormSubmission();
+        
+        this.eventListenersSetup = true;
     }
 
     cleanupEventListeners() {
+        this.eventListenersSetup = false;
         // Rimuovi listener dai controlli principali
         const addBtn = document.getElementById('add-supplier-btn');
         if (addBtn) {
@@ -305,24 +331,48 @@ class SupplierConfigManager {
      * Setup eventi per la tabella
      */
     setupTableEvents() {
+        // Rimuovi listener esistenti prima di aggiungerne di nuovi
+        if (this.tableClickHandler) {
+            const tbody = document.getElementById('suppliers-table-body');
+            if (tbody) {
+                tbody.removeEventListener('click', this.tableClickHandler);
+                tbody.removeEventListener('change', this.tableChangeHandler);
+                tbody.removeEventListener('input', this.tableInputHandler);
+                tbody.removeEventListener('keydown', this.tableKeydownHandler);
+            }
+            
+            const table = document.querySelector('.suppliers-table');
+            if (table && this.tableSortHandler) {
+                table.removeEventListener('click', this.tableSortHandler);
+            }
+        }
+        
         const table = document.querySelector('.suppliers-table');
         if (!table) return;
 
-        // Ordinamento colonne
-        table.addEventListener('click', (e) => {
+        // Crea e memorizza i gestori di eventi legati al contesto
+        this.tableSortHandler = (e) => {
             const sortableHeader = e.target.closest('.sortable');
             if (sortableHeader) {
                 this.handleSort(sortableHeader.dataset.field);
             }
-        });
+        };
+        
+        this.tableClickHandler = this.handleTableClick.bind(this);
+        this.tableChangeHandler = this.handleTableChange.bind(this);
+        this.tableInputHandler = this.handleTableInput.bind(this);
+        this.tableKeydownHandler = this.handleTableKeydown.bind(this);
+
+        // Ordinamento colonne
+        table.addEventListener('click', this.tableSortHandler);
 
         // Delegazione eventi per righe dinamiche
         const tbody = document.getElementById('suppliers-table-body');
         if (tbody) {
-            tbody.addEventListener('click', this.handleTableClick.bind(this));
-            tbody.addEventListener('change', this.handleTableChange.bind(this));
-            tbody.addEventListener('input', this.handleTableInput.bind(this));
-            tbody.addEventListener('keydown', this.handleTableKeydown.bind(this));
+            tbody.addEventListener('click', this.tableClickHandler);
+            tbody.addEventListener('change', this.tableChangeHandler);
+            tbody.addEventListener('input', this.tableInputHandler);
+            tbody.addEventListener('keydown', this.tableKeydownHandler);
         }
     }
 
@@ -359,6 +409,8 @@ class SupplierConfigManager {
         // Duplicate button
         else if (target.closest('.duplicate-btn')) {
             e.preventDefault();
+            console.log('Duplicate button clicked for supplier:', supplierId);
+            
             this.duplicateSupplier(supplierId);
         }
         // Row checkbox
@@ -849,6 +901,48 @@ class SupplierConfigManager {
     }
 
     /**
+     * Setup form submission handling
+     */
+    setupFormSubmission() {
+        // Add listener directly to the form when modal is shown
+        // This will be handled in showModal method
+    }
+
+    /**
+     * Setup form submit listener for the modal
+     */
+    setupModalFormListener() {
+        const form = document.getElementById('supplier-form');
+        if (form) {
+            // Remove existing listener
+            if (this.boundFormSubmitHandler) {
+                form.removeEventListener('submit', this.boundFormSubmitHandler);
+            }
+            
+            // Create and add bound handler
+            this.boundFormSubmitHandler = this.handleFormSubmit.bind(this);
+            form.addEventListener('submit', this.boundFormSubmitHandler);
+        }
+    }
+
+    /**
+     * Handle form submissions
+     */
+    handleFormSubmit(e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        
+        console.log('Supplier form submitted');
+        
+        // Prevent double submission
+        if (!this.isSavingSupplier) {
+            this.saveSupplier();
+        } else {
+            console.log('Supplier form submission ignored - save in progress');
+        }
+    }
+
+    /**
      * Genera i controlli della tabella (filtri, ricerca, azioni)
      */
     generateTableControls() {
@@ -1035,16 +1129,13 @@ class SupplierConfigManager {
     generateRowActions(supplier) {
         return `
             <div class="row-actions">
-                <button class="btn btn-small btn-secondary edit-btn" 
-                        onclick="editSupplier('${supplier.id}')" title="Edit">
+                <button class="btn btn-small btn-secondary edit-btn" title="Edit">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="btn btn-small btn-secondary duplicate-btn" 
-                        onclick="duplicateSupplier('${supplier.id}')" title="Duplicate">
+                <button class="btn btn-small btn-secondary duplicate-btn" title="Duplicate">
                     <i class="fas fa-copy"></i>
                 </button>
-                <button class="btn btn-small btn-danger delete-btn" 
-                        onclick="deleteSupplier('${supplier.id}')" title="Delete">
+                <button class="btn btn-small btn-danger delete-btn" title="Delete">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -1325,17 +1416,31 @@ class SupplierConfigManager {
     }
 
     duplicateSupplier(supplierId) {
+        console.log('duplicateSupplier called with:', supplierId);
         const supplier = this.findSupplier(supplierId);
-        if (!supplier) return;
+        console.log('Found supplier:', supplier);
+        if (!supplier) {
+            console.error('Supplier not found for ID:', supplierId);
+            return;
+        }
 
-        // Crea copia con nuovo ID
-        const duplicate = {
-            ...supplier,
-            id: this.generateId('supplier_'),
-            name: `${supplier.name} (Copy)`
-        };
+        // Set flag to prevent config reload during duplication
+        this.isDuplicating = true;
 
-        this.showModal(this.currentScope, duplicate);
+        // Apri modal vuota per nuovo supplier
+        this.showModal(this.currentScope, null, true);
+        
+        // Popola i campi manualmente DOPO aver aperto la modal (come fa categories)
+        setTimeout(() => {
+            document.getElementById('supplier-name').value = `${supplier.name} (Copy)`;
+            document.getElementById('supplier-role').value = supplier.role || '';
+            document.getElementById('supplier-department').value = supplier.department || '';
+            document.getElementById('supplier-real-rate').value = supplier.realRate || '';
+            document.getElementById('supplier-official-rate').value = supplier.officialRate || '';
+            
+            // Update modal title
+            document.getElementById('supplier-modal-title').textContent = 'Duplicate Supplier';
+        }, 10);
     }
 
     /**
@@ -1364,12 +1469,15 @@ class SupplierConfigManager {
             this.ensureDefaultSuppliers(true);
             
             // Reload the data and refresh the display
+            console.log('Reset: calling loadSuppliersConfig');
             await this.loadSuppliersConfig();
             
-            // Refresh dropdowns in the main app
-            if (this.app && this.app.refreshDropdowns) {
-                this.app.refreshDropdowns();
-            }
+            // Refresh dropdowns in the main app - DISABLED to prevent double event listeners
+            // console.log('Reset: calling refreshDropdowns');
+            // if (this.app && this.app.refreshDropdowns) {
+            //     this.app.refreshDropdowns();
+            // }
+            // console.log('Reset: refreshDropdowns completed');
             
             // Show success notification
             if (window.NotificationManager) {
@@ -1414,7 +1522,7 @@ class SupplierConfigManager {
     /**
      * Mostra modal per aggiungere/modificare supplier
      */
-    showModal(scope, supplier = null) {
+    showModal(scope, supplier = null, isNewSupplier = false) {
         const modal = document.getElementById('supplier-modal');
         const title = document.getElementById('supplier-modal-title');
         const form = document.getElementById('supplier-form');
@@ -1422,9 +1530,11 @@ class SupplierConfigManager {
         if (!modal || !title || !form) return;
 
         // Configura modal
-        title.textContent = supplier ? 'Edit Supplier' : 'Add Supplier';
+        title.textContent = supplier && !isNewSupplier ? 'Edit Supplier' : 'Add Supplier';
         modal.dataset.scope = scope;
-        modal.dataset.supplierId = supplier?.id || '';
+        // Solo per editing di supplier esistente imposta l'ID
+        modal.dataset.supplierId = (supplier && !isNewSupplier) ? supplier.id : '';
+        modal.dataset.isNewSupplier = isNewSupplier ? 'true' : 'false';
 
         // Popola o resetta form
         if (supplier) {
@@ -1433,6 +1543,9 @@ class SupplierConfigManager {
             form.reset();
         }
 
+        // Setup form submission listener
+        this.setupModalFormListener();
+        
         // Mostra modal
         modal.classList.add('active');
         setTimeout(() => document.getElementById('supplier-name')?.focus(), 100);
@@ -1462,19 +1575,35 @@ class SupplierConfigManager {
      * Salva il supplier dal modal
      */
     async saveSupplier() {
+        // Prevent multiple simultaneous save operations
+        if (this.isSavingSupplier) {
+            console.log('Supplier save already in progress, ignoring...');
+            return;
+        }
+        
+        this.isSavingSupplier = true;
+        
+        console.log('saveSupplier called');
         const modal = document.getElementById('supplier-modal');
         const scope = modal.dataset.scope;
         const supplierId = modal.dataset.supplierId;
+        const isNewSupplier = modal.dataset.isNewSupplier === 'true';
         const form = document.getElementById('supplier-form');
+        
+        console.log('Modal data - scope:', scope, 'supplierId:', supplierId, 'isNewSupplier:', isNewSupplier);
 
-        if (!form) return;
+        if (!form) {
+            this.isSavingSupplier = false;
+            return;
+        }
 
         try {
             // Mostra loading nel modal
             this.showModalLoading(true);
 
             // Estrai dati dal form
-            const supplierData = this.extractFormData(form, supplierId, scope);
+            const supplierData = this.extractFormData(form, supplierId, scope, isNewSupplier);
+            console.log('Extracted supplier data:', supplierData);
 
             // Valida dati
             const validation = this.validateSupplierData(supplierData);
@@ -1485,27 +1614,36 @@ class SupplierConfigManager {
             }
 
             // Persiste il supplier
-            await this.persistSupplier(supplierData, scope, supplierId);
+            console.log('About to persist supplier...');
+            await this.persistSupplier(supplierData, scope, isNewSupplier ? null : supplierId);
+            console.log('Supplier persisted successfully');
 
-            // Aggiorna la lista locale
-            if (supplierId) {
-                // Modifica esistente
-                const index = this.suppliers.findIndex(s => s.id === supplierId);
-                if (index >= 0) {
-                    this.suppliers[index] = supplierData;
-                }
-            } else {
-                // Nuovo supplier
-                this.suppliers.push(supplierData);
-            }
+            // Ricarica la lista dalla configurazione aggiornata invece di aggiungere manualmente
+            const reloadedData = this.getSupplierData();
+            this.suppliers = this.currentScope === 'global' ? reloadedData.global : reloadedData.project;
 
             // Chiudi modal e aggiorna UI
             this.closeModal();
-            await this.loadSuppliersConfig();
+            
+            // Reset flag di duplicazione se attivo
+            const wasDuplicating = this.isDuplicating;
+            if (this.isDuplicating) {
+                this.isDuplicating = false;
+            }
+            
+            // Only reload if not duplicating to prevent double event listeners
+            if (!wasDuplicating) {
+                await this.loadSuppliersConfig();
+            } else {
+                // Just refresh the table display without full reload
+                this.applyFiltersAndSort();
+                this.loadInitialItems(); // Re-renderizza la tabella HTML
+                this.updateFilterCounts(); // Aggiorna i contatori dei filtri
+            }
             this.app.refreshDropdowns();
 
             NotificationManager.success(
-                supplierId ? 'Supplier updated successfully' : 'Supplier created successfully'
+                (supplierId && !isNewSupplier) ? 'Supplier updated successfully' : 'Supplier created successfully'
             );
 
         } catch (error) {
@@ -1514,6 +1652,7 @@ class SupplierConfigManager {
             NotificationManager.error('Failed to save supplier');
         } finally {
             this.showModalLoading(false);
+            this.isSavingSupplier = false;
         }
     }
 
@@ -1578,7 +1717,7 @@ class SupplierConfigManager {
     /**
      * Estrae i dati dal form del modal
      */
-    extractFormData(form, supplierId, scope) {
+    extractFormData(form, supplierId, scope, isNewSupplier = false) {
         const nameField = document.getElementById('supplier-name');
         const roleField = document.getElementById('supplier-role');
         const departmentField = document.getElementById('supplier-department');
@@ -1586,7 +1725,7 @@ class SupplierConfigManager {
         const officialRateField = document.getElementById('supplier-official-rate');
 
         return {
-            id: supplierId || this.generateId('supplier_'),
+            id: (isNewSupplier || !supplierId) ? this.generateId('supplier_') : supplierId,
             name: nameField?.value?.trim() || '',
             role: roleField?.value?.trim() || '',
             department: departmentField?.value?.trim() || '',
@@ -1788,7 +1927,7 @@ class SupplierConfigManager {
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" onclick="closeSuppliersModal()">Cancel</button>
-                        <button type="button" class="btn btn-primary" onclick="saveSuppliersModal()">Save Supplier</button>
+                        <button type="submit" class="btn btn-primary" form="supplier-form">Save Supplier</button>
                     </div>
                 </div>
             </div>
