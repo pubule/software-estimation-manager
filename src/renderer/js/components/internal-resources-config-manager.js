@@ -906,7 +906,7 @@ class InternalResourcesConfigManager {
      * Genera i controlli della tabella (filtri, ricerca, azioni)
      */
     generateTableControls() {
-        const departments = [...new Set(this.resources.map(r => r.department).filter(d => d))];
+        const roles = [...new Set(this.resources.map(r => r.role).filter(r => r))];
         
         return `
             <div class="table-controls">
@@ -921,10 +921,10 @@ class InternalResourcesConfigManager {
                                 data-filter="all">
                             All <span class="count">(${this.resources.length})</span>
                         </button>
-                        ${departments.map(dept => `
-                            <button class="filter-chip ${this.currentFilter === dept ? 'active' : ''}" 
-                                    data-filter="${dept}">
-                                ${dept} <span class="count">(${this.resources.filter(r => r.department === dept).length})</span>
+                        ${roles.map(role => `
+                            <button class="filter-chip ${this.currentFilter === role ? 'active' : ''}" 
+                                    data-filter="${role}">
+                                ${role} <span class="count">(${this.resources.filter(r => r.role === role).length})</span>
                             </button>
                         `).join('')}
                     </div>
@@ -1118,9 +1118,9 @@ class InternalResourcesConfigManager {
                 if (!matchesSearch) return false;
             }
 
-            // Filtro per department
+            // Filtro per role
             if (this.currentFilter !== 'all') {
-                return resource.department === this.currentFilter;
+                return resource.role === this.currentFilter;
             }
 
             return true;
@@ -1329,13 +1329,13 @@ class InternalResourcesConfigManager {
     }
 
     updateFilterCounts() {
-        const departments = [...new Set(this.resources.map(r => r.department).filter(d => d))];
+        const roles = [...new Set(this.resources.map(r => r.role).filter(r => r))];
         
         document.querySelector('[data-filter="all"] .count').textContent = `(${this.resources.length})`;
         
-        departments.forEach(dept => {
-            const count = this.resources.filter(r => r.department === dept).length;
-            const chip = document.querySelector(`[data-filter="${dept}"] .count`);
+        roles.forEach(role => {
+            const count = this.resources.filter(r => r.role === role).length;
+            const chip = document.querySelector(`[data-filter="${role}"] .count`);
             if (chip) {
                 chip.textContent = `(${count})`;
             }

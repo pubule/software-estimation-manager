@@ -946,7 +946,7 @@ class SupplierConfigManager {
      * Genera i controlli della tabella (filtri, ricerca, azioni)
      */
     generateTableControls() {
-        const departments = [...new Set(this.suppliers.map(s => s.department).filter(d => d))];
+        const roles = [...new Set(this.suppliers.map(s => s.role).filter(r => r))];
         
         return `
             <div class="table-controls">
@@ -961,10 +961,10 @@ class SupplierConfigManager {
                                 data-filter="all">
                             All <span class="count">(${this.suppliers.length})</span>
                         </button>
-                        ${departments.map(dept => `
-                            <button class="filter-chip ${this.currentFilter === dept ? 'active' : ''}" 
-                                    data-filter="${dept}">
-                                ${dept} <span class="count">(${this.suppliers.filter(s => s.department === dept).length})</span>
+                        ${roles.map(role => `
+                            <button class="filter-chip ${this.currentFilter === role ? 'active' : ''}" 
+                                    data-filter="${role}">
+                                ${role} <span class="count">(${this.suppliers.filter(s => s.role === role).length})</span>
                             </button>
                         `).join('')}
                     </div>
@@ -1158,9 +1158,9 @@ class SupplierConfigManager {
                 if (!matchesSearch) return false;
             }
 
-            // Filtro per department
+            // Filtro per role
             if (this.currentFilter !== 'all') {
-                return supplier.department === this.currentFilter;
+                return supplier.role === this.currentFilter;
             }
 
             return true; // 'all' filter
@@ -1374,13 +1374,13 @@ class SupplierConfigManager {
     }
 
     updateFilterCounts() {
-        const departments = [...new Set(this.suppliers.map(s => s.department).filter(d => d))];
+        const roles = [...new Set(this.suppliers.map(s => s.role).filter(r => r))];
         
         document.querySelector('[data-filter="all"] .count').textContent = `(${this.suppliers.length})`;
         
-        departments.forEach(dept => {
-            const count = this.suppliers.filter(s => s.department === dept).length;
-            const chip = document.querySelector(`[data-filter="${dept}"] .count`);
+        roles.forEach(role => {
+            const count = this.suppliers.filter(s => s.role === role).length;
+            const chip = document.querySelector(`[data-filter="${role}"] .count`);
             if (chip) {
                 chip.textContent = `(${count})`;
             }
