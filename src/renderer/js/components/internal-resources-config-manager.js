@@ -651,15 +651,17 @@ class InternalResourcesConfigManager {
             errors.push('Resource ID must be a string');
         }
 
-        // Validazione duplicati (controllo nome univoco)
+        // Validazione duplicati (controllo nome + ruolo + department)
         if (resourceData.name && resourceData.name.trim()) {
             const duplicateResource = this.resources.find(r =>
                 r.id !== resourceData.id &&
-                r.name.toLowerCase().trim() === resourceData.name.toLowerCase().trim()
+                r.name.toLowerCase().trim() === resourceData.name.toLowerCase().trim() &&
+                r.role === resourceData.role &&
+                r.department === resourceData.department
             );
 
             if (duplicateResource) {
-                errors.push('An internal resource with this name already exists');
+                errors.push('An internal resource with this name, role, and department already exists');
             }
         }
 

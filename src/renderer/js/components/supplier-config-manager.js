@@ -691,15 +691,17 @@ class SupplierConfigManager {
             errors.push('Supplier ID must be a string');
         }
 
-        // Validazione duplicati (controllo nome univoco)
+        // Validazione duplicati (controllo nome + ruolo + department)
         if (supplierData.name && supplierData.name.trim()) {
             const duplicateSupplier = this.suppliers.find(s =>
                 s.id !== supplierData.id &&
-                s.name.toLowerCase().trim() === supplierData.name.toLowerCase().trim()
+                s.name.toLowerCase().trim() === supplierData.name.toLowerCase().trim() &&
+                s.role === supplierData.role &&
+                s.department === supplierData.department
             );
 
             if (duplicateSupplier) {
-                errors.push('A supplier with this name already exists');
+                errors.push('A supplier with this name, role, and department already exists');
             }
         }
 
