@@ -274,8 +274,11 @@ class ProjectPhasesManager {
     renderSupplierDropdown(resourceType, selectId, suppliers) {
         const selectedValue = this.selectedSuppliers[resourceType] || '';
         
+        // Filter suppliers by role - only show suppliers with matching role
+        const filteredSuppliers = suppliers.filter(supplier => supplier.role === resourceType);
+        
         let options = '<option value="">Select Supplier</option>';
-        suppliers.forEach(supplier => {
+        filteredSuppliers.forEach(supplier => {
             const selected = supplier.id === selectedValue ? 'selected' : '';
             const rate = supplier.realRate || supplier.officialRate || 0;
             options += `<option value="${supplier.id}" data-rate="${rate}" ${selected}>${supplier.name} (€${rate}/day)</option>`;
