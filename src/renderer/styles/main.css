@@ -3893,15 +3893,16 @@
     border-bottom: 2px solid var(--border-primary);
 }
 
-/* Section Header (for div headers with actions) */
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--spacing-lg);
-    padding-bottom: var(--spacing-md);
-    border-bottom: 1px solid var(--border-primary);
+/* Component-specific table headers */  
+.suppliers-table-header,
+.resources-table-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--bg-tertiary);
+    border-bottom: 2px solid var(--border-primary);
 }
+
 
 /* Calculations Table Container (specific to avoid conflicts) */
 .calculations-table-container {
@@ -3912,7 +3913,22 @@
     box-shadow: var(--shadow-sm);
 }
 
-.table-header th {
+/* Project Phases Table Styles (specific to avoid conflicts) */
+.phases-totals-row {
+    background-color: var(--bg-tertiary);
+    font-weight: 600;
+    border-top: 2px solid var(--border-primary);
+}
+
+.phases-currency {
+    text-align: right;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-variant-numeric: tabular-nums;
+}
+
+.table-header th,
+.suppliers-table-header th,
+.resources-table-header th {
     padding: var(--spacing-md);
     text-align: left;
     font-weight: 600;
@@ -3925,28 +3941,38 @@
     user-select: none;
 }
 
-.table-header th:last-child {
+.table-header th:last-child,
+.suppliers-table-header th:last-child,
+.resources-table-header th:last-child {
     border-right: none;
 }
 
 /* Sortable Headers */
-.table-header .sortable {
+.table-header .sortable,
+.suppliers-table-header .sortable,
+.resources-table-header .sortable {
     cursor: pointer;
     transition: all var(--transition-fast);
     position: relative;
 }
 
-.table-header .sortable:hover {
+.table-header .sortable:hover,
+.suppliers-table-header .sortable:hover,
+.resources-table-header .sortable:hover {
     background-color: var(--bg-hover);
     color: var(--text-primary);
 }
 
-.table-header .sortable.sorted {
+.table-header .sortable.sorted,
+.suppliers-table-header .sortable.sorted,
+.resources-table-header .sortable.sorted {
     color: var(--text-accent);
     background-color: rgba(0, 127, 212, 0.1);
 }
 
-.table-header .sortable i {
+.table-header .sortable i,
+.suppliers-table-header .sortable i,
+.resources-table-header .sortable i {
     margin-left: var(--spacing-xs);
     font-size: 10px;
     opacity: 0.6;
@@ -3954,7 +3980,11 @@
 }
 
 .table-header .sortable:hover i,
-.table-header .sortable.sorted i {
+.table-header .sortable.sorted i,
+.suppliers-table-header .sortable:hover i,
+.suppliers-table-header .sortable.sorted i,
+.resources-table-header .sortable:hover i,
+.resources-table-header .sortable.sorted i {
     opacity: 1;
 }
 
@@ -4536,7 +4566,9 @@
 
 /* High contrast mode */
 @media (prefers-contrast: high) {
-    .table-header {
+    .table-header,
+    .suppliers-table-header,
+    .resources-table-header {
         border-bottom-width: 3px;
     }
 

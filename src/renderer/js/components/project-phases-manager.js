@@ -365,14 +365,14 @@ class ProjectPhasesManager {
                                min="0" max="100" step="1" class="effort-input">
                         <span class="percentage-sign">%</span>
                     </td>
-                    <td class="currency resource-g1">${manDaysByResource.G1.toFixed(1)}</td>
-                    <td class="currency resource-g2">${manDaysByResource.G2.toFixed(1)}</td>
-                    <td class="currency resource-ta">${manDaysByResource.TA.toFixed(1)}</td>
-                    <td class="currency resource-pm">${manDaysByResource.PM.toFixed(1)}</td>
-                    <td class="currency resource-g1">€${costByResource.G1.toLocaleString()}</td>
-                    <td class="currency resource-g2">€${costByResource.G2.toLocaleString()}</td>
-                    <td class="currency resource-ta">€${costByResource.TA.toLocaleString()}</td>
-                    <td class="currency resource-pm">€${costByResource.PM.toLocaleString()}</td>
+                    <td class="phases-currency resource-g1">${manDaysByResource.G1.toFixed(1)}</td>
+                    <td class="phases-currency resource-g2">${manDaysByResource.G2.toFixed(1)}</td>
+                    <td class="phases-currency resource-ta">${manDaysByResource.TA.toFixed(1)}</td>
+                    <td class="phases-currency resource-pm">${manDaysByResource.PM.toFixed(1)}</td>
+                    <td class="phases-currency resource-g1">€${costByResource.G1.toLocaleString()}</td>
+                    <td class="phases-currency resource-g2">€${costByResource.G2.toLocaleString()}</td>
+                    <td class="phases-currency resource-ta">€${costByResource.TA.toLocaleString()}</td>
+                    <td class="phases-currency resource-pm">€${costByResource.PM.toLocaleString()}</td>
                 </tr>
             `;
         }).join('');
@@ -382,18 +382,18 @@ class ProjectPhasesManager {
         const totals = this.calculateTotals();
 
         return `
-            <tr class="totals-row">
+            <tr class="phases-totals-row">
                 <td class="phase-name"><strong>TOTALS</strong></td>
-                <td class="currency">${totals.manDays.toFixed(1)}</td>
+                <td class="phases-currency">${totals.manDays.toFixed(1)}</td>
                 <td colspan="4"></td>
-                <td class="currency">${totals.manDaysByResource.G1.toFixed(1)}</td>
-                <td class="currency">${totals.manDaysByResource.G2.toFixed(1)}</td>
-                <td class="currency">${totals.manDaysByResource.TA.toFixed(1)}</td>
-                <td class="currency">${totals.manDaysByResource.PM.toFixed(1)}</td>
-                <td class="currency">€${totals.costByResource.G1.toLocaleString()}</td>
-                <td class="currency">€${totals.costByResource.G2.toLocaleString()}</td>
-                <td class="currency">€${totals.costByResource.TA.toLocaleString()}</td>
-                <td class="currency">€${totals.costByResource.PM.toLocaleString()}</td>
+                <td class="phases-currency">${totals.manDaysByResource.G1.toFixed(1)}</td>
+                <td class="phases-currency">${totals.manDaysByResource.G2.toFixed(1)}</td>
+                <td class="phases-currency">${totals.manDaysByResource.TA.toFixed(1)}</td>
+                <td class="phases-currency">${totals.manDaysByResource.PM.toFixed(1)}</td>
+                <td class="phases-currency">€${totals.costByResource.G1.toLocaleString()}</td>
+                <td class="phases-currency">€${totals.costByResource.G2.toLocaleString()}</td>
+                <td class="phases-currency">€${totals.costByResource.TA.toLocaleString()}</td>
+                <td class="phases-currency">€${totals.costByResource.PM.toLocaleString()}</td>
             </tr>
         `;
     }
@@ -715,9 +715,9 @@ class ProjectPhasesManager {
         console.log('updateTotals called, calculated totals:', totals);
         
         // Try multiple selectors to find the totals row
-        let totalsRow = document.querySelector('.phases-table .totals-row') || 
-                       document.querySelector('.totals-row') ||
-                       document.querySelector('tr.totals-row');
+        let totalsRow = document.querySelector('.phases-table .phases-totals-row') || 
+                       document.querySelector('.phases-totals-row') ||
+                       document.querySelector('tr.phases-totals-row');
         
         console.log('Found totals row:', !!totalsRow);
 
@@ -758,7 +758,7 @@ class ProjectPhasesManager {
         if (!table) return;
 
         // Remove existing totals row if present
-        const existingTotalsRow = table.querySelector('.totals-row');
+        const existingTotalsRow = table.querySelector('.phases-totals-row');
         if (existingTotalsRow) {
             existingTotalsRow.remove();
         }
@@ -767,7 +767,7 @@ class ProjectPhasesManager {
         const tbody = table.querySelector('tbody');
         if (tbody) {
             const newTotalsRow = document.createElement('tr');
-            newTotalsRow.className = 'totals-row';
+            newTotalsRow.className = 'phases-totals-row';
             newTotalsRow.innerHTML = this.renderTotalsRow();
             tbody.appendChild(newTotalsRow);
             console.log('Totals row regenerated successfully');

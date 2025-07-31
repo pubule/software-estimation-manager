@@ -948,7 +948,7 @@ class InternalResourcesConfigManager {
         return `
             <div class="resources-table-wrapper">
                 <table class="resources-table">
-                    <thead class="table-header">
+                    <thead class="resources-table-header">
                         <tr>
                             <th class="checkbox-col">
                                 <input type="checkbox" id="select-all-resources">

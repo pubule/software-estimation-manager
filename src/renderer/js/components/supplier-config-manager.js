@@ -988,7 +988,7 @@ class SupplierConfigManager {
         return `
             <div class="suppliers-table-wrapper">
                 <table class="suppliers-table">
-                    <thead class="table-header">
+                    <thead class="suppliers-table-header">
                         <tr>
                             <th class="checkbox-col">
                                 <input type="checkbox" id="select-all-suppliers">

@@ -295,26 +295,26 @@
 }
 
 /* Currency Display */
-.currency {
+.phases-currency {
     font-family: monospace;
     font-weight: 600;
     color: var(--text-primary);
 }
 
 /* Totals Row */
-.totals-row {
+.phases-totals-row {
     background-color: var(--bg-quaternary);
     font-weight: 600;
     border-top: 2px solid var(--text-accent);
 }
 
-.totals-row td {
+.phases-totals-row td {
     color: var(--text-accent);
     font-size: var(--font-size-base);
     padding: var(--spacing-md) var(--spacing-sm);
 }
 
-.totals-row .phase-name {
+.phases-totals-row .phase-name {
     background-color: var(--bg-quaternary);
     color: var(--text-accent);
 }
