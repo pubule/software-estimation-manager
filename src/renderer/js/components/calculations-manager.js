@@ -141,9 +141,11 @@ class CalculationsManager {
 
         const selectedSuppliers = phases.selectedSuppliers;
         
-        // Convert phases object to array - the phases are stored as individual properties
+        // Convert phases object to array - exclude 'development' phase as it's calculated from features
         const phasesData = [];
-        const phaseKeys = Object.keys(phases).filter(key => key !== 'selectedSuppliers');
+        const phaseKeys = Object.keys(phases).filter(key => 
+            key !== 'selectedSuppliers' && key !== 'development'
+        );
         
         phaseKeys.forEach(phaseKey => {
             const phaseData = phases[phaseKey];
@@ -155,7 +157,8 @@ class CalculationsManager {
             }
         });
         
-        console.log('Converted phases data to array:', phasesData);
+        console.log('Converted phases data to array (excluding development phase):', phasesData);
+        console.log('Note: Development phase MDs will be calculated from features in processFeaturesCosts()');
 
         console.log('Selected suppliers:', selectedSuppliers);
         console.log('Phases data:', phasesData);
