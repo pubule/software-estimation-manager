@@ -1172,7 +1172,10 @@ class InternalResourcesConfigManager {
         const newItems = this.filteredResources.slice(startIndex, endIndex);
 
         if (newItems.length === 0) {
-            this.showEmptyState();
+            // Show empty state only if this is the first page (table is truly empty)
+            if (this.currentPage === 0) {
+                this.showEmptyState();
+            }
             return;
         }
 
