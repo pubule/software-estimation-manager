@@ -31,6 +31,24 @@ class InternalResourcesConfigManager {
         // Default internal resources with the provided values
         this.defaultInternalResources = [
             {
+                id: 'func-analyst-it',
+                name: 'Functional Analyst',
+                role: 'G1',
+                department: 'IT',
+                realRate: 624,
+                officialRate: 624,
+                isGlobal: true
+            },
+            {
+                id: 'func-analyst-ro',
+                name: 'Functional Analyst',
+                role: 'G1',
+                department: 'RO',
+                realRate: 362,
+                officialRate: 352,
+                isGlobal: true
+            },
+            {
                 id: 'developer-g2',
                 name: 'Developer',
                 role: 'G2',
