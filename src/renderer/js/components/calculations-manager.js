@@ -512,7 +512,7 @@ class CalculationsManager {
         
         return `
             <div class="calculations-table-section">
-                <div class="table-header">
+                <div class="section-header">
                     <h3>Vendor Cost Summary</h3>
                     <div class="table-actions">
                         <button class="btn btn-secondary" id="export-calculations-csv">

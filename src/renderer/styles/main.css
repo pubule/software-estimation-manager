@@ -3884,13 +3884,23 @@
     position: relative;
 }
 
-/* Table Header */
+/* Table Header (for HTML thead elements) */
 .table-header {
     position: sticky;
     top: 0;
     z-index: 100;
     background-color: var(--bg-tertiary);
     border-bottom: 2px solid var(--border-primary);
+}
+
+/* Section Header (for div headers with actions) */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--border-primary);
 }
 
 .table-header th {
