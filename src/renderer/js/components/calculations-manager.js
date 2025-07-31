@@ -327,6 +327,55 @@ class CalculationsManager {
                 }
             }
         });
+
+        // Process coverage MDs as additional G2 development costs
+        const coverageMDs = parseFloat(currentProject.coverage) || 0;
+        if (coverageMDs > 0 && g2EffortPercent > 0) {
+            console.log(`Processing coverage MDs: ${coverageMDs}`);
+            
+            // For coverage, we need to determine which supplier to use
+            // We'll use the selected G2 supplier from phases configuration
+            const selectedSuppliers = phases.selectedSuppliers;
+            const g2SupplierId = selectedSuppliers?.G2;
+            
+            if (g2SupplierId) {
+                const g2Supplier = allSuppliers.find(s => s.id === g2SupplierId);
+                if (g2Supplier) {
+                    const coverageG2ManDays = (coverageMDs * g2EffortPercent) / 100;
+                    const department = g2Supplier.department || 'Unknown';
+                    const key = `${g2Supplier.name}_G2_${department}`;
+                    const realRate = this.getSupplierRate(g2Supplier, 'G2');
+                    const officialRate = g2Supplier.officialRate || 0;
+                    const coverageCost = coverageG2ManDays * realRate;
+
+                    console.log(`Adding coverage cost - Key: ${key}, Coverage G2 MDs: ${coverageG2ManDays}, Cost: €${coverageCost}`);
+
+                    if (vendorCostsMap.has(key)) {
+                        const existing = vendorCostsMap.get(key);
+                        existing.manDays += coverageG2ManDays;
+                        existing.cost += coverageCost;
+                        console.log(`Updated existing G2 entry for ${g2Supplier.name} with coverage, total MDs: ${existing.manDays}, total cost: €${existing.cost}`);
+                    } else {
+                        vendorCostsMap.set(key, {
+                            vendor: g2Supplier.name,
+                            vendorId: g2Supplier.id,
+                            role: 'G2',
+                            department: department,
+                            manDays: coverageG2ManDays,
+                            rate: realRate,
+                            officialRate: officialRate,
+                            cost: coverageCost,
+                            isInternal: this.isInternalResource(g2Supplier)
+                        });
+                        console.log(`Created new G2 entry for ${g2Supplier.name} with coverage`);
+                    }
+                } else {
+                    console.log(`G2 supplier not found for coverage calculation: ${g2SupplierId}`);
+                }
+            } else {
+                console.log('No G2 supplier selected for coverage calculation');
+            }
+        }
         
         console.log('=== PROCESS FEATURES COSTS END ===');
     }

@@ -183,14 +183,18 @@ class ProjectPhasesManager {
     }
 
     calculateDevelopmentPhase() {
-        // Calcola automaticamente i man days della fase Development dalla lista features
+        // Calcola automaticamente i man days della fase Development dalla lista features + coverage
         const developmentPhase = this.currentPhases.find(p => p.id === 'development');
         if (developmentPhase && this.app.currentProject) {
             const featuresTotal = this.app.currentProject.features.reduce((sum, feature) => {
                 return sum + (parseFloat(feature.manDays) || 0);
             }, 0);
 
-            developmentPhase.manDays = featuresTotal;
+            // Add coverage MDs to development phase
+            const coverageMDs = parseFloat(this.app.currentProject.coverage) || 0;
+            const totalDevelopmentMDs = featuresTotal + coverageMDs;
+
+            developmentPhase.manDays = totalDevelopmentMDs;
             developmentPhase.lastModified = new Date().toISOString();
         }
     }
@@ -225,14 +229,15 @@ class ProjectPhasesManager {
         const developmentPhase = this.currentPhases.find(p => p.id === 'development');
         const featuresCount = this.app.currentProject?.features?.length || 0;
         const developmentDays = developmentPhase?.manDays || 0;
+        const coverageMDs = parseFloat(this.app.currentProject?.coverage) || 0;
 
         return `
             <div class="development-notice">
                 <i class="fas fa-info-circle"></i>
                 <div>
                     <strong>Development Phase:</strong> 
-                    Man Days are automatically calculated from ${featuresCount} features 
-                    (Total: ${developmentDays} days). You can configure effort distribution percentages.
+                    Man Days are automatically calculated from ${featuresCount} features + coverage 
+                    (Coverage: ${coverageMDs.toFixed(1)} days, Total: ${developmentDays.toFixed(1)} days). You can configure effort distribution percentages.
                 </div>
             </div>
         `;

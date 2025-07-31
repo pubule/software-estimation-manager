@@ -249,6 +249,7 @@ class SoftwareEstimationApp {
                 if (this.currentProject) {
                     const value = parseFloat(e.target.value) || 0;
                     this.currentProject.coverage = value;
+                    this.currentProject.coverageIsAutoCalculated = false; // Mark as manually set
                     this.markDirty();
                 }
             });
@@ -884,16 +885,20 @@ class SoftwareEstimationApp {
         if (totalManDaysEl) totalManDaysEl.textContent = totalManDays.toFixed(1);
         if (averageManDaysEl) averageManDaysEl.textContent = averageManDays;
         
-        // Update coverage field - only set default if not manually set by user
+        // Update coverage field - auto-calculate if not manually set by user
         if (coverageEl) {
-            // Initialize coverage from project data or default
-            if (this.currentProject.coverage !== undefined) {
-                coverageEl.value = this.currentProject.coverage;
-            } else {
-                // Set default coverage silently (without marking as dirty)
+            // Check if coverage should be auto-calculated or manually maintained
+            const coverageIsAutoCalculated = this.currentProject.coverageIsAutoCalculated !== false; // Default to true
+            
+            if (coverageIsAutoCalculated || this.currentProject.coverage === undefined) {
+                // Auto-calculate coverage (30% of total man days)
                 coverageEl.value = defaultCoverage;
                 this.currentProject.coverage = parseFloat(defaultCoverage);
+                this.currentProject.coverageIsAutoCalculated = true;
                 // Don't call markDirty() here to avoid "unsaved changes" alert on project load
+            } else {
+                // Use manually set coverage value
+                coverageEl.value = this.currentProject.coverage;
             }
         }
     }
