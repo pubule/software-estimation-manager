@@ -345,12 +345,13 @@ class FeatureManager {
         // Clear existing options (keep only the first option)
         supplierSelect.innerHTML = '<option value="">Select Supplier</option>';
 
-        // Add external suppliers
+        // Add external suppliers (only G2 role)
         suppliers.forEach(supplier => {
-            if (supplier.id && supplier.name && supplier.status !== 'inactive') {
+            if (supplier.id && supplier.name && supplier.status !== 'inactive' && supplier.role === 'G2') {
                 const option = document.createElement('option');
                 option.value = supplier.id;
-                option.textContent = `${supplier.name} (External)`;
+                const rate = supplier.realRate || supplier.officialRate || 0;
+                option.textContent = `${supplier.name} (€${rate}/day)`;
 
                 // Add visual indicator for global vs project-specific
                 if (supplier.isProjectSpecific) {
@@ -366,12 +367,13 @@ class FeatureManager {
             }
         });
 
-        // Add internal resources
+        // Add internal resources (only G2 role)
         internalResources.forEach(resource => {
-            if (resource.id && resource.name && resource.status !== 'inactive') {
+            if (resource.id && resource.name && resource.status !== 'inactive' && resource.role === 'G2') {
                 const option = document.createElement('option');
                 option.value = resource.id;
-                option.textContent = `${resource.name} (Internal)`;
+                const rate = resource.realRate || resource.officialRate || 0;
+                option.textContent = `${resource.name} (€${rate}/day)`;
 
                 // Add visual indicator for global vs project-specific
                 if (resource.isProjectSpecific) {
@@ -387,7 +389,9 @@ class FeatureManager {
             }
         });
 
-        console.log(`Populated ${suppliers.length} suppliers and ${internalResources.length} internal resources in modal dropdown`);
+        const g2Suppliers = suppliers.filter(s => s.role === 'G2');
+        const g2InternalResources = internalResources.filter(r => r.role === 'G2');
+        console.log(`Populated ${g2Suppliers.length} G2 suppliers and ${g2InternalResources.length} G2 internal resources in modal dropdown`);
     }
 
     /**
@@ -552,12 +556,13 @@ class FeatureManager {
             supplierFilterSelect.removeChild(supplierFilterSelect.lastChild);
         }
 
-        // Add external suppliers
+        // Add external suppliers (only G2 role)
         suppliers.forEach(supplier => {
-            if (supplier.id && supplier.name && supplier.status !== 'inactive') {
+            if (supplier.id && supplier.name && supplier.status !== 'inactive' && supplier.role === 'G2') {
                 const option = document.createElement('option');
                 option.value = supplier.id;
-                option.textContent = `${supplier.name} (External)`;
+                const rate = supplier.realRate || supplier.officialRate || 0;
+                option.textContent = `${supplier.name} (€${rate}/day)`;
 
                 // Add visual indicator for global vs project-specific
                 if (supplier.isProjectSpecific) {
@@ -570,12 +575,13 @@ class FeatureManager {
             }
         });
 
-        // Add internal resources
+        // Add internal resources (only G2 role)
         internalResources.forEach(resource => {
-            if (resource.id && resource.name && resource.status !== 'inactive') {
+            if (resource.id && resource.name && resource.status !== 'inactive' && resource.role === 'G2') {
                 const option = document.createElement('option');
                 option.value = resource.id;
-                option.textContent = `${resource.name} (Internal)`;
+                const rate = resource.realRate || resource.officialRate || 0;
+                option.textContent = `${resource.name} (€${rate}/day)`;
 
                 // Add visual indicator for global vs project-specific
                 if (resource.isProjectSpecific) {
@@ -593,7 +599,9 @@ class FeatureManager {
             supplierFilterSelect.value = currentValue;
         }
 
-        console.log(`Populated ${suppliers.length} suppliers and ${internalResources.length} internal resources in filter dropdown`);
+        const g2SuppliersFilter = suppliers.filter(s => s.role === 'G2' && s.status !== 'inactive');
+        const g2InternalResourcesFilter = internalResources.filter(r => r.role === 'G2' && r.status !== 'inactive');
+        console.log(`Populated ${g2SuppliersFilter.length} G2 suppliers and ${g2InternalResourcesFilter.length} G2 internal resources in filter dropdown`);
     }
 
     /**
@@ -1629,7 +1637,23 @@ class FeatureManager {
     getSupplierName(project, supplierId) {
         if (!project || !supplierId || !this.configManager) return 'Unassigned';
 
-        return this.configManager.getSupplierDisplayName(project.config, supplierId);
+        const projectConfig = this.configManager.getProjectConfig(project.config);
+        
+        // Check external suppliers first
+        const supplier = projectConfig.suppliers.find(s => s.id === supplierId);
+        if (supplier) {
+            const rate = supplier.realRate || supplier.officialRate || 0;
+            return `${supplier.name} (€${rate}/day)`;
+        }
+
+        // Check internal resources
+        const resource = projectConfig.internalResources.find(r => r.id === supplierId);
+        if (resource) {
+            const rate = resource.realRate || resource.officialRate || 0;
+            return `${resource.name} (€${rate}/day)`;
+        }
+
+        return `Unknown Supplier (${supplierId})`;
     }
 
     /**
