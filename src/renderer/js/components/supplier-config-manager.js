@@ -1910,8 +1910,13 @@ class SupplierConfigManager {
                             </div>
                             <div class="form-group">
                                 <label for="supplier-role">Role:</label>
-                                <input type="text" id="supplier-role" name="role" required maxlength="100" 
-                                       placeholder="e.g., G1, G2, PM, Tech Lead">
+                                <select id="supplier-role" name="role" required>
+                                    <option value="">Select Role</option>
+                                    <option value="G1">G1</option>
+                                    <option value="G2">G2</option>
+                                    <option value="TA">TA</option>
+                                    <option value="PM">PM</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label for="supplier-department">Department:</label>

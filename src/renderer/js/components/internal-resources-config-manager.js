@@ -69,7 +69,7 @@ class InternalResourcesConfigManager {
             {
                 id: 'tech-analyst-it',
                 name: 'Tech Analyst',
-                role: 'Tech Analyst',
+                role: 'TA',
                 department: 'IT',
                 realRate: 624,
                 officialRate: 624,
@@ -78,7 +78,7 @@ class InternalResourcesConfigManager {
             {
                 id: 'tech-analyst-ro',
                 name: 'Tech Analyst',
-                role: 'Tech Analyst',
+                role: 'TA',
                 department: 'RO',
                 realRate: 352,
                 officialRate: 352,
@@ -1877,8 +1877,13 @@ class InternalResourcesConfigManager {
                             </div>
                             <div class="form-group">
                                 <label for="resource-role">Role:</label>
-                                <input type="text" id="resource-role" name="role" required maxlength="100" 
-                                       placeholder="e.g., Senior Developer, Tech Analyst, Project Manager">
+                                <select id="resource-role" name="role" required>
+                                    <option value="">Select Role</option>
+                                    <option value="G1">G1</option>
+                                    <option value="G2">G2</option>
+                                    <option value="TA">TA</option>
+                                    <option value="PM">PM</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label for="resource-department">Department:</label>
