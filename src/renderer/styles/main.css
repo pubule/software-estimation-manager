@@ -3903,6 +3903,15 @@
     border-bottom: 1px solid var(--border-primary);
 }
 
+/* Calculations Table Container (specific to avoid conflicts) */
+.calculations-table-container {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-primary);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
 .table-header th {
     padding: var(--spacing-md);
     text-align: left;

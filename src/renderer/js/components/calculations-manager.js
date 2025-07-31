@@ -542,7 +542,7 @@ class CalculationsManager {
                     </div>
                 </div>
 
-                <div class="table-container">
+                <div class="calculations-table-container">
                     <table class="calculations-table">
                         <thead>
                             <tr>

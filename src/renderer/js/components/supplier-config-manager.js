@@ -1025,11 +1025,11 @@ class SupplierConfigManager {
                         <!-- Rows will be populated here -->
                     </tbody>
                 </table>
-                <div id="table-loading" class="table-loading hidden">
+                <div id="suppliers-table-loading" class="table-loading hidden">
                     <div class="loading-spinner"></div>
                     <span>Loading more suppliers...</span>
                 </div>
-                <div id="table-empty" class="table-empty hidden">
+                <div id="suppliers-table-empty" class="table-empty hidden">
                     <i class="fas fa-users empty-icon"></i>
                     <h3>No suppliers found</h3>
                     <p>Try adjusting your search or filters, or add a new supplier to get started.</p>
@@ -1273,11 +1273,11 @@ class SupplierConfigManager {
     }
 
     showEmptyState() {
-        document.getElementById('table-empty')?.classList.remove('hidden');
+        document.getElementById('suppliers-table-empty')?.classList.remove('hidden');
     }
 
     hideEmptyState() {
-        document.getElementById('table-empty')?.classList.add('hidden');
+        document.getElementById('suppliers-table-empty')?.classList.add('hidden');
     }
 
     /**

@@ -985,11 +985,11 @@ class InternalResourcesConfigManager {
                         <!-- Rows will be populated here -->
                     </tbody>
                 </table>
-                <div id="table-loading" class="table-loading hidden">
+                <div id="resources-table-loading" class="table-loading hidden">
                     <div class="loading-spinner"></div>
                     <span>Loading more resources...</span>
                 </div>
-                <div id="table-empty" class="table-empty hidden">
+                <div id="resources-table-empty" class="table-empty hidden">
                     <i class="fas fa-users empty-icon"></i>
                     <h3>No internal resources found</h3>
                     <p>Try adjusting your search or filters, or add a new resource to get started.</p>
@@ -1228,11 +1228,11 @@ class InternalResourcesConfigManager {
     }
 
     showEmptyState() {
-        document.getElementById('table-empty')?.classList.remove('hidden');
+        document.getElementById('resources-table-empty')?.classList.remove('hidden');
     }
 
     hideEmptyState() {
-        document.getElementById('table-empty')?.classList.add('hidden');
+        document.getElementById('resources-table-empty')?.classList.add('hidden');
     }
 
     /**
