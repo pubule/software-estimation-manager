@@ -554,13 +554,14 @@ class CalculationsManager {
                                 <th>Role</th>
                                 <th>Department</th>
                                 <th>Total MDs</th>
+                                <th>Official Tot MDs</th>
                                 <th>Rate</th>
                                 <th>Total Cost</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${filteredCosts.length === 0 ? 
-                                '<tr><td colspan="6" class="no-data">No cost data available</td></tr>' :
+                                '<tr><td colspan="7" class="no-data">No cost data available</td></tr>' :
                                 filteredCosts.map(cost => `
                                     <tr class="${cost.isInternal ? 'internal-resource' : 'external-supplier'}">
                                         <td>
@@ -570,6 +571,7 @@ class CalculationsManager {
                                         <td><span class="role-badge role-${cost.role.toLowerCase()}">${cost.role}</span></td>
                                         <td><span class="department-badge">${cost.department}</span></td>
                                         <td class="number">${cost.manDays.toFixed(1)}</td>
+                                        <td class="number">${cost.officialRate > 0 ? (cost.cost / cost.officialRate).toFixed(1) : '0.0'}</td>
                                         <td class="currency">€${cost.officialRate.toLocaleString()}/day</td>
                                         <td class="currency total-cost">€${cost.cost.toLocaleString()}</td>
                                     </tr>
@@ -581,6 +583,7 @@ class CalculationsManager {
                                 <tr class="totals-row">
                                     <td colspan="3"><strong>Total</strong></td>
                                     <td class="number"><strong>${filteredCosts.reduce((sum, c) => sum + c.manDays, 0).toFixed(1)}</strong></td>
+                                    <td class="number"><strong>${filteredCosts.reduce((sum, c) => sum + (c.officialRate > 0 ? c.cost / c.officialRate : 0), 0).toFixed(1)}</strong></td>
                                     <td></td>
                                     <td class="currency total-cost"><strong>€${filteredCosts.reduce((sum, c) => sum + c.cost, 0).toLocaleString()}</strong></td>
                                 </tr>
@@ -676,7 +679,7 @@ class CalculationsManager {
             return;
         }
 
-        const headers = ['Vendor', 'Role', 'Department', 'Total MDs', 'Official Rate', 'Total Cost'];
+        const headers = ['Vendor', 'Role', 'Department', 'Total MDs', 'Official Tot MDs', 'Official Rate', 'Total Cost'];
         const csvData = [
             headers,
             ...filteredCosts.map(cost => [
@@ -684,6 +687,7 @@ class CalculationsManager {
                 cost.role,
                 cost.department,
                 cost.manDays.toFixed(1),
+                cost.officialRate > 0 ? (cost.cost / cost.officialRate).toFixed(1) : '0.0',
                 cost.officialRate,
                 cost.cost.toFixed(2)
             ])
