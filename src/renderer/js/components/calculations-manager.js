@@ -75,10 +75,30 @@ class CalculationsManager {
         console.log('Internal resources:', projectConfig.internalResources);
         
         // Debug: Show which suppliers have internal vs external rates
-        allSuppliers.forEach(supplier => {
+        console.log('=== SUPPLIER ANALYSIS ===');
+        projectConfig.internalResources.forEach(supplier => {
             const hasInternal = supplier.internalRate !== undefined && supplier.internalRate !== null;
             const hasExternal = supplier.officialRate !== undefined && supplier.officialRate !== null;
-            console.log(`${supplier.name}: internal=${hasInternal}(${supplier.internalRate}), external=${hasExternal}(${supplier.officialRate})`);
+            console.log(`INTERNAL: ${supplier.name} (${supplier.id}): internalRate=${supplier.internalRate}, officialRate=${supplier.officialRate}`);
+        });
+        
+        projectConfig.suppliers.forEach(supplier => {
+            const hasInternal = supplier.internalRate !== undefined && supplier.internalRate !== null;
+            const hasExternal = supplier.officialRate !== undefined && supplier.officialRate !== null;
+            console.log(`EXTERNAL: ${supplier.name} (${supplier.id}): internalRate=${supplier.internalRate}, officialRate=${supplier.officialRate}`);
+        });
+
+        // Debug selected suppliers
+        console.log('=== SELECTED SUPPLIERS ANALYSIS ===');
+        const selectedSuppliers = currentProject.phases.selectedSuppliers;
+        Object.entries(selectedSuppliers).forEach(([role, supplierId]) => {
+            const supplier = allSuppliers.find(s => s.id === supplierId);
+            if (supplier) {
+                const isFromInternalList = projectConfig.internalResources.some(ir => ir.id === supplierId);
+                const isFromExternalList = projectConfig.suppliers.some(s => s.id === supplierId);
+                console.log(`${role}: ${supplier.name} (${supplierId}) - fromInternal:${isFromInternalList}, fromExternal:${isFromExternalList}`);
+                console.log(`  rates: internal=${supplier.internalRate}, official=${supplier.officialRate}`);
+            }
         });
         
         // Create vendor costs map: vendorId_role -> { vendor, role, manDays, rate, cost }
@@ -184,22 +204,24 @@ class CalculationsManager {
             console.log(`Total MDs for ${resourceType}: ${totalManDays}`);
 
             if (totalManDays > 0) {
-                const key = `${supplier.id}_${role}`;
-                const rate = this.getSupplierRate(supplier, role);
+                const department = supplier.department || 'Unknown';
+                const key = `${supplier.name}_${role}_${department}`;
+                const rate = supplier.officialRate || 0; // Use official rate directly
                 const cost = totalManDays * rate;
 
-                console.log(`Adding to map - Key: ${key}, Rate: ${rate}, Cost: ${cost}`);
+                console.log(`Adding to map - Key: ${key}, Rate: €${rate}, Cost: €${cost}`);
 
                 if (vendorCostsMap.has(key)) {
                     const existing = vendorCostsMap.get(key);
                     existing.manDays += totalManDays;
                     existing.cost += cost;
-                    console.log(`Updated existing entry for ${key}`);
+                    console.log(`Updated existing entry for ${key}, total MDs: ${existing.manDays}, total cost: €${existing.cost}`);
                 } else {
                     vendorCostsMap.set(key, {
                         vendor: supplier.name,
                         vendorId: supplier.id,
                         role: role,
+                        department: department,
                         manDays: totalManDays,
                         rate: rate,
                         cost: cost,
@@ -270,22 +292,24 @@ class CalculationsManager {
             console.log(`Feature ${feature.id}: ${featureManDays} MDs x ${g2EffortPercent}% = ${g2ManDays} G2 MDs`);
 
             if (g2ManDays > 0) {
-                const key = `${supplier.id}_G2`;
-                const rate = this.getSupplierRate(supplier, 'G2');
+                const department = supplier.department || 'Unknown';
+                const key = `${supplier.name}_G2_${department}`;
+                const rate = supplier.officialRate || 0; // Use official rate directly
                 const cost = g2ManDays * rate;
 
-                console.log(`Adding feature cost - Key: ${key}, Rate: ${rate}, Cost: ${cost}`);
+                console.log(`Adding feature cost - Key: ${key}, Rate: €${rate}, Cost: €${cost}`);
 
                 if (vendorCostsMap.has(key)) {
                     const existing = vendorCostsMap.get(key);
                     existing.manDays += g2ManDays;
                     existing.cost += cost;
-                    console.log(`Updated existing G2 entry for ${supplier.name}, new total: ${existing.manDays} MDs`);
+                    console.log(`Updated existing G2 entry for ${supplier.name}, total MDs: ${existing.manDays}, total cost: €${existing.cost}`);
                 } else {
                     vendorCostsMap.set(key, {
                         vendor: supplier.name,
                         vendorId: supplier.id,
                         role: 'G2',
+                        department: department,
                         manDays: g2ManDays,
                         rate: rate,
                         cost: cost,
@@ -347,19 +371,23 @@ class CalculationsManager {
     }
 
     /**
-     * Get supplier rate for specific role
+     * Get supplier rate for specific role (uses real rate)
      */
     getSupplierRate(supplier, role) {
         const isInternal = this.isInternalResource(supplier);
         let rate = 0;
         
-        if (isInternal) {
-            rate = supplier.internalRate || 0;
+        // Always use realRate first, then fallback to officialRate if realRate not available
+        if (supplier.realRate !== undefined && supplier.realRate !== null) {
+            rate = supplier.realRate;
+        } else if (isInternal) {
+            // For internal resources, fallback to internalRate then officialRate
+            rate = supplier.internalRate || supplier.officialRate || 0;
         } else {
             rate = supplier.officialRate || 0;
         }
         
-        console.log(`Getting rate for ${supplier.name} (${isInternal ? 'internal' : 'external'}): €${rate}/day`);
+        console.log(`Getting rate for ${supplier.name} (${isInternal ? 'internal' : 'external'}): €${rate}/day (using ${supplier.realRate !== undefined ? 'realRate' : 'fallback'})`);
         return rate;
     }
 
@@ -367,14 +395,24 @@ class CalculationsManager {
      * Check if supplier is internal resource
      */
     isInternalResource(supplier) {
-        // Check if it has internalRate field (internal resources) vs officialRate (external suppliers)
+        const currentProject = this.app?.currentProject;
+        if (!currentProject || !this.configManager) return false;
+
+        const projectConfig = this.configManager.getProjectConfig(currentProject.config);
+        
+        // Check if supplier is in the internalResources list
+        const isFromInternalList = projectConfig.internalResources.some(ir => ir.id === supplier.id);
+        
+        // Also check rate structure as backup
         const hasInternalRate = supplier.internalRate !== undefined && supplier.internalRate !== null;
         const hasOfficialRate = supplier.officialRate !== undefined && supplier.officialRate !== null;
         
-        // Internal resources should have internalRate, external suppliers should have officialRate
-        const isInternal = hasInternalRate && !hasOfficialRate;
+        // Primary check: is it from internal resources list?
+        // Secondary check: has internal rate but no official rate
+        const isInternal = isFromInternalList || (hasInternalRate && !hasOfficialRate);
         
         console.log(`Checking if ${supplier.name} is internal: ${isInternal}`);
+        console.log(`  - fromInternalList: ${isFromInternalList}`);
         console.log(`  - internalRate: ${supplier.internalRate} (has: ${hasInternalRate})`);
         console.log(`  - officialRate: ${supplier.officialRate} (has: ${hasOfficialRate})`);
         
@@ -507,6 +545,7 @@ class CalculationsManager {
                             <tr>
                                 <th>Vendor</th>
                                 <th>Role</th>
+                                <th>Department</th>
                                 <th>Total MDs</th>
                                 <th>Rate</th>
                                 <th>Total Cost</th>
@@ -514,7 +553,7 @@ class CalculationsManager {
                         </thead>
                         <tbody>
                             ${filteredCosts.length === 0 ? 
-                                '<tr><td colspan="5" class="no-data">No cost data available</td></tr>' :
+                                '<tr><td colspan="6" class="no-data">No cost data available</td></tr>' :
                                 filteredCosts.map(cost => `
                                     <tr class="${cost.isInternal ? 'internal-resource' : 'external-supplier'}">
                                         <td>
@@ -522,6 +561,7 @@ class CalculationsManager {
                                             <span class="resource-type">${cost.isInternal ? '(Internal)' : '(External)'}</span>
                                         </td>
                                         <td><span class="role-badge role-${cost.role.toLowerCase()}">${cost.role}</span></td>
+                                        <td><span class="department-badge">${cost.department}</span></td>
                                         <td class="number">${cost.manDays.toFixed(1)}</td>
                                         <td class="currency">€${cost.rate.toLocaleString()}/day</td>
                                         <td class="currency total-cost">€${cost.cost.toLocaleString()}</td>
@@ -532,7 +572,7 @@ class CalculationsManager {
                         ${filteredCosts.length > 0 ? `
                             <tfoot>
                                 <tr class="totals-row">
-                                    <td colspan="2"><strong>Total</strong></td>
+                                    <td colspan="3"><strong>Total</strong></td>
                                     <td class="number"><strong>${filteredCosts.reduce((sum, c) => sum + c.manDays, 0).toFixed(1)}</strong></td>
                                     <td></td>
                                     <td class="currency total-cost"><strong>€${filteredCosts.reduce((sum, c) => sum + c.cost, 0).toLocaleString()}</strong></td>
@@ -629,12 +669,13 @@ class CalculationsManager {
             return;
         }
 
-        const headers = ['Vendor', 'Role', 'Total MDs', 'Rate', 'Total Cost'];
+        const headers = ['Vendor', 'Role', 'Department', 'Total MDs', 'Rate', 'Total Cost'];
         const csvData = [
             headers,
             ...filteredCosts.map(cost => [
                 cost.vendor,
                 cost.role,
+                cost.department,
                 cost.manDays.toFixed(1),
                 cost.rate,
                 cost.cost.toFixed(2)
