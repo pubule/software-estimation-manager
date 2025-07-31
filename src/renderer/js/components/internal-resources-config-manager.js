@@ -1074,8 +1074,13 @@ class InternalResourcesConfigManager {
                            maxlength="100" required>
                 </td>
                 <td class="role-cell">
-                    <input type="text" class="edit-input role-input" value="${this.escapeHtml(resource.role)}" 
-                           maxlength="100" required>
+                    <select class="edit-input role-input" required>
+                        <option value="">Select Role</option>
+                        <option value="G1" ${resource.role === 'G1' ? 'selected' : ''}>G1</option>
+                        <option value="G2" ${resource.role === 'G2' ? 'selected' : ''}>G2</option>
+                        <option value="TA" ${resource.role === 'TA' ? 'selected' : ''}>TA</option>
+                        <option value="PM" ${resource.role === 'PM' ? 'selected' : ''}>PM</option>
+                    </select>
                 </td>
                 <td class="department-cell">
                     <input type="text" class="edit-input department-input" value="${this.escapeHtml(resource.department)}" 
