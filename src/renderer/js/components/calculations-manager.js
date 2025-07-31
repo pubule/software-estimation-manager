@@ -4,6 +4,10 @@
  */
 class CalculationsManager {
     constructor(app, configManager) {
+        console.log('=== CALCULATIONS MANAGER CONSTRUCTOR ===');
+        console.log('App:', app);
+        console.log('Config Manager:', configManager);
+        
         this.app = app;
         this.configManager = configManager;
         this.vendorCosts = [];
@@ -14,6 +18,7 @@ class CalculationsManager {
         };
         
         this.initializeEventListeners();
+        console.log('CalculationsManager initialized successfully');
     }
 
     initializeEventListeners() {
@@ -49,14 +54,32 @@ class CalculationsManager {
      * Calculate vendor costs aggregating from phases and features
      */
     calculateVendorCosts() {
+        console.log('=== CALCULATE VENDOR COSTS START ===');
+        
         const currentProject = this.app?.currentProject;
         if (!currentProject || !this.configManager) {
+            console.log('No current project or config manager');
             this.vendorCosts = [];
             return;
         }
 
+        console.log('Current project:', currentProject);
+        console.log('Project phases:', currentProject.phases);
+        console.log('Project features:', currentProject.features);
+
         const projectConfig = this.configManager.getProjectConfig(currentProject.config);
         const allSuppliers = [...projectConfig.suppliers, ...projectConfig.internalResources];
+        
+        console.log('All suppliers:', allSuppliers);
+        console.log('External suppliers:', projectConfig.suppliers);
+        console.log('Internal resources:', projectConfig.internalResources);
+        
+        // Debug: Show which suppliers have internal vs external rates
+        allSuppliers.forEach(supplier => {
+            const hasInternal = supplier.internalRate !== undefined && supplier.internalRate !== null;
+            const hasExternal = supplier.officialRate !== undefined && supplier.officialRate !== null;
+            console.log(`${supplier.name}: internal=${hasInternal}(${supplier.internalRate}), external=${hasExternal}(${supplier.officialRate})`);
+        });
         
         // Create vendor costs map: vendorId_role -> { vendor, role, manDays, rate, cost }
         const vendorCostsMap = new Map();
@@ -67,22 +90,55 @@ class CalculationsManager {
         // Process features data  
         this.processFeaturesCosts(vendorCostsMap, allSuppliers, currentProject);
 
+        console.log('Vendor costs map after processing:', vendorCostsMap);
+
         // Convert map to array
         this.vendorCosts = Array.from(vendorCostsMap.values()).sort((a, b) => {
             if (a.vendor !== b.vendor) return a.vendor.localeCompare(b.vendor);
             return a.role.localeCompare(b.role);
         });
+
+        console.log('Final vendor costs:', this.vendorCosts);
+        console.log('=== CALCULATE VENDOR COSTS END ===');
     }
 
     /**
      * Process costs from project phases
      */
     processPhasesCosts(vendorCostsMap, allSuppliers, currentProject) {
+        console.log('=== PROCESS PHASES COSTS START ===');
+        
         const phases = currentProject.phases;
-        if (!phases || !phases.selectedSuppliers || !phases.phases) return;
+        console.log('Project phases object:', phases);
+        
+        if (!phases || !phases.selectedSuppliers) {
+            console.log('Missing phases data:', {
+                phases: !!phases,
+                selectedSuppliers: phases?.selectedSuppliers
+            });
+            return;
+        }
 
         const selectedSuppliers = phases.selectedSuppliers;
-        const phasesData = phases.phases;
+        
+        // Convert phases object to array - the phases are stored as individual properties
+        const phasesData = [];
+        const phaseKeys = Object.keys(phases).filter(key => key !== 'selectedSuppliers');
+        
+        phaseKeys.forEach(phaseKey => {
+            const phaseData = phases[phaseKey];
+            if (phaseData && typeof phaseData === 'object' && phaseData.manDays !== undefined) {
+                phasesData.push({
+                    id: phaseKey,
+                    ...phaseData
+                });
+            }
+        });
+        
+        console.log('Converted phases data to array:', phasesData);
+
+        console.log('Selected suppliers:', selectedSuppliers);
+        console.log('Phases data:', phasesData);
 
         // Map resource types to roles
         const resourceRoleMap = {
@@ -93,31 +149,52 @@ class CalculationsManager {
         };
 
         Object.entries(selectedSuppliers).forEach(([resourceType, supplierId]) => {
-            if (!supplierId) return;
+            console.log(`Processing resource type: ${resourceType}, supplier ID: ${supplierId}`);
+            
+            if (!supplierId) {
+                console.log(`No supplier ID for ${resourceType}`);
+                return;
+            }
 
             const supplier = allSuppliers.find(s => s.id === supplierId);
-            if (!supplier) return;
+            if (!supplier) {
+                console.log(`Supplier not found for ID: ${supplierId}`);
+                return;
+            }
+
+            console.log(`Found supplier: ${supplier.name} for ${resourceType}`);
 
             const role = resourceRoleMap[resourceType];
-            if (!role) return;
+            if (!role) {
+                console.log(`No role mapping for resource type: ${resourceType}`);
+                return;
+            }
 
             // Calculate total man days for this resource type across all phases
             let totalManDays = 0;
             phasesData.forEach(phase => {
                 const phaseManDays = parseFloat(phase.manDays) || 0;
                 const effortPercent = (phase.effort && phase.effort[resourceType]) || 0;
-                totalManDays += (phaseManDays * effortPercent) / 100;
+                const phaseMDs = (phaseManDays * effortPercent) / 100;
+                totalManDays += phaseMDs;
+                
+                console.log(`Phase ${phase.id}: ${phaseManDays} MDs x ${effortPercent}% = ${phaseMDs} MDs`);
             });
+
+            console.log(`Total MDs for ${resourceType}: ${totalManDays}`);
 
             if (totalManDays > 0) {
                 const key = `${supplier.id}_${role}`;
                 const rate = this.getSupplierRate(supplier, role);
                 const cost = totalManDays * rate;
 
+                console.log(`Adding to map - Key: ${key}, Rate: ${rate}, Cost: ${cost}`);
+
                 if (vendorCostsMap.has(key)) {
                     const existing = vendorCostsMap.get(key);
                     existing.manDays += totalManDays;
                     existing.cost += cost;
+                    console.log(`Updated existing entry for ${key}`);
                 } else {
                     vendorCostsMap.set(key, {
                         vendor: supplier.name,
@@ -128,46 +205,82 @@ class CalculationsManager {
                         cost: cost,
                         isInternal: this.isInternalResource(supplier)
                     });
+                    console.log(`Created new entry for ${key}`);
                 }
             }
         });
+        
+        console.log('=== PROCESS PHASES COSTS END ===');
     }
 
     /**
      * Process costs from features (Development phase G2 resources)
      */
     processFeaturesCosts(vendorCostsMap, allSuppliers, currentProject) {
+        console.log('=== PROCESS FEATURES COSTS START ===');
+        
         const features = currentProject.features || [];
         const phases = currentProject.phases;
         
-        if (!phases || !phases.phases) return;
+        console.log('Features:', features);
+        console.log('Features count:', features.length);
+        
+        if (!phases) {
+            console.log('No phases data for features processing');
+            return;
+        }
 
-        // Find development phase and G2 effort percentage
-        const developmentPhase = phases.phases.find(p => p.id === 'development');
-        if (!developmentPhase) return;
+        // Find development phase and G2 effort percentage - access directly from phases object
+        const developmentPhase = phases.development;
+        console.log('Development phase:', developmentPhase);
+        
+        if (!developmentPhase) {
+            console.log('No development phase found');
+            return;
+        }
 
         const g2EffortPercent = (developmentPhase.effort && developmentPhase.effort.G2) || 0;
-        if (g2EffortPercent === 0) return;
+        console.log('G2 effort percent from development phase:', g2EffortPercent);
+        
+        if (g2EffortPercent === 0) {
+            console.log('G2 effort percent is 0, skipping features processing');
+            return;
+        }
 
-        features.forEach(feature => {
+        features.forEach((feature, index) => {
+            console.log(`Processing feature ${index + 1}:`, feature);
+            
             const supplierId = feature.supplier;
-            if (!supplierId) return;
+            if (!supplierId) {
+                console.log(`Feature ${feature.id} has no supplier`);
+                return;
+            }
 
             const supplier = allSuppliers.find(s => s.id === supplierId);
-            if (!supplier) return;
+            if (!supplier) {
+                console.log(`Supplier not found for ID: ${supplierId} in feature ${feature.id}`);
+                return;
+            }
+
+            console.log(`Found supplier: ${supplier.name} for feature ${feature.id}`);
 
             const featureManDays = parseFloat(feature.manDays) || 0;
             const g2ManDays = (featureManDays * g2EffortPercent) / 100;
+
+            console.log(`Feature ${feature.id}: ${featureManDays} MDs x ${g2EffortPercent}% = ${g2ManDays} G2 MDs`);
 
             if (g2ManDays > 0) {
                 const key = `${supplier.id}_G2`;
                 const rate = this.getSupplierRate(supplier, 'G2');
                 const cost = g2ManDays * rate;
 
+                console.log(`Adding feature cost - Key: ${key}, Rate: ${rate}, Cost: ${cost}`);
+
                 if (vendorCostsMap.has(key)) {
                     const existing = vendorCostsMap.get(key);
                     existing.manDays += g2ManDays;
                     existing.cost += cost;
+                    console.log(`Updated existing G2 entry for ${supplier.name}, new total: ${existing.manDays} MDs`);
                 } else {
                     vendorCostsMap.set(key, {
                         vendor: supplier.name,
@@ -178,9 +291,12 @@ class CalculationsManager {
                         cost: cost,
                         isInternal: this.isInternalResource(supplier)
                     });
+                    console.log(`Created new G2 entry for ${supplier.name}`);
                 }
             }
         });
+        
+        console.log('=== PROCESS FEATURES COSTS END ===');
     }
 
     /**
@@ -234,21 +350,35 @@ class CalculationsManager {
      * Get supplier rate for specific role
      */
     getSupplierRate(supplier, role) {
-        // For internal resources, use internal rate
-        if (this.isInternalResource(supplier)) {
-            return supplier.internalRate || 0;
+        const isInternal = this.isInternalResource(supplier);
+        let rate = 0;
+        
+        if (isInternal) {
+            rate = supplier.internalRate || 0;
+        } else {
+            rate = supplier.officialRate || 0;
         }
         
-        // For external suppliers, use official rate
-        return supplier.officialRate || 0;
+        console.log(`Getting rate for ${supplier.name} (${isInternal ? 'internal' : 'external'}): €${rate}/day`);
+        return rate;
     }
 
     /**
      * Check if supplier is internal resource
      */
     isInternalResource(supplier) {
-        // Internal resources don't have officialRate, only internalRate
-        return !supplier.officialRate && supplier.internalRate;
+        // Check if it has internalRate field (internal resources) vs officialRate (external suppliers)
+        const hasInternalRate = supplier.internalRate !== undefined && supplier.internalRate !== null;
+        const hasOfficialRate = supplier.officialRate !== undefined && supplier.officialRate !== null;
+        
+        // Internal resources should have internalRate, external suppliers should have officialRate
+        const isInternal = hasInternalRate && !hasOfficialRate;
+        
+        console.log(`Checking if ${supplier.name} is internal: ${isInternal}`);
+        console.log(`  - internalRate: ${supplier.internalRate} (has: ${hasInternalRate})`);
+        console.log(`  - officialRate: ${supplier.officialRate} (has: ${hasOfficialRate})`);
+        
+        return isInternal;
     }
 
     /**
