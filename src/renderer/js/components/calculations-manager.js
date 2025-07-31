@@ -14,7 +14,8 @@ class CalculationsManager {
         this.kpiData = {};
         this.currentFilters = {
             vendor: '',
-            role: ''
+            role: '',
+            roleGroup: 'all'
         };
         
         this.initializeEventListeners();
@@ -526,6 +527,20 @@ class CalculationsManager {
                 </div>
                 
                 <div class="table-filters">
+                    <div class="filter-chips">
+                        <button class="filter-chip ${this.currentFilters.roleGroup === 'all' ? 'active' : ''}" 
+                                data-filter-group="all">
+                            ALL <span class="count">(${this.vendorCosts.length})</span>
+                        </button>
+                        <button class="filter-chip ${this.currentFilters.roleGroup === 'gto' ? 'active' : ''}" 
+                                data-filter-group="gto">
+                            GTO <span class="count">(${this.vendorCosts.filter(c => ['G2', 'TA'].includes(c.role)).length})</span>
+                        </button>
+                        <button class="filter-chip ${this.currentFilters.roleGroup === 'gds' ? 'active' : ''}" 
+                                data-filter-group="gds">
+                            GDS <span class="count">(${this.vendorCosts.filter(c => ['PM', 'G1'].includes(c.role)).length})</span>
+                        </button>
+                    </div>
                     <div class="filter-group">
                         <label>Vendor:</label>
                         <select id="vendor-filter">
@@ -600,12 +615,24 @@ class CalculationsManager {
      */
     getFilteredVendorCosts() {
         return this.vendorCosts.filter(cost => {
+            // Role group filter
+            if (this.currentFilters.roleGroup === 'gto' && !['G2', 'TA'].includes(cost.role)) {
+                return false;
+            }
+            if (this.currentFilters.roleGroup === 'gds' && !['PM', 'G1'].includes(cost.role)) {
+                return false;
+            }
+            
+            // Vendor filter
             if (this.currentFilters.vendor && cost.vendor !== this.currentFilters.vendor) {
                 return false;
             }
+            
+            // Individual role filter
             if (this.currentFilters.role && cost.role !== this.currentFilters.role) {
                 return false;
             }
+            
             return true;
         });
     }
@@ -628,6 +655,23 @@ class CalculationsManager {
      * Attach event listeners to table elements
      */
     attachTableEventListeners() {
+        // Role group filter chips
+        document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                const filterGroup = e.currentTarget.dataset.filterGroup;
+                if (filterGroup === this.currentFilters.roleGroup) return;
+
+                // Update filter state
+                this.currentFilters.roleGroup = filterGroup;
+                
+                // Update UI - remove active from all chips, add to clicked one
+                document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                
+                this.updateTable();
+            });
+        });
+        
         // Filter listeners
         const vendorFilter = document.getElementById('vendor-filter');
         const roleFilter = document.getElementById('role-filter');
@@ -666,7 +710,33 @@ class CalculationsManager {
             
             tableSection.innerHTML = tempDiv.firstElementChild.innerHTML;
             this.attachTableEventListeners();
+            this.updateFilterChipCounts();
         }
+    }
+
+    /**
+     * Update filter chip counts based on current vendor/role filters
+     */
+    updateFilterChipCounts() {
+        // Get base costs filtered by vendor and individual role only (not role group)
+        const baseCosts = this.vendorCosts.filter(cost => {
+            if (this.currentFilters.vendor && cost.vendor !== this.currentFilters.vendor) {
+                return false;
+            }
+            if (this.currentFilters.role && cost.role !== this.currentFilters.role) {
+                return false;
+            }
+            return true;
+        });
+
+        // Update counts
+        const allChip = document.querySelector('.filter-chip[data-filter-group="all"] .count');
+        const gtoChip = document.querySelector('.filter-chip[data-filter-group="gto"] .count');
+        const gdsChip = document.querySelector('.filter-chip[data-filter-group="gds"] .count');
+
+        if (allChip) allChip.textContent = `(${baseCosts.length})`;
+        if (gtoChip) gtoChip.textContent = `(${baseCosts.filter(c => ['G2', 'TA'].includes(c.role)).length})`;
+        if (gdsChip) gdsChip.textContent = `(${baseCosts.filter(c => ['PM', 'G1'].includes(c.role)).length})`;
     }
 
     /**
