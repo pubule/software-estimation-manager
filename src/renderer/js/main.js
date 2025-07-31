@@ -242,6 +242,18 @@ class SoftwareEstimationApp {
             });
         });
 
+        // Coverage input listener
+        const coverageInput = document.getElementById('coverage-value');
+        if (coverageInput) {
+            coverageInput.addEventListener('input', (e) => {
+                if (this.currentProject) {
+                    const value = parseFloat(e.target.value) || 0;
+                    this.currentProject.coverage = value;
+                    this.markDirty();
+                }
+            });
+        }
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey || e.metaKey) {
@@ -859,14 +871,31 @@ class SoftwareEstimationApp {
 
         const averageManDays = totalFeatures > 0 ? (totalManDays / totalFeatures).toFixed(1) : 0;
 
+        // Calculate default coverage (30% of total man days)
+        const defaultCoverage = (totalManDays * 0.3).toFixed(1);
+
         // Update summary display
         const totalFeaturesEl = document.getElementById('total-features');
         const totalManDaysEl = document.getElementById('total-man-days');
         const averageManDaysEl = document.getElementById('average-man-days');
+        const coverageEl = document.getElementById('coverage-value');
 
         if (totalFeaturesEl) totalFeaturesEl.textContent = totalFeatures;
         if (totalManDaysEl) totalManDaysEl.textContent = totalManDays.toFixed(1);
         if (averageManDaysEl) averageManDaysEl.textContent = averageManDays;
+        
+        // Update coverage field - only set default if not manually set by user
+        if (coverageEl) {
+            // Initialize coverage from project data or default
+            if (this.currentProject.coverage !== undefined) {
+                coverageEl.value = this.currentProject.coverage;
+            } else {
+                // Set default coverage silently (without marking as dirty)
+                coverageEl.value = defaultCoverage;
+                this.currentProject.coverage = parseFloat(defaultCoverage);
+                // Don't call markDirty() here to avoid "unsaved changes" alert on project load
+            }
+        }
     }
 
     updateLastSaved() {

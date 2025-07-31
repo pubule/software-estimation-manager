@@ -930,6 +930,31 @@
         color: var(--text-primary);
     }
 
+    /* Coverage field specific styles */
+    .coverage-item {
+        background-color: var(--bg-quaternary);
+        border: 1px solid var(--border-secondary);
+        border-radius: var(--radius-sm);
+        padding: var(--spacing-sm);
+    }
+
+    .coverage-input {
+        background-color: var(--bg-primary);
+        border: 1px solid var(--border-primary);
+        color: var(--text-primary);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        width: 60px;
+        text-align: right;
+    }
+
+    .coverage-input:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 2px var(--accent-primary-alpha);
+    }
+
     /* Status Bar */
     .status-bar {
         height: 22px;
