@@ -209,10 +209,11 @@ class CalculationsManager {
             if (totalManDays > 0) {
                 const department = supplier.department || 'Unknown';
                 const key = `${supplier.name}_${role}_${department}`;
-                const rate = supplier.officialRate || 0; // Use official rate directly
-                const cost = totalManDays * rate;
+                const realRate = this.getSupplierRate(supplier, role); // Use realRate for calculations
+                const officialRate = supplier.officialRate || 0; // Official rate for display
+                const cost = totalManDays * realRate;
 
-                console.log(`Adding to map - Key: ${key}, Rate: €${rate}, Cost: €${cost}`);
+                console.log(`Adding to map - Key: ${key}, Real Rate: €${realRate}, Official Rate: €${officialRate}, Cost: €${cost}`);
 
                 if (vendorCostsMap.has(key)) {
                     const existing = vendorCostsMap.get(key);
@@ -226,7 +227,8 @@ class CalculationsManager {
                         role: role,
                         department: department,
                         manDays: totalManDays,
-                        rate: rate,
+                        rate: realRate, // Rate used in calculations  
+                        officialRate: officialRate, // Rate for display
                         cost: cost,
                         isInternal: this.isInternalResource(supplier)
                     });
@@ -297,10 +299,11 @@ class CalculationsManager {
             if (g2ManDays > 0) {
                 const department = supplier.department || 'Unknown';
                 const key = `${supplier.name}_G2_${department}`;
-                const rate = supplier.officialRate || 0; // Use official rate directly
-                const cost = g2ManDays * rate;
+                const realRate = this.getSupplierRate(supplier, 'G2'); // Use realRate for calculations
+                const officialRate = supplier.officialRate || 0; // Official rate for display
+                const cost = g2ManDays * realRate;
 
-                console.log(`Adding feature cost - Key: ${key}, Rate: €${rate}, Cost: €${cost}`);
+                console.log(`Adding feature cost - Key: ${key}, Real Rate: €${realRate}, Official Rate: €${officialRate}, Cost: €${cost}`);
 
                 if (vendorCostsMap.has(key)) {
                     const existing = vendorCostsMap.get(key);
@@ -314,7 +317,8 @@ class CalculationsManager {
                         role: 'G2',
                         department: department,
                         manDays: g2ManDays,
-                        rate: rate,
+                        rate: realRate, // Rate used in calculations  
+                        officialRate: officialRate, // Rate for display
                         cost: cost,
                         isInternal: this.isInternalResource(supplier)
                     });
@@ -566,7 +570,7 @@ class CalculationsManager {
                                         <td><span class="role-badge role-${cost.role.toLowerCase()}">${cost.role}</span></td>
                                         <td><span class="department-badge">${cost.department}</span></td>
                                         <td class="number">${cost.manDays.toFixed(1)}</td>
-                                        <td class="currency">€${cost.rate.toLocaleString()}/day</td>
+                                        <td class="currency">€${cost.officialRate.toLocaleString()}/day</td>
                                         <td class="currency total-cost">€${cost.cost.toLocaleString()}</td>
                                     </tr>
                                 `).join('')
@@ -672,7 +676,7 @@ class CalculationsManager {
             return;
         }
 
-        const headers = ['Vendor', 'Role', 'Department', 'Total MDs', 'Rate', 'Total Cost'];
+        const headers = ['Vendor', 'Role', 'Department', 'Total MDs', 'Official Rate', 'Total Cost'];
         const csvData = [
             headers,
             ...filteredCosts.map(cost => [
@@ -680,7 +684,7 @@ class CalculationsManager {
                 cost.role,
                 cost.department,
                 cost.manDays.toFixed(1),
-                cost.rate,
+                cost.officialRate,
                 cost.cost.toFixed(2)
             ])
         ];
