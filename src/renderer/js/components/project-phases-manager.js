@@ -144,6 +144,12 @@ class ProjectPhasesManager {
         // Inizializza le fasi dal progetto corrente o dai default
         if (this.app.currentProject && this.app.currentProject.phases) {
             this.currentPhases = this.mergeProjectPhases(this.app.currentProject.phases);
+            
+            // Restore selected suppliers from project if they exist
+            if (this.app.currentProject.phases.selectedSuppliers) {
+                this.selectedSuppliers = { ...this.app.currentProject.phases.selectedSuppliers };
+                console.log('Restored selected suppliers from project:', this.selectedSuppliers);
+            }
         } else {
             this.currentPhases = this.createDefaultPhases();
         }
@@ -528,6 +534,9 @@ class ProjectPhasesManager {
         // Mark as dirty and recalculate
         this.markDirty();
         
+        // Sync supplier changes to current project
+        this.syncToCurrentProject();
+        
         // Ricalcola solo le fasi NON-Development, perché Development dipende dai supplier delle singole feature
         this.updateCalculationsExceptDevelopment();
     }
@@ -569,7 +578,49 @@ class ProjectPhasesManager {
             this.validateEffortDistribution(phaseId);
         }
 
+        // Sync changes back to the current project in memory
+        this.syncToCurrentProject();
+
+        // Update column totals after any input change
+        // Use setTimeout to ensure DOM updates are complete
+        setTimeout(() => {
+            this.updateTotals();
+        }, 10);
+        
         phase.lastModified = new Date().toISOString();
+    }
+
+    /**
+     * Sync current phases data back to the project in memory
+     * This ensures changes persist when navigating between sections
+     */
+    syncToCurrentProject() {
+        if (!this.app || !this.app.currentProject) {
+            console.warn('No current project to sync to');
+            return;
+        }
+
+        // Ensure project has phases structure
+        if (!this.app.currentProject.phases) {
+            this.app.currentProject.phases = {};
+        }
+
+        // Sync phases data to project structure
+        this.currentPhases.forEach(phase => {
+            this.app.currentProject.phases[phase.id] = {
+                manDays: phase.manDays,
+                effort: { ...phase.effort }, // Deep copy effort object
+                lastModified: phase.lastModified,
+                calculated: phase.calculated
+            };
+        });
+
+        // Preserve selectedSuppliers
+        if (this.selectedSuppliers) {
+            this.app.currentProject.phases.selectedSuppliers = { ...this.selectedSuppliers };
+        }
+
+        console.log('Phases data synced to current project:', this.app.currentProject.phases);
     }
 
     validateInput(input) {
@@ -661,21 +712,65 @@ class ProjectPhasesManager {
 
     updateTotals() {
         const totals = this.calculateTotals();
-        const totalsRow = document.querySelector('.totals-row');
+        console.log('updateTotals called, calculated totals:', totals);
+        
+        // Try multiple selectors to find the totals row
+        let totalsRow = document.querySelector('.phases-table .totals-row') || 
+                       document.querySelector('.totals-row') ||
+                       document.querySelector('tr.totals-row');
+        
+        console.log('Found totals row:', !!totalsRow);
 
         if (totalsRow) {
             const cells = totalsRow.cells;
+            console.log('Totals row cells count:', cells.length);
+            
             if (cells.length >= 14) {
+                // Update total man days (column 2)
                 cells[1].textContent = totals.manDays.toFixed(1);
+                
+                // Update man days by resource (columns 7-10)
                 cells[6].textContent = totals.manDaysByResource.G1.toFixed(1);
                 cells[7].textContent = totals.manDaysByResource.G2.toFixed(1);
                 cells[8].textContent = totals.manDaysByResource.TA.toFixed(1);
                 cells[9].textContent = totals.manDaysByResource.PM.toFixed(1);
+                
+                // Update costs by resource (columns 11-14)
                 cells[10].textContent = `€${totals.costByResource.G1.toLocaleString()}`;
                 cells[11].textContent = `€${totals.costByResource.G2.toLocaleString()}`;
                 cells[12].textContent = `€${totals.costByResource.TA.toLocaleString()}`;
                 cells[13].textContent = `€${totals.costByResource.PM.toLocaleString()}`;
+                
+                console.log('Totals updated successfully');
+            } else {
+                console.warn('Totals row has insufficient cells:', cells.length);
+                // Fallback: try to regenerate the entire totals row
+                this.regenerateTotalsRow(totals);
             }
+        } else {
+            console.warn('Totals row not found in DOM, trying to regenerate...');
+            this.regenerateTotalsRow(totals);
+        }
+    }
+
+    regenerateTotalsRow(totals) {
+        const table = document.querySelector('.phases-table');
+        if (!table) return;
+
+        // Remove existing totals row if present
+        const existingTotalsRow = table.querySelector('.totals-row');
+        if (existingTotalsRow) {
+            existingTotalsRow.remove();
+        }
+
+        // Create new totals row
+        const tbody = table.querySelector('tbody');
+        if (tbody) {
+            const newTotalsRow = document.createElement('tr');
+            newTotalsRow.className = 'totals-row';
+            newTotalsRow.innerHTML = this.renderTotalsRow();
+            tbody.appendChild(newTotalsRow);
+            console.log('Totals row regenerated successfully');
         }
     }
 
