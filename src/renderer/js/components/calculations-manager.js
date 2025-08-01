@@ -576,7 +576,7 @@ class CalculationsManager {
                                 </div>
                                 <div class="breakdown-total">
                                     <span class="breakdown-label">Total Project</span>
-                                    <span class="breakdown-cost">€${kpi.totalProject.toLocaleString()}</span>
+                                    <span class="total-cost">€${kpi.totalProject.toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>

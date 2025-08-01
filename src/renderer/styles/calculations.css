@@ -180,6 +180,12 @@
     font-weight: 700;
 }
 
+.breakdown-total .total-cost {
+    color: var(--success);
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+}
+
 /* Color coding for KPI cards */
 .gto-card {
     border-left: 4px solid var(--info);
