@@ -489,3 +489,86 @@
         page-break-inside: avoid;
     }
 }
+
+/* Final MDs Editable Column Styles */
+.editable-cell {
+    position: relative;
+    padding: var(--spacing-xs) !important;
+}
+
+.final-mds-input {
+    width: 60px;
+    padding: var(--spacing-xs);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    text-align: center;
+    margin-right: var(--spacing-xs);
+}
+
+.final-mds-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px var(--accent-primary-alpha);
+}
+
+.reset-final-mds-btn {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    color: var(--text-secondary);
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+}
+
+.reset-final-mds-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-secondary);
+}
+
+.reset-final-mds-btn:active {
+    transform: translateY(1px);
+}
+
+/* Final Tot Cost column highlighting */
+.final-cost {
+    background-color: var(--bg-quaternary);
+    font-weight: 600;
+    color: var(--success);
+}
+
+/* Responsive adjustments for new columns */
+@media (max-width: 1200px) {
+    .final-mds-input {
+        width: 50px;
+    }
+    
+    .reset-final-mds-btn {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+@media (max-width: 768px) {
+    .editable-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--spacing-xs);
+    }
+    
+    .final-mds-input {
+        margin-right: 0;
+    }
+}

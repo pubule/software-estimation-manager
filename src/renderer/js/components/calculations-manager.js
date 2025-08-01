@@ -119,6 +119,9 @@ class CalculationsManager {
             return a.role.localeCompare(b.role);
         });
 
+        // Restore any manually set finalMDs values from project data
+        this.restoreFinalMDsFromProject();
+
         console.log('Final vendor costs:', this.vendorCosts);
         console.log('=== CALCULATE VENDOR COSTS END ===');
     }
@@ -220,8 +223,12 @@ class CalculationsManager {
                     const existing = vendorCostsMap.get(key);
                     existing.manDays += totalManDays;
                     existing.cost += cost;
+                    // Update finalMDs to reflect new total
+                    const officialTotalMDs = existing.officialRate > 0 ? existing.cost / existing.officialRate : 0;
+                    existing.finalMDs = Math.round(officialTotalMDs);
                     console.log(`Updated existing entry for ${key}, total MDs: ${existing.manDays}, total cost: €${existing.cost}`);
                 } else {
+                    const officialTotalMDs = officialRate > 0 ? cost / officialRate : 0;
                     vendorCostsMap.set(key, {
                         vendor: supplier.name,
                         vendorId: supplier.id,
@@ -231,6 +238,7 @@ class CalculationsManager {
                         rate: realRate, // Rate used in calculations  
                         officialRate: officialRate, // Rate for display
                         cost: cost,
+                        finalMDs: Math.round(officialTotalMDs), // Initialize with rounded official MDs
                         isInternal: this.isInternalResource(supplier)
                     });
                     console.log(`Created new entry for ${key}`);
@@ -310,8 +318,12 @@ class CalculationsManager {
                     const existing = vendorCostsMap.get(key);
                     existing.manDays += g2ManDays;
                     existing.cost += cost;
+                    // Update finalMDs to reflect new total
+                    const officialTotalMDs = existing.officialRate > 0 ? existing.cost / existing.officialRate : 0;
+                    existing.finalMDs = Math.round(officialTotalMDs);
                     console.log(`Updated existing G2 entry for ${supplier.name}, total MDs: ${existing.manDays}, total cost: €${existing.cost}`);
                 } else {
+                    const officialTotalMDs = officialRate > 0 ? cost / officialRate : 0;
                     vendorCostsMap.set(key, {
                         vendor: supplier.name,
                         vendorId: supplier.id,
@@ -321,6 +333,7 @@ class CalculationsManager {
                         rate: realRate, // Rate used in calculations  
                         officialRate: officialRate, // Rate for display
                         cost: cost,
+                        finalMDs: Math.round(officialTotalMDs), // Initialize with rounded official MDs
                         isInternal: this.isInternalResource(supplier)
                     });
                     console.log(`Created new G2 entry for ${supplier.name}`);
@@ -354,8 +367,12 @@ class CalculationsManager {
                         const existing = vendorCostsMap.get(key);
                         existing.manDays += coverageG2ManDays;
                         existing.cost += coverageCost;
+                        // Update finalMDs to reflect new total
+                        const officialTotalMDs = existing.officialRate > 0 ? existing.cost / existing.officialRate : 0;
+                        existing.finalMDs = Math.round(officialTotalMDs);
                         console.log(`Updated existing G2 entry for ${g2Supplier.name} with coverage, total MDs: ${existing.manDays}, total cost: €${existing.cost}`);
                     } else {
+                        const officialTotalMDs = officialRate > 0 ? coverageCost / officialRate : 0;
                         vendorCostsMap.set(key, {
                             vendor: g2Supplier.name,
                             vendorId: g2Supplier.id,
@@ -365,6 +382,7 @@ class CalculationsManager {
                             rate: realRate,
                             officialRate: officialRate,
                             cost: coverageCost,
+                            finalMDs: Math.round(officialTotalMDs), // Initialize with rounded official MDs
                             isInternal: this.isInternalResource(g2Supplier)
                         });
                         console.log(`Created new G2 entry for ${g2Supplier.name} with coverage`);
@@ -384,27 +402,27 @@ class CalculationsManager {
      * Calculate KPI metrics
      */
     calculateKPIs() {
-        // Calculate totals by role groups
+        // Calculate totals by role groups using Final Tot Cost
         const gtoRoles = ['G2', 'TA'];
         const gdsRoles = ['G1', 'PM'];
 
         const gtoInternal = this.vendorCosts
             .filter(vc => gtoRoles.includes(vc.role) && vc.isInternal)
-            .reduce((sum, vc) => sum + vc.cost, 0);
+            .reduce((sum, vc) => sum + ((vc.finalMDs || 0) * vc.officialRate), 0);
 
         const gtoExternal = this.vendorCosts
             .filter(vc => gtoRoles.includes(vc.role) && !vc.isInternal)
-            .reduce((sum, vc) => sum + vc.cost, 0);
+            .reduce((sum, vc) => sum + ((vc.finalMDs || 0) * vc.officialRate), 0);
 
         const gtoTotal = gtoInternal + gtoExternal;
 
         const gdsInternal = this.vendorCosts
             .filter(vc => gdsRoles.includes(vc.role) && vc.isInternal)
-            .reduce((sum, vc) => sum + vc.cost, 0);
+            .reduce((sum, vc) => sum + ((vc.finalMDs || 0) * vc.officialRate), 0);
 
         const gdsExternal = this.vendorCosts
             .filter(vc => gdsRoles.includes(vc.role) && !vc.isInternal)
-            .reduce((sum, vc) => sum + vc.cost, 0);
+            .reduce((sum, vc) => sum + ((vc.finalMDs || 0) * vc.officialRate), 0);
 
         const gdsTotal = gdsInternal + gdsExternal;
 
@@ -619,13 +637,15 @@ class CalculationsManager {
                                 <th>Department</th>
                                 <th>Total MDs</th>
                                 <th>Official Tot MDs</th>
+                                <th>Final Tot MDs</th>
                                 <th>Rate</th>
                                 <th>Total Cost</th>
+                                <th>Final Tot Cost</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${filteredCosts.length === 0 ? 
-                                '<tr><td colspan="7" class="no-data">No cost data available</td></tr>' :
+                                '<tr><td colspan="9" class="no-data">No cost data available</td></tr>' :
                                 filteredCosts.map(cost => `
                                     <tr class="${cost.isInternal ? 'internal-resource' : 'external-supplier'}">
                                         <td>
@@ -636,8 +656,27 @@ class CalculationsManager {
                                         <td><span class="department-badge">${cost.department}</span></td>
                                         <td class="number">${cost.manDays.toFixed(1)}</td>
                                         <td class="number">${cost.officialRate > 0 ? (cost.cost / cost.officialRate).toFixed(1) : '0.0'}</td>
+                                        <td class="number editable-cell">
+                                            <input type="number" 
+                                                   class="final-mds-input" 
+                                                   value="${cost.finalMDs || 0}" 
+                                                   min="0" 
+                                                   step="1"
+                                                   data-vendor-id="${cost.vendorId}"
+                                                   data-role="${cost.role}"
+                                                   data-department="${cost.department}">
+                                            <button type="button" 
+                                                    class="reset-final-mds-btn" 
+                                                    title="Reset to calculated value"
+                                                    data-vendor-id="${cost.vendorId}"
+                                                    data-role="${cost.role}"
+                                                    data-department="${cost.department}">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                        </td>
                                         <td class="currency">€${cost.officialRate.toLocaleString()}/day</td>
                                         <td class="currency total-cost">€${cost.cost.toLocaleString()}</td>
+                                        <td class="currency final-cost">€${((cost.finalMDs || 0) * cost.officialRate).toLocaleString()}</td>
                                     </tr>
                                 `).join('')
                             }
@@ -648,8 +687,10 @@ class CalculationsManager {
                                     <td colspan="3"><strong>Total</strong></td>
                                     <td class="number"><strong>${filteredCosts.reduce((sum, c) => sum + c.manDays, 0).toFixed(1)}</strong></td>
                                     <td class="number"><strong>${filteredCosts.reduce((sum, c) => sum + (c.officialRate > 0 ? c.cost / c.officialRate : 0), 0).toFixed(1)}</strong></td>
+                                    <td class="number"><strong>${filteredCosts.reduce((sum, c) => sum + (c.finalMDs || 0), 0)}</strong></td>
                                     <td></td>
                                     <td class="currency total-cost"><strong>€${filteredCosts.reduce((sum, c) => sum + c.cost, 0).toLocaleString()}</strong></td>
+                                    <td class="currency final-cost"><strong>€${filteredCosts.reduce((sum, c) => sum + ((c.finalMDs || 0) * c.officialRate), 0).toLocaleString()}</strong></td>
                                 </tr>
                             </tfoot>
                         ` : ''}
@@ -745,6 +786,203 @@ class CalculationsManager {
                 this.exportToCSV();
             });
         }
+
+        // Final MDs input listeners
+        document.querySelectorAll('.final-mds-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                this.handleFinalMDsChange(e.target);
+            });
+        });
+
+        // Reset Final MDs button listeners
+        document.querySelectorAll('.reset-final-mds-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.handleFinalMDsReset(e.target);
+            });
+        });
+    }
+
+    /**
+     * Handle Final MDs input change
+     */
+    handleFinalMDsChange(input) {
+        const vendorId = input.dataset.vendorId;
+        const role = input.dataset.role;
+        const department = input.dataset.department;
+        const newValue = parseInt(input.value) || 0;
+
+        // Find the vendor cost entry and update finalMDs
+        const costEntry = this.vendorCosts.find(c => 
+            c.vendorId === vendorId && c.role === role && c.department === department
+        );
+
+        if (costEntry) {
+            costEntry.finalMDs = newValue;
+            
+            // Save to project data for persistence
+            this.saveFinalMDsToProject(vendorId, role, department, newValue);
+            
+            // Update the corresponding Final Tot Cost cell
+            const row = input.closest('tr');
+            const finalCostCell = row.querySelector('.final-cost');
+            if (finalCostCell) {
+                const finalCost = newValue * costEntry.officialRate;
+                finalCostCell.textContent = `€${finalCost.toLocaleString()}`;
+            }
+
+            // Update footer totals
+            this.updateFooterTotals();
+            
+            // Update KPI cards with new Final Tot Cost values
+            this.updateKPICards();
+        }
+    }
+
+    /**
+     * Handle Final MDs reset button click
+     */
+    handleFinalMDsReset(button) {
+        const vendorId = button.dataset.vendorId;
+        const role = button.dataset.role;
+        const department = button.dataset.department;
+
+        // Find the vendor cost entry
+        const costEntry = this.vendorCosts.find(c => 
+            c.vendorId === vendorId && c.role === role && c.department === department
+        );
+
+        if (costEntry) {
+            // Calculate original value (rounded official MDs)
+            const calculatedValue = costEntry.officialRate > 0 ? 
+                Math.round(costEntry.cost / costEntry.officialRate) : 0;
+            
+            // Get current value
+            const currentValue = costEntry.finalMDs || 0;
+            
+            // Only reset if values are different
+            if (currentValue !== calculatedValue) {
+                costEntry.finalMDs = calculatedValue;
+
+                // Remove from project overrides since we're resetting to calculated value
+                this.removeFinalMDsFromProject(vendorId, role, department);
+
+                // Update the input field
+                const row = button.closest('tr');
+                const input = row.querySelector('.final-mds-input');
+                if (input) {
+                    input.value = calculatedValue;
+                }
+
+                // Update the Final Tot Cost cell
+                const finalCostCell = row.querySelector('.final-cost');
+                if (finalCostCell) {
+                    const finalCost = calculatedValue * costEntry.officialRate;
+                    finalCostCell.textContent = `€${finalCost.toLocaleString()}`;
+                }
+
+                // Update footer totals
+                this.updateFooterTotals();
+                
+                // Update KPI cards with new Final Tot Cost values
+                this.updateKPICards();
+                
+                console.log(`Reset finalMDs for ${costEntry.vendor} ${role} from ${currentValue} to ${calculatedValue}`);
+            } else {
+                console.log(`No reset needed for ${costEntry.vendor} ${role}: values are the same (${currentValue})`);
+            }
+        }
+    }
+
+    /**
+     * Update footer totals for Final columns
+     */
+    updateFooterTotals() {
+        const totalsRow = document.querySelector('.calculations-table .totals-row');
+        if (!totalsRow) return;
+
+        const filteredCosts = this.getFilteredVendorCosts();
+        
+        // Update Final Tot MDs total
+        const finalMDsTotal = filteredCosts.reduce((sum, c) => sum + (c.finalMDs || 0), 0);
+        const finalMDsCell = totalsRow.cells[6]; // Assuming this is the correct index
+        if (finalMDsCell) {
+            finalMDsCell.innerHTML = `<strong>${finalMDsTotal}</strong>`;
+        }
+
+        // Update Final Tot Cost total
+        const finalCostTotal = filteredCosts.reduce((sum, c) => sum + ((c.finalMDs || 0) * c.officialRate), 0);
+        const finalCostCell = totalsRow.cells[8]; // Assuming this is the correct index
+        if (finalCostCell) {
+            finalCostCell.innerHTML = `<strong>€${finalCostTotal.toLocaleString()}</strong>`;
+        }
+    }
+
+    /**
+     * Update KPI cards with new data (live update)
+     */
+    updateKPICards() {
+        // Recalculate KPIs with current Final Tot Cost values
+        this.calculateKPIs();
+        
+        // Update KPI cards in DOM
+        const kpiContainer = document.querySelector('.calculations-kpis');
+        if (kpiContainer) {
+            kpiContainer.innerHTML = this.renderKPICards();
+        }
+    }
+
+    /**
+     * Restore manually set finalMDs values from project data
+     */
+    restoreFinalMDsFromProject() {
+        const currentProject = this.app?.currentProject;
+        if (!currentProject || !currentProject.finalMDsOverrides) {
+            return;
+        }
+
+        // Apply saved finalMDs overrides to vendor costs
+        this.vendorCosts.forEach(cost => {
+            const key = `${cost.vendorId}_${cost.role}_${cost.department}`;
+            if (currentProject.finalMDsOverrides[key] !== undefined) {
+                cost.finalMDs = currentProject.finalMDsOverrides[key];
+                console.log(`Restored finalMDs for ${cost.vendor} ${cost.role}: ${cost.finalMDs}`);
+            }
+        });
+    }
+
+    /**
+     * Save manually set finalMDs values to project data
+     */
+    saveFinalMDsToProject(vendorId, role, department, finalMDs) {
+        const currentProject = this.app?.currentProject;
+        if (!currentProject) {
+            return;
+        }
+
+        // Initialize finalMDsOverrides if it doesn't exist
+        if (!currentProject.finalMDsOverrides) {
+            currentProject.finalMDsOverrides = {};
+        }
+
+        const key = `${vendorId}_${role}_${department}`;
+        currentProject.finalMDsOverrides[key] = finalMDs;
+        
+        console.log(`Saved finalMDs override for ${key}: ${finalMDs}`);
+    }
+
+    /**
+     * Remove finalMDs override from project data (when resetting to calculated value)
+     */
+    removeFinalMDsFromProject(vendorId, role, department) {
+        const currentProject = this.app?.currentProject;
+        if (!currentProject || !currentProject.finalMDsOverrides) {
+            return;
+        }
+
+        const key = `${vendorId}_${role}_${department}`;
+        delete currentProject.finalMDsOverrides[key];
+        
+        console.log(`Removed finalMDs override for ${key}`);
     }
 
     /**
@@ -798,7 +1036,7 @@ class CalculationsManager {
             return;
         }
 
-        const headers = ['Vendor', 'Role', 'Department', 'Total MDs', 'Official Tot MDs', 'Official Rate', 'Total Cost'];
+        const headers = ['Vendor', 'Role', 'Department', 'Total MDs', 'Official Tot MDs', 'Final Tot MDs', 'Official Rate', 'Total Cost', 'Final Tot Cost'];
         const csvData = [
             headers,
             ...filteredCosts.map(cost => [
@@ -807,8 +1045,10 @@ class CalculationsManager {
                 cost.department,
                 cost.manDays.toFixed(1),
                 cost.officialRate > 0 ? (cost.cost / cost.officialRate).toFixed(1) : '0.0',
+                cost.finalMDs || 0,
                 cost.officialRate,
-                cost.cost.toFixed(2)
+                cost.cost.toFixed(2),
+                ((cost.finalMDs || 0) * cost.officialRate).toFixed(2)
             ])
         ];
 
