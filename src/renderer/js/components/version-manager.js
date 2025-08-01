@@ -212,30 +212,32 @@ class VersionManager {
                                 <td class="version-reason" title="${version.reason}">${this.truncateText(version.reason, 50)}</td>
                                 <td class="version-stats">${this.renderVersionStats(version)}</td>
                                 <td class="version-actions">
-                                    <button class="btn-icon" onclick="window.versionManager.handleViewVersion('${version.id}')" 
-                                            title="View Details">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn-icon" onclick="window.versionManager.handleCompareVersion('${version.id}')" 
-                                            title="Compare with Current">
-                                        <i class="fas fa-code-branch"></i>
-                                    </button>
-                                    ${version.id !== currentVersion ? `
-                                        <button class="btn-icon restore-btn" onclick="window.versionManager.handleRestoreVersion('${version.id}')" 
-                                                title="Restore Version">
-                                            <i class="fas fa-undo"></i>
+                                    <div class="row-actions">
+                                        <button class="btn btn-small btn-secondary view-btn" 
+                                                data-action="view" data-version-id="${version.id}" title="View Details">
+                                            <i class="fas fa-eye"></i>
                                         </button>
-                                    ` : ''}
-                                    <button class="btn-icon" onclick="window.versionManager.handleExportVersion('${version.id}')" 
-                                            title="Export Version">
-                                        <i class="fas fa-download"></i>
-                                    </button>
-                                    ${version.id !== currentVersion && this.currentVersions.length > 1 ? `
-                                        <button class="btn-icon delete-btn" onclick="window.versionManager.handleDeleteVersion('${version.id}')" 
-                                                title="Delete Version">
-                                            <i class="fas fa-trash"></i>
+                                        <button class="btn btn-small btn-secondary compare-btn" 
+                                                data-action="compare" data-version-id="${version.id}" title="Compare with Current">
+                                            <i class="fas fa-code-branch"></i>
                                         </button>
-                                    ` : ''}
+                                        ${version.id !== currentVersion ? `
+                                            <button class="btn btn-small btn-secondary restore-btn" 
+                                                    data-action="restore" data-version-id="${version.id}" title="Restore Version">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                        ` : ''}
+                                        <button class="btn btn-small btn-secondary export-btn" 
+                                                data-action="export" data-version-id="${version.id}" title="Export Version">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        ${version.id !== currentVersion && this.currentVersions.length > 1 ? `
+                                            <button class="btn btn-small btn-danger delete-btn" 
+                                                    data-action="delete" data-version-id="${version.id}" title="Delete Version">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        ` : ''}
+                                    </div>
                                 </td>
                             </tr>
                         `).join('')}
@@ -458,8 +460,63 @@ class VersionManager {
             });
         }
 
+        // Add event listeners for version action buttons
+        this.attachVersionActionListeners();
+
         // Make this manager globally accessible for onclick handlers
         window.versionManager = this;
+    }
+
+    /**
+     * Attach event listeners for version action buttons
+     */
+    attachVersionActionListeners() {
+        // Use event delegation to handle dynamically created buttons
+        const tableContainer = document.querySelector('.version-table-container');
+        if (!tableContainer) return;
+
+        // Remove existing listeners to avoid duplicates
+        tableContainer.removeEventListener('click', this.handleVersionActionClick);
+        
+        // Add single delegated listener
+        this.handleVersionActionClick = this.handleVersionActionClick.bind(this);
+        tableContainer.addEventListener('click', this.handleVersionActionClick);
+    }
+
+    /**
+     * Handle version action button clicks
+     */
+    handleVersionActionClick(e) {
+        const button = e.target.closest('button[data-action]');
+        if (!button) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const action = button.dataset.action;
+        const versionId = button.dataset.versionId;
+
+        if (!versionId) return;
+
+        switch (action) {
+            case 'view':
+                this.handleViewVersion(versionId);
+                break;
+            case 'compare':
+                this.handleCompareVersion(versionId);
+                break;
+            case 'restore':
+                this.handleRestoreVersion(versionId);
+                break;
+            case 'export':
+                this.handleExportVersion(versionId);
+                break;
+            case 'delete':
+                this.handleDeleteVersion(versionId);
+                break;
+            default:
+                console.warn('Unknown action:', action);
+        }
     }
 
     /**
@@ -469,6 +526,8 @@ class VersionManager {
         const container = document.querySelector('.version-table-container');
         if (container) {
             container.innerHTML = this.renderVersionsTable().match(/<table[\s\S]*<\/table>/)[0];
+            // Re-attach event listeners for the new content
+            this.attachVersionActionListeners();
         }
     }
 
