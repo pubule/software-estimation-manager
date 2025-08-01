@@ -137,6 +137,12 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
+        // Special handling for version history navigation
+        if (sectionName === 'history') {
+            this.showHistoryPage();
+            return;
+        }
+
         // Hide all pages
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
@@ -258,6 +264,51 @@ class EnhancedNavigationManager extends NavigationManager {
         }
 
         console.log('Navigated to calculations page');
+    }
+
+    // Special method for version history page
+    showHistoryPage() {
+        // Verify project is loaded
+        if (!this.projectLoaded) {
+            console.warn('Cannot navigate to history: No project loaded');
+            NotificationManager.warning('Please load or create a project first to view version history');
+            return;
+        }
+
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // Update active states
+        this.updateActiveStates('history');
+
+        // Show target page
+        const targetPage = document.getElementById('history-page');
+        if (targetPage) {
+            targetPage.classList.add('active');
+
+            // Version manager should already be initialized in main app
+            if (this.app.versionManager) {
+                // Render version history content
+                setTimeout(() => {
+                    this.app.versionManager.render();
+                }, 100);
+            } else {
+                console.error('Version manager not initialized');
+            }
+        }
+
+        // Store current section
+        this.currentSection = 'history';
+
+        // Ensure projects is expanded
+        if (!this.projectsExpanded) {
+            this.projectsExpanded = true;
+            this.updateProjectsExpansion();
+        }
+
+        console.log('Navigated to version history page');
     }
 
     updateActiveStates(activeSectionName) {

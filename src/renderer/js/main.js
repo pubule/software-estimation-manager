@@ -18,6 +18,7 @@ class SoftwareEstimationApp {
         this.modalManager = null;
         this.projectManager = null;
         this.configurationUI = null;
+        this.versionManager = null;
 
         this.init();
     }
@@ -104,6 +105,10 @@ class SoftwareEstimationApp {
         // Initialize Categories Config Manager after ConfigurationManager is ready
         this.categoriesConfigManager = new CategoriesConfigManager(this, this.configManager);
         console.log('Categories Config Manager initialized and integrated');
+
+        // Initialize Version Manager
+        this.versionManager = new VersionManager(this);
+        console.log('Version Manager initialized and integrated');
 
         console.log('All managers initialized successfully with hierarchical configuration and nested navigation');
 
@@ -415,6 +420,11 @@ class SoftwareEstimationApp {
                     // Migrate old project format to new hierarchical format if needed
                     this.currentProject = this.migrateProjectConfig(result.data);
                     this.isDirty = false;
+
+                    // Update title bar with version info
+                    if (this.versionManager) {
+                        this.versionManager.updateTitleBar();
+                    }
 
                     // Synchronize phases with loaded project features
                     if (this.projectPhasesManager) {
@@ -764,6 +774,11 @@ class SoftwareEstimationApp {
             if (lastProject) {
                 // Migrate configuration format if needed
                 this.currentProject = this.migrateProjectConfig(lastProject);
+
+                // Update title bar with version info
+                if (this.versionManager) {
+                    this.versionManager.updateTitleBar();
+                }
 
                 // Synchronize phases with loaded project features
                 if (this.phasesManager) {
