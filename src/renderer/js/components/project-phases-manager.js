@@ -734,23 +734,29 @@ class ProjectPhasesManager {
             const cells = totalsRow.cells;
             console.log('Totals row cells count:', cells.length);
             
-            if (cells.length >= 14) {
-                // Update total man days (column 2)
-                cells[1].textContent = totals.manDays.toFixed(1);
-                
-                // Update man days by resource (columns 7-10)
-                cells[6].textContent = totals.manDaysByResource.G1.toFixed(1);
-                cells[7].textContent = totals.manDaysByResource.G2.toFixed(1);
-                cells[8].textContent = totals.manDaysByResource.TA.toFixed(1);
-                cells[9].textContent = totals.manDaysByResource.PM.toFixed(1);
-                
-                // Update costs by resource (columns 11-14)
-                cells[10].textContent = `€${totals.costByResource.G1.toLocaleString()}`;
-                cells[11].textContent = `€${totals.costByResource.G2.toLocaleString()}`;
-                cells[12].textContent = `€${totals.costByResource.TA.toLocaleString()}`;
-                cells[13].textContent = `€${totals.costByResource.PM.toLocaleString()}`;
-                
-                console.log('Totals updated successfully');
+            // Check if we have the required cells (11 physical td elements: indices 0-10)
+            if (cells.length >= 11 && cells[10]) {
+                try {
+                    // Update total man days (physical cell 1)
+                    cells[1].textContent = totals.manDays.toFixed(1);
+                    
+                    // Update man days by resource (physical cells 3-6)
+                    cells[3].textContent = totals.manDaysByResource.G1.toFixed(1);
+                    cells[4].textContent = totals.manDaysByResource.G2.toFixed(1);
+                    cells[5].textContent = totals.manDaysByResource.TA.toFixed(1);
+                    cells[6].textContent = totals.manDaysByResource.PM.toFixed(1);
+                    
+                    // Update costs by resource (physical cells 7-10)
+                    cells[7].textContent = `€${totals.costByResource.G1.toLocaleString()}`;
+                    cells[8].textContent = `€${totals.costByResource.G2.toLocaleString()}`;
+                    cells[9].textContent = `€${totals.costByResource.TA.toLocaleString()}`;
+                    cells[10].textContent = `€${totals.costByResource.PM.toLocaleString()}`;
+                    
+                    console.log('Totals updated successfully');
+                } catch (error) {
+                    console.warn('Error updating totals row cells:', error);
+                    this.regenerateTotalsRow(totals);
+                }
             } else {
                 console.warn('Totals row has insufficient cells:', cells.length);
                 // Fallback: try to regenerate the entire totals row

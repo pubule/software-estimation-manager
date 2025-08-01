@@ -93,8 +93,8 @@ class VersionManager {
      */
     renderNoProjectState() {
         return `
-            <div class="no-project-state">
-                <div class="no-project-icon">
+            <div class="version-no-project-state">
+                <div class="version-no-project-icon">
                     <i class="fas fa-history"></i>
                 </div>
                 <h3>No Project Loaded</h3>
@@ -508,7 +508,7 @@ class VersionManager {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" id="cancel-version-btn">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="create-version-confirm-btn">Create Version</button>
+                    <button type="button" class="btn btn-primary" id="create-version-confirm-btn">Create Version</button>
                 </div>
             </div>
         `;
@@ -522,14 +522,24 @@ class VersionManager {
 
         // Handle form submission
         const form = modal.querySelector('#create-version-form');
-        form.addEventListener('submit', (e) => {
+        const confirmBtn = modal.querySelector('#create-version-confirm-btn');
+        
+        const handleCreateVersion = (e) => {
             e.preventDefault();
             const reason = reasonInput.value.trim();
-            if (reason) {
-                this.createVersion(reason);
-                document.body.removeChild(modal);
+            if (!reason) {
+                reasonInput.focus();
+                reasonInput.style.borderColor = 'var(--error)';
+                return;
             }
-        });
+            reasonInput.style.borderColor = '';
+            this.createVersion(reason);
+            document.body.removeChild(modal);
+        };
+
+        // Add listeners for both form submit and button click
+        form.addEventListener('submit', handleCreateVersion);
+        confirmBtn.addEventListener('click', handleCreateVersion);
 
         // Handle cancel
         const cancelBtn = modal.querySelector('#cancel-version-btn');
@@ -556,22 +566,22 @@ class VersionManager {
         
         const stats = this.calculateVersionStats(this.app.currentProject);
         return `
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <span class="stat-label">Features:</span>
-                    <span class="stat-value">${stats.features}</span>
+            <div class="version-stats-grid">
+                <div class="version-preview-stat-item">
+                    <span class="version-preview-stat-label">Features:</span>
+                    <span class="version-preview-stat-value">${stats.features}</span>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Total MDs:</span>
-                    <span class="stat-value">${stats.totalMDs}</span>
+                <div class="version-preview-stat-item">
+                    <span class="version-preview-stat-label">Total MDs:</span>
+                    <span class="version-preview-stat-value">${stats.totalMDs}</span>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Phases:</span>
-                    <span class="stat-value">${stats.phases}</span>
+                <div class="version-preview-stat-item">
+                    <span class="version-preview-stat-label">Phases:</span>
+                    <span class="version-preview-stat-value">${stats.phases}</span>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Coverage:</span>
-                    <span class="stat-value">${stats.coverage}</span>
+                <div class="version-preview-stat-item">
+                    <span class="version-preview-stat-label">Coverage:</span>
+                    <span class="version-preview-stat-value">${stats.coverage}</span>
                 </div>
             </div>
         `;
@@ -932,19 +942,18 @@ class VersionManager {
             // Mark as dirty to indicate changes
             this.app.markDirty();
 
-            // Update all managers with restored data
-            this.refreshAllManagers();
-
             // Update title bar
             this.updateTitleBar();
 
-            // Refresh UI
+            // Refresh UI components that need immediate update
             this.render();
             
-            // Refresh other sections
-            if (this.app.featureManager) {
+            // Refresh feature manager if user is currently viewing features
+            if (this.app.featureManager && this.app.navigationManager.currentSection === 'features') {
                 this.app.featureManager.render();
             }
+            
+            // Other managers will refresh automatically when user navigates to them
 
             NotificationManager.show(`Successfully restored version ${versionToRestore.id}`, 'success');
             console.log(`Restored version ${versionToRestore.id}`);
@@ -967,33 +976,6 @@ class VersionManager {
         }
     }
 
-    /**
-     * Refresh all managers after restore
-     */
-    refreshAllManagers() {
-        // Refresh feature manager
-        if (this.app.featureManager) {
-            this.app.featureManager.refreshUI();
-        }
-        
-        // Refresh project phases manager
-        if (this.app.projectPhasesManager) {
-            this.app.projectPhasesManager.synchronizeWithProject();
-        }
-        
-        // Refresh calculations manager
-        if (this.app.calculationsManager) {
-            // Calculations manager will refresh automatically when navigated to
-        }
-        
-        // Refresh navigation state
-        if (this.app.navigationManager) {
-            this.app.navigationManager.onProjectLoaded();
-        }
-        
-        // Update project UI elements
-        this.app.updateUI();
-    }
 
     /**
      * Show version comparison modal
@@ -1009,8 +991,8 @@ class VersionManager {
                     <button class="modal-close">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div class="comparison-container">
-                        <div class="comparison-header">
+                    <div class="version-comparison-container">
+                        <div class="version-comparison-header">
                             <div class="version-column current">
                                 <h4>Current Version (${currentVersion})</h4>
                                 <span class="version-info">Live project state</span>
@@ -1118,16 +1100,16 @@ class VersionManager {
             <div class="comparison-section">
                 <h5><i class="fas fa-list-ul"></i> Features Comparison</h5>
                 <div class="comparison-stats">
-                    <div class="stat-grid">
-                        <div class="stat-item">
-                            <span class="stat-label">Total Features:</span>
-                            <span class="stat-value current">${currentStats.features}</span>
-                            <span class="stat-value compare">${compareStats.features}</span>
+                    <div class="version-stat-grid">
+                        <div class="version-stat-item">
+                            <span class="version-stat-label">Total Features:</span>
+                            <span class="version-stat-value current">${currentStats.features}</span>
+                            <span class="version-stat-value compare">${compareStats.features}</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Total MDs:</span>
-                            <span class="stat-value current">${currentStats.totalMDs}</span>
-                            <span class="stat-value compare">${compareStats.totalMDs}</span>
+                        <div class="version-stat-item">
+                            <span class="version-stat-label">Total MDs:</span>
+                            <span class="version-stat-value current">${currentStats.totalMDs}</span>
+                            <span class="version-stat-value compare">${compareStats.totalMDs}</span>
                         </div>
                     </div>
                 </div>
@@ -1955,22 +1937,22 @@ class VersionManager {
                 
                 <div class="import-stats">
                     <h5>Version Contents:</h5>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <span class="stat-label">Features:</span>
-                            <span class="stat-value">${stats.features}</span>
+                    <div class="version-stats-grid">
+                        <div class="version-preview-stat-item">
+                            <span class="version-preview-stat-label">Features:</span>
+                            <span class="version-preview-stat-value">${stats.features}</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Total MDs:</span>
-                            <span class="stat-value">${stats.totalMDs}</span>
+                        <div class="version-preview-stat-item">
+                            <span class="version-preview-stat-label">Total MDs:</span>
+                            <span class="version-preview-stat-value">${stats.totalMDs}</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Phases:</span>
-                            <span class="stat-value">${stats.phases}</span>
+                        <div class="version-preview-stat-item">
+                            <span class="version-preview-stat-label">Phases:</span>
+                            <span class="version-preview-stat-value">${stats.phases}</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Coverage:</span>
-                            <span class="stat-value">${stats.coverage}</span>
+                        <div class="version-preview-stat-item">
+                            <span class="version-preview-stat-label">Coverage:</span>
+                            <span class="version-preview-stat-value">${stats.coverage}</span>
                         </div>
                     </div>
                 </div>
