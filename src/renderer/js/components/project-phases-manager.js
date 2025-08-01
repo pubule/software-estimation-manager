@@ -194,7 +194,8 @@ class ProjectPhasesManager {
             const coverageMDs = parseFloat(this.app.currentProject.coverage) || 0;
             const totalDevelopmentMDs = featuresTotal + coverageMDs;
 
-            developmentPhase.manDays = totalDevelopmentMDs;
+            // Round to 1 decimal place to avoid too many decimal digits
+            developmentPhase.manDays = Math.round(totalDevelopmentMDs * 10) / 10;
             developmentPhase.lastModified = new Date().toISOString();
         }
     }
