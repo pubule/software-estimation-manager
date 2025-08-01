@@ -24,6 +24,7 @@ class CalculationsManager {
             vendorFilterChange: this.handleVendorFilterChange.bind(this),
             roleFilterChange: this.handleRoleFilterChange.bind(this),
             exportClick: this.exportToCSV.bind(this),
+            shareClick: this.shareByEmail.bind(this),
             tableBlur: this.handleTableBlur.bind(this),
             tableClick: this.handleTableClick.bind(this)
         };
@@ -617,6 +618,9 @@ class CalculationsManager {
                         <button class="btn btn-secondary" id="export-calculations-csv">
                             <i class="fas fa-download"></i> Export CSV
                         </button>
+                        <button class="btn btn-primary" id="share-calculations-btn">
+                            <i class="fas fa-share"></i> Share
+                        </button>
                     </div>
                 </div>
                 
@@ -790,6 +794,7 @@ class CalculationsManager {
         const vendorFilter = document.getElementById('vendor-filter');
         const roleFilter = document.getElementById('role-filter');
         const exportBtn = document.getElementById('export-calculations-csv');
+        const shareBtn = document.getElementById('share-calculations-btn');
 
         if (vendorFilter) {
             vendorFilter.addEventListener('change', this.boundHandlers.vendorFilterChange);
@@ -801,6 +806,10 @@ class CalculationsManager {
 
         if (exportBtn) {
             exportBtn.addEventListener('click', this.boundHandlers.exportClick);
+        }
+
+        if (shareBtn) {
+            shareBtn.addEventListener('click', this.boundHandlers.shareClick);
         }
 
         // Use event delegation for table elements to avoid reattaching listeners
@@ -1243,6 +1252,95 @@ class CalculationsManager {
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Share project estimation via email
+     */
+    shareByEmail() {
+        const currentProject = this.app?.currentProject;
+        if (!currentProject) {
+            alert('No project loaded');
+            return;
+        }
+
+        // Get final total cost from KPI data
+        const finalTotalCost = this.kpiData?.totalProject || 0;
+        
+        // Get project phases with their total MDs
+        const projectPhases = currentProject.phases || {};
+        let phasesList = '';
+        
+        // Build phases list using the phase definitions from ProjectPhasesManager
+        if (this.app.projectPhasesManager?.phaseDefinitions) {
+            this.app.projectPhasesManager.phaseDefinitions.forEach(phaseDef => {
+                const phaseData = projectPhases[phaseDef.id];
+                if (phaseData && phaseData.manDays > 0) {
+                    phasesList += `- ${phaseDef.name}: ${phaseData.manDays.toFixed(1)} MD\n`;
+                }
+            });
+        } else {
+            // Fallback: iterate through available phases
+            Object.entries(projectPhases).forEach(([phaseId, phaseData]) => {
+                if (phaseData && phaseData.manDays > 0) {
+                    // Try to get readable phase name or use ID
+                    const phaseName = phaseId.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                    phasesList += `- ${phaseName}: ${phaseData.manDays.toFixed(1)} MD\n`;
+                }
+            });
+        }
+
+        // Email template
+        const emailTemplate = `Dear colleagues,
+
+Please find below the estimation details for the implementation of Sorveglianza wave II based on the provided requirements.
+
+The estimated budget for GTO part is ${finalTotalCost.toLocaleString()} € vat incl.
+
+This includes all necessary activities such as technical analysis, development, SIT, support UAT phases, deployment, and post go live support.
+
+Overall Required time is: 1.5 months.
+
+Phase:
+${phasesList}
+
+Assumptions and out of scopes:`;
+
+        // Copy email template to clipboard
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(emailTemplate).then(() => {
+                alert('Email template copied to clipboard!\n\nSubject: Software Estimation - Sorveglianza wave II\n\nPaste the content into your email client.');
+            }).catch(() => {
+                // Fallback for clipboard API failure
+                this.fallbackCopyToClipboard(emailTemplate);
+            });
+        } else {
+            // Fallback for browsers without clipboard API
+            this.fallbackCopyToClipboard(emailTemplate);
+        }
+    }
+
+    /**
+     * Fallback method to copy text to clipboard
+     */
+    fallbackCopyToClipboard(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            alert('Email template copied to clipboard!\n\nSubject: Software Estimation - Sorveglianza wave II\n\nPaste the content into your email client.');
+        } catch (err) {
+            alert('Unable to copy to clipboard. Please copy the following text manually:\n\nSubject: Software Estimation - Sorveglianza wave II\n\n' + text);
+        } finally {
+            document.body.removeChild(textArea);
+        }
     }
 
     /**
