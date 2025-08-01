@@ -673,6 +673,16 @@ class VersionManager {
         // Create deep copy without versions array to avoid circular references
         const snapshot = JSON.parse(JSON.stringify(this.app.currentProject));
         delete snapshot.versions; // Remove versions to avoid storing versions within versions
+        
+        // Include current calculation data if available
+        if (this.app.calculationsManager?.vendorCosts) {
+            snapshot.calculationData = {
+                vendorCosts: JSON.parse(JSON.stringify(this.app.calculationsManager.vendorCosts)),
+                timestamp: new Date().toISOString()
+            };
+            console.log('Added calculation data to snapshot:', snapshot.calculationData);
+        }
+        
         return snapshot;
     }
 
@@ -1008,6 +1018,7 @@ class VersionManager {
                             ${this.renderFeaturesComparison(versionToCompare)}
                             ${this.renderConfigurationComparison(versionToCompare)}
                             ${this.renderPhasesComparison(versionToCompare)}
+                            ${this.renderCalculationsComparison(versionToCompare)}
                         </div>
                     </div>
                 </div>
@@ -1245,6 +1256,216 @@ class VersionManager {
                 </div>
             </div>
         `;
+    }
+
+    renderCalculationsComparison(versionToCompare) {
+        console.log('=== RENDER CALCULATIONS COMPARISON ===');
+        console.log('Current project:', this.app.currentProject);
+        console.log('Compare version snapshot:', versionToCompare.projectSnapshot);
+        
+        // Get current calculations data directly from the calculations manager if available
+        const currentCalculationsManager = this.app.calculationsManager;
+        const currentVendorCosts = currentCalculationsManager?.vendorCosts || [];
+        
+        console.log('Current vendor costs from calculations manager:', currentVendorCosts);
+        
+        // Get compare version data from snapshot
+        const compareProject = versionToCompare.projectSnapshot;
+        const compareOverrides = compareProject.finalMDsOverrides || {};
+        
+        console.log('Compare overrides:', compareOverrides);
+        
+        // Try to reconstruct compare vendor costs from snapshot
+        const compareVendorCosts = this.reconstructVendorCostsSimplified(compareProject);
+        
+        console.log('Reconstructed compare vendor costs:', compareVendorCosts);
+        
+        // If we have current data but no compare data, try to get it from stored calculation data
+        if (currentVendorCosts.length > 0 && compareVendorCosts.length === 0) {
+            // Check if version snapshot contains stored calculation data
+            if (compareProject.calculationData?.vendorCosts) {
+                compareVendorCosts.push(...compareProject.calculationData.vendorCosts);
+            }
+        }
+        
+        // Create unified comparison data
+        const allVendorKeys = new Set([
+            ...currentVendorCosts.map(c => `${c.vendor}-${c.role}-${c.department}`),
+            ...compareVendorCosts.map(c => `${c.vendor}-${c.role}-${c.department}`)
+        ]);
+        
+        console.log('All vendor keys:', Array.from(allVendorKeys));
+        
+        const vendorComparisons = Array.from(allVendorKeys).map(vendorKey => {
+            const currentCost = currentVendorCosts.find(c => `${c.vendor}-${c.role}-${c.department}` === vendorKey);
+            const compareCost = compareVendorCosts.find(c => `${c.vendor}-${c.role}-${c.department}` === vendorKey);
+            
+            const currentFinalMDs = currentCost?.finalMDs || 0;
+            const compareFinalMDs = compareCost?.finalMDs || 0;
+            const currentFinalCost = currentCost ? (currentFinalMDs * (currentCost.officialRate || currentCost.rate || 0)) : 0;
+            const compareFinalCost = compareCost ? (compareFinalMDs * (compareCost.officialRate || compareCost.rate || 0)) : 0;
+            
+            const mdsDiff = currentFinalMDs - compareFinalMDs;
+            const costDiff = currentFinalCost - compareFinalCost;
+            
+            return {
+                vendor: currentCost?.vendor || compareCost?.vendor || '',
+                role: currentCost?.role || compareCost?.role || '',
+                department: currentCost?.department || compareCost?.department || '',
+                currentFinalMDs,
+                compareFinalMDs,
+                currentFinalCost,
+                compareFinalCost,
+                mdsDiff,
+                costDiff,
+                hasMDsDiff: Math.abs(mdsDiff) > 0.1,
+                hasCostDiff: Math.abs(costDiff) > 0.1
+            };
+        }).filter(c => c.vendor); // Remove empty entries
+        
+        console.log('Final vendor comparisons:', vendorComparisons);
+        
+        if (vendorComparisons.length === 0) {
+            return `
+                <div class="comp-section comp-calculations">
+                    <div class="comp-section-header">
+                        <h5><i class="fas fa-calculator"></i> Calculations</h5>
+                    </div>
+                    <div class="comp-section-body">
+                        <div class="comp-no-data">
+                            <i class="fas fa-info-circle"></i>
+                            <span>No calculation data available for comparison.</span>
+                            <small>This may occur if calculations weren't generated for one or both versions.</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="comp-section comp-calculations">
+                <div class="comp-section-header">
+                    <h5><i class="fas fa-calculator"></i> Calculations Comparison</h5>
+                    <small>${vendorComparisons.length} vendor${vendorComparisons.length !== 1 ? 's' : ''} compared</small>
+                </div>
+                <div class="comp-section-body">
+                    <div class="comp-calc-container">
+                        <div class="comp-calc-header">
+                            <div class="comp-calc-vendor-col">Vendor & Role</div>
+                            <div class="comp-calc-data-cols">
+                                <div class="comp-calc-version-group comp-current">
+                                    <div class="comp-version-label">Current Version</div>
+                                    <div class="comp-calc-sub-headers">
+                                        <span>Final MDs</span>
+                                        <span>Final Cost</span>
+                                    </div>
+                                </div>
+                                <div class="comp-calc-version-group comp-compare">
+                                    <div class="comp-version-label">Version ${versionToCompare.id}</div>
+                                    <div class="comp-calc-sub-headers">
+                                        <span>Final MDs</span>
+                                        <span>Final Cost</span>
+                                    </div>
+                                </div>
+                                <div class="comp-calc-diff-col">
+                                    <div class="comp-version-label">Difference</div>
+                                    <div class="comp-calc-sub-headers">
+                                        <span>MDs</span>
+                                        <span>Cost</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="comp-calc-rows">
+                            ${vendorComparisons.map(comp => `
+                                <div class="comp-calc-row ${comp.hasMDsDiff || comp.hasCostDiff ? 'comp-has-diff' : ''}">
+                                    <div class="comp-calc-vendor-info">
+                                        <div class="comp-vendor-name">${comp.vendor}</div>
+                                        <div class="comp-vendor-details">${comp.role} • ${comp.department}</div>
+                                    </div>
+                                    <div class="comp-calc-data">
+                                        <div class="comp-calc-version-data comp-current">
+                                            <div class="comp-calc-mds ${comp.hasMDsDiff ? 'comp-different' : ''}">${comp.currentFinalMDs} MD</div>
+                                            <div class="comp-calc-cost ${comp.hasCostDiff ? 'comp-different' : ''}">€${comp.currentFinalCost.toLocaleString()}</div>
+                                        </div>
+                                        <div class="comp-calc-version-data comp-compare">
+                                            <div class="comp-calc-mds ${comp.hasMDsDiff ? 'comp-different' : ''}">${comp.compareFinalMDs} MD</div>
+                                            <div class="comp-calc-cost ${comp.hasCostDiff ? 'comp-different' : ''}">€${comp.compareFinalCost.toLocaleString()}</div>
+                                        </div>
+                                        <div class="comp-calc-diff">
+                                            <div class="comp-calc-mds-diff">
+                                                ${comp.hasMDsDiff ? `
+                                                    <span class="comp-diff-value ${comp.mdsDiff > 0 ? 'comp-positive' : 'comp-negative'}">
+                                                        ${comp.mdsDiff > 0 ? '+' : ''}${comp.mdsDiff.toFixed(1)} MD
+                                                    </span>
+                                                ` : '<span class="comp-no-diff">—</span>'}
+                                            </div>
+                                            <div class="comp-calc-cost-diff">
+                                                ${comp.hasCostDiff ? `
+                                                    <span class="comp-diff-value ${comp.costDiff > 0 ? 'comp-positive' : 'comp-negative'}">
+                                                        ${comp.costDiff > 0 ? '+' : ''}€${Math.abs(comp.costDiff).toLocaleString()}
+                                                    </span>
+                                                ` : '<span class="comp-no-diff">—</span>'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    reconstructVendorCostsSimplified(projectSnapshot) {
+        console.log('=== RECONSTRUCT VENDOR COSTS SIMPLIFIED ===');
+        const vendorCosts = [];
+        
+        try {
+            // First, check if we have stored calculation data in the snapshot
+            if (projectSnapshot.calculationData?.vendorCosts) {
+                console.log('Found stored calculation data in snapshot');
+                return projectSnapshot.calculationData.vendorCosts;
+            }
+            
+            // Fallback: try to reconstruct from basic project data
+            const finalMDsOverrides = projectSnapshot.finalMDsOverrides || {};
+            console.log('Final MDs overrides:', finalMDsOverrides);
+            
+            // Get configuration data
+            const globalSuppliers = projectSnapshot.projectOverrides?.suppliers || [];
+            const globalConfig = this.app.configManager?.config?.global?.suppliers || [];
+            const allSuppliers = [...globalSuppliers, ...globalConfig];
+            
+            console.log('All suppliers:', allSuppliers);
+            
+            // Process finalMDsOverrides to create vendor costs
+            Object.entries(finalMDsOverrides).forEach(([key, finalMDs]) => {
+                const [supplierId, role, department] = key.split('_');
+                const supplier = allSuppliers.find(s => s.id === supplierId);
+                
+                if (supplier && finalMDs > 0) {
+                    vendorCosts.push({
+                        vendor: supplier.name,
+                        vendorId: supplier.id,
+                        role: role,
+                        department: department || 'Unknown',
+                        finalMDs: finalMDs,
+                        rate: supplier.rate || 0,
+                        officialRate: supplier.rate || 0,
+                        isInternal: supplier.type === 'internal'
+                    });
+                }
+            });
+            
+            console.log('Reconstructed vendor costs:', vendorCosts);
+            
+        } catch (error) {
+            console.error('Error reconstructing vendor costs:', error);
+        }
+        
+        return vendorCosts;
     }
 
     async handleExportVersion(versionId) {
