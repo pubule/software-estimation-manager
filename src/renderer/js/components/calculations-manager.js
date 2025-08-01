@@ -17,6 +17,16 @@ class CalculationsManager {
             role: '',
             roleGroup: 'all'
         };
+
+        // Bind event handlers once to enable proper cleanup
+        this.boundHandlers = {
+            filterChipClick: this.handleFilterChipClick.bind(this),
+            vendorFilterChange: this.handleVendorFilterChange.bind(this),
+            roleFilterChange: this.handleRoleFilterChange.bind(this),
+            exportClick: this.exportToCSV.bind(this),
+            tableInput: this.handleTableInput.bind(this),
+            tableClick: this.handleTableClick.bind(this)
+        };
         
         this.initializeEventListeners();
         console.log('CalculationsManager initialized successfully');
@@ -745,21 +755,12 @@ class CalculationsManager {
      * Attach event listeners to table elements
      */
     attachTableEventListeners() {
+        // Remove existing event listeners first to prevent duplicates
+        this.removeTableEventListeners();
+
         // Role group filter chips
         document.querySelectorAll('.filter-chip').forEach(chip => {
-            chip.addEventListener('click', (e) => {
-                const filterGroup = e.currentTarget.dataset.filterGroup;
-                if (filterGroup === this.currentFilters.roleGroup) return;
-
-                // Update filter state
-                this.currentFilters.roleGroup = filterGroup;
-                
-                // Update UI - remove active from all chips, add to clicked one
-                document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-                e.currentTarget.classList.add('active');
-                
-                this.updateTable();
-            });
+            chip.addEventListener('click', this.boundHandlers.filterChipClick);
         });
         
         // Filter listeners
@@ -768,38 +769,124 @@ class CalculationsManager {
         const exportBtn = document.getElementById('export-calculations-csv');
 
         if (vendorFilter) {
-            vendorFilter.addEventListener('change', (e) => {
-                this.currentFilters.vendor = e.target.value;
-                this.updateTable();
-            });
+            vendorFilter.addEventListener('change', this.boundHandlers.vendorFilterChange);
         }
 
         if (roleFilter) {
-            roleFilter.addEventListener('change', (e) => {
-                this.currentFilters.role = e.target.value;
-                this.updateTable();
-            });
+            roleFilter.addEventListener('change', this.boundHandlers.roleFilterChange);
         }
 
         if (exportBtn) {
-            exportBtn.addEventListener('click', () => {
-                this.exportToCSV();
-            });
+            exportBtn.addEventListener('click', this.boundHandlers.exportClick);
         }
 
-        // Final MDs input listeners
-        document.querySelectorAll('.final-mds-input').forEach(input => {
-            input.addEventListener('input', (e) => {
-                this.handleFinalMDsChange(e.target);
-            });
+        // Use event delegation for table elements to avoid reattaching listeners
+        const tableContainer = document.querySelector('.calculations-table-section');
+        if (tableContainer) {
+            // Remove existing delegated listeners first
+            tableContainer.removeEventListener('input', this.boundHandlers.tableInput);
+            tableContainer.removeEventListener('click', this.boundHandlers.tableClick);
+            
+            // Add new delegated listeners
+            tableContainer.addEventListener('input', this.boundHandlers.tableInput);
+            tableContainer.addEventListener('click', this.boundHandlers.tableClick);
+            
+            console.log('Event delegation set up for table container');
+        }
+    }
+
+    /**
+     * Remove table event listeners to prevent memory leaks
+     */
+    removeTableEventListeners() {
+        // Remove filter chip listeners
+        document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.removeEventListener('click', this.boundHandlers.filterChipClick);
         });
 
-        // Reset Final MDs button listeners
-        document.querySelectorAll('.reset-final-mds-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                this.handleFinalMDsReset(e.target);
-            });
-        });
+        // Remove filter listeners
+        const vendorFilter = document.getElementById('vendor-filter');
+        const roleFilter = document.getElementById('role-filter');
+        const exportBtn = document.getElementById('export-calculations-csv');
+
+        if (vendorFilter) {
+            vendorFilter.removeEventListener('change', this.boundHandlers.vendorFilterChange);
+        }
+
+        if (roleFilter) {
+            roleFilter.removeEventListener('change', this.boundHandlers.roleFilterChange);
+        }
+
+        if (exportBtn) {
+            exportBtn.removeEventListener('click', this.boundHandlers.exportClick);
+        }
+
+        // Remove delegated listeners from table container
+        const tableContainer = document.querySelector('.calculations-table-section');
+        if (tableContainer) {
+            tableContainer.removeEventListener('input', this.boundHandlers.tableInput);
+            tableContainer.removeEventListener('click', this.boundHandlers.tableClick);
+        }
+    }
+
+    /**
+     * Handle filter chip clicks
+     */
+    handleFilterChipClick(e) {
+        const filterGroup = e.currentTarget.dataset.filterGroup;
+        if (filterGroup === this.currentFilters.roleGroup) return;
+
+        // Update filter state
+        this.currentFilters.roleGroup = filterGroup;
+        
+        // Update UI - remove active from all chips, add to clicked one
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        
+        this.updateTable();
+    }
+
+    /**
+     * Handle vendor filter changes
+     */
+    handleVendorFilterChange(e) {
+        this.currentFilters.vendor = e.target.value;
+        this.updateTable();
+    }
+
+    /**
+     * Handle role filter changes
+     */
+    handleRoleFilterChange(e) {
+        this.currentFilters.role = e.target.value;
+        this.updateTable();
+    }
+
+    /**
+     * Handle table input events (delegated)
+     */
+    handleTableInput(e) {
+        if (e.target.classList.contains('final-mds-input')) {
+            console.log('Final MDs input changed via delegation');
+            this.handleFinalMDsChange(e.target);
+        }
+    }
+
+    /**
+     * Handle table click events (delegated)
+     */
+    handleTableClick(e) {
+        if (e.target.classList.contains('reset-final-mds-btn') || 
+            e.target.closest('.reset-final-mds-btn')) {
+            
+            const button = e.target.classList.contains('reset-final-mds-btn') ? 
+                e.target : e.target.closest('.reset-final-mds-btn');
+            
+            console.log('Reset button clicked via delegation');
+            e.preventDefault();
+            e.stopPropagation();
+            this.handleFinalMDsReset(button);
+        }
     }
 
     /**
@@ -842,55 +929,98 @@ class CalculationsManager {
      * Handle Final MDs reset button click
      */
     handleFinalMDsReset(button) {
+        console.log('=== RESET BUTTON CLICKED ===');
+        
+        // Validate button element
+        if (!button || !button.dataset) {
+            console.error('Invalid button element:', button);
+            return;
+        }
+
         const vendorId = button.dataset.vendorId;
         const role = button.dataset.role;
         const department = button.dataset.department;
+
+        console.log(`Reset for: ${vendorId}, ${role}, ${department}`);
+
+        // Validate required data attributes
+        if (!vendorId || !role || !department) {
+            console.error('Missing data attributes:', { vendorId, role, department });
+            return;
+        }
 
         // Find the vendor cost entry
         const costEntry = this.vendorCosts.find(c => 
             c.vendorId === vendorId && c.role === role && c.department === department
         );
 
-        if (costEntry) {
-            // Calculate original value (rounded official MDs)
-            const calculatedValue = costEntry.officialRate > 0 ? 
-                Math.round(costEntry.cost / costEntry.officialRate) : 0;
-            
-            // Get current value
-            const currentValue = costEntry.finalMDs || 0;
-            
-            // Only reset if values are different
-            if (currentValue !== calculatedValue) {
-                costEntry.finalMDs = calculatedValue;
-
-                // Remove from project overrides since we're resetting to calculated value
-                this.removeFinalMDsFromProject(vendorId, role, department);
-
-                // Update the input field
-                const row = button.closest('tr');
-                const input = row.querySelector('.final-mds-input');
-                if (input) {
-                    input.value = calculatedValue;
-                }
-
-                // Update the Final Tot Cost cell
-                const finalCostCell = row.querySelector('.final-cost');
-                if (finalCostCell) {
-                    const finalCost = calculatedValue * costEntry.officialRate;
-                    finalCostCell.textContent = `€${finalCost.toLocaleString()}`;
-                }
-
-                // Update footer totals
-                this.updateFooterTotals();
-                
-                // Update KPI cards with new Final Tot Cost values
-                this.updateKPICards();
-                
-                console.log(`Reset finalMDs for ${costEntry.vendor} ${role} from ${currentValue} to ${calculatedValue}`);
-            } else {
-                console.log(`No reset needed for ${costEntry.vendor} ${role}: values are the same (${currentValue})`);
-            }
+        if (!costEntry) {
+            console.error(`Cost entry not found for ${vendorId}, ${role}, ${department}`);
+            console.log('Available cost entries:', this.vendorCosts.map(c => ({
+                vendorId: c.vendorId, 
+                role: c.role, 
+                department: c.department
+            })));
+            return;
         }
+
+        // Calculate original value (rounded official MDs)
+        const calculatedValue = costEntry.officialRate > 0 ? 
+            Math.round(costEntry.cost / costEntry.officialRate) : 0;
+        
+        // Get the table row and input field
+        const row = button.closest('tr');
+        if (!row) {
+            console.error('Could not find table row for button');
+            return;
+        }
+
+        const input = row.querySelector('.final-mds-input');
+        if (!input) {
+            console.error('Could not find input field in row');
+            return;
+        }
+
+        const currentInputValue = parseInt(input.value) || 0;
+        
+        console.log(`Current input value: ${currentInputValue}, Calculated value: ${calculatedValue}, costEntry.finalMDs: ${costEntry.finalMDs}`);
+        
+        // Always reset to calculated value regardless of current state
+        // This ensures the reset works even if there are synchronization issues
+        costEntry.finalMDs = calculatedValue;
+
+        // Remove from project overrides since we're resetting to calculated value
+        this.removeFinalMDsFromProject(vendorId, role, department);
+
+        // Update the input field with visual feedback
+        input.value = calculatedValue;
+        input.classList.add('value-updated');
+        setTimeout(() => {
+            input.classList.remove('value-updated');
+        }, 300);
+        
+        console.log(`Updated input value to: ${calculatedValue}`);
+
+        // Update the Final Tot Cost cell
+        const finalCostCell = row.querySelector('.final-cost');
+        if (finalCostCell) {
+            const finalCost = calculatedValue * costEntry.officialRate;
+            finalCostCell.textContent = `€${finalCost.toLocaleString()}`;
+            finalCostCell.classList.add('value-updated');
+            setTimeout(() => {
+                finalCostCell.classList.remove('value-updated');
+            }, 300);
+            console.log(`Updated final cost to: €${finalCost.toLocaleString()}`);
+        }
+
+        // Update footer totals
+        this.updateFooterTotals();
+        
+        // Update KPI cards with new Final Tot Cost values
+        this.updateKPICards();
+        
+        console.log(`Reset completed for ${costEntry.vendor} ${role} to ${calculatedValue}`);
+        console.log('=== RESET BUTTON END ===');
     }
 
     /**
@@ -991,13 +1121,22 @@ class CalculationsManager {
     updateTable() {
         const tableSection = document.querySelector('.calculations-table-section');
         if (tableSection) {
+            console.log('Updating table content...');
+            
             const newTableHTML = this.renderCostTable();
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = newTableHTML;
             
+            // Clear existing content
             tableSection.innerHTML = tempDiv.firstElementChild.innerHTML;
-            this.attachTableEventListeners();
-            this.updateFilterChipCounts();
+            
+            // Use requestAnimationFrame instead of setTimeout for better DOM synchronization
+            requestAnimationFrame(() => {
+                console.log('DOM updated, reattaching event listeners...');
+                this.attachTableEventListeners();
+                this.updateFilterChipCounts();
+                console.log('Table update completed');
+            });
         }
     }
 

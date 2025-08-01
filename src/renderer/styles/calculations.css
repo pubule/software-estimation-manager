@@ -548,6 +548,18 @@
     color: var(--success);
 }
 
+/* Visual feedback for value updates */
+.value-updated {
+    background-color: var(--accent-primary) !important;
+    color: white !important;
+    transition: all 0.3s ease;
+}
+
+.final-mds-input.value-updated {
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 0 0 2px var(--accent-primary-alpha) !important;
+}
+
 /* Responsive adjustments for new columns */
 @media (max-width: 1200px) {
     .final-mds-input {
