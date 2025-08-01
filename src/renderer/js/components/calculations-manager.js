@@ -1264,8 +1264,11 @@ class CalculationsManager {
             return;
         }
 
-        // Get final total cost from KPI data
-        const finalTotalCost = this.kpiData?.totalProject || 0;
+        // Get final total cost from GTO KPI data
+        const finalTotalCost = this.kpiData?.gto?.total || 0;
+        
+        // Get project name
+        const projectName = currentProject.project?.name || 'Unknown Project';
         
         // Get project phases with their total MDs
         const projectPhases = currentProject.phases || {};
@@ -1293,7 +1296,7 @@ class CalculationsManager {
         // Email template
         const emailTemplate = `Dear colleagues,
 
-Please find below the estimation details for the implementation of Sorveglianza wave II based on the provided requirements.
+Please find below the estimation details for the implementation of ${projectName} based on the provided requirements.
 
 The estimated budget for GTO part is ${finalTotalCost.toLocaleString()} € vat incl.
 
@@ -1309,21 +1312,21 @@ Assumptions and out of scopes:`;
         // Copy email template to clipboard
         if (navigator.clipboard) {
             navigator.clipboard.writeText(emailTemplate).then(() => {
-                alert('Email template copied to clipboard!\n\nSubject: Software Estimation - Sorveglianza wave II\n\nPaste the content into your email client.');
+                alert(`Email template copied to clipboard!\n\nSubject: Software Estimation - ${projectName}\n\nPaste the content into your email client.`);
             }).catch(() => {
                 // Fallback for clipboard API failure
-                this.fallbackCopyToClipboard(emailTemplate);
+                this.fallbackCopyToClipboard(emailTemplate, projectName);
             });
         } else {
             // Fallback for browsers without clipboard API
-            this.fallbackCopyToClipboard(emailTemplate);
+            this.fallbackCopyToClipboard(emailTemplate, projectName);
         }
     }
 
     /**
      * Fallback method to copy text to clipboard
      */
-    fallbackCopyToClipboard(text) {
+    fallbackCopyToClipboard(text, projectName) {
         const textArea = document.createElement('textarea');
         textArea.value = text;
         textArea.style.position = 'fixed';
@@ -1335,9 +1338,9 @@ Assumptions and out of scopes:`;
         
         try {
             document.execCommand('copy');
-            alert('Email template copied to clipboard!\n\nSubject: Software Estimation - Sorveglianza wave II\n\nPaste the content into your email client.');
+            alert(`Email template copied to clipboard!\n\nSubject: Software Estimation - ${projectName}\n\nPaste the content into your email client.`);
         } catch (err) {
-            alert('Unable to copy to clipboard. Please copy the following text manually:\n\nSubject: Software Estimation - Sorveglianza wave II\n\n' + text);
+            alert(`Unable to copy to clipboard. Please copy the following text manually:\n\nSubject: Software Estimation - ${projectName}\n\n` + text);
         } finally {
             document.body.removeChild(textArea);
         }
