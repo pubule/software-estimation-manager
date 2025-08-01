@@ -938,6 +938,12 @@
         padding: var(--spacing-sm);
     }
 
+    .coverage-controls {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+    }
+
     .coverage-input {
         background-color: var(--bg-primary);
         border: 1px solid var(--border-primary);
@@ -953,6 +959,36 @@
         outline: none;
         border-color: var(--accent-primary);
         box-shadow: 0 0 0 2px var(--accent-primary-alpha);
+    }
+
+    .coverage-reset-btn {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
+        color: var(--text-secondary);
+        padding: var(--spacing-xs);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: var(--font-size-xs);
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .coverage-reset-btn:hover {
+        background-color: var(--bg-hover);
+        color: var(--text-primary);
+        border-color: var(--border-secondary);
+    }
+
+    .coverage-reset-btn:active {
+        transform: translateY(1px);
+    }
+
+    .coverage-reset-btn.hidden {
+        display: none;
     }
 
     /* Status Bar */

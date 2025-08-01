@@ -250,7 +250,18 @@ class SoftwareEstimationApp {
                     const value = parseFloat(e.target.value) || 0;
                     this.currentProject.coverage = value;
                     this.currentProject.coverageIsAutoCalculated = false; // Mark as manually set
+                    this.updateCoverageResetButtonVisibility();
                     this.markDirty();
+                }
+            });
+        }
+
+        // Coverage reset button listener
+        const coverageResetBtn = document.getElementById('coverage-reset-btn');
+        if (coverageResetBtn) {
+            coverageResetBtn.addEventListener('click', () => {
+                if (this.currentProject) {
+                    this.resetCoverageToAuto();
                 }
             });
         }
@@ -899,6 +910,54 @@ class SoftwareEstimationApp {
             } else {
                 // Use manually set coverage value
                 coverageEl.value = this.currentProject.coverage;
+            }
+        }
+
+        // Update reset button visibility
+        this.updateCoverageResetButtonVisibility();
+    }
+
+    /**
+     * Reset coverage to automatic calculation (30% of Total Man Days)
+     */
+    resetCoverageToAuto() {
+        if (!this.currentProject) return;
+
+        const features = this.currentProject.features;
+        const totalManDays = features.reduce((sum, feature) => sum + (feature.manDays || 0), 0);
+        const defaultCoverage = (totalManDays * 0.3).toFixed(1);
+
+        // Reset to auto-calculated coverage
+        this.currentProject.coverage = parseFloat(defaultCoverage);
+        this.currentProject.coverageIsAutoCalculated = true;
+
+        // Update UI
+        const coverageEl = document.getElementById('coverage-value');
+        if (coverageEl) {
+            coverageEl.value = defaultCoverage;
+        }
+
+        this.updateCoverageResetButtonVisibility();
+        this.markDirty();
+
+        // Trigger phases recalculation
+        if (this.projectPhasesManager && this.navigationManager.currentSection === 'phases') {
+            this.projectPhasesManager.calculateDevelopmentPhase();
+            this.projectPhasesManager.updateCalculations();
+        }
+    }
+
+    /**
+     * Update visibility of coverage reset button
+     */
+    updateCoverageResetButtonVisibility() {
+        const resetBtn = document.getElementById('coverage-reset-btn');
+        if (resetBtn && this.currentProject) {
+            const isManuallySet = this.currentProject.coverageIsAutoCalculated === false;
+            if (isManuallySet) {
+                resetBtn.classList.remove('hidden');
+            } else {
+                resetBtn.classList.add('hidden');
             }
         }
     }

@@ -275,7 +275,12 @@
                     </div>
                     <div class="summary-item coverage-item">
                         <label>Coverage:</label>
-                        <input type="number" id="coverage-value" min="0" step="0.1" class="coverage-input">
+                        <div class="coverage-controls">
+                            <input type="number" id="coverage-value" min="0" step="0.1" class="coverage-input">
+                            <button type="button" id="coverage-reset-btn" class="coverage-reset-btn" title="Reset to 30% of Total Man Days">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
