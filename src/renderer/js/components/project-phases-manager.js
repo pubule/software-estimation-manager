@@ -302,14 +302,14 @@ class ProjectPhasesManager {
                 <table class="phases-table">
                     <thead>
                         <tr>
-                            <th class="phase-name">Phase</th>
+                            <th class="phase-name header-group">Phase</th>
                             <th class="header-group">Man Days</th>
                             <th class="header-group" colspan="4">% Effort Distribution</th>
                             <th class="header-group" colspan="4">Man Days by Resource</th>
                             <th class="header-group" colspan="4">Cost by Resource (€)</th>
                         </tr>
                         <tr>
-                            <th class="phase-name"></th>
+                            <th class="phase-name sub-header">Name</th>
                             <th class="sub-header">Total</th>
                             <th class="sub-header">G1</th>
                             <th class="sub-header">G2</th>
