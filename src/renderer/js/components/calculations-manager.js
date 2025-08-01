@@ -24,7 +24,7 @@ class CalculationsManager {
             vendorFilterChange: this.handleVendorFilterChange.bind(this),
             roleFilterChange: this.handleRoleFilterChange.bind(this),
             exportClick: this.exportToCSV.bind(this),
-            tableInput: this.handleTableInput.bind(this),
+            tableBlur: this.handleTableBlur.bind(this),
             tableClick: this.handleTableClick.bind(this)
         };
         
@@ -708,7 +708,12 @@ class CalculationsManager {
                                 `).join('')
                             }
                         </tbody>
-                        ${filteredCosts.length > 0 ? `
+                        ${filteredCosts.length > 0 ? (() => {
+                            const totalCost = filteredCosts.reduce((sum, c) => sum + c.cost, 0);
+                            const finalTotalCost = filteredCosts.reduce((sum, c) => sum + ((c.finalMDs || 0) * c.officialRate), 0);
+                            const finalCostClass = finalTotalCost > totalCost ? 'final-cost-higher' : 'final-cost-lower';
+                            
+                            return `
                             <tfoot>
                                 <tr class="totals-row">
                                     <td colspan="3"><strong>Total</strong></td>
@@ -716,11 +721,12 @@ class CalculationsManager {
                                     <td class="number"><strong>${filteredCosts.reduce((sum, c) => sum + (c.officialRate > 0 ? c.cost / c.officialRate : 0), 0).toFixed(1)}</strong></td>
                                     <td class="number"><strong>${filteredCosts.reduce((sum, c) => sum + (c.finalMDs || 0), 0)}</strong></td>
                                     <td></td>
-                                    <td class="currency total-cost"><strong>€${filteredCosts.reduce((sum, c) => sum + c.cost, 0).toLocaleString()}</strong></td>
-                                    <td class="currency final-cost"><strong>€${filteredCosts.reduce((sum, c) => sum + ((c.finalMDs || 0) * c.officialRate), 0).toLocaleString()}</strong></td>
+                                    <td class="currency total-cost"><strong>€${totalCost.toLocaleString()}</strong></td>
+                                    <td class="currency final-cost ${finalCostClass}"><strong>€${finalTotalCost.toLocaleString()}</strong></td>
                                 </tr>
                             </tfoot>
-                        ` : ''}
+                            `;
+                        })() : ''}
                     </table>
                 </div>
             </div>
@@ -801,14 +807,14 @@ class CalculationsManager {
         const tableContainer = document.querySelector('.calculations-table-section');
         if (tableContainer) {
             // Remove existing delegated listeners first
-            tableContainer.removeEventListener('input', this.boundHandlers.tableInput);
+            tableContainer.removeEventListener('blur', this.boundHandlers.tableBlur, true);
             tableContainer.removeEventListener('click', this.boundHandlers.tableClick);
             
-            // Add new delegated listeners
-            tableContainer.addEventListener('input', this.boundHandlers.tableInput);
+            // Add new delegated listeners - use blur with capture for input changes
+            tableContainer.addEventListener('blur', this.boundHandlers.tableBlur, true);
             tableContainer.addEventListener('click', this.boundHandlers.tableClick);
             
-            console.log('Event delegation set up for table container');
+            console.log('Event delegation set up for table container with blur events');
         }
     }
 
@@ -841,7 +847,7 @@ class CalculationsManager {
         // Remove delegated listeners from table container
         const tableContainer = document.querySelector('.calculations-table-section');
         if (tableContainer) {
-            tableContainer.removeEventListener('input', this.boundHandlers.tableInput);
+            tableContainer.removeEventListener('blur', this.boundHandlers.tableBlur, true);
             tableContainer.removeEventListener('click', this.boundHandlers.tableClick);
         }
     }
@@ -880,11 +886,11 @@ class CalculationsManager {
     }
 
     /**
-     * Handle table input events (delegated)
+     * Handle table blur events (delegated) - triggers when user finishes editing and loses focus
      */
-    handleTableInput(e) {
+    handleTableBlur(e) {
         if (e.target.classList.contains('final-mds-input')) {
-            console.log('Final MDs input changed via delegation');
+            console.log('Final MDs input blurred (user finished editing)');
             this.handleFinalMDsChange(e.target);
         }
     }
@@ -934,10 +940,8 @@ class CalculationsManager {
                 finalCostCell.textContent = `€${finalCost.toLocaleString()}`;
             }
 
-            // Update footer totals
+            // Update footer totals and KPI cards
             this.updateFooterTotals();
-            
-            // Update KPI cards with new Final Tot Cost values
             this.updateKPICards();
         }
     }
@@ -1041,26 +1045,44 @@ class CalculationsManager {
     }
 
     /**
-     * Update footer totals for Final columns
+     * Update footer totals for Final columns without regenerating the table
      */
     updateFooterTotals() {
         const totalsRow = document.querySelector('.calculations-table .totals-row');
-        if (!totalsRow) return;
+        if (!totalsRow) {
+            return;
+        }
 
         const filteredCosts = this.getFilteredVendorCosts();
         
-        // Update Final Tot MDs total
+        // Calculate totals using the same logic as KPI cards
+        const totalCost = filteredCosts.reduce((sum, c) => sum + c.cost, 0);
+        const finalTotalCost = filteredCosts.reduce((sum, c) => sum + ((c.finalMDs || 0) * c.officialRate), 0);
+        
+        // Update Final Tot MDs total (cell index 3)
         const finalMDsTotal = filteredCosts.reduce((sum, c) => sum + (c.finalMDs || 0), 0);
-        const finalMDsCell = totalsRow.cells[6]; // Assuming this is the correct index
+        const finalMDsCell = totalsRow.cells[3];
         if (finalMDsCell) {
             finalMDsCell.innerHTML = `<strong>${finalMDsTotal}</strong>`;
         }
 
-        // Update Final Tot Cost total
-        const finalCostTotal = filteredCosts.reduce((sum, c) => sum + ((c.finalMDs || 0) * c.officialRate), 0);
-        const finalCostCell = totalsRow.cells[8]; // Assuming this is the correct index
+        // Update Total Cost (cell index 5)
+        const totalCostCell = totalsRow.cells[5];
+        if (totalCostCell) {
+            totalCostCell.innerHTML = `<strong>€${totalCost.toLocaleString()}</strong>`;
+        }
+
+        // Update Final Tot Cost with dynamic styling (cell index 6)  
+        const finalCostCell = totalsRow.cells[6];
         if (finalCostCell) {
-            finalCostCell.innerHTML = `<strong>€${finalCostTotal.toLocaleString()}</strong>`;
+            // Remove existing color classes
+            finalCostCell.classList.remove('final-cost-higher', 'final-cost-lower');
+            
+            // Apply appropriate color class based on comparison
+            const colorClass = finalTotalCost > totalCost ? 'final-cost-higher' : 'final-cost-lower';
+            finalCostCell.classList.add(colorClass);
+            
+            finalCostCell.innerHTML = `<strong>€${finalTotalCost.toLocaleString()}</strong>`;
         }
     }
 

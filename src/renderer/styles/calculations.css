@@ -395,6 +395,17 @@
     font-weight: 600;
 }
 
+/* Dynamic styling for Final Tot Cost based on comparison with Total Cost */
+.totals-row .final-cost.final-cost-higher {
+    color: var(--success);
+    font-weight: 700;
+}
+
+.totals-row .final-cost.final-cost-lower {
+    color: var(--error);
+    font-weight: 700;
+}
+
 /* No Data State */
 .no-data {
     text-align: center;
