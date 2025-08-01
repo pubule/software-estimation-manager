@@ -269,16 +269,26 @@
     padding: var(--spacing-md);
     text-align: left;
     border-bottom: 2px solid var(--border-primary);
+    border-right: 1px solid var(--border-primary);
     font-size: var(--font-size-sm);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
+.calculations-table th:last-child {
+    border-right: none;
+}
+
 .calculations-table td {
     padding: var(--spacing-md);
     border-bottom: 1px solid var(--border-primary);
+    border-right: 1px solid var(--border-primary);
     color: var(--text-primary);
     font-size: var(--font-size-sm);
+}
+
+.calculations-table td:last-child {
+    border-right: none;
 }
 
 .calculations-table tbody tr:hover {

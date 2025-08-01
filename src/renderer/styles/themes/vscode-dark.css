@@ -867,6 +867,12 @@
         padding: var(--spacing-sm) var(--spacing-md);
         text-align: left;
         border-bottom: 1px solid var(--table-border);
+        border-right: 1px solid var(--table-border);
+    }
+
+    .data-table th:last-child,
+    .data-table td:last-child {
+        border-right: none;
     }
 
     .data-table th {
