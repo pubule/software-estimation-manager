@@ -1427,25 +1427,47 @@ class VersionManager {
      * Render phases comparison
      */
     renderPhasesComparison(versionToCompare) {
-        const currentPhases = this.app.currentProject.phases || {};
-        const comparePhases = versionToCompare.projectSnapshot.phases || {};
+        // Get current phases from phases manager (the actual table data)
+        let currentPhasesArray = this.app.phasesManager?.currentPhases || [];
         
-        const phaseNames = ['Analysis', 'Design', 'Development', 'Testing', 'Deployment', 'Documentation', 'ProjectManagement', 'Contingency'];
+        // Fallback: if phases manager is not available or empty, use phase definitions from current project phases
+        if (currentPhasesArray.length === 0) {
+            const currentPhasesMap = this.app.currentProject.phases || {};
+            const defaultPhaseNames = [
+                { id: 'functionalAnalysis', name: 'Functional Analysis' },
+                { id: 'technicalAnalysis', name: 'Technical Analysis' },
+                { id: 'development', name: 'Development' },
+                { id: 'integrationTests', name: 'Integration Tests' },
+                { id: 'uatTests', name: 'UAT Tests' },
+                { id: 'consolidation', name: 'Consolidation' },
+                { id: 'vapt', name: 'VAPT' },
+                { id: 'postGoLive', name: 'Post Go-Live Support' }
+            ];
+            
+            // Filter only phases that exist in the current project
+            currentPhasesArray = defaultPhaseNames.filter(phase => 
+                currentPhasesMap[phase.id] !== undefined
+            );
+        }
         
-        // Calculate phases with differences
-        const phasesWithDiff = phaseNames.filter(phase => {
-            const currentMD = currentPhases[phase]?.manDays || 0;
-            const compareMD = comparePhases[phase]?.manDays || 0;
+        const currentPhasesMap = this.app.currentProject.phases || {};
+        const comparePhasesMap = versionToCompare.projectSnapshot.phases || {};
+        
+        // Calculate phases with differences using the real phase data
+        const phasesWithDiff = currentPhasesArray.filter(phase => {
+            const currentMD = currentPhasesMap[phase.id]?.manDays || 0;
+            const compareMD = comparePhasesMap[phase.id]?.manDays || 0;
             return Math.abs(currentMD - compareMD) > 0.1;
         });
         
-        const phaseComparisons = phaseNames.map(phase => {
-            const currentMD = currentPhases[phase]?.manDays || 0;
-            const compareMD = comparePhases[phase]?.manDays || 0;
+        const phaseComparisons = currentPhasesArray.map(phase => {
+            const currentMD = currentPhasesMap[phase.id]?.manDays || 0;
+            const compareMD = comparePhasesMap[phase.id]?.manDays || 0;
             const diff = currentMD - compareMD;
             
             return {
-                phase,
+                phase: phase.name, // Use the real phase name from Project Phases Configuration
+                phaseId: phase.id,
                 currentMD,
                 compareMD,
                 diff,

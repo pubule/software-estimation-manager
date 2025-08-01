@@ -197,6 +197,9 @@ class ProjectPhasesManager {
             // Round to 1 decimal place to avoid too many decimal digits
             developmentPhase.manDays = Math.round(totalDevelopmentMDs * 10) / 10;
             developmentPhase.lastModified = new Date().toISOString();
+            
+            // Sync updated phase data to current project to ensure it's available for version snapshots
+            this.syncToCurrentProject();
         }
     }
 
