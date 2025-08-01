@@ -1293,10 +1293,10 @@ class CalculationsManager {
             });
         }
 
-        // Calculate total elapsed time from all phases
+        // Calculate total elapsed time from all phases (excluding post go-live support)
         let totalMDs = 0;
         Object.entries(projectPhases).forEach(([phaseId, phaseData]) => {
-            if (phaseData && phaseData.manDays > 0) {
+            if (phaseData && phaseData.manDays > 0 && phaseId !== 'postGoLive') {
                 totalMDs += phaseData.manDays;
             }
         });
