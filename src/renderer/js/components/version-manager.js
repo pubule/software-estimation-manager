@@ -118,7 +118,7 @@ class VersionManager {
                     <p class="version-subtitle">
                         Current: ${currentVersion} | Total Versions: ${versionsCount}
                         ${versionsCount >= this.maxVersions * 0.8 ? 
-                            `<span class="warning-text">⚠️ Approaching limit (${this.maxVersions})</span>` : ''
+                            `<span class="version-warning-text">⚠️ Approaching limit (${this.maxVersions})</span>` : ''
                         }
                     </p>
                 </div>
@@ -791,26 +791,26 @@ class VersionManager {
                     </div>
                     
                     <div class="version-comparison">
-                        <div class="comparison-header">
+                        <div class="version-comparison-header">
                             <h4>What will change:</h4>
                         </div>
-                        <div class="comparison-content">
+                        <div class="version-comparison-content">
                             ${this.renderVersionComparison(versionToRestore)}
                         </div>
                     </div>
                     
-                    <div class="restore-details">
-                        <div class="detail-row">
-                            <span class="detail-label">Restore from:</span>
-                            <span class="detail-value">${versionToRestore.id} (${this.formatDate(versionToRestore.timestamp)})</span>
+                    <div class="version-restore-details">
+                        <div class="version-detail-row">
+                            <span class="version-detail-label">Restore from:</span>
+                            <span class="version-detail-value">${versionToRestore.id} (${this.formatDate(versionToRestore.timestamp)})</span>
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Created by:</span>
-                            <span class="detail-value">${versionToRestore.username}</span>
+                        <div class="version-detail-row">
+                            <span class="version-detail-label">Created by:</span>
+                            <span class="version-detail-value">${versionToRestore.username}</span>
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Reason:</span>
-                            <span class="detail-value">${versionToRestore.reason}</span>
+                        <div class="version-detail-row">
+                            <span class="version-detail-label">Reason:</span>
+                            <span class="version-detail-value">${versionToRestore.reason}</span>
                         </div>
                     </div>
                 </div>
@@ -899,17 +899,17 @@ class VersionManager {
         }
 
         if (changes.length === 0) {
-            return '<p class="no-changes">No significant changes detected in basic statistics.</p>';
+            return '<p class="version-no-changes">No significant changes detected in basic statistics.</p>';
         }
 
         return changes.map(change => `
-            <div class="change-item">
+            <div class="version-change-item">
                 <i class="${change.icon}"></i>
-                <div class="change-details">
-                    <span class="change-label">${change.label}:</span>
-                    <span class="change-values">
+                <div class="version-change-details">
+                    <span class="version-change-label">${change.label}:</span>
+                    <span class="version-change-values">
                         ${change.current} → ${change.restore}
-                        <span class="change-diff ${change.diff > 0 ? 'positive' : 'negative'}">
+                        <span class="version-change-diff ${change.diff > 0 ? 'positive' : 'negative'}">
                             (${change.diff > 0 ? '+' : ''}${change.diff})
                         </span>
                     </span>
@@ -1165,7 +1165,7 @@ class VersionManager {
                 ` : ''}
                 
                 ${added.length === 0 && removed.length === 0 && modified.length === 0 ? 
-                    '<p class="no-changes">No feature changes detected.</p>' : ''
+                    '<p class="version-no-changes">No feature changes detected.</p>' : ''
                 }
             </div>
         `;
@@ -1223,22 +1223,22 @@ class VersionManager {
         return `
             <div class="comparison-section">
                 <h5><i class="fas fa-tasks"></i> Project Phases</h5>
-                <div class="phases-comparison">
+                <div class="version-phases-comparison">
                     ${phaseNames.map(phase => {
                         const currentMD = currentPhases[phase]?.manDays || 0;
                         const compareMD = comparePhases[phase]?.manDays || 0;
                         const diff = currentMD - compareMD;
                         
                         return `
-                            <div class="phase-row">
-                                <div class="phase-label">${phase}:</div>
-                                <div class="phase-value current">${currentMD.toFixed(1)} MD</div>
-                                <div class="phase-value compare">${compareMD.toFixed(1)} MD</div>
+                            <div class="version-phase-row">
+                                <div class="version-phase-label">${phase}:</div>
+                                <div class="version-phase-value current">${currentMD.toFixed(1)} MD</div>
+                                <div class="version-phase-value compare">${compareMD.toFixed(1)} MD</div>
                                 ${Math.abs(diff) > 0.1 ? `
-                                    <div class="phase-diff ${diff > 0 ? 'positive' : 'negative'}">
+                                    <div class="version-phase-diff ${diff > 0 ? 'positive' : 'negative'}">
                                         (${diff > 0 ? '+' : ''}${diff.toFixed(1)})
                                     </div>
-                                ` : '<div class="phase-diff">-</div>'}
+                                ` : '<div class="version-phase-diff">-</div>'}
                             </div>
                         `;
                     }).join('')}
@@ -1367,7 +1367,7 @@ class VersionManager {
                     <button class="modal-close">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div class="delete-warning">
+                    <div class="version-delete-warning">
                         <i class="fas fa-exclamation-triangle"></i>
                         <div>
                             <strong>Warning:</strong> This action cannot be undone. 
@@ -1376,21 +1376,21 @@ class VersionManager {
                     </div>
                     
                     <div class="version-details">
-                        <div class="detail-row">
-                            <span class="detail-label">Version:</span>
-                            <span class="detail-value">${versionToDelete.id}</span>
+                        <div class="version-detail-row">
+                            <span class="version-detail-label">Version:</span>
+                            <span class="version-detail-value">${versionToDelete.id}</span>
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Created:</span>
-                            <span class="detail-value">${this.formatDate(versionToDelete.timestamp)}</span>
+                        <div class="version-detail-row">
+                            <span class="version-detail-label">Created:</span>
+                            <span class="version-detail-value">${this.formatDate(versionToDelete.timestamp)}</span>
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Created by:</span>
-                            <span class="detail-value">${versionToDelete.username}</span>
+                        <div class="version-detail-row">
+                            <span class="version-detail-label">Created by:</span>
+                            <span class="version-detail-value">${versionToDelete.username}</span>
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Reason:</span>
-                            <span class="detail-value">${versionToDelete.reason}</span>
+                        <div class="version-detail-row">
+                            <span class="version-detail-label">Reason:</span>
+                            <span class="version-detail-value">${versionToDelete.reason}</span>
                         </div>
                     </div>
                     
@@ -1741,7 +1741,7 @@ class VersionManager {
                     <button class="modal-close">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div class="import-info">
+                    <div class="version-import-info">
                         <i class="fas fa-upload"></i>
                         <div>
                             <p><strong>Import a previously exported version file</strong></p>
@@ -1754,7 +1754,7 @@ class VersionManager {
                         <button class="btn btn-primary" id="select-import-file-btn">
                             <i class="fas fa-file-upload"></i> Select Version File
                         </button>
-                        <div id="import-file-info" class="file-info" style="display: none;">
+                        <div id="import-file-info" class="version-file-info" style="display: none;">
                             <i class="fas fa-file-code"></i>
                             <span id="import-file-name"></span>
                             <span id="import-file-size"></span>
@@ -1767,18 +1767,18 @@ class VersionManager {
                     
                     <div class="import-options" id="import-options" style="display: none;">
                         <h4>Import Options:</h4>
-                        <div class="option-group">
+                        <div class="version-option-group">
                             <label>
                                 <input type="radio" name="import-strategy" value="add" checked>
                                 <strong>Add to current versions</strong>
-                                <span class="option-desc">Add the imported version to your current project</span>
+                                <span class="version-option-desc">Add the imported version to your current project</span>
                             </label>
                         </div>
-                        <div class="option-group">
+                        <div class="version-option-group">
                             <label>
                                 <input type="radio" name="import-strategy" value="replace-id">
                                 <strong>Replace if version ID exists</strong>
-                                <span class="option-desc">Replace existing version if same ID is found</span>
+                                <span class="version-option-desc">Replace existing version if same ID is found</span>
                             </label>
                         </div>
                     </div>
@@ -1910,32 +1910,32 @@ class VersionManager {
         container.innerHTML = `
             <div class="import-preview-content">
                 <h4>Version Preview</h4>
-                <div class="import-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Version ID:</span>
-                        <span class="detail-value">${versionData.id}</span>
+                <div class="version-import-details">
+                    <div class="version-detail-row">
+                        <span class="version-detail-label">Version ID:</span>
+                        <span class="version-detail-value">${versionData.id}</span>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Created:</span>
-                        <span class="detail-value">${this.formatDate(versionData.timestamp)}</span>
+                    <div class="version-detail-row">
+                        <span class="version-detail-label">Created:</span>
+                        <span class="version-detail-value">${this.formatDate(versionData.timestamp)}</span>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Created by:</span>
-                        <span class="detail-value">${versionData.username}</span>
+                    <div class="version-detail-row">
+                        <span class="version-detail-label">Created by:</span>
+                        <span class="version-detail-value">${versionData.username}</span>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Reason:</span>
-                        <span class="detail-value">${versionData.reason}</span>
+                    <div class="version-detail-row">
+                        <span class="version-detail-label">Reason:</span>
+                        <span class="version-detail-value">${versionData.reason}</span>
                     </div>
                     ${importData.originalProject ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Original Project:</span>
-                            <span class="detail-value">${importData.originalProject.name}</span>
+                        <div class="version-detail-row">
+                            <span class="version-detail-label">Original Project:</span>
+                            <span class="version-detail-value">${importData.originalProject.name}</span>
                         </div>
                     ` : ''}
                 </div>
                 
-                <div class="import-stats">
+                <div class="version-import-stats">
                     <h5>Version Contents:</h5>
                     <div class="version-stats-grid">
                         <div class="version-preview-stat-item">
@@ -1958,7 +1958,7 @@ class VersionManager {
                 </div>
                 
                 ${this.checkVersionConflict(versionData.id) ? `
-                    <div class="import-conflict">
+                    <div class="version-import-conflict">
                         <i class="fas fa-exclamation-triangle"></i>
                         <div>
                             <strong>Version ID Conflict:</strong> A version with ID "${versionData.id}" already exists in this project.
