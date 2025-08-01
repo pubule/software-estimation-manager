@@ -1065,24 +1065,87 @@ class VersionManager {
         const current = this.app.currentProject;
         const compare = versionToCompare.projectSnapshot;
         
+        const projectFields = [
+            {
+                label: 'Project Name',
+                currentValue: current.project?.name || 'N/A',
+                compareValue: compare.project?.name || 'N/A',
+                type: 'text'
+            },
+            {
+                label: 'Description',
+                currentValue: current.project?.description || 'N/A',
+                compareValue: compare.project?.description || 'N/A',
+                type: 'text'
+            },
+            {
+                label: 'Coverage',
+                currentValue: (current.coverage || 0).toString(),
+                compareValue: (compare.coverage || 0).toString(),
+                type: 'number'
+            }
+        ];
+        
+        const fieldsWithDiff = projectFields.filter(field => field.currentValue !== field.compareValue);
+        
         return `
-            <div class="comparison-section">
-                <h5><i class="fas fa-project-diagram"></i> Project Information</h5>
-                <div class="comparison-grid">
-                    <div class="comparison-row">
-                        <div class="comparison-label">Project Name:</div>
-                        <div class="comparison-value current">${current.project?.name || 'N/A'}</div>
-                        <div class="comparison-value compare">${compare.project?.name || 'N/A'}</div>
-                    </div>
-                    <div class="comparison-row">
-                        <div class="comparison-label">Description:</div>
-                        <div class="comparison-value current">${this.truncateText(current.project?.description || 'N/A', 50)}</div>
-                        <div class="comparison-value compare">${this.truncateText(compare.project?.description || 'N/A', 50)}</div>
-                    </div>
-                    <div class="comparison-row">
-                        <div class="comparison-label">Coverage:</div>
-                        <div class="comparison-value current">${current.coverage || 0}</div>
-                        <div class="comparison-value compare">${compare.coverage || 0}</div>
+            <div class="comp-section comp-project">
+                <div class="comp-section-header">
+                    <h5><i class="fas fa-project-diagram"></i> Project Information</h5>
+                    <small>${fieldsWithDiff.length} field${fieldsWithDiff.length !== 1 ? 's' : ''} with differences</small>
+                </div>
+                <div class="comp-section-body">
+                    <div class="comp-project-container">
+                        <div class="comp-project-header">
+                            <div class="comp-project-field-col">Field</div>
+                            <div class="comp-project-data-cols">
+                                <div class="comp-project-version-group comp-current">
+                                    <div class="comp-version-label">Current Version</div>
+                                </div>
+                                <div class="comp-project-version-group comp-compare">
+                                    <div class="comp-version-label">Version ${versionToCompare.id}</div>
+                                </div>
+                                <div class="comp-project-diff-col">
+                                    <div class="comp-version-label">Status</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="comp-project-rows">
+                            ${projectFields.map(field => {
+                                const hasDiff = field.currentValue !== field.compareValue;
+                                return `
+                                    <div class="comp-project-row ${hasDiff ? 'comp-has-diff' : ''}">
+                                        <div class="comp-project-field-info">
+                                            <div class="comp-project-field-name">${field.label}</div>
+                                            <div class="comp-project-field-type">${field.type}</div>
+                                        </div>
+                                        <div class="comp-project-data">
+                                            <div class="comp-project-version-data comp-current">
+                                                <div class="comp-project-value ${hasDiff ? 'comp-different' : ''}" title="${field.currentValue}">
+                                                    ${this.truncateText(field.currentValue, 40)}
+                                                </div>
+                                            </div>
+                                            <div class="comp-project-version-data comp-compare">
+                                                <div class="comp-project-value ${hasDiff ? 'comp-different' : ''}" title="${field.compareValue}">
+                                                    ${this.truncateText(field.compareValue, 40)}
+                                                </div>
+                                            </div>
+                                            <div class="comp-project-diff">
+                                                ${hasDiff ? `
+                                                    <span class="comp-status-badge comp-changed">
+                                                        <i class="fas fa-edit"></i> Changed
+                                                    </span>
+                                                ` : `
+                                                    <span class="comp-status-badge comp-same">
+                                                        <i class="fas fa-check"></i> Same
+                                                    </span>
+                                                `}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1107,77 +1170,137 @@ class VersionManager {
             return vf && JSON.stringify(cf) !== JSON.stringify(vf);
         });
         
+        const totalChanges = added.length + removed.length + modified.length;
+        
         return `
-            <div class="comparison-section">
-                <h5><i class="fas fa-list-ul"></i> Features Comparison</h5>
-                <div class="comparison-stats">
-                    <div class="version-stat-grid">
-                        <div class="version-stat-item">
-                            <span class="version-stat-label">Total Features:</span>
-                            <span class="version-stat-value current">${currentStats.features}</span>
-                            <span class="version-stat-value compare">${compareStats.features}</span>
+            <div class="comp-section comp-features">
+                <div class="comp-section-header">
+                    <h5><i class="fas fa-list-ul"></i> Features Comparison</h5>
+                    <small>${totalChanges} change${totalChanges !== 1 ? 's' : ''} detected</small>
+                </div>
+                <div class="comp-section-body">
+                    <!-- Statistics Overview -->
+                    <div class="comp-features-stats">
+                        <div class="comp-stats-header">
+                            <h6><i class="fas fa-chart-bar"></i> Statistics Overview</h6>
                         </div>
-                        <div class="version-stat-item">
-                            <span class="version-stat-label">Total MDs:</span>
-                            <span class="version-stat-value current">${currentStats.totalMDs}</span>
-                            <span class="version-stat-value compare">${compareStats.totalMDs}</span>
+                        <div class="comp-stats-grid">
+                            <div class="comp-stat-item">
+                                <div class="comp-stat-label">Total Features</div>
+                                <div class="comp-stat-values">
+                                    <div class="comp-stat-value comp-current">${currentStats.features}</div>
+                                    <div class="comp-stat-separator">→</div>
+                                    <div class="comp-stat-value comp-compare">${compareStats.features}</div>
+                                    <div class="comp-stat-diff ${currentStats.features - compareStats.features > 0 ? 'comp-positive' : currentStats.features - compareStats.features < 0 ? 'comp-negative' : 'comp-neutral'}">
+                                        ${currentStats.features - compareStats.features > 0 ? '+' : ''}${currentStats.features - compareStats.features}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="comp-stat-item">
+                                <div class="comp-stat-label">Total Man Days</div>
+                                <div class="comp-stat-values">
+                                    <div class="comp-stat-value comp-current">${currentStats.totalMDs}</div>
+                                    <div class="comp-stat-separator">→</div>
+                                    <div class="comp-stat-value comp-compare">${compareStats.totalMDs}</div>
+                                    <div class="comp-stat-diff ${currentStats.totalMDs - compareStats.totalMDs > 0 ? 'comp-positive' : currentStats.totalMDs - compareStats.totalMDs < 0 ? 'comp-negative' : 'comp-neutral'}">
+                                        ${currentStats.totalMDs - compareStats.totalMDs > 0 ? '+' : ''}${currentStats.totalMDs - compareStats.totalMDs}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    
+                    <!-- Feature Changes -->
+                    <div class="comp-features-changes">
+                        ${added.length > 0 ? `
+                            <div class="comp-feature-change-group comp-added">
+                                <div class="comp-change-header">
+                                    <h6><i class="fas fa-plus-circle"></i> Added Features</h6>
+                                    <span class="comp-change-count">${added.length}</span>
+                                </div>
+                                <div class="comp-feature-list">
+                                    ${added.map(f => `
+                                        <div class="comp-feature-item comp-added">
+                                            <div class="comp-feature-id">${f.id}</div>
+                                            <div class="comp-feature-info">
+                                                <div class="comp-feature-desc" title="${f.description}">${this.truncateText(f.description, 50)}</div>
+                                                <div class="comp-feature-meta">
+                                                    <span class="comp-feature-md">${f.manDays} MD</span>
+                                                    ${f.category ? `<span class="comp-feature-category">${f.category}</span>` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${removed.length > 0 ? `
+                            <div class="comp-feature-change-group comp-removed">
+                                <div class="comp-change-header">
+                                    <h6><i class="fas fa-minus-circle"></i> Removed Features</h6>
+                                    <span class="comp-change-count">${removed.length}</span>
+                                </div>
+                                <div class="comp-feature-list">
+                                    ${removed.map(f => `
+                                        <div class="comp-feature-item comp-removed">
+                                            <div class="comp-feature-id">${f.id}</div>
+                                            <div class="comp-feature-info">
+                                                <div class="comp-feature-desc" title="${f.description}">${this.truncateText(f.description, 50)}</div>
+                                                <div class="comp-feature-meta">
+                                                    <span class="comp-feature-md">${f.manDays} MD</span>
+                                                    ${f.category ? `<span class="comp-feature-category">${f.category}</span>` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${modified.length > 0 ? `
+                            <div class="comp-feature-change-group comp-modified">
+                                <div class="comp-change-header">
+                                    <h6><i class="fas fa-edit"></i> Modified Features</h6>
+                                    <span class="comp-change-count">${modified.length}</span>
+                                </div>
+                                <div class="comp-feature-list">
+                                    ${modified.map(f => {
+                                        const vf = compareFeatures.find(cf => cf.id === f.id);
+                                        const mdChange = f.manDays - vf.manDays;
+                                        return `
+                                            <div class="comp-feature-item comp-modified">
+                                                <div class="comp-feature-id">${f.id}</div>
+                                                <div class="comp-feature-info">
+                                                    <div class="comp-feature-desc" title="${f.description}">${this.truncateText(f.description, 40)}</div>
+                                                    <div class="comp-feature-meta">
+                                                        <div class="comp-feature-md-change">
+                                                            <span class="comp-md-old">${vf.manDays}</span>
+                                                            <span class="comp-md-arrow">→</span>
+                                                            <span class="comp-md-new">${f.manDays}</span>
+                                                            <span class="comp-md-diff ${mdChange > 0 ? 'comp-positive' : mdChange < 0 ? 'comp-negative' : 'comp-neutral'}">
+                                                                (${mdChange > 0 ? '+' : ''}${mdChange} MD)
+                                                            </span>
+                                                        </div>
+                                                        ${f.category ? `<span class="comp-feature-category">${f.category}</span>` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${totalChanges === 0 ? `
+                            <div class="comp-no-data">
+                                <i class="fas fa-check-circle"></i>
+                                <span>No feature changes detected</span>
+                                <small>Both versions have identical features</small>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
-                
-                ${added.length > 0 ? `
-                    <div class="feature-changes added">
-                        <h6><i class="fas fa-plus"></i> Added Features (${added.length})</h6>
-                        <div class="feature-list">
-                            ${added.map(f => `
-                                <div class="feature-item">
-                                    <span class="feature-id">${f.id}</span>
-                                    <span class="feature-desc">${this.truncateText(f.description, 40)}</span>
-                                    <span class="feature-md">${f.manDays} MD</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                ` : ''}
-                
-                ${removed.length > 0 ? `
-                    <div class="feature-changes removed">
-                        <h6><i class="fas fa-minus"></i> Removed Features (${removed.length})</h6>
-                        <div class="feature-list">
-                            ${removed.map(f => `
-                                <div class="feature-item">
-                                    <span class="feature-id">${f.id}</span>
-                                    <span class="feature-desc">${this.truncateText(f.description, 40)}</span>
-                                    <span class="feature-md">${f.manDays} MD</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                ` : ''}
-                
-                ${modified.length > 0 ? `
-                    <div class="feature-changes modified">
-                        <h6><i class="fas fa-edit"></i> Modified Features (${modified.length})</h6>
-                        <div class="feature-list">
-                            ${modified.map(f => {
-                                const vf = compareFeatures.find(cf => cf.id === f.id);
-                                return `
-                                    <div class="feature-item">
-                                        <span class="feature-id">${f.id}</span>
-                                        <span class="feature-desc">${this.truncateText(f.description, 30)}</span>
-                                        <span class="feature-md-change">
-                                            ${vf.manDays} → ${f.manDays} MD
-                                        </span>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                ` : ''}
-                
-                ${added.length === 0 && removed.length === 0 && modified.length === 0 ? 
-                    '<p class="version-no-changes">No feature changes detected.</p>' : ''
-                }
             </div>
         `;
     }
@@ -1189,34 +1312,112 @@ class VersionManager {
         const currentOverrides = this.app.currentProject.projectOverrides || {};
         const compareOverrides = versionToCompare.projectSnapshot.projectOverrides || {};
         
-        const currentSuppliers = Object.keys(currentOverrides.suppliers || {}).length;
-        const compareSuppliers = Object.keys(compareOverrides.suppliers || {}).length;
+        const configFields = [
+            {
+                label: 'Custom Suppliers',
+                currentValue: Object.keys(currentOverrides.suppliers || {}).length,
+                compareValue: Object.keys(compareOverrides.suppliers || {}).length,
+                type: 'count',
+                icon: 'fas fa-truck'
+            },
+            {
+                label: 'Custom Resources',
+                currentValue: Object.keys(currentOverrides.internalResources || {}).length,
+                compareValue: Object.keys(compareOverrides.internalResources || {}).length,
+                type: 'count',
+                icon: 'fas fa-users'
+            },
+            {
+                label: 'Custom Categories',
+                currentValue: Object.keys(currentOverrides.categories || {}).length,
+                compareValue: Object.keys(compareOverrides.categories || {}).length,
+                type: 'count',
+                icon: 'fas fa-tags'
+            }
+        ];
         
-        const currentResources = Object.keys(currentOverrides.internalResources || {}).length;
-        const compareResources = Object.keys(compareOverrides.internalResources || {}).length;
-        
-        const currentCategories = Object.keys(currentOverrides.categories || {}).length;
-        const compareCategories = Object.keys(compareOverrides.categories || {}).length;
+        const fieldsWithDiff = configFields.filter(field => field.currentValue !== field.compareValue);
         
         return `
-            <div class="comparison-section">
-                <h5><i class="fas fa-cog"></i> Configuration Overrides</h5>
-                <div class="comparison-grid">
-                    <div class="comparison-row">
-                        <div class="comparison-label">Custom Suppliers:</div>
-                        <div class="comparison-value current">${currentSuppliers}</div>
-                        <div class="comparison-value compare">${compareSuppliers}</div>
+            <div class="comp-section comp-config">
+                <div class="comp-section-header">
+                    <h5><i class="fas fa-cog"></i> Configuration Overrides</h5>
+                    <small>${fieldsWithDiff.length} configuration${fieldsWithDiff.length !== 1 ? 's' : ''} changed</small>
+                </div>
+                <div class="comp-section-body">
+                    <div class="comp-config-container">
+                        <div class="comp-config-header">
+                            <div class="comp-config-field-col">Configuration Type</div>
+                            <div class="comp-config-data-cols">
+                                <div class="comp-config-version-group comp-current">
+                                    <div class="comp-version-label">Current Version</div>
+                                    <div class="comp-config-sub-header">Count</div>
+                                </div>
+                                <div class="comp-config-version-group comp-compare">
+                                    <div class="comp-version-label">Version ${versionToCompare.id}</div>
+                                    <div class="comp-config-sub-header">Count</div>
+                                </div>
+                                <div class="comp-config-diff-col">
+                                    <div class="comp-version-label">Difference</div>
+                                    <div class="comp-config-sub-header">Δ</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="comp-config-rows">
+                            ${configFields.map(field => {
+                                const hasDiff = field.currentValue !== field.compareValue;
+                                const diff = field.currentValue - field.compareValue;
+                                return `
+                                    <div class="comp-config-row ${hasDiff ? 'comp-has-diff' : ''}">
+                                        <div class="comp-config-field-info">
+                                            <div class="comp-config-field-name">
+                                                <i class="${field.icon}"></i>
+                                                ${field.label}
+                                            </div>
+                                            <div class="comp-config-field-type">${field.type}</div>
+                                        </div>
+                                        <div class="comp-config-data">
+                                            <div class="comp-config-version-data comp-current">
+                                                <div class="comp-config-value ${hasDiff ? 'comp-different' : ''}">${field.currentValue}</div>
+                                            </div>
+                                            <div class="comp-config-version-data comp-compare">
+                                                <div class="comp-config-value ${hasDiff ? 'comp-different' : ''}">${field.compareValue}</div>
+                                            </div>
+                                            <div class="comp-config-diff">
+                                                ${hasDiff ? `
+                                                    <span class="comp-diff-value ${diff > 0 ? 'comp-positive' : 'comp-negative'}">
+                                                        ${diff > 0 ? '+' : ''}${diff}
+                                                    </span>
+                                                ` : '<span class="comp-no-diff">—</span>'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
                     </div>
-                    <div class="comparison-row">
-                        <div class="comparison-label">Custom Resources:</div>
-                        <div class="comparison-value current">${currentResources}</div>
-                        <div class="comparison-value compare">${compareResources}</div>
-                    </div>
-                    <div class="comparison-row">
-                        <div class="comparison-label">Custom Categories:</div>
-                        <div class="comparison-value current">${currentCategories}</div>
-                        <div class="comparison-value compare">${compareCategories}</div>
-                    </div>
+                    
+                    ${fieldsWithDiff.length === 0 ? `
+                        <div class="comp-config-summary">
+                            <div class="comp-summary-card comp-no-changes">
+                                <i class="fas fa-check-circle"></i>
+                                <div class="comp-summary-content">
+                                    <h6>No Configuration Changes</h6>
+                                    <p>Both versions have identical configuration overrides</p>
+                                </div>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="comp-config-summary">
+                            <div class="comp-summary-card comp-has-changes">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <div class="comp-summary-content">
+                                    <h6>Configuration Changes Detected</h6>
+                                    <p>${fieldsWithDiff.length} configuration type${fieldsWithDiff.length !== 1 ? 's have' : ' has'} been modified between versions</p>
+                                </div>
+                            </div>
+                        </div>
+                    `}
                 </div>
             </div>
         `;
@@ -1231,28 +1432,78 @@ class VersionManager {
         
         const phaseNames = ['Analysis', 'Design', 'Development', 'Testing', 'Deployment', 'Documentation', 'ProjectManagement', 'Contingency'];
         
+        // Calculate phases with differences
+        const phasesWithDiff = phaseNames.filter(phase => {
+            const currentMD = currentPhases[phase]?.manDays || 0;
+            const compareMD = comparePhases[phase]?.manDays || 0;
+            return Math.abs(currentMD - compareMD) > 0.1;
+        });
+        
+        const phaseComparisons = phaseNames.map(phase => {
+            const currentMD = currentPhases[phase]?.manDays || 0;
+            const compareMD = comparePhases[phase]?.manDays || 0;
+            const diff = currentMD - compareMD;
+            
+            return {
+                phase,
+                currentMD,
+                compareMD,
+                diff,
+                hasDiff: Math.abs(diff) > 0.1
+            };
+        });
+        
         return `
-            <div class="comparison-section">
-                <h5><i class="fas fa-tasks"></i> Project Phases</h5>
-                <div class="version-phases-comparison">
-                    ${phaseNames.map(phase => {
-                        const currentMD = currentPhases[phase]?.manDays || 0;
-                        const compareMD = comparePhases[phase]?.manDays || 0;
-                        const diff = currentMD - compareMD;
-                        
-                        return `
-                            <div class="version-phase-row">
-                                <div class="version-phase-label">${phase}:</div>
-                                <div class="version-phase-value current">${currentMD.toFixed(1)} MD</div>
-                                <div class="version-phase-value compare">${compareMD.toFixed(1)} MD</div>
-                                ${Math.abs(diff) > 0.1 ? `
-                                    <div class="version-phase-diff ${diff > 0 ? 'positive' : 'negative'}">
-                                        (${diff > 0 ? '+' : ''}${diff.toFixed(1)})
-                                    </div>
-                                ` : '<div class="version-phase-diff">-</div>'}
+            <div class="comp-section comp-phases">
+                <div class="comp-section-header">
+                    <h5><i class="fas fa-tasks"></i> Project Phases Comparison</h5>
+                    <small>${phasesWithDiff.length} phase${phasesWithDiff.length !== 1 ? 's' : ''} with differences</small>
+                </div>
+                <div class="comp-section-body">
+                    <div class="comp-phases-container">
+                        <div class="comp-phases-header">
+                            <div class="comp-phase-name-col">Phase</div>
+                            <div class="comp-phases-data-cols">
+                                <div class="comp-phases-version-group comp-current">
+                                    <div class="comp-version-label">Current Version</div>
+                                    <div class="comp-phases-sub-header">Man Days Total</div>
+                                </div>
+                                <div class="comp-phases-version-group comp-compare">
+                                    <div class="comp-version-label">Version ${versionToCompare.id}</div>
+                                    <div class="comp-phases-sub-header">Man Days Total</div>
+                                </div>
+                                <div class="comp-phases-diff-col">
+                                    <div class="comp-version-label">Difference</div>
+                                    <div class="comp-phases-sub-header">MDs</div>
+                                </div>
                             </div>
-                        `;
-                    }).join('')}
+                        </div>
+                        <div class="comp-phases-rows">
+                            ${phaseComparisons.map(comp => `
+                                <div class="comp-phases-row ${comp.hasDiff ? 'comp-has-diff' : ''}">
+                                    <div class="comp-phase-info">
+                                        <div class="comp-phase-name">${comp.phase}</div>
+                                        <div class="comp-phase-details">Project phase</div>
+                                    </div>
+                                    <div class="comp-phases-data">
+                                        <div class="comp-phases-version-data comp-current">
+                                            <div class="comp-phase-mds ${comp.hasDiff ? 'comp-different' : ''}">${comp.currentMD.toFixed(1)} MD</div>
+                                        </div>
+                                        <div class="comp-phases-version-data comp-compare">
+                                            <div class="comp-phase-mds ${comp.hasDiff ? 'comp-different' : ''}">${comp.compareMD.toFixed(1)} MD</div>
+                                        </div>
+                                        <div class="comp-phases-diff">
+                                            ${comp.hasDiff ? `
+                                                <span class="comp-diff-value ${comp.diff > 0 ? 'comp-positive' : 'comp-negative'}">
+                                                    ${comp.diff > 0 ? '+' : ''}${comp.diff.toFixed(1)} MD
+                                                </span>
+                                            ` : '<span class="comp-no-diff">—</span>'}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
                 </div>
             </div>
         `;

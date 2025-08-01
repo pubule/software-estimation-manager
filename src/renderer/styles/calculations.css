@@ -388,12 +388,11 @@
     font-weight: 600;
 }
 
-/* Final Tot Cost in totals row - green and emphasized */
+/* Final Tot Cost in totals row */
 .totals-row .final-cost {
-    color: var(--success);
-    font-size: var(--font-size-xl);
-    font-weight: 700;
-    font-family: monospace;
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    font-weight: 600;
 }
 
 /* No Data State */
@@ -566,9 +565,8 @@
     transform: translateY(1px);
 }
 
-/* Final Tot Cost column highlighting */
+/* Final Tot Cost column styling */
 .final-cost {
-    background-color: rgba(59, 130, 246, 0.08); /* Very subtle blue tint */
     font-weight: 600;
 }
 
