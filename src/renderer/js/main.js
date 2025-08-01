@@ -187,6 +187,11 @@ class SoftwareEstimationApp {
             window.electronAPI.onMenuAction(this.handleMenuAction.bind(this));
         }
 
+        // Handle application close requests
+        if (window.electronAPI && window.electronAPI.onCheckBeforeClose) {
+            window.electronAPI.onCheckBeforeClose(this.handleCloseRequest.bind(this));
+        }
+
         // Navigation is now handled by EnhancedNavigationManager
         // Save button
         const saveBtn = document.getElementById('save-btn');
@@ -442,6 +447,15 @@ class SoftwareEstimationApp {
             if (save) await this.saveProject();
         }
 
+        // Perform the actual project closing
+        this.performProjectClose();
+    }
+
+    /**
+     * Close project without showing confirmation dialog (for internal use)
+     * Used when confirmation has already been handled elsewhere
+     */
+    performProjectClose() {
         // Reset to empty project
         this.currentProject = this.createNewProject();
         this.isDirty = false;
@@ -505,7 +519,7 @@ class SoftwareEstimationApp {
     }
 
     async saveProject() {
-        if (!this.currentProject) return;
+        if (!this.currentProject) return false;
 
         try {
             this.showLoading('Saving project...');
@@ -542,9 +556,11 @@ class SoftwareEstimationApp {
             }
 
             NotificationManager.show('Project saved successfully with hierarchical configuration', 'success');
+            return true; // Success
         } catch (error) {
             console.error('Failed to save project:', error);
             NotificationManager.show('Failed to save project', 'error');
+            return false; // Failure
         } finally {
             this.hideLoading();
         }
@@ -794,6 +810,54 @@ class SoftwareEstimationApp {
             const result = confirm('You have unsaved changes. Do you want to save before continuing?');
             resolve(result);
         });
+    }
+
+    /**
+     * Handle application close request from main process
+     * Check for unsaved changes and ask user for confirmation
+     */
+    async handleCloseRequest() {
+        console.log('Application close requested, checking for unsaved changes...');
+        
+        if (this.isDirty && this.currentProject) {
+            console.log('Unsaved changes detected, showing confirmation dialog');
+            
+            try {
+                // Show the same confirmation dialog used elsewhere in the app
+                const result = confirm('You have unsaved changes. Do you want to save before continuing?');
+                
+                if (result) {
+                    // User wants to save before closing app
+                    console.log('User chose to save before closing app');
+                    const saveResult = await this.saveProject();
+                    
+                    if (saveResult) {
+                        // Save successful, close project and then close app
+                        console.log('Save successful, closing project and then app');
+                        this.performProjectClose();
+                        window.electronAPI.confirmWindowClose(true);
+                    } else {
+                        // Save failed, don't close
+                        console.log('Save failed, cancelling app close');
+                        window.electronAPI.confirmWindowClose(false);
+                    }
+                } else {
+                    // User chose not to save, close project and then close app anyway
+                    console.log('User chose not to save, closing project and app anyway');
+                    this.performProjectClose();
+                    window.electronAPI.confirmWindowClose(true);
+                }
+            } catch (error) {
+                console.error('Error handling close request:', error);
+                // In case of error, close project and allow closing app
+                this.performProjectClose();
+                window.electronAPI.confirmWindowClose(true);
+            }
+        } else {
+            // No unsaved changes, safe to close
+            console.log('No unsaved changes, confirming close');
+            window.electronAPI.confirmWindowClose(true);
+        }
     }
 
     markDirty() {

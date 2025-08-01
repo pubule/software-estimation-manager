@@ -22,6 +22,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Menu actions
     onMenuAction: (callback) => ipcRenderer.on('menu-action', callback),
 
+    // Application close handling
+    onCheckBeforeClose: (callback) => ipcRenderer.on('check-before-close-request', callback),
+    confirmWindowClose: (canClose) => ipcRenderer.invoke('confirm-window-close', canClose),
+
     // File operations (legacy for export)
     saveFile: (defaultPath, data) => ipcRenderer.invoke('save-file', defaultPath, data),
     openFile: () => ipcRenderer.invoke('open-file'),

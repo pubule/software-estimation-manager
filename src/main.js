@@ -51,6 +51,15 @@ function createWindow() {
         mainWindow.webContents.openDevTools();
     }
 
+    // Handle window close attempt (before it actually closes)
+    mainWindow.on('close', (event) => {
+        // Prevent immediate closure
+        event.preventDefault();
+        
+        // Ask renderer to check for unsaved changes
+        mainWindow.webContents.send('check-before-close-request');
+    });
+
     // Handle window closed
     mainWindow.on('closed', () => {
         mainWindow = null;
@@ -309,7 +318,20 @@ ipcMain.handle('window-maximize', () => {
 });
 
 ipcMain.handle('window-close', () => {
-    if (mainWindow) mainWindow.close();
+    if (mainWindow) {
+        // Ask renderer to check for unsaved changes
+        mainWindow.webContents.send('check-before-close-request');
+        return { success: true, message: 'close-check-initiated' };
+    }
+    return { success: false, reason: 'no-window' };
+});
+
+// Handle response from renderer about whether it's safe to close
+ipcMain.handle('confirm-window-close', (event, canClose) => {
+    if (mainWindow && canClose) {
+        mainWindow.destroy();
+    }
+    // If canClose is false, we do nothing (window stays open)
 });
 
 // RIMOZIONE MENU: Aggiungere keyboard shortcuts globali se necessario
