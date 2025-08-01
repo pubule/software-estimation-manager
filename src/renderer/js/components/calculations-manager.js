@@ -1293,6 +1293,30 @@ class CalculationsManager {
             });
         }
 
+        // Calculate total elapsed time from all phases
+        let totalMDs = 0;
+        Object.entries(projectPhases).forEach(([phaseId, phaseData]) => {
+            if (phaseData && phaseData.manDays > 0) {
+                totalMDs += phaseData.manDays;
+            }
+        });
+        
+        // Convert MDs to working weeks (5 working days per week)
+        const totalWeeks = totalMDs / 5;
+        
+        // Convert weeks to months (approximately 4 weeks per month)
+        const totalMonths = totalWeeks / 4;
+        
+        // Format the elapsed time
+        let elapsedTime;
+        if (totalMonths < 1) {
+            elapsedTime = `${totalWeeks.toFixed(1)} weeks`;
+        } else if (totalMonths < 2) {
+            elapsedTime = `${totalMonths.toFixed(1)} month`;
+        } else {
+            elapsedTime = `${totalMonths.toFixed(1)} months`;
+        }
+
         // Email template
         const emailTemplate = `Dear colleagues,
 
@@ -1302,7 +1326,7 @@ The estimated budget for GTO part is ${finalTotalCost.toLocaleString()} € vat 
 
 This includes all necessary activities such as technical analysis, development, SIT, support UAT phases, deployment, and post go live support.
 
-Overall Required time is: 1.5 months.
+Overall Required time is: ${elapsedTime}.
 
 Phase:
 ${phasesList}
