@@ -122,10 +122,10 @@
 }
 
 .total-cost {
-    color: var(--text-accent);
-    font-size: var(--font-size-xl);
-    font-weight: 700;
-    font-family: monospace;
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    font-family: inherit;
 }
 
 /* Total Card Specific Styles */
@@ -383,8 +383,17 @@
 }
 
 .totals-row .total-cost {
-    color: var(--success);
+    color: var(--text-primary);
     font-size: var(--font-size-base);
+    font-weight: 600;
+}
+
+/* Final Tot Cost in totals row - green and emphasized */
+.totals-row .final-cost {
+    color: var(--success);
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    font-family: monospace;
 }
 
 /* No Data State */
@@ -559,9 +568,8 @@
 
 /* Final Tot Cost column highlighting */
 .final-cost {
-    background-color: var(--bg-quaternary);
+    background-color: rgba(59, 130, 246, 0.08); /* Very subtle blue tint */
     font-weight: 600;
-    color: var(--success);
 }
 
 /* Visual feedback for value updates */

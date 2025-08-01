@@ -650,7 +650,7 @@ class CalculationsManager {
                                 <th>Final Tot MDs</th>
                                 <th>Official Rate</th>
                                 <th>Total Cost</th>
-                                <th>Final Tot Cost</th>
+                                <th class="final-cost">Final Tot Cost</th>
                             </tr>
                         </thead>
                         <tbody>
