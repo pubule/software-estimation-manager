@@ -634,6 +634,24 @@ class ProjectManager {
             this.app.dataManager.currentProjectPath = filePath;
         }
 
+        // Update title bar with version info
+        if (this.app.versionManager) {
+            this.app.versionManager.updateTitleBar();
+        }
+
+        // Synchronize phases with loaded project features
+        if (this.app.projectPhasesManager) {
+            this.app.projectPhasesManager.synchronizeWithProject();
+        }
+
+        // Ensure phases are properly initialized - create phasesManager reference for calculations
+        this.app.phasesManager = this.app.projectPhasesManager;
+
+        // Initialize calculations data so it's available for version comparisons
+        if (this.app.calculationsManager) {
+            this.app.calculationsManager.calculateVendorCosts();
+        }
+
         this.app.navigationManager.onProjectLoaded();
 
         // FIXED: Update dropdowns through refreshDropdowns instead of populateDropdowns

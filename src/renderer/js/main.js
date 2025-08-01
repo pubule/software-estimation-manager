@@ -431,6 +431,14 @@ class SoftwareEstimationApp {
                         this.projectPhasesManager.synchronizeWithProject();
                     }
 
+                    // Ensure phases are properly initialized - create phasesManager reference for calculations
+                    this.phasesManager = this.projectPhasesManager;
+
+                    // Initialize calculations data so it's available for version comparisons
+                    if (this.calculationsManager) {
+                        this.calculationsManager.calculateVendorCosts();
+                    }
+
                     // Update navigation state - project is now loaded
                     this.navigationManager.onProjectLoaded();
 
@@ -781,8 +789,16 @@ class SoftwareEstimationApp {
                 }
 
                 // Synchronize phases with loaded project features
-                if (this.phasesManager) {
-                    this.phasesManager.synchronizeWithProject();
+                if (this.projectPhasesManager) {
+                    this.projectPhasesManager.synchronizeWithProject();
+                }
+
+                // Ensure phases are properly initialized - create phasesManager reference for calculations
+                this.phasesManager = this.projectPhasesManager;
+
+                // Initialize calculations data so it's available for version comparisons
+                if (this.calculationsManager) {
+                    this.calculationsManager.calculateVendorCosts();
                 }
 
                 // Update navigation state

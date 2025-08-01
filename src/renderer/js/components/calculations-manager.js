@@ -101,7 +101,24 @@ class CalculationsManager {
 
         // Debug selected suppliers
         console.log('=== SELECTED SUPPLIERS ANALYSIS ===');
-        const selectedSuppliers = currentProject.phases.selectedSuppliers;
+        let selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
+        console.log('Selected suppliers object:', selectedSuppliers);
+        
+        if (Object.keys(selectedSuppliers).length === 0) {
+            console.log('WARNING: No selected suppliers found. This will cause empty calculations.');
+            console.log('Trying to initialize phases if phases manager is available...');
+            
+            // Try to initialize phases data if phases manager is available
+            if (this.app.phasesManager || this.app.projectPhasesManager) {
+                const phasesManager = this.app.phasesManager || this.app.projectPhasesManager;
+                console.log('Found phases manager, attempting to sync phases...');
+                phasesManager.synchronizeWithProject();
+                // Re-check after sync and update the local variable
+                selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
+                console.log('Selected suppliers after sync:', selectedSuppliers);
+            }
+        }
+        
         Object.entries(selectedSuppliers).forEach(([role, supplierId]) => {
             const supplier = allSuppliers.find(s => s.id === supplierId);
             if (supplier) {

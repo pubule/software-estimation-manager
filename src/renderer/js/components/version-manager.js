@@ -962,6 +962,19 @@ class VersionManager {
             if (this.app.featureManager && this.app.navigationManager.currentSection === 'features') {
                 this.app.featureManager.render();
             }
+
+            // Synchronize phases after restore
+            if (this.app.projectPhasesManager) {
+                this.app.projectPhasesManager.synchronizeWithProject();
+            }
+
+            // Ensure phases are properly initialized - create phasesManager reference for calculations
+            this.app.phasesManager = this.app.projectPhasesManager;
+
+            // Initialize calculations data so it's available for version comparisons after restore
+            if (this.app.calculationsManager) {
+                this.app.calculationsManager.calculateVendorCosts();
+            }
             
             // Other managers will refresh automatically when user navigates to them
 
