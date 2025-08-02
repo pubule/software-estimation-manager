@@ -154,7 +154,6 @@ class ProjectManager {
      */
     async createNewProjectFromModal() {
         try {
-            console.log('=== Creating new project from modal ===');
 
             // Try normal method first, then alternative method
             let formData = this.getNewProjectFormData();
@@ -269,7 +268,6 @@ class ProjectManager {
                 this.app.projectPhasesManager.clearSelectedSuppliers();
             }
 
-            // FIXED: Update dropdowns through refreshDropdowns instead of populateDropdowns
             this.app.refreshDropdowns();
 
             // Update UI
@@ -277,13 +275,10 @@ class ProjectManager {
             this.updateCurrentProjectUI();
 
             // Auto-create initial version with proper timing
-            console.log('=== Creating initial version for new project ===');
             setTimeout(async () => {
                 try {
                     if (this.app.versionManager) {
-                        console.log('Creating initial version...');
                         await this.app.versionManager.createVersion('Initial project creation');
-                        console.log('Initial version created successfully');
                     }
                 } catch (error) {
                     console.error('Failed to create initial version:', error);
@@ -739,7 +734,6 @@ class ProjectManager {
             // Notifica il navigation manager che il progetto è stato chiuso
             this.app.navigationManager.onProjectClosed();
 
-            // FIXED: Update dropdowns through refreshDropdowns instead of populateDropdowns
             this.app.refreshDropdowns();
             this.app.updateUI();
             this.updateCurrentProjectUI();
