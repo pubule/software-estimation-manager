@@ -917,6 +917,27 @@ class ProjectPhasesManager {
     getTotalProjectManDays() {
         return this.calculateTotals().manDays;
     }
+
+    /**
+     * Clear selected suppliers to ensure clean state for new projects
+     */
+    clearSelectedSuppliers() {
+        this.selectedSuppliers = {
+            G1: null,
+            G2: null, 
+            TA: null,
+            PM: null
+        };
+        
+        // Force re-render of phases page if currently visible
+        const phasesContainer = document.querySelector('.phases-content');
+        if (phasesContainer) {
+            this.renderPhasesPage(phasesContainer);
+            console.log('Re-rendered phases page with cleared suppliers');
+        }
+        
+        console.log('Cleared selected suppliers for new project');
+    }
 }
 
 // Make ProjectPhasesManager available globally

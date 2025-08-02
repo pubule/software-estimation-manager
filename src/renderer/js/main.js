@@ -393,17 +393,44 @@ class SoftwareEstimationApp {
             if (save) await this.saveProject();
         }
 
+        // Create new project (don't use performProjectClose as it sets navigation to closed)
         this.currentProject = this.createNewProject();
         this.isDirty = false;
 
         // Update navigation state - project is now loaded
         this.navigationManager.onProjectLoaded();
 
-        // Refresh dropdowns after creating new project
+        // Refresh dropdowns and UI first (to populate available options)
         this.refreshDropdowns();
         this.updateUI();
 
-        NotificationManager.show('New project created with default configuration', 'success');
+        // THEN clear any pre-populated selections in phases and force re-render
+        if (this.projectPhasesManager) {
+            this.projectPhasesManager.clearSelectedSuppliers();
+        }
+
+        // Auto-create initial version for new project (after project is fully set up)
+        // Use setTimeout to ensure all managers are fully synchronized
+        setTimeout(async () => {
+            try {
+                if (this.versionManager && this.currentProject) {
+                    console.log('Creating initial version for new project:', this.currentProject.project.name);
+                    await this.versionManager.createVersion('Initial project creation');
+                    console.log('Initial version created successfully for new project');
+                } else {
+                    console.warn('Could not create initial version:', {
+                        versionManagerExists: !!this.versionManager,
+                        currentProjectExists: !!this.currentProject,
+                        projectName: this.currentProject?.project?.name
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to create initial version:', error);
+                // Don't block project creation if version creation fails
+            }
+        }, 100); // Small delay to ensure everything is ready
+
+        NotificationManager.show('New project created with default configuration and initial version', 'success');
     }
 
     async openProject() {
@@ -477,6 +504,11 @@ class SoftwareEstimationApp {
         // Reset to empty project
         this.currentProject = this.createNewProject();
         this.isDirty = false;
+
+        // Clear any pre-populated data in phases (especially dropdowns)
+        if (this.projectPhasesManager) {
+            this.projectPhasesManager.clearSelectedSuppliers();
+        }
 
         // Update navigation state - no project loaded
         this.navigationManager.onProjectClosed();

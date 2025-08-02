@@ -264,12 +264,31 @@ class ProjectManager {
                 NotificationManager.warning('Project created but auto-save failed');
             }
 
+            // Clear Project Phase dropdowns
+            if (this.app.projectPhasesManager) {
+                this.app.projectPhasesManager.clearSelectedSuppliers();
+            }
+
             // FIXED: Update dropdowns through refreshDropdowns instead of populateDropdowns
             this.app.refreshDropdowns();
 
             // Update UI
             this.app.updateUI();
             this.updateCurrentProjectUI();
+
+            // Auto-create initial version with proper timing
+            console.log('=== Creating initial version for new project ===');
+            setTimeout(async () => {
+                try {
+                    if (this.app.versionManager) {
+                        console.log('Creating initial version...');
+                        await this.app.versionManager.createVersion('Initial project creation');
+                        console.log('Initial version created successfully');
+                    }
+                } catch (error) {
+                    console.error('Failed to create initial version:', error);
+                }
+            }, 500);
 
             // Navigate to features section
             this.app.navigationManager.navigateTo('features');
