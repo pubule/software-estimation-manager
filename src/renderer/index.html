@@ -138,63 +138,72 @@
                     </div>
                 </div>
 
-                <!-- Current Project Info -->
-                <div class="current-project-section">
-                    <div class="section-header">
-                        <h3>Current Project</h3>
-                    </div>
-                    <div class="current-project-card" id="current-project-card">
-                        <div class="project-info">
-                            <h4 id="current-project-name">No Project Loaded</h4>
-                            <div class="project-details">
-                                <span class="project-detail">
-                                    <i class="fas fa-calendar"></i>
-                                    <span id="current-project-created">-</span>
-                                </span>
-                                <span class="project-detail">
-                                    <i class="fas fa-edit"></i>
-                                    <span id="current-project-modified">-</span>
-                                </span>
-                                <span class="project-detail">
-                                    <i class="fas fa-code-branch"></i>
-                                    <span id="current-project-version">-</span>
-                                </span>
+                <!-- Two Column Layout -->
+                <div class="project-manager-layout">
+                    <!-- Left Column -->
+                    <div class="project-manager-left">
+                        <!-- Current Project Info -->
+                        <div class="current-project-section">
+                            <div class="section-header">
+                                <h3>Current Project</h3>
+                            </div>
+                            <div class="current-project-card" id="current-project-card">
+                                <div class="project-info">
+                                    <h4 id="current-project-name">No Project Loaded</h4>
+                                    <div class="project-details">
+                                        <span class="project-detail">
+                                            <i class="fas fa-calendar"></i>
+                                            <span id="current-project-created">-</span>
+                                        </span>
+                                        <span class="project-detail">
+                                            <i class="fas fa-edit"></i>
+                                            <span id="current-project-modified">-</span>
+                                        </span>
+                                        <span class="project-detail">
+                                            <i class="fas fa-code-branch"></i>
+                                            <span id="current-project-version">-</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="project-actions">
+                                    <button class="btn btn-small btn-primary" id="save-current-project-btn" disabled>
+                                        <i class="fas fa-save"></i> Save
+                                    </button>
+                                    <button class="btn btn-small btn-secondary" id="close-current-project-btn" disabled>
+                                        <i class="fas fa-times"></i> Close
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div class="project-actions">
-                            <button class="btn btn-small btn-primary" id="save-current-project-btn" disabled>
-                                <i class="fas fa-save"></i> Save
-                            </button>
-                            <button class="btn btn-small btn-secondary" id="close-current-project-btn" disabled>
-                                <i class="fas fa-times"></i> Close
-                            </button>
+
+                        <!-- Recent Projects -->
+                        <div class="recent-projects-section">
+                            <div class="section-header">
+                                <h3>Recent Projects</h3>
+                                <button class="btn btn-small btn-secondary" id="clear-recent-btn">
+                                    <i class="fas fa-trash"></i> Clear Recent
+                                </button>
+                            </div>
+                            <div id="recent-projects-list" class="projects-list">
+                                <!-- Recent projects will be populated here -->
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Recent Projects -->
-                <div class="recent-projects-section">
-                    <div class="section-header">
-                        <h3>Recent Projects</h3>
-                        <button class="btn btn-small btn-secondary" id="clear-recent-btn">
-                            <i class="fas fa-trash"></i> Clear Recent
-                        </button>
-                    </div>
-                    <div id="recent-projects-list" class="projects-list">
-                        <!-- Recent projects will be populated here -->
-                    </div>
-                </div>
-
-                <!-- Saved Projects -->
-                <div class="saved-projects-section">
-                    <div class="section-header">
-                        <h3>Saved Projects</h3>
-                        <button class="btn btn-small btn-secondary" id="refresh-projects-btn">
-                            <i class="fas fa-sync"></i> Refresh
-                        </button>
-                    </div>
-                    <div id="saved-projects-list" class="projects-list">
-                        <!-- Saved projects will be populated here -->
+                    <!-- Right Column -->
+                    <div class="project-manager-right">
+                        <!-- Saved Projects -->
+                        <div class="saved-projects-section">
+                            <div class="section-header">
+                                <h3>Saved Projects</h3>
+                                <button class="btn btn-small btn-secondary" id="refresh-projects-btn">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+                            <div id="saved-projects-list" class="projects-list">
+                                <!-- Saved projects will be populated here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

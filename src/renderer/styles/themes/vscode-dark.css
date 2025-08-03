@@ -12,8 +12,9 @@
 
 .project-meta {
     display: flex;
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .project-meta span {
@@ -33,6 +34,62 @@
     display: flex;
     gap: var(--spacing-xs);
     flex-shrink: 0;
+}
+
+/* Updated project-item structure for optimized layout */
+.project-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-xs);
+}
+
+.project-header h4 {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.project-version {
+    background-color: var(--bg-quaternary);
+    color: var(--text-accent);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    margin-left: var(--spacing-xs);
+    flex-shrink: 0;
+}
+
+.project-date,
+.project-size {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.project-date i {
+    margin-right: var(--spacing-xs);
+    color: var(--text-accent);
+}
+
+/* Icon-only buttons for compact layout */
+.btn-icon {
+    padding: var(--spacing-xs);
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon i {
+    margin: 0;
 }
 
 /* Load Project Modal Styles */
@@ -562,10 +619,42 @@
 }
 
 /* Project Manager Styles */
-.current-project-section,
-.recent-projects-section,
+.project-manager-layout {
+    display: flex;
+    gap: var(--spacing-lg);
+    height: 100%;
+    flex: 1;
+    min-height: 0;
+}
+
+.project-manager-left {
+    flex: 0 0 45%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    min-height: 0;
+}
+
+.project-manager-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.current-project-section {
+    flex-shrink: 0;
+}
+
+.recent-projects-section {
+    flex-shrink: 0;
+}
+
 .saved-projects-section {
-    margin-bottom: var(--spacing-lg);
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .section-header {
@@ -575,6 +664,7 @@
     margin-bottom: var(--spacing-md);
     padding-bottom: var(--spacing-sm);
     border-bottom: 1px solid var(--border-primary);
+    flex-shrink: 0;
 }
 
 .section-header h3 {
@@ -588,7 +678,7 @@
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -629,6 +719,74 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
+    overflow-y: auto;
+    padding-right: var(--spacing-xs);
+}
+
+.project-manager-left .projects-list {
+    max-height: 160px;
+    flex-shrink: 0;
+}
+
+.project-manager-right .projects-list {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+}
+
+.projects-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.projects-list::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+}
+
+.projects-list::-webkit-scrollbar-thumb {
+    background: var(--border-secondary);
+    border-radius: var(--radius-sm);
+}
+
+.projects-list::-webkit-scrollbar-thumb:hover {
+    background: var(--border-focus);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .project-manager-layout {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+    
+    .project-manager-left {
+        flex: none;
+    }
+    
+    .project-manager-right {
+        flex: 1;
+        min-height: 300px;
+    }
+    
+    .project-manager-left .projects-list {
+        max-height: 120px;
+    }
+
+    .project-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+    }
+
+    .project-version {
+        margin-left: 0;
+    }
+
+    .project-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+    }
 }
 
 .project-item {

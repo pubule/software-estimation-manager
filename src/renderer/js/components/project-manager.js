@@ -883,25 +883,23 @@ class ProjectManager {
                     <i class="fas fa-file-alt"></i>
                 </div>
                 <div class="project-info">
-                    <h4>${Helpers.escapeHtml(item.project.name)}</h4>
-                    <div class="project-meta">
-                        <span><i class="fas fa-calendar"></i> Created: ${Helpers.formatDate(item.project.created)}</span>
-                        <span><i class="fas fa-edit"></i> Modified: ${Helpers.formatDate(item.project.lastModified)}</span>
-                        <span><i class="fas fa-code-branch"></i> v${item.project.version}</span>
-                        <span><i class="fas fa-hdd"></i> ${Helpers.formatBytes(item.fileSize)}</span>
+                    <div class="project-header">
+                        <h4>${Helpers.escapeHtml(item.project.name)}</h4>
+                        <span class="project-version">v${item.project.version}</span>
                     </div>
-                    <div class="project-path">
-                        <small><i class="fas fa-folder"></i> ${item.fileName}</small>
+                    <div class="project-meta">
+                        <span class="project-date"><i class="fas fa-edit"></i> ${Helpers.formatDate(item.project.lastModified)}</span>
+                        <span class="project-size">${Helpers.formatBytes(item.fileSize)}</span>
                     </div>
                 </div>
                 <div class="project-actions">
-                    <button class="btn btn-small btn-primary load-saved-project" data-file-path="${item.filePath}">
-                        <i class="fas fa-folder-open"></i> Load
+                    <button class="btn btn-icon btn-primary load-saved-project" data-file-path="${item.filePath}" title="Load Project">
+                        <i class="fas fa-folder-open"></i>
                     </button>
-                    <button class="btn btn-small btn-secondary export-saved-project" data-file-path="${item.filePath}">
-                        <i class="fas fa-download"></i> Export
+                    <button class="btn btn-icon btn-secondary export-saved-project" data-file-path="${item.filePath}" title="Export Project">
+                        <i class="fas fa-download"></i>
                     </button>
-                    <button class="btn btn-small btn-danger delete-saved-project" data-file-path="${item.filePath}">
+                    <button class="btn btn-icon btn-danger delete-saved-project" data-file-path="${item.filePath}" title="Delete Project">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -1005,24 +1003,25 @@ class ProjectManager {
             return;
         }
 
-        container.innerHTML = this.recentProjects.map(project => `
+        container.innerHTML = this.recentProjects.slice(0, 2).map(project => `
             <div class="project-item" data-project-id="${project.id}">
                 <div class="project-icon">
                     <i class="fas fa-file-alt"></i>
                 </div>
                 <div class="project-info">
-                    <h4>${Helpers.escapeHtml(project.name)}</h4>
+                    <div class="project-header">
+                        <h4>${Helpers.escapeHtml(project.name)}</h4>
+                        <span class="project-version">v${project.version}</span>
+                    </div>
                     <div class="project-meta">
-                        <span><i class="fas fa-calendar"></i> ${Helpers.formatDate(project.created)}</span>
-                        <span><i class="fas fa-edit"></i> ${Helpers.formatDate(project.modified)}</span>
-                        <span><i class="fas fa-eye"></i> ${Helpers.formatDate(project.lastOpened)}</span>
+                        <span class="project-date"><i class="fas fa-eye"></i> ${Helpers.formatDate(project.lastOpened)}</span>
                     </div>
                 </div>
                 <div class="project-actions">
-                    <button class="btn btn-small btn-primary load-recent-project" data-project-id="${project.id}">
-                        <i class="fas fa-folder-open"></i> Load
+                    <button class="btn btn-icon btn-primary load-recent-project" data-project-id="${project.id}" title="Load Project">
+                        <i class="fas fa-folder-open"></i>
                     </button>
-                    <button class="btn btn-small btn-danger remove-recent-project" data-project-id="${project.id}">
+                    <button class="btn btn-icon btn-danger remove-recent-project" data-project-id="${project.id}" title="Remove from Recent">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
