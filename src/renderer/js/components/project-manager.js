@@ -263,18 +263,20 @@ class ProjectManager {
                 NotificationManager.warning('Project created but auto-save failed');
             }
 
-            // Clear Project Phase dropdowns
-            if (this.app.projectPhasesManager) {
-                this.app.projectPhasesManager.clearSelectedSuppliers();
-            }
-
             this.app.refreshDropdowns();
 
             // Update UI
             this.app.updateUI();
             this.updateCurrentProjectUI();
 
-            // Auto-create initial version with proper timing
+            // Reset all phase data AFTER UI updates to ensure clean state
+            setTimeout(() => {
+                if (this.app.projectPhasesManager) {
+                    this.app.projectPhasesManager.resetAllPhaseData();
+                }
+            }, 100);
+
+            // Auto-create initial version AFTER phase reset
             setTimeout(async () => {
                 try {
                     if (this.app.versionManager) {
@@ -283,7 +285,7 @@ class ProjectManager {
                 } catch (error) {
                     console.error('Failed to create initial version:', error);
                 }
-            }, 500);
+            }, 600);
 
             // Navigate to features section
             this.app.navigationManager.navigateTo('features');

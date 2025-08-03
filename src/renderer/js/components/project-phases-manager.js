@@ -148,7 +148,6 @@ class ProjectPhasesManager {
             // Restore selected suppliers from project if they exist
             if (this.app.currentProject.phases.selectedSuppliers) {
                 this.selectedSuppliers = { ...this.app.currentProject.phases.selectedSuppliers };
-                console.log('Restored selected suppliers from project:', this.selectedSuppliers);
             }
         } else {
             this.currentPhases = this.createDefaultPhases();
@@ -933,10 +932,39 @@ class ProjectPhasesManager {
         const phasesContainer = document.querySelector('.phases-content');
         if (phasesContainer) {
             this.renderPhasesPage(phasesContainer);
-            console.log('Re-rendered phases page with cleared suppliers');
         }
+    }
+
+    /**
+     * Reset all phase data for new projects
+     */
+    resetAllPhaseData() {
+        // Reset selected suppliers
+        this.selectedSuppliers = {
+            G1: null,
+            G2: null, 
+            TA: null,
+            PM: null
+        };
+
+        // Remove any saved selected suppliers from project data to prevent restore
+        if (this.app.currentProject && this.app.currentProject.phases) {
+            delete this.app.currentProject.phases.selectedSuppliers;
+        }
+
+        // Reset phases to default clean state
+        this.currentPhases = this.createDefaultPhases();
         
-        console.log('Cleared selected suppliers for new project');
+        // Update project phases with clean data
+        if (this.app.currentProject) {
+            this.app.currentProject.phases = this.getProjectPhasesData();
+        }
+
+        // Force re-render of phases page to reflect clean state
+        const phasesContainer = document.querySelector('.phases-content');
+        if (phasesContainer) {
+            this.renderPhasesPage(phasesContainer);
+        }
     }
 }
 

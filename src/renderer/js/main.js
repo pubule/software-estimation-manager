@@ -404,31 +404,24 @@ class SoftwareEstimationApp {
         this.refreshDropdowns();
         this.updateUI();
 
-        // THEN clear any pre-populated selections in phases and force re-render
-        if (this.projectPhasesManager) {
-            this.projectPhasesManager.clearSelectedSuppliers();
-        }
+        // Reset all phase data AFTER UI updates to ensure clean state
+        setTimeout(() => {
+            if (this.projectPhasesManager) {
+                this.projectPhasesManager.resetAllPhaseData();
+            }
+        }, 100);
 
-        // Auto-create initial version for new project (after project is fully set up)
-        // Use setTimeout to ensure all managers are fully synchronized
+        // Auto-create initial version AFTER phase reset
         setTimeout(async () => {
             try {
                 if (this.versionManager && this.currentProject) {
-                    console.log('Creating initial version for new project:', this.currentProject.project.name);
                     await this.versionManager.createVersion('Initial project creation');
-                    console.log('Initial version created successfully for new project');
-                } else {
-                    console.warn('Could not create initial version:', {
-                        versionManagerExists: !!this.versionManager,
-                        currentProjectExists: !!this.currentProject,
-                        projectName: this.currentProject?.project?.name
-                    });
                 }
             } catch (error) {
                 console.error('Failed to create initial version:', error);
                 // Don't block project creation if version creation fails
             }
-        }, 100); // Small delay to ensure everything is ready
+        }, 600);
 
         NotificationManager.show('New project created with default configuration and initial version', 'success');
     }
@@ -505,9 +498,9 @@ class SoftwareEstimationApp {
         this.currentProject = this.createNewProject();
         this.isDirty = false;
 
-        // Clear any pre-populated data in phases (especially dropdowns)
+        // Reset all phase data for clean state
         if (this.projectPhasesManager) {
-            this.projectPhasesManager.clearSelectedSuppliers();
+            this.projectPhasesManager.resetAllPhaseData();
         }
 
         // Update navigation state - no project loaded
