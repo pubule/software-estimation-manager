@@ -625,6 +625,7 @@
     height: 100%;
     flex: 1;
     min-height: 0;
+    padding: var(--spacing-md);
 }
 
 .project-manager-left {
@@ -757,6 +758,7 @@
     .project-manager-layout {
         flex-direction: column;
         gap: var(--spacing-md);
+        padding: var(--spacing-sm);
     }
     
     .project-manager-left {
