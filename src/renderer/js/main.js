@@ -890,62 +890,115 @@ class SoftwareEstimationApp {
         }
 
         const kpiData = this.calculationsManager.kpiData || {};
+        const vendorCosts = this.calculationsManager.vendorCosts || [];
         
         // Create sections for different calculation types
         const data = [];
         
         // Project Info Section
-        data.push(['PROJECT INFORMATION', '', '', '']);
-        data.push(['Project Name', this.currentProject?.project?.name || '', '', '']);
-        data.push(['Project Version', this.currentProject?.project?.version || '', '', '']);
-        data.push(['Export Date', new Date().toLocaleDateString(), '', '']);
-        data.push(['', '', '', '']); // Empty row
+        data.push(['PROJECT INFORMATION', '', '', '', '', '', '', '', '']);
+        data.push(['Project Name', this.currentProject?.project?.name || '', '', '', '', '', '', '', '']);
+        data.push(['Project Version', this.currentProject?.project?.version || '', '', '', '', '', '', '', '']);
+        data.push(['Export Date', new Date().toLocaleDateString(), '', '', '', '', '', '', '', '']);
+        data.push(['', '', '', '', '', '', '', '', '']); // Empty row
 
-        // GTO Section
+        // KPI Section
+        data.push(['KPI DASHBOARD', '', '', '', '', '', '', '', '']);
+        data.push(['', '', '', '', '', '', '', '', '']); // Empty row
+
+        // KPI GTO
         if (kpiData.gto) {
-            data.push(['GTO (Government Total of Ownership)', '', '', '']);
-            data.push(['Internal Resources', kpiData.gto.internalResources || 0, '', '']);
-            data.push(['External Suppliers', kpiData.gto.externalSuppliers || 0, '', '']);
-            data.push(['Total GTO', kpiData.gto.total || 0, '', '']);
-            data.push(['', '', '', '']); // Empty row
+            data.push(['KPI GTO (G2 + TA Resources)', '', '', '', '', '', '', '', '']);
+            data.push(['Internal', `${kpiData.gto.internalPercentage?.toFixed(1) || '0.0'}%`, `€${kpiData.gto.internal?.toLocaleString() || '0'}`, '', '', '', '', '', '']);
+            data.push(['External', `${kpiData.gto.externalPercentage?.toFixed(1) || '0.0'}%`, `€${kpiData.gto.external?.toLocaleString() || '0'}`, '', '', '', '', '', '']);
+            data.push(['Total GTO', '', `€${kpiData.gto.total?.toLocaleString() || '0'}`, '', '', '', '', '', '']);
+            data.push(['', '', '', '', '', '', '', '', '']); // Empty row
         }
 
-        // TCO Section  
-        if (kpiData.tco) {
-            data.push(['TCO (Total Cost of Ownership)', '', '', '']);
-            data.push(['Development Cost', kpiData.tco.developmentCost || 0, '', '']);
-            data.push(['Operational Cost (3 years)', kpiData.tco.operationalCost || 0, '', '']);
-            data.push(['Total TCO', kpiData.tco.total || 0, '', '']);
-            data.push(['', '', '', '']); // Empty row
+        // KPI GDS
+        if (kpiData.gds) {
+            data.push(['KPI GDS (PM + G1 Resources)', '', '', '', '', '', '', '', '']);
+            data.push(['Internal', `${kpiData.gds.internalPercentage?.toFixed(1) || '0.0'}%`, `€${kpiData.gds.internal?.toLocaleString() || '0'}`, '', '', '', '', '', '']);
+            data.push(['External', `${kpiData.gds.externalPercentage?.toFixed(1) || '0.0'}%`, `€${kpiData.gds.external?.toLocaleString() || '0'}`, '', '', '', '', '', '']);
+            data.push(['Total GDS', '', `€${kpiData.gds.total?.toLocaleString() || '0'}`, '', '', '', '', '', '']);
+            data.push(['', '', '', '', '', '', '', '', '']); // Empty row
         }
 
-        // Vendor Costs Section
-        const vendorCosts = this.calculationsManager.vendorCosts || {};
-        if (Object.keys(vendorCosts).length > 0) {
-            data.push(['VENDOR COSTS', '', '', '']);
-            Object.entries(vendorCosts).forEach(([vendor, cost]) => {
-                data.push([vendor, cost || 0, '', '']);
+        // Total Project
+        if (kpiData.totalProject) {
+            data.push(['Total Project Cost', '', `€${kpiData.totalProject?.toLocaleString() || '0'}`, '', '', '', '', '', '']);
+            data.push(['', '', '', '', '', '', '', '', '']); // Empty row
+        }
+
+        // Vendor Cost Summary Table
+        if (vendorCosts.length > 0) {
+            data.push(['VENDOR COST SUMMARY', '', '', '', '', '', '', '', '']);
+            data.push(['', '', '', '', '', '', '', '', '']); // Empty row
+            
+            // Table headers
+            const vendorHeaders = [
+                'Vendor', 'Role', 'Department', 'Total MDs', 'Official Tot MDs', 
+                'Final Tot MDs', 'Official Rate', 'Total Cost', 'Final Tot Cost'
+            ];
+            data.push(vendorHeaders);
+
+            // Vendor cost rows
+            vendorCosts.forEach(cost => {
+                const officialTotMDs = cost.officialRate > 0 ? (cost.cost / cost.officialRate).toFixed(1) : '0.0';
+                const finalTotCost = (cost.finalMDs || 0) * cost.officialRate;
+                
+                data.push([
+                    `${cost.vendor} ${cost.isInternal ? '(Internal)' : '(External)'}`,
+                    cost.role,
+                    cost.department,
+                    cost.manDays?.toFixed(1) || '0.0',
+                    officialTotMDs,
+                    (cost.finalMDs || 0).toFixed(1),
+                    `€${cost.officialRate?.toLocaleString() || '0'}`,
+                    `€${cost.cost?.toLocaleString() || '0'}`,
+                    `€${finalTotCost.toLocaleString()}`
+                ]);
             });
-            data.push(['', '', '', '']); // Empty row
+
+            // Calculate totals
+            const totalManDays = vendorCosts.reduce((sum, c) => sum + (c.manDays || 0), 0);
+            const totalFinalMDs = vendorCosts.reduce((sum, c) => sum + (c.finalMDs || 0), 0);
+            const totalCost = vendorCosts.reduce((sum, c) => sum + (c.cost || 0), 0);
+            const totalFinalCost = vendorCosts.reduce((sum, c) => sum + ((c.finalMDs || 0) * c.officialRate), 0);
+
+            // Totals row
+            data.push([
+                'TOTAL',
+                '',
+                '',
+                totalManDays.toFixed(1),
+                '',
+                totalFinalMDs.toFixed(1),
+                '',
+                `€${totalCost.toLocaleString()}`,
+                `€${totalFinalCost.toLocaleString()}`
+            ]);
         }
 
         // Features Summary
         const totalFeatures = this.currentProject?.features?.length || 0;
-        const totalManDays = this.currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0) || 0;
+        const totalFeatureManDays = this.currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0) || 0;
         
-        data.push(['FEATURES SUMMARY', '', '', '']);
-        data.push(['Total Features', totalFeatures, '', '']);
-        data.push(['Total Calculated Man Days', totalManDays.toFixed(1), '', '']);
+        data.push(['', '', '', '', '', '', '', '', '']); // Empty row
+        data.push(['FEATURES SUMMARY', '', '', '', '', '', '', '', '']);
+        data.push(['Total Features', totalFeatures, '', '', '', '', '', '', '']);
+        data.push(['Total Calculated Man Days', totalFeatureManDays.toFixed(1), '', '', '', '', '', '', '']);
 
         // Create worksheet
         const worksheet = XLSX.utils.aoa_to_sheet(data);
 
-        // Apply styling
-        this.applyExcelStyling(worksheet, 4, data.length);
+        // Apply styling with special handling for vendor table
+        this.applyCalculationsExcelStyling(worksheet, data);
 
         // Set column widths
         worksheet['!cols'] = [
-            {wch: 30}, {wch: 20}, {wch: 15}, {wch: 15}
+            {wch: 25}, {wch: 8}, {wch: 15}, {wch: 12}, {wch: 15}, 
+            {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}
         ];
 
         return worksheet;
@@ -989,6 +1042,117 @@ class SoftwareEstimationApp {
                 if (!worksheet[cellRef]) worksheet[cellRef] = {v: ''};
                 if (!worksheet[cellRef].s) worksheet[cellRef].s = {};
                 worksheet[cellRef].s.fill = {fgColor: {rgb: fillColor}};
+            }
+        }
+    }
+
+    applyCalculationsExcelStyling(worksheet, data) {
+        if (!worksheet['!ref']) return;
+
+        const range = XLSX.utils.decode_range(worksheet['!ref']);
+        
+        // Find key sections in the data
+        let vendorTableStartRow = -1;
+        let vendorTableHeaderRow = -1;
+        let vendorTableTotalRow = -1;
+        
+        data.forEach((row, index) => {
+            if (row[0] === 'VENDOR COST SUMMARY') {
+                vendorTableStartRow = index;
+            }
+            if (row[0] === 'Vendor' && row[1] === 'Role') {
+                vendorTableHeaderRow = index;
+            }
+            if (row[0] === 'TOTAL' && vendorTableHeaderRow > -1 && index > vendorTableHeaderRow) {
+                vendorTableTotalRow = index;
+            }
+        });
+
+        // Style all rows
+        for (let row = 0; row <= range.e.r; row++) {
+            for (let col = 0; col <= range.e.c; col++) {
+                const cellRef = XLSX.utils.encode_cell({r: row, c: col});
+                if (!worksheet[cellRef]) worksheet[cellRef] = {v: ''};
+                if (!worksheet[cellRef].s) worksheet[cellRef].s = {};
+
+                const cellValue = (data[row] && data[row][col] !== undefined) ? String(data[row][col]) : '';
+                
+                // Section headers styling
+                if (cellValue === 'PROJECT INFORMATION' || 
+                    cellValue === 'KPI DASHBOARD' || 
+                    cellValue === 'VENDOR COST SUMMARY' ||
+                    cellValue === 'FEATURES SUMMARY') {
+                    worksheet[cellRef].s = {
+                        fill: {fgColor: {rgb: "366092"}}, // Blue background
+                        font: {color: {rgb: "FFFFFF"}, bold: true, size: 12},
+                        alignment: {horizontal: "center", vertical: "center"}
+                    };
+                }
+                // KPI section headers
+                else if (cellValue.startsWith('KPI GTO') || cellValue.startsWith('KPI GDS')) {
+                    worksheet[cellRef].s = {
+                        fill: {fgColor: {rgb: "4472C4"}}, // Darker blue
+                        font: {color: {rgb: "FFFFFF"}, bold: true},
+                        alignment: {horizontal: "left", vertical: "center"}
+                    };
+                }
+                // Vendor table header row
+                else if (row === vendorTableHeaderRow) {
+                    worksheet[cellRef].s = {
+                        fill: {fgColor: {rgb: "D9E1F2"}}, // Light blue
+                        font: {bold: true},
+                        alignment: {horizontal: "center", vertical: "center"},
+                        border: {
+                            top: {style: "thin", color: {rgb: "000000"}},
+                            bottom: {style: "thin", color: {rgb: "000000"}},
+                            left: {style: "thin", color: {rgb: "000000"}},
+                            right: {style: "thin", color: {rgb: "000000"}}
+                        }
+                    };
+                }
+                // Vendor table total row
+                else if (row === vendorTableTotalRow) {
+                    worksheet[cellRef].s = {
+                        fill: {fgColor: {rgb: "F2F2F2"}}, // Light gray
+                        font: {bold: true},
+                        alignment: {horizontal: "center", vertical: "center"},
+                        border: {
+                            top: {style: "medium", color: {rgb: "000000"}},
+                            bottom: {style: "medium", color: {rgb: "000000"}},
+                            left: {style: "thin", color: {rgb: "000000"}},
+                            right: {style: "thin", color: {rgb: "000000"}}
+                        }
+                    };
+                }
+                // Vendor table data rows
+                else if (row > vendorTableHeaderRow && row < vendorTableTotalRow && vendorTableHeaderRow > -1) {
+                    const fillColor = (row - vendorTableHeaderRow) % 2 === 0 ? "FFFFFF" : "F8F8F8"; // Alternate
+                    worksheet[cellRef].s = {
+                        fill: {fgColor: {rgb: fillColor}},
+                        alignment: {horizontal: col > 2 ? "right" : "left", vertical: "center"},
+                        border: {
+                            top: {style: "thin", color: {rgb: "E0E0E0"}},
+                            bottom: {style: "thin", color: {rgb: "E0E0E0"}},
+                            left: {style: "thin", color: {rgb: "E0E0E0"}},
+                            right: {style: "thin", color: {rgb: "E0E0E0"}}
+                        }
+                    };
+                }
+                // KPI data rows
+                else if (cellValue.includes('%') || cellValue.includes('€') || cellValue === 'Internal' || cellValue === 'External') {
+                    worksheet[cellRef].s = {
+                        fill: {fgColor: {rgb: "F9F9F9"}}, // Very light gray
+                        alignment: {horizontal: col === 0 ? "left" : "right", vertical: "center"}
+                    };
+                }
+                // Total rows in KPI sections
+                else if (cellValue.startsWith('Total ')) {
+                    worksheet[cellRef].s = {
+                        fill: {fgColor: {rgb: "E7E6E6"}}, // Gray
+                        font: {bold: true},
+                        alignment: {horizontal: col === 0 ? "left" : "right", vertical: "center"}
+                    };
+                }
             }
         }
     }
