@@ -747,6 +747,24 @@ class VersionManager {
             this.ensureVersionsArray(this.app.currentProject);
             this.loadVersionsFromProject(this.app.currentProject);
 
+            // CRITICAL: Force synchronization of all managers to currentProject before creating snapshot
+            console.log('=== FORCING SYNC BEFORE SNAPSHOT CREATION ===');
+            
+            // Force sync phases data (selectedSuppliers and phase data)
+            if (this.app.projectPhasesManager && typeof this.app.projectPhasesManager.syncToCurrentProject === 'function') {
+                console.log('Syncing phases data before snapshot...');
+                this.app.projectPhasesManager.syncToCurrentProject();
+            }
+            
+            // Force recalculation of vendor costs and KPIs to ensure calculation data is current
+            if (this.app.calculationsManager) {
+                console.log('Recalculating vendor costs and KPIs before snapshot...');
+                this.app.calculationsManager.calculateVendorCosts();
+                this.app.calculationsManager.calculateKPIs();
+            }
+            
+            console.log('=== SYNC COMPLETE ===');
+
             // Check file size before creating version
             const projectSize = JSON.stringify(this.app.currentProject).length;
             if (projectSize > this.maxFileSize) {
@@ -837,6 +855,13 @@ class VersionManager {
         const snapshot = JSON.parse(JSON.stringify(this.app.currentProject));
         delete snapshot.versions; // Remove versions to avoid storing versions within versions
         
+        // Debug: Log specific data being saved
+        console.log('=== CREATE SNAPSHOT DEBUG ===');
+        console.log('Phases selected suppliers:', snapshot.phases?.selectedSuppliers);
+        console.log('Features data:', snapshot.features?.map(f => ({id: f.id, description: f.description, supplier: f.supplier})));
+        console.log('Project config:', snapshot.config);
+        console.log('=== END SNAPSHOT DEBUG ===');
+        
         // Include current calculation data if available
         if (this.app.calculationsManager?.vendorCosts) {
             snapshot.calculationData = {
@@ -847,6 +872,97 @@ class VersionManager {
         }
         
         return snapshot;
+    }
+
+    /**
+     * Force update all phase input fields with restored data
+     */
+    forceUpdatePhasesInputFields() {
+        console.log('=== FORCING UPDATE OF PHASE INPUT FIELDS ===');
+        
+        if (!this.app.currentProject?.phases) {
+            console.log('No phases data to update');
+            return;
+        }
+
+        // Update all phase manDays input fields
+        Object.keys(this.app.currentProject.phases).forEach(phaseId => {
+            if (phaseId === 'selectedSuppliers') return; // Skip selectedSuppliers object
+            
+            const phaseData = this.app.currentProject.phases[phaseId];
+            if (phaseData && typeof phaseData.manDays !== 'undefined') {
+                // Use correct DOM selector: tr[data-phase-id="phaseId"] input[data-field="manDays"]
+                const inputField = document.querySelector(`tr[data-phase-id="${phaseId}"] input[data-field="manDays"]`);
+                if (inputField) {
+                    console.log(`Updating ${phaseId} manDays: ${inputField.value} → ${phaseData.manDays}`);
+                    inputField.value = phaseData.manDays;
+                    // Trigger change event to update calculations
+                    inputField.dispatchEvent(new Event('input', { bubbles: true }));
+                } else {
+                    console.warn(`ManDays input field not found for phase: ${phaseId}`);
+                }
+                
+                // Update effort percentages for this phase
+                if (phaseData.effort) {
+                    Object.keys(phaseData.effort).forEach(resourceType => {
+                        // Use correct DOM selector: tr[data-phase-id="phaseId"] input[data-field="effort"][data-resource="resourceType"]
+                        const effortInput = document.querySelector(`tr[data-phase-id="${phaseId}"] input[data-field="effort"][data-resource="${resourceType}"]`);
+                        if (effortInput) {
+                            console.log(`Updating ${phaseId} ${resourceType} effort: ${effortInput.value} → ${phaseData.effort[resourceType]}`);
+                            effortInput.value = phaseData.effort[resourceType];
+                            effortInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        } else {
+                            console.warn(`Effort input field not found for phase ${phaseId}, resource ${resourceType}`);
+                        }
+                    });
+                }
+            }
+        });
+        
+        console.log('=== PHASE INPUT FIELDS UPDATE COMPLETE ===');
+    }
+
+    /**
+     * Force update selectedSuppliers dropdowns with restored data
+     */
+    forceUpdateSelectedSuppliersDropdowns() {
+        console.log('=== FORCING UPDATE OF SELECTED SUPPLIERS DROPDOWNS ===');
+        
+        if (!this.app.currentProject?.phases?.selectedSuppliers) {
+            console.log('No selectedSuppliers data to update');
+            return;
+        }
+
+        const selectedSuppliers = this.app.currentProject.phases.selectedSuppliers;
+        console.log('Restored selectedSuppliers:', selectedSuppliers);
+
+        // Update each resource type dropdown
+        Object.keys(selectedSuppliers).forEach(resourceType => {
+            const supplierId = selectedSuppliers[resourceType];
+            // Use correct DOM selector: select[data-resource="resourceType"]  
+            const dropdown = document.querySelector(`select[data-resource="${resourceType}"]`);
+            
+            if (dropdown) {
+                console.log(`Updating ${resourceType} dropdown: ${dropdown.value} → ${supplierId}`);
+                dropdown.value = supplierId;
+                
+                // Trigger change event to update calculations
+                dropdown.dispatchEvent(new Event('change', { bubbles: true }));
+                
+                // Also update the visual selection if needed
+                const options = dropdown.querySelectorAll('option');
+                options.forEach(option => {
+                    option.selected = (option.value === supplierId);
+                });
+            } else {
+                console.warn(`Dropdown not found for resource type: ${resourceType}`);
+                // Additional debug: list all select elements to help troubleshoot
+                const allSelects = document.querySelectorAll('select[data-resource]');
+                console.warn('Available dropdowns:', Array.from(allSelects).map(s => s.getAttribute('data-resource')));
+            }
+        });
+
+        console.log('=== SELECTED SUPPLIERS DROPDOWNS UPDATE COMPLETE ===');
     }
 
     /**
@@ -1095,6 +1211,8 @@ class VersionManager {
      * Perform the actual version restoration
      */
     async performRestore(versionToRestore) {
+        console.log('🔥 PERFORMRESTORE CALLED WITH VERSION:', versionToRestore?.id);
+        console.log('🔥 VERSION TO RESTORE OBJECT:', versionToRestore);
         try {
             this.isLoading = true;
             this.showLoading('Restoring version...');
@@ -1103,41 +1221,158 @@ class VersionManager {
             const backupReason = `Backup before restoring ${versionToRestore.id}`;
             await this.createVersion(backupReason);
 
+            // Debug: Log what we're trying to restore
+            console.log('=== RESTORE DETAILED DEBUG START ===');
+            console.log('Version to restore:', versionToRestore.id);
+            console.log('Current project phases selectedSuppliers BEFORE restore:', this.app.currentProject.phases?.selectedSuppliers);
+            console.log('Current project features BEFORE restore:', this.app.currentProject.features?.map(f => ({id: f.id, description: f.description, supplier: f.supplier})));
+            
+            console.log('Version snapshot phases selectedSuppliers:', versionToRestore.projectSnapshot.phases?.selectedSuppliers);
+            console.log('Version snapshot features:', versionToRestore.projectSnapshot.features?.map(f => ({id: f.id, description: f.description, supplier: f.supplier})));
+
             // Restore the version data (without versions array)
             const restoredData = JSON.parse(JSON.stringify(versionToRestore.projectSnapshot));
             
             // Preserve the versions array from current project
             restoredData.versions = this.app.currentProject.versions;
             
-            // Update current project with restored data
+            console.log('Restored data phases selectedSuppliers after copying:', restoredData.phases?.selectedSuppliers);
+            console.log('Restored data features after copying:', restoredData.features?.map(f => ({id: f.id, description: f.description, supplier: f.supplier})));
+            
+            // Create a version to represent the restored state BEFORE updating the current project
+            const restoreReason = `Restored from version ${versionToRestore.id}`;
+            const nextVersionId = this.generateNextVersionId();
+            const restoreVersion = {
+                id: nextVersionId,
+                timestamp: new Date().toISOString(),
+                username: this.getUsername(),
+                reason: restoreReason,
+                projectSnapshot: JSON.parse(JSON.stringify(versionToRestore.projectSnapshot)),
+                checksum: this.generateChecksum(versionToRestore.projectSnapshot)
+            };
+
+            // Add the restore version to the versions array before updating the project
+            restoredData.versions.push(restoreVersion);
+
+            // Update current project with restored data (including the new restore version)
             this.app.currentProject = restoredData;
             
-            // Mark as dirty to indicate changes
-            this.app.markDirty();
-
+            // Debug: Verify the project was actually replaced with correct data
+            console.log('Current project phases selectedSuppliers AFTER assignment:', this.app.currentProject.phases?.selectedSuppliers);
+            console.log('Current project features AFTER assignment:', this.app.currentProject.features?.map(f => ({id: f.id, description: f.description, supplier: f.supplier})));
+            
             // Update title bar
             this.updateTitleBar();
 
-            // Refresh UI components that need immediate update
-            this.render();
+            // Force refresh ALL components to ensure they use the restored data
             
-            // Refresh feature manager if user is currently viewing features
-            if (this.app.featureManager && this.app.navigationManager.currentSection === 'features') {
-                this.app.featureManager.render();
+            // Force refresh features manager
+            if (this.app.featureManager) {
+                this.app.featureManager.refreshTable();
             }
 
-            // Synchronize phases after restore
-            if (this.app.projectPhasesManager) {
-                this.app.projectPhasesManager.synchronizeWithProject();
+            // DON'T synchronize phases after restore - it overwrites the restored data!
+            // The restored project data is already correct, synchronization would overwrite it
+            console.log('SKIPPING synchronizeWithProject to preserve restored data - phases selectedSuppliers:', this.app.currentProject.phases?.selectedSuppliers);
+
+            // CRITICAL: Re-initialize all managers with the restored data from currentProject
+            console.log('=== REINITIALIZING MANAGERS WITH RESTORED DATA ===');
+            
+            // Re-initialize phases manager with restored data
+            if (this.app.projectPhasesManager && typeof this.app.projectPhasesManager.initializePhases === 'function') {
+                console.log('Reinitializing phases manager with restored selectedSuppliers...');
+                this.app.projectPhasesManager.initializePhases();
+                console.log('Phases manager selectedSuppliers after reinit:', this.app.projectPhasesManager.selectedSuppliers);
             }
 
             // Ensure phases are properly initialized - create phasesManager reference for calculations
             this.app.phasesManager = this.app.projectPhasesManager;
 
-            // Initialize calculations data so it's available for version comparisons after restore
+            // Force refresh calculations data
             if (this.app.calculationsManager) {
+                console.log('BEFORE calculateVendorCosts - phases selectedSuppliers:', this.app.currentProject.phases?.selectedSuppliers);
                 this.app.calculationsManager.calculateVendorCosts();
+                this.app.calculationsManager.calculateKPIs();
+                console.log('AFTER calculateVendorCosts - phases selectedSuppliers:', this.app.currentProject.phases?.selectedSuppliers);
             }
+
+            // CRITICAL: Force refresh UI of all sections to show restored data
+            console.log('=== FORCING AGGRESSIVE UI REFRESH OF ALL SECTIONS ===');
+            
+            // Force refresh phases UI - ALWAYS render regardless of visibility
+            if (this.app.projectPhasesManager && typeof this.app.projectPhasesManager.renderPhasesPage === 'function') {
+                let phasesContainer = document.querySelector('#phases-container');
+                if (!phasesContainer) {
+                    // Create container if it doesn't exist
+                    phasesContainer = document.createElement('div');
+                    phasesContainer.id = 'phases-container';
+                    document.body.appendChild(phasesContainer);
+                }
+                console.log('AGGRESSIVE: Refreshing phases UI with restored data...');
+                this.app.projectPhasesManager.renderPhasesPage(phasesContainer);
+                
+                // CRITICAL: Force update all phase input fields and dropdowns
+                this.forceUpdatePhasesInputFields();
+                this.forceUpdateSelectedSuppliersDropdowns();
+            }
+            
+            // Force refresh calculations UI - ALWAYS render regardless of visibility
+            if (this.app.calculationsManager && typeof this.app.calculationsManager.render === 'function') {
+                let calculationsContainer = document.querySelector('#calculations-container');
+                if (!calculationsContainer) {
+                    // Create container if it doesn't exist
+                    calculationsContainer = document.createElement('div');
+                    calculationsContainer.id = 'calculations-container';
+                    document.body.appendChild(calculationsContainer);
+                }
+                console.log('AGGRESSIVE: Refreshing calculations UI with restored data...');
+                this.app.calculationsManager.render();
+            }
+            
+            // Force refresh all dropdowns to reflect restored configuration
+            if (this.app && typeof this.app.refreshDropdowns === 'function') {
+                console.log('Refreshing all dropdowns with restored configuration...');
+                this.app.refreshDropdowns();
+            }
+            
+            console.log('=== UI REFRESH COMPLETE ===');
+
+            // CRITICAL: Add a delay to ensure all UI updates are processed
+            setTimeout(() => {
+                console.log('=== DELAYED UI VERIFICATION AND FINAL UPDATE ===');
+                
+                // Verify and force update critical UI elements that might have been missed
+                this.forceUpdatePhasesInputFields();
+                this.forceUpdateSelectedSuppliersDropdowns();
+                
+                // Final calculations refresh to ensure everything is in sync
+                if (this.app.calculationsManager) {
+                    this.app.calculationsManager.calculateVendorCosts();
+                    this.app.calculationsManager.calculateKPIs();
+                }
+                
+                console.log('=== DELAYED UPDATE COMPLETE ===');
+            }, 500); // Wait 500ms for all UI elements to be ready
+            
+            // Force refresh configuration manager to reload project config
+            if (this.app.configManager) {
+                // Force reload of project configuration
+                this.app.configManager.currentConfig = null; // Clear cache
+            }
+
+            // Refresh version history UI (this component)
+            this.render();
+            
+            // Mark as dirty AFTER all managers have been properly initialized with restored data
+            this.app.markDirty();
+            
+            // Force save the project with restored data
+            await this.app.saveProject();
+            
+            // Debug: Final verification
+            console.log('FINAL - Current project phases selectedSuppliers:', this.app.currentProject.phases?.selectedSuppliers);
+            console.log('FINAL - Current project features:', this.app.currentProject.features?.map(f => ({id: f.id, description: f.description, supplier: f.supplier})));
+            console.log('=== RESTORE DETAILED DEBUG END ===');
             
             // Other managers will refresh automatically when user navigates to them
 
@@ -1148,14 +1383,9 @@ class VersionManager {
             console.error('Failed to restore version:', error);
             NotificationManager.show('Failed to restore version', 'error');
             
-            // Attempt to reload last saved project as fallback
-            try {
-                await this.app.loadLastProject();
-                NotificationManager.show('Rolled back to last saved state', 'warning');
-            } catch (rollbackError) {
-                console.error('Failed to rollback:', rollbackError);
-                NotificationManager.show('Critical error: failed to rollback. Please restart the application.', 'error');
-            }
+            // Skip automatic rollback as it may cause path issues
+            // User should manually reload project if needed
+            console.log('Restore failed. Project state may be inconsistent. Please reload the project manually.');
         } finally {
             this.isLoading = false;
             this.hideLoading();
