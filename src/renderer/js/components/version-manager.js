@@ -32,6 +32,12 @@ class VersionManager {
         };
         
         this.initializeEventListeners();
+        
+        // Load versions from current project if available
+        if (this.app.currentProject) {
+            this.loadVersionsFromProject(this.app.currentProject);
+        }
+        
         console.log('VersionManager initialized successfully');
     }
 
@@ -116,10 +122,11 @@ class VersionManager {
                 <div class="version-info">
                     <h3>Version History</h3>
                     <p class="version-subtitle">
-                        Current: ${currentVersion} | Total Versions: ${versionsCount}
+                        Live Version: ${currentVersion} | Total Versions: ${versionsCount}
                         ${versionsCount >= this.maxVersions * 0.8 ? 
                             `<span class="version-warning-text">⚠️ Approaching limit (${this.maxVersions})</span>` : ''
                         }
+                        ${versionsCount > 0 ? '<br><small>Live version automatically updates when you save changes</small>' : ''}
                     </p>
                 </div>
                 <div class="version-actions">
@@ -205,9 +212,14 @@ class VersionManager {
                                 data-version-id="${version.id}">
                                 <td>
                                     <span class="version-id">${version.id}</span>
-                                    ${version.id === currentVersion ? '<span class="current-badge">CURRENT</span>' : ''}
+                                    ${version.id === currentVersion ? '<span class="current-badge" title="Live version - automatically updated on save">LIVE</span>' : ''}
                                 </td>
-                                <td class="version-date">${this.formatDate(version.timestamp)}</td>
+                                <td class="version-date">
+                                    ${version.id === currentVersion && version.lastUpdated ? 
+                                        `<div>${this.formatDate(version.timestamp)}</div><small class="last-updated">Updated: ${this.formatDate(version.lastUpdated)}</small>` :
+                                        this.formatDate(version.timestamp)
+                                    }
+                                </td>
                                 <td class="version-username">${version.username}</td>
                                 <td class="version-reason" title="${version.reason}">${this.truncateText(version.reason, 50)}</td>
                                 <td class="version-stats">${this.renderVersionStats(version)}</td>
@@ -292,6 +304,19 @@ class VersionManager {
     }
 
     /**
+     * Update version manager when project changes
+     */
+    onProjectChanged(project) {
+        if (project) {
+            this.ensureVersionsArray(project);
+            this.loadVersionsFromProject(project);
+            this.updateTitleBar();
+        } else {
+            this.currentVersions = [];
+        }
+    }
+
+    /**
      * Get current version identifier
      */
     getCurrentVersion() {
@@ -305,6 +330,49 @@ class VersionManager {
             return currentNum > latestNum ? version : latest;
         });
         return latestVersion.id;
+    }
+
+    /**
+     * Update the current (most recent) version with latest project state
+     */
+    async updateCurrentVersion() {
+        if (!this.app.currentProject) {
+            console.warn('No project loaded, cannot update current version');
+            return;
+        }
+
+        if (this.currentVersions.length === 0) {
+            // No versions exist, don't create one automatically
+            console.log('No versions exist, current version not updated');
+            return;
+        }
+
+        try {
+            // Find the most recent version (highest version number)
+            const latestVersion = this.currentVersions.reduce((latest, version) => {
+                const currentNum = parseInt(version.id.substring(1));
+                const latestNum = parseInt(latest.id.substring(1));
+                return currentNum > latestNum ? version : latest;
+            });
+
+            // Create updated snapshot of current project state
+            const updatedSnapshot = this.createProjectSnapshot();
+            const updatedChecksum = this.generateChecksum(updatedSnapshot);
+
+            // Update the latest version with current project state
+            latestVersion.projectSnapshot = updatedSnapshot;
+            latestVersion.checksum = updatedChecksum;
+            latestVersion.lastUpdated = new Date().toISOString();
+
+            console.log(`Updated current version ${latestVersion.id} with latest project state`);
+
+            // Update title bar to reflect any changes
+            this.updateTitleBar();
+
+        } catch (error) {
+            console.error('Failed to update current version:', error);
+            throw error;
+        }
     }
 
     /**
@@ -753,7 +821,7 @@ class VersionManager {
         if (titleElement && this.app.currentProject) {
             const currentVersion = this.getCurrentVersion();
             const projectName = this.app.currentProject.project.name;
-            const versionText = currentVersion !== 'No Versions' ? ` - ${currentVersion}` : '';
+            const versionText = currentVersion !== 'No Versions' ? ` - ${currentVersion} (Live)` : '';
             titleElement.textContent = `${projectName}${versionText}`;
         }
     }

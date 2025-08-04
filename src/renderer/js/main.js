@@ -400,6 +400,11 @@ class SoftwareEstimationApp {
         // Update navigation state - project is now loaded
         this.navigationManager.onProjectLoaded();
 
+        // Notify version manager of project change
+        if (this.versionManager) {
+            this.versionManager.onProjectChanged(this.currentProject);
+        }
+
         // Refresh dropdowns and UI first (to populate available options)
         this.refreshDropdowns();
         this.updateUI();
@@ -462,6 +467,11 @@ class SoftwareEstimationApp {
                     // Update navigation state - project is now loaded
                     this.navigationManager.onProjectLoaded();
 
+                    // Notify version manager of project change
+                    if (this.versionManager) {
+                        this.versionManager.onProjectChanged(this.currentProject);
+                    }
+
                     // Refresh dropdowns after loading project
                     this.refreshDropdowns();
                     this.updateUI();
@@ -497,6 +507,11 @@ class SoftwareEstimationApp {
         // Reset to empty project
         this.currentProject = this.createNewProject();
         this.isDirty = false;
+
+        // Notify version manager of project change
+        if (this.versionManager) {
+            this.versionManager.onProjectChanged(null);
+        }
 
         // Reset all phase data for clean state
         if (this.projectPhasesManager) {
@@ -598,7 +613,21 @@ class SoftwareEstimationApp {
                 this.projectManager.updateCurrentProjectUI();
             }
 
-            NotificationManager.show('Project saved successfully with hierarchical configuration', 'success');
+            // Refresh dropdowns to ensure all configuration changes are propagated to the current version
+            this.refreshDropdowns();
+
+            // Update current version with latest project state
+            if (this.versionManager) {
+                try {
+                    await this.versionManager.updateCurrentVersion();
+                } catch (versionError) {
+                    console.warn('Failed to update current version:', versionError);
+                    // Don't fail the save if version update fails
+                }
+            }
+
+            NotificationManager.show('Project saved successfully', 'success');
+
             return true; // Success
         } catch (error) {
             console.error('Failed to save project:', error);
@@ -1248,9 +1277,9 @@ class SoftwareEstimationApp {
                 // Migrate configuration format if needed
                 this.currentProject = this.migrateProjectConfig(lastProject);
 
-                // Update title bar with version info
+                // Update title bar with version info and notify of project change
                 if (this.versionManager) {
-                    this.versionManager.updateTitleBar();
+                    this.versionManager.onProjectChanged(this.currentProject);
                 }
 
                 // Synchronize phases with loaded project features
