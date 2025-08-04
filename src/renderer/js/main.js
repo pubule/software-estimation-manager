@@ -889,6 +889,10 @@ class SoftwareEstimationApp {
             return XLSX.utils.aoa_to_sheet([['No calculations data available']]);
         }
 
+        // Ensure calculations are up to date before export
+        this.calculationsManager.calculateVendorCosts();
+        this.calculationsManager.calculateKPIs();
+
         const kpiData = this.calculationsManager.kpiData || {};
         const vendorCosts = this.calculationsManager.vendorCosts || [];
         
