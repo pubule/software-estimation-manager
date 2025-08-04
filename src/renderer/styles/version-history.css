@@ -237,7 +237,6 @@
 .version-compare-modal .modal-content {
     max-width: 1200px;
     max-height: 90vh;
-    overflow-y: auto;
 }
 
 .version-compare-modal .compare-modal-content {
@@ -1305,7 +1304,6 @@
 
 .version-compare-modal .modal-body {
     max-height: calc(85vh - 120px);
-    overflow-y: auto;
     padding: 0;
 }
 

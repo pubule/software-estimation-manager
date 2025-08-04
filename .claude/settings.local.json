@@ -3,7 +3,8 @@
   "permissions": {
     "allow": [
       "Bash(cp:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
