@@ -811,7 +811,7 @@ class SoftwareEstimationApp {
 
         // Headers with styling info
         const headers = [
-            'ID', 'Description', 'Category', 'Supplier', 
+            'ID', 'Description', 'Category', 'Feature Type', 'Supplier', 
             'Real Man Days', 'Expertise %', 'Risk Margin %', 
             'Calculated Man Days', 'Notes', 'Created', 'Modified'
         ];
@@ -821,6 +821,7 @@ class SoftwareEstimationApp {
             feature.id || '',
             feature.description || '',
             this.featureManager.getCategoryName(currentProject, feature.category) || '',
+            this.featureManager.getFeatureTypeName(currentProject, feature.featureType) || '',
             this.featureManager.getSupplierName(currentProject, feature.supplier) || '',
             feature.realManDays || 0,
             feature.expertise || 100,
@@ -839,7 +840,7 @@ class SoftwareEstimationApp {
 
         // Set column widths
         const columnWidths = [
-            {wch: 12}, {wch: 40}, {wch: 15}, {wch: 15},
+            {wch: 12}, {wch: 40}, {wch: 15}, {wch: 18}, {wch: 15},
             {wch: 12}, {wch: 12}, {wch: 12}, {wch: 15},
             {wch: 30}, {wch: 12}, {wch: 12}
         ];
