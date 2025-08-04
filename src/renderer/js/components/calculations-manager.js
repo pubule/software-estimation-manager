@@ -23,7 +23,6 @@ class CalculationsManager {
             filterChipClick: this.handleFilterChipClick.bind(this),
             vendorFilterChange: this.handleVendorFilterChange.bind(this),
             roleFilterChange: this.handleRoleFilterChange.bind(this),
-            exportClick: this.exportToCSV.bind(this),
             shareClick: this.shareByEmail.bind(this),
             tableBlur: this.handleTableBlur.bind(this),
             tableClick: this.handleTableClick.bind(this)
@@ -615,9 +614,6 @@ class CalculationsManager {
                 <div class="calculations-section-header">
                     <h3>Vendor Cost Summary</h3>
                     <div class="table-actions">
-                        <button class="btn btn-secondary" id="export-calculations-csv">
-                            <i class="fas fa-download"></i> Export CSV
-                        </button>
                         <button class="btn btn-primary" id="share-calculations-btn">
                             <i class="fas fa-share"></i> Share
                         </button>
@@ -793,7 +789,6 @@ class CalculationsManager {
         // Filter listeners
         const vendorFilter = document.getElementById('vendor-filter');
         const roleFilter = document.getElementById('role-filter');
-        const exportBtn = document.getElementById('export-calculations-csv');
         const shareBtn = document.getElementById('share-calculations-btn');
 
         if (vendorFilter) {
@@ -802,10 +797,6 @@ class CalculationsManager {
 
         if (roleFilter) {
             roleFilter.addEventListener('change', this.boundHandlers.roleFilterChange);
-        }
-
-        if (exportBtn) {
-            exportBtn.addEventListener('click', this.boundHandlers.exportClick);
         }
 
         if (shareBtn) {
@@ -839,7 +830,6 @@ class CalculationsManager {
         // Remove filter listeners
         const vendorFilter = document.getElementById('vendor-filter');
         const roleFilter = document.getElementById('role-filter');
-        const exportBtn = document.getElementById('export-calculations-csv');
 
         if (vendorFilter) {
             vendorFilter.removeEventListener('change', this.boundHandlers.vendorFilterChange);
@@ -847,10 +837,6 @@ class CalculationsManager {
 
         if (roleFilter) {
             roleFilter.removeEventListener('change', this.boundHandlers.roleFilterChange);
-        }
-
-        if (exportBtn) {
-            exportBtn.removeEventListener('click', this.boundHandlers.exportClick);
         }
 
         // Remove delegated listeners from table container
@@ -1213,46 +1199,6 @@ class CalculationsManager {
         if (gdsChip) gdsChip.textContent = `(${baseCosts.filter(c => ['PM', 'G1'].includes(c.role)).length})`;
     }
 
-    /**
-     * Export current filtered data to CSV
-     */
-    exportToCSV() {
-        const filteredCosts = this.getFilteredVendorCosts();
-        if (filteredCosts.length === 0) {
-            alert('No data to export');
-            return;
-        }
-
-        const headers = ['Vendor', 'Role', 'Department', 'Total MDs', 'Official Tot MDs', 'Final Tot MDs', 'Official Rate', 'Total Cost', 'Final Tot Cost'];
-        const csvData = [
-            headers,
-            ...filteredCosts.map(cost => [
-                cost.vendor,
-                cost.role,
-                cost.department,
-                cost.manDays.toFixed(1),
-                cost.officialRate > 0 ? (cost.cost / cost.officialRate).toFixed(1) : '0.0',
-                cost.finalMDs || 0,
-                cost.officialRate,
-                cost.cost.toFixed(2),
-                ((cost.finalMDs || 0) * cost.officialRate).toFixed(2)
-            ])
-        ];
-
-        const csvContent = csvData.map(row => 
-            row.map(field => `"${field}"`).join(',')
-        ).join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `vendor-costs-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-    }
 
     /**
      * Share project estimation via email
