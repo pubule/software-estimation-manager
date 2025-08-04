@@ -76,6 +76,13 @@ class VersionManager {
             return;
         }
 
+        // Trigger calculations update to ensure data is current
+        if (this.app.calculationsManager) {
+            console.log('Versioning: Updating calculations to ensure data is current');
+            this.app.calculationsManager.calculateVendorCosts();
+            this.app.calculationsManager.calculateKPIs();
+        }
+
         // Initialize versions array if it doesn't exist
         this.ensureVersionsArray(currentProject);
         
