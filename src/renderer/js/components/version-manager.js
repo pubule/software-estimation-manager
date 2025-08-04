@@ -308,11 +308,20 @@ class VersionManager {
      */
     onProjectChanged(project) {
         if (project) {
+            // Ensure the project has a versions array
             this.ensureVersionsArray(project);
+            
+            // Load versions from the new project (this will reset currentVersions)
             this.loadVersionsFromProject(project);
+            
+            // Update title bar
             this.updateTitleBar();
+            
+            console.log(`Version manager updated for project: ${project.project?.name}, Versions: ${this.currentVersions.length}`);
         } else {
+            // No project - reset everything
             this.currentVersions = [];
+            console.log('Version manager reset - no project loaded');
         }
     }
 
@@ -727,6 +736,10 @@ class VersionManager {
             this.isLoading = true;
             this.showLoading('Creating version...');
 
+            // Ensure we're synchronized with the current project before creating version
+            this.ensureVersionsArray(this.app.currentProject);
+            this.loadVersionsFromProject(this.app.currentProject);
+
             // Check file size before creating version
             const projectSize = JSON.stringify(this.app.currentProject).length;
             if (projectSize > this.maxFileSize) {
@@ -785,12 +798,28 @@ class VersionManager {
      * Generate next version ID
      */
     generateNextVersionId() {
-        if (this.currentVersions.length === 0) {
+        // Always check current project's versions array for most accurate count
+        const projectVersions = this.app.currentProject?.versions || [];
+        
+        // Double-check with currentVersions array for consistency
+        if (projectVersions.length === 0 && this.currentVersions.length === 0) {
+            console.log('Generating first version: v1');
             return 'v1';
         }
         
-        const maxVersion = Math.max(...this.currentVersions.map(v => parseInt(v.id.substring(1))));
-        return `v${maxVersion + 1}`;
+        // Use the project's versions array as the source of truth
+        const versionsToCheck = projectVersions.length > 0 ? projectVersions : this.currentVersions;
+        
+        if (versionsToCheck.length === 0) {
+            console.log('No versions found, generating: v1');
+            return 'v1';
+        }
+        
+        const maxVersion = Math.max(...versionsToCheck.map(v => parseInt(v.id.substring(1))));
+        const nextVersion = `v${maxVersion + 1}`;
+        
+        console.log(`Current versions count: ${versionsToCheck.length}, Max version: v${maxVersion}, Next: ${nextVersion}`);
+        return nextVersion;
     }
 
     /**
