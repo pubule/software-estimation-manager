@@ -716,9 +716,281 @@ class SoftwareEstimationApp {
     }
 
     async exportExcel(filename) {
-        // This would require the xlsx library
-        // For now, we'll show a placeholder
-        NotificationManager.show('Excel export coming soon', 'info');
+        try {
+            // Check if XLSX library is available
+            if (typeof XLSX === 'undefined') {
+                throw new Error('XLSX library not available');
+            }
+
+            // Create new workbook
+            const workbook = XLSX.utils.book_new();
+
+            // Sheet 1: Features Data
+            const featuresSheet = this.createFeaturesSheet();
+            XLSX.utils.book_append_sheet(workbook, featuresSheet, 'Features');
+
+            // Sheet 2: Phases Data
+            const phasesSheet = this.createPhasesSheet();
+            XLSX.utils.book_append_sheet(workbook, phasesSheet, 'Phases');
+
+            // Sheet 3: Calculations Data
+            const calculationsSheet = this.createCalculationsSheet();
+            XLSX.utils.book_append_sheet(workbook, calculationsSheet, 'Calculations');
+
+            // Generate Excel file
+            const excelBuffer = XLSX.write(workbook, { 
+                bookType: 'xlsx', 
+                type: 'array',
+                bookSST: false
+            });
+
+            // Save file
+            if (window.electronAPI && window.electronAPI.saveFileBuffer) {
+                const result = await window.electronAPI.saveFileBuffer(
+                    `${filename}.xlsx`,
+                    excelBuffer
+                );
+                if (!result.success && !result.canceled) {
+                    throw new Error(result.error || 'Failed to save Excel file');
+                }
+            } else {
+                // Fallback for web mode
+                const blob = new Blob([excelBuffer], { 
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${filename}.xlsx`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+        } catch (error) {
+            console.error('Excel export failed:', error);
+            throw error;
+        }
+    }
+
+    createFeaturesSheet() {
+        if (!this.featureManager || !this.currentProject) {
+            return XLSX.utils.aoa_to_sheet([['No features data available']]);
+        }
+
+        const features = this.currentProject.features || [];
+        const currentProject = this.currentProject;
+
+        // Headers with styling info
+        const headers = [
+            'ID', 'Description', 'Category', 'Supplier', 
+            'Real Man Days', 'Expertise %', 'Risk Margin %', 
+            'Calculated Man Days', 'Notes', 'Created', 'Modified'
+        ];
+
+        // Convert features to rows
+        const rows = features.map(feature => [
+            feature.id || '',
+            feature.description || '',
+            this.featureManager.getCategoryName(currentProject, feature.category) || '',
+            this.featureManager.getSupplierName(currentProject, feature.supplier) || '',
+            feature.realManDays || 0,
+            feature.expertise || 100,
+            feature.riskMargin || 0,
+            feature.manDays || 0,
+            feature.notes || '',
+            feature.created ? new Date(feature.created).toLocaleDateString() : '',
+            feature.modified ? new Date(feature.modified).toLocaleDateString() : ''
+        ]);
+
+        // Create worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+        // Apply styling
+        this.applyExcelStyling(worksheet, headers.length, rows.length + 1);
+
+        // Set column widths
+        const columnWidths = [
+            {wch: 12}, {wch: 40}, {wch: 15}, {wch: 15},
+            {wch: 12}, {wch: 12}, {wch: 12}, {wch: 15},
+            {wch: 30}, {wch: 12}, {wch: 12}
+        ];
+        worksheet['!cols'] = columnWidths;
+
+        return worksheet;
+    }
+
+    createPhasesSheet() {
+        if (!this.projectPhasesManager || !this.currentProject) {
+            return XLSX.utils.aoa_to_sheet([['No phases data available']]);
+        }
+
+        const phases = this.projectPhasesManager.currentPhases || [];
+        
+        // Headers
+        const headers = [
+            'Phase', 'Man Days', 'G1 (MDs)', 'G2 (MDs)', 'TA (MDs)', 'PM (MDs)',
+            'G1 Cost', 'G2 Cost', 'TA Cost', 'PM Cost', 'Total Cost'
+        ];
+
+        // Convert phases to rows
+        const rows = phases.map(phase => {
+            const manDaysByResource = this.projectPhasesManager.calculateManDaysByResource(phase.manDays, phase.effort);
+            const costByResource = this.projectPhasesManager.calculateCostByResource(manDaysByResource, phase);
+
+            return [
+                phase.name || '',
+                phase.manDays || 0,
+                manDaysByResource.G1?.toFixed(1) || '0.0',
+                manDaysByResource.G2?.toFixed(1) || '0.0', 
+                manDaysByResource.TA?.toFixed(1) || '0.0',
+                manDaysByResource.PM?.toFixed(1) || '0.0',
+                costByResource.G1 || 0,
+                costByResource.G2 || 0,
+                costByResource.TA || 0,
+                costByResource.PM || 0,
+                Object.values(costByResource).reduce((sum, cost) => sum + (cost || 0), 0)
+            ];
+        });
+
+        // Add totals row
+        const totals = this.projectPhasesManager.calculateTotals();
+        const totalRow = [
+            'TOTAL',
+            totals.manDays?.toFixed(1) || '0.0',
+            totals.manDaysByResource?.G1?.toFixed(1) || '0.0',
+            totals.manDaysByResource?.G2?.toFixed(1) || '0.0',
+            totals.manDaysByResource?.TA?.toFixed(1) || '0.0',
+            totals.manDaysByResource?.PM?.toFixed(1) || '0.0',
+            totals.costByResource?.G1 || 0,
+            totals.costByResource?.G2 || 0,
+            totals.costByResource?.TA || 0,
+            totals.costByResource?.PM || 0,
+            Object.values(totals.costByResource || {}).reduce((sum, cost) => sum + (cost || 0), 0)
+        ];
+
+        // Create worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows, totalRow]);
+
+        // Apply styling
+        this.applyExcelStyling(worksheet, headers.length, rows.length + 2, rows.length + 1);
+
+        // Set column widths
+        const columnWidths = [
+            {wch: 20}, {wch: 12}, {wch: 10}, {wch: 10}, {wch: 10}, {wch: 10},
+            {wch: 12}, {wch: 12}, {wch: 12}, {wch: 12}, {wch: 15}
+        ];
+        worksheet['!cols'] = columnWidths;
+
+        return worksheet;
+    }
+
+    createCalculationsSheet() {
+        if (!this.calculationsManager) {
+            return XLSX.utils.aoa_to_sheet([['No calculations data available']]);
+        }
+
+        const kpiData = this.calculationsManager.kpiData || {};
+        
+        // Create sections for different calculation types
+        const data = [];
+        
+        // Project Info Section
+        data.push(['PROJECT INFORMATION', '', '', '']);
+        data.push(['Project Name', this.currentProject?.project?.name || '', '', '']);
+        data.push(['Project Version', this.currentProject?.project?.version || '', '', '']);
+        data.push(['Export Date', new Date().toLocaleDateString(), '', '']);
+        data.push(['', '', '', '']); // Empty row
+
+        // GTO Section
+        if (kpiData.gto) {
+            data.push(['GTO (Government Total of Ownership)', '', '', '']);
+            data.push(['Internal Resources', kpiData.gto.internalResources || 0, '', '']);
+            data.push(['External Suppliers', kpiData.gto.externalSuppliers || 0, '', '']);
+            data.push(['Total GTO', kpiData.gto.total || 0, '', '']);
+            data.push(['', '', '', '']); // Empty row
+        }
+
+        // TCO Section  
+        if (kpiData.tco) {
+            data.push(['TCO (Total Cost of Ownership)', '', '', '']);
+            data.push(['Development Cost', kpiData.tco.developmentCost || 0, '', '']);
+            data.push(['Operational Cost (3 years)', kpiData.tco.operationalCost || 0, '', '']);
+            data.push(['Total TCO', kpiData.tco.total || 0, '', '']);
+            data.push(['', '', '', '']); // Empty row
+        }
+
+        // Vendor Costs Section
+        const vendorCosts = this.calculationsManager.vendorCosts || {};
+        if (Object.keys(vendorCosts).length > 0) {
+            data.push(['VENDOR COSTS', '', '', '']);
+            Object.entries(vendorCosts).forEach(([vendor, cost]) => {
+                data.push([vendor, cost || 0, '', '']);
+            });
+            data.push(['', '', '', '']); // Empty row
+        }
+
+        // Features Summary
+        const totalFeatures = this.currentProject?.features?.length || 0;
+        const totalManDays = this.currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0) || 0;
+        
+        data.push(['FEATURES SUMMARY', '', '', '']);
+        data.push(['Total Features', totalFeatures, '', '']);
+        data.push(['Total Calculated Man Days', totalManDays.toFixed(1), '', '']);
+
+        // Create worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet(data);
+
+        // Apply styling
+        this.applyExcelStyling(worksheet, 4, data.length);
+
+        // Set column widths
+        worksheet['!cols'] = [
+            {wch: 30}, {wch: 20}, {wch: 15}, {wch: 15}
+        ];
+
+        return worksheet;
+    }
+
+    applyExcelStyling(worksheet, numCols, numRows, totalRowIndex = null) {
+        const range = XLSX.utils.decode_range(worksheet['!ref']);
+        
+        // Header row styling (row 1)
+        for (let col = 0; col < numCols; col++) {
+            const cellRef = XLSX.utils.encode_cell({r: 0, c: col});
+            if (!worksheet[cellRef]) worksheet[cellRef] = {v: ''};
+            worksheet[cellRef].s = {
+                fill: {fgColor: {rgb: "366092"}}, // Blue background
+                font: {color: {rgb: "FFFFFF"}, bold: true}, // White text
+                alignment: {horizontal: "center", vertical: "center"}
+            };
+        }
+
+        // Total row styling (if specified)
+        if (totalRowIndex !== null) {
+            for (let col = 0; col < numCols; col++) {
+                const cellRef = XLSX.utils.encode_cell({r: totalRowIndex, c: col});
+                if (!worksheet[cellRef]) worksheet[cellRef] = {v: ''};
+                worksheet[cellRef].s = {
+                    fill: {fgColor: {rgb: "D3D3D3"}}, // Light gray background
+                    font: {bold: true},
+                    alignment: {horizontal: "center", vertical: "center"}
+                };
+            }
+        }
+
+        // Alternate row coloring for data rows
+        for (let row = 1; row < numRows; row++) {
+            if (row === totalRowIndex) continue; // Skip total row
+            
+            const fillColor = row % 2 === 0 ? "F8F8F8" : "FFFFFF"; // Alternate gray/white
+            
+            for (let col = 0; col < numCols; col++) {
+                const cellRef = XLSX.utils.encode_cell({r: row, c: col});
+                if (!worksheet[cellRef]) worksheet[cellRef] = {v: ''};
+                if (!worksheet[cellRef].s) worksheet[cellRef].s = {};
+                worksheet[cellRef].s.fill = {fgColor: {rgb: fillColor}};
+            }
+        }
     }
 
     showExportMenu() {
