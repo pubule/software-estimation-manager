@@ -172,10 +172,10 @@ class CalculationsManager {
 
         const selectedSuppliers = phases.selectedSuppliers;
         
-        // Convert phases object to array - exclude 'development' phase as it's calculated from features
+        // Convert phases object to array - include development phase for all resource types except G2
         const phasesData = [];
         const phaseKeys = Object.keys(phases).filter(key => 
-            key !== 'selectedSuppliers' && key !== 'development'
+            key !== 'selectedSuppliers'
         );
         
         phaseKeys.forEach(phaseKey => {
@@ -188,8 +188,8 @@ class CalculationsManager {
             }
         });
         
-        console.log('Converted phases data to array (excluding development phase):', phasesData);
-        console.log('Note: Development phase MDs will be calculated from features in processFeaturesCosts()');
+        console.log('Converted phases data to array (including development phase):', phasesData);
+        console.log('Note: Development phase G2 MDs will be calculated from features in processFeaturesCosts()');
 
         console.log('Selected suppliers:', selectedSuppliers);
         console.log('Phases data:', phasesData);
@@ -225,8 +225,15 @@ class CalculationsManager {
             }
 
             // Calculate total man days for this resource type across all phases
+            // For development phase, exclude G2 as it's calculated from features in processFeaturesCosts()
             let totalManDays = 0;
             phasesData.forEach(phase => {
+                // Skip G2 calculation for development phase only
+                if (phase.id === 'development' && resourceType === 'G2') {
+                    console.log(`Phase ${phase.id}: Skipping G2 calculation (handled by features)`);
+                    return;
+                }
+                
                 const phaseManDays = parseFloat(phase.manDays) || 0;
                 const effortPercent = (phase.effort && phase.effort[resourceType]) || 0;
                 const phaseMDs = (phaseManDays * effortPercent) / 100;
