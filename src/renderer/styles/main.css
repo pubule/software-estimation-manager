@@ -623,9 +623,9 @@
     height: 32px;
     background-color: var(--bg-secondary);
     border-bottom: 1px solid var(--border-primary);
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
     padding: 0;
     -webkit-app-region: drag;
     user-select: none;
@@ -638,7 +638,7 @@
     align-items: center;
     gap: var(--spacing-sm);
     padding-left: var(--spacing-sm);
-    flex: 0 0 auto;
+    justify-self: start;
     -webkit-app-region: drag;
 }
 
@@ -669,7 +669,7 @@
     align-items: center;
     justify-content: center;
     gap: var(--spacing-xs);
-    flex: 1;
+    justify-self: center;
     -webkit-app-region: drag;
 }
 
@@ -710,7 +710,7 @@
 .title-bar-right {
     display: flex;
     align-items: center;
-    flex: 0 0 auto;
+    justify-self: end;
     -webkit-app-region: no-drag;
 }
 
