@@ -13,7 +13,6 @@ class VersionManager {
         this.isLoading = false;
         this.currentFilters = {
             dateRange: '',
-            username: '',
             reason: ''
         };
         
@@ -153,15 +152,6 @@ class VersionManager {
         return `
             <div class="version-filters">
                 <div class="filter-group">
-                    <label for="username-filter">Username:</label>
-                    <select id="username-filter">
-                        <option value="">All Users</option>
-                        ${this.getUniqueUsernames().map(username => 
-                            `<option value="${username}">${username}</option>`
-                        ).join('')}
-                    </select>
-                </div>
-                <div class="filter-group">
                     <label for="reason-search">Search Reason:</label>
                     <input type="text" id="reason-search" placeholder="Search in reasons...">
                 </div>
@@ -192,7 +182,6 @@ class VersionManager {
                         <tr>
                             <th>Version</th>
                             <th>Date</th>
-                            <th>Username</th>
                             <th>Reason</th>
                             <th>Stats</th>
                             <th>Actions</th>
@@ -201,7 +190,7 @@ class VersionManager {
                     <tbody>
                         ${filteredVersions.length === 0 ? `
                             <tr>
-                                <td colspan="6" class="no-data">
+                                <td colspan="5" class="no-data">
                                     ${this.currentVersions.length === 0 ? 
                                         'No versions created yet. Create your first version!' :
                                         'No versions match the current filters.'
@@ -221,7 +210,6 @@ class VersionManager {
                                         this.formatDate(version.timestamp)
                                     }
                                 </td>
-                                <td class="version-username">${version.username}</td>
                                 <td class="version-reason" title="${version.reason}">${this.truncateText(version.reason, 50)}</td>
                                 <td class="version-stats">${this.renderVersionStats(version)}</td>
                                 <td class="version-actions">
@@ -400,15 +388,6 @@ class VersionManager {
         return calculatedChecksum === version.checksum;
     }
 
-    /**
-     * Get username for version metadata
-     */
-    getUsername() {
-        if (typeof process !== 'undefined' && process.env) {
-            return process.env.USERNAME || process.env.USER || 'Unknown';
-        }
-        return 'Unknown';
-    }
 
     /**
      * Format date for display
@@ -426,24 +405,12 @@ class VersionManager {
         return text.substring(0, maxLength) + '...';
     }
 
-    /**
-     * Get unique usernames from versions
-     */
-    getUniqueUsernames() {
-        const usernames = new Set(this.currentVersions.map(v => v.username));
-        return Array.from(usernames).sort();
-    }
 
     /**
      * Get filtered versions based on current filters
      */
     getFilteredVersions() {
         let filtered = [...this.currentVersions];
-
-        // Apply username filter
-        if (this.currentFilters.username) {
-            filtered = filtered.filter(v => v.username === this.currentFilters.username);
-        }
 
         // Apply reason search
         if (this.currentFilters.reason) {
@@ -505,14 +472,6 @@ class VersionManager {
             cleanupBtn.addEventListener('click', this.showCleanupModal.bind(this));
         }
 
-        // Filter controls
-        const usernameFilter = document.getElementById('username-filter');
-        if (usernameFilter) {
-            usernameFilter.addEventListener('change', (e) => {
-                this.currentFilters.username = e.target.value;
-                this.updateTable();
-            });
-        }
 
         const reasonSearch = document.getElementById('reason-search');
         if (reasonSearch) {
@@ -763,7 +722,6 @@ class VersionManager {
             const newVersion = {
                 id: nextVersionId,
                 timestamp: new Date().toISOString(),
-                username: this.getUsername(),
                 reason: reason,
                 projectSnapshot: projectSnapshot,
                 checksum: checksum
@@ -969,10 +927,6 @@ class VersionManager {
                             <span class="version-detail-value">${versionToRestore.id} (${this.formatDate(versionToRestore.timestamp)})</span>
                         </div>
                         <div class="version-detail-row">
-                            <span class="version-detail-label">Created by:</span>
-                            <span class="version-detail-value">${versionToRestore.username}</span>
-                        </div>
-                        <div class="version-detail-row">
                             <span class="version-detail-label">Reason:</span>
                             <span class="version-detail-value">${versionToRestore.reason}</span>
                         </div>
@@ -1108,7 +1062,6 @@ class VersionManager {
             const restoreVersion = {
                 id: nextVersionId,
                 timestamp: new Date().toISOString(),
-                username: this.getUsername(),
                 reason: restoreReason,
                 projectSnapshot: JSON.parse(JSON.stringify(versionToRestore.projectSnapshot)),
                 checksum: this.generateChecksum(versionToRestore.projectSnapshot)
@@ -1209,7 +1162,7 @@ class VersionManager {
                             </div>
                             <div class="version-column compare">
                                 <h4>Version ${versionToCompare.id}</h4>
-                                <span class="version-info">${this.formatDate(versionToCompare.timestamp)} - ${versionToCompare.username}</span>
+                                <span class="version-info">${this.formatDate(versionToCompare.timestamp)}</span>
                             </div>
                         </div>
                         
@@ -1955,7 +1908,6 @@ class VersionManager {
             const exportData = {
                 version: versionToExport,
                 exportedAt: new Date().toISOString(),
-                exportedBy: this.getUsername(),
                 originalProject: {
                     name: this.app.currentProject.project.name,
                     id: this.app.currentProject.project.id
@@ -2062,10 +2014,6 @@ class VersionManager {
                         <div class="version-detail-row">
                             <span class="version-detail-label">Created:</span>
                             <span class="version-detail-value">${this.formatDate(versionToDelete.timestamp)}</span>
-                        </div>
-                        <div class="version-detail-row">
-                            <span class="version-detail-label">Created by:</span>
-                            <span class="version-detail-value">${versionToDelete.username}</span>
                         </div>
                         <div class="version-detail-row">
                             <span class="version-detail-label">Reason:</span>
@@ -2597,10 +2545,6 @@ class VersionManager {
                         <span class="version-detail-value">${this.formatDate(versionData.timestamp)}</span>
                     </div>
                     <div class="version-detail-row">
-                        <span class="version-detail-label">Created by:</span>
-                        <span class="version-detail-value">${versionData.username}</span>
-                    </div>
-                    <div class="version-detail-row">
                         <span class="version-detail-label">Reason:</span>
                         <span class="version-detail-value">${versionData.reason}</span>
                     </div>
@@ -2689,7 +2633,6 @@ class VersionManager {
 
             // Add import metadata
             finalVersionData.importedAt = new Date().toISOString();
-            finalVersionData.importedBy = this.getUsername();
             if (importData.originalProject) {
                 finalVersionData.originalProject = importData.originalProject;
             }
