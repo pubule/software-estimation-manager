@@ -883,11 +883,9 @@ class ProjectManager {
                     <i class="fas fa-file-alt"></i>
                 </div>
                 <div class="project-info">
-                    <div class="project-header">
-                        <h4>${Helpers.escapeHtml(item.project.name)}</h4>
+                    <h4 class="project-name">${Helpers.escapeHtml(item.project.name)}</h4>
+                    <div class="project-meta-row">
                         <span class="project-version">v${item.project.version}</span>
-                    </div>
-                    <div class="project-meta">
                         <span class="project-date"><i class="fas fa-edit"></i> ${Helpers.formatDate(item.project.lastModified)}</span>
                         <span class="project-size">${Helpers.formatBytes(item.fileSize)}</span>
                     </div>
@@ -1009,11 +1007,9 @@ class ProjectManager {
                     <i class="fas fa-file-alt"></i>
                 </div>
                 <div class="project-info">
-                    <div class="project-header">
-                        <h4>${Helpers.escapeHtml(project.name)}</h4>
+                    <h4 class="project-name">${Helpers.escapeHtml(project.name)}</h4>
+                    <div class="project-meta-row">
                         <span class="project-version">v${project.version}</span>
-                    </div>
-                    <div class="project-meta">
                         <span class="project-date"><i class="fas fa-eye"></i> ${Helpers.formatDate(project.lastOpened)}</span>
                     </div>
                 </div>
