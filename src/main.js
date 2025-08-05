@@ -258,6 +258,36 @@ ipcMain.handle('open-projects-folder', async () => {
     }
 });
 
+// Create default configuration file if it doesn't exist
+ipcMain.handle('create-default-config', async (event, configData) => {
+    try {
+        const projectsPath = await getProjectsPath();
+        const configDir = path.join(projectsPath, 'config');
+        const configFile = path.join(configDir, 'defaults.json');
+        
+        // Check if file already exists
+        try {
+            await fs.access(configFile);
+            console.log('Config file already exists:', configFile);
+            return { success: true, existed: true, filePath: configFile };
+        } catch (error) {
+            // File doesn't exist, create it
+        }
+        
+        // Create config directory if it doesn't exist
+        await fs.mkdir(configDir, { recursive: true });
+        
+        // Write the configuration file
+        await fs.writeFile(configFile, JSON.stringify(configData, null, 2));
+        
+        console.log('Created default configuration file:', configFile);
+        return { success: true, created: true, filePath: configFile };
+    } catch (error) {
+        console.error('Failed to create default config file:', error);
+        return { success: false, error: error.message };
+    }
+});
+
 // Legacy file operations for export functionality
 ipcMain.handle('save-file', async (event, defaultPath, data) => {
     try {

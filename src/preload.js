@@ -19,6 +19,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSettings: () => ipcRenderer.invoke('get-settings'),
     saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
 
+    // Configuration file operations
+    createDefaultConfig: (configData) => ipcRenderer.invoke('create-default-config', configData),
+
     // Menu actions
     onMenuAction: (callback) => ipcRenderer.on('menu-action', callback),
 

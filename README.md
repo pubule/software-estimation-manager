@@ -28,6 +28,8 @@ A standalone desktop application built with Electron for managing economic estim
 ```
 software-estimation-manager/
 ├── package.json                 # Project configuration
+├── config/                     # External configuration files
+│   └── defaults.json           # Default data configuration
 ├── src/
 │   ├── main.js                 # Electron main process
 │   └── renderer/               # Renderer process
@@ -40,6 +42,7 @@ software-estimation-manager/
 │           ├── main.js         # Main application
 │           ├── data-manager.js # Data management
 │           ├── components/     # Modular components
+│           │   ├── default-config-manager.js # External config loader
 │           │   ├── feature-manager.js    # Feature management
 │           │   ├── navigation.js         # Navigation
 │           │   ├── modal.js             # Modal system
@@ -49,6 +52,151 @@ software-estimation-manager/
 ├── assets/                     # Static resources
 └── dist/                      # Compiled files
 ```
+
+## Configuration System
+
+The application uses an external configuration system to load default data for suppliers, internal resources, categories, and project phases. This allows for easy customization without modifying the application code.
+
+### Configuration File Structure
+
+The configuration is stored in `{ProjectsPath}/config/defaults.json` where `{ProjectsPath}` is the projects folder configured in **Configuration → File System Storage**. By default this is in your Documents folder: `~/Documents/Software Estimation Projects/config/defaults.json`.
+
+The configuration file has the following structure:
+
+```json
+{
+  "phaseDefinitions": [
+    {
+      "id": "functionalAnalysis",
+      "name": "Functional Analysis",
+      "description": "Business requirements analysis and functional specification",
+      "type": "analysis",
+      "defaultEffort": { "G1": 100, "G2": 0, "TA": 20, "PM": 50 },
+      "editable": true
+    }
+  ],
+  "defaultSuppliers": [
+    {
+      "id": "supplier-g1-it",
+      "name": "Example Supplier",
+      "role": "G1",
+      "department": "IT",
+      "realRate": 450.00,
+      "officialRate": 450.00,
+      "isGlobal": true
+    }
+  ],
+  "defaultInternalResources": [
+    {
+      "id": "internal-analyst-it",
+      "name": "Internal Analyst",
+      "role": "G1",
+      "department": "IT",
+      "realRate": 600.00,
+      "officialRate": 600.00,
+      "isGlobal": true
+    }
+  ],
+  "defaultCategories": [
+    {
+      "id": "development-activities",
+      "name": "DEVELOPMENT ACTIVITIES",
+      "description": "Software development and coding tasks",
+      "status": "active",
+      "isGlobal": true,
+      "featureTypes": [
+        {
+          "id": "new-feature-dev",
+          "name": "New Feature Development",
+          "description": "Development of new application features",
+          "averageMDs": 5
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Configuration Loading
+
+The application automatically loads configuration from the external file at startup:
+
+1. **Primary**: Loads from `{ProjectsPath}/config/defaults.json` using the configured projects folder
+2. **Fallback**: Uses built-in defaults if external file is missing or invalid
+3. **Validation**: Automatically validates structure and provides fallback values
+4. **Path Resolution**: Automatically detects the projects path from File System Storage configuration
+
+### Customizing Configuration
+
+To customize the default data:
+
+1. **Locate config folder**: Navigate to your configured projects folder (default: `~/Documents/Software Estimation Projects/`)
+2. **Create config structure**: Create a `config` subfolder if it doesn't exist
+3. **Edit config file**: Create or modify `config/defaults.json` with your organization's data
+4. **Backup original**: Keep a backup of the original file
+5. **Restart application**: Changes take effect after application restart
+6. **Validation**: Invalid configurations will fall back to built-in defaults
+
+### Configuration File Location
+
+The configuration file location depends on your **File System Storage** settings:
+
+- **Default**: `~/Documents/Software Estimation Projects/config/defaults.json`
+- **Custom Path**: `{YourProjectsPath}/config/defaults.json`
+- **Change Path**: Go to **Configuration → File System Storage** to change the projects folder
+
+**Note**: When you change the projects folder, you'll need to copy the `config/defaults.json` file to the new location.
+
+### Configuration Sections
+
+#### Phase Definitions
+- **id**: Unique phase identifier
+- **name**: Display name
+- **description**: Phase description
+- **type**: Phase type (analysis, development, testing, support)
+- **defaultEffort**: Default effort distribution percentages (G1, G2, TA, PM)
+- **editable**: Whether phase can be modified
+- **calculated**: Whether phase is auto-calculated (for development phase)
+
+#### Default Suppliers
+- **id**: Unique supplier identifier
+- **name**: Supplier company name
+- **role**: Resource role (G1, G2, TA, PM)
+- **department**: Department (IT, etc.)
+- **realRate**: Actual daily rate
+- **officialRate**: Official/invoiced daily rate
+- **isGlobal**: Whether supplier is globally available
+
+#### Default Internal Resources
+- **id**: Unique resource identifier
+- **name**: Resource name/title
+- **role**: Resource role (G1, G2, TA, PM)
+- **department**: Department (IT, RO, etc.)
+- **realRate**: Actual daily rate
+- **officialRate**: Official daily rate
+- **isGlobal**: Whether resource is globally available
+
+#### Default Categories
+- **id**: Unique category identifier
+- **name**: Category display name
+- **description**: Category description
+- **status**: Status (active, inactive)
+- **isGlobal**: Whether category is globally available
+- **featureTypes**: Array of predefined feature types with:
+  - **id**: Unique feature type identifier
+  - **name**: Feature type name
+  - **description**: Feature type description
+  - **averageMDs**: Average man days for this feature type
+
+### Error Handling
+
+The configuration system includes robust error handling:
+
+- **Missing file**: Uses built-in fallback data
+- **Invalid JSON**: Logs warning and uses fallback
+- **Invalid structure**: Validates each section independently
+- **Network errors**: Handles fetch failures gracefully
+- **Partial loading**: Loads valid sections even if others fail
 
 ## Installation and Setup
 

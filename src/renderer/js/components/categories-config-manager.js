@@ -18,126 +18,28 @@ class CategoriesConfigManager {
         this.isSavingCategory = false;
         this.isSavingFeatureType = false;
         this.isResetting = false;
+        this.defaultConfigManager = new DefaultConfigManager();
         
-        // Default categories with feature types based on provided data
-        this.defaultCategories = [
-            {
-                id: 'db-activities',
-                name: 'DATABASE ACTIVITIES',
-                description: 'Database operations and data management',
-                status: 'active',
-                isGlobal: true,
-                featureTypes: [
-                    {
-                        id: 'db-create-table',
-                        name: 'Create new DB table',
-                        description: 'Create new database table with schema',
-                        averageMDs: 3
-                    },
-                    {
-                        id: 'db-modify-table',
-                        name: 'Modify existing table (add column)',
-                        description: 'Modify existing table structure',
-                        averageMDs: 2
-                    },
-                    {
-                        id: 'db-create-view',
-                        name: 'Create view/stored procedure',
-                        description: 'Create database views or stored procedures',
-                        averageMDs: 3
-                    },
-                    {
-                        id: 'db-dao-crud',
-                        name: 'DAO/CRUD operations',
-                        description: 'Data Access Object and CRUD implementations',
-                        averageMDs: 3
-                    }
-                ]
-            },
-            {
-                id: 'backend-api-activities',
-                name: 'BACKEND/API ACTIVITIES',
-                description: 'Backend services and API development',
-                status: 'active',
-                isGlobal: true,
-                featureTypes: [
-                    {
-                        id: 'backend-rest-service',
-                        name: 'Create new REST web service',
-                        description: 'Develop new REST API endpoints',
-                        averageMDs: 3
-                    },
-                    {
-                        id: 'backend-soap-client',
-                        name: 'Create new SOAP client',
-                        description: 'Implement SOAP client integration',
-                        averageMDs: 5
-                    },
-                    {
-                        id: 'backend-business-logic',
-                        name: 'Business logic implementation',
-                        description: 'Core business logic development',
-                        averageMDs: 4
-                    },
-                    {
-                        id: 'backend-client-adjustment',
-                        name: 'Client adjustment',
-                        description: 'Client-specific customizations',
-                        averageMDs: 3
-                    }
-                ]
-            },
-            {
-                id: 'frontend-activities',
-                name: 'FRONTEND ACTIVITIES',
-                description: 'Frontend development and UI components',
-                status: 'active',
-                isGlobal: true,
-                featureTypes: [
-                    {
-                        id: 'frontend-new-page',
-                        name: 'Develop new page/component',
-                        description: 'Create new frontend pages or components',
-                        averageMDs: 3
-                    },
-                    {
-                        id: 'frontend-modify-page',
-                        name: 'Modify existing page',
-                        description: 'Update existing frontend pages',
-                        averageMDs: 7
-                    },
-                    {
-                        id: 'frontend-form-management',
-                        name: 'Form/input field management',
-                        description: 'Form handling and input validation',
-                        averageMDs: 3
-                    }
-                ]
-            },
-            {
-                id: 'integration-config',
-                name: 'INTEGRATION & CONFIGURATION',
-                description: 'System integration and configuration',
-                status: 'active',
-                isGlobal: true,
-                featureTypes: [
-                    {
-                        id: 'integration-external',
-                        name: 'External system integration',
-                        description: 'Integration with external systems',
-                        averageMDs: 4
-                    },
-                    {
-                        id: 'integration-config-setup',
-                        name: 'Configuration/properties setup',
-                        description: 'System configuration and properties management',
-                        averageMDs: 7
-                    }
-                ]
-            }
-        ];
+        // Default categories will be loaded from configuration
+        this.defaultCategories = [];
+        
+        // Load default configuration
+        this.loadDefaults();
         
         this.init();
+    }
+
+    /**
+     * Load default categories from configuration
+     */
+    async loadDefaults() {
+        try {
+            this.defaultCategories = await this.defaultConfigManager.getDefaultCategories();
+            console.log('Default categories loaded:', this.defaultCategories.length);
+        } catch (error) {
+            console.warn('Failed to load default categories, using empty array:', error);
+            this.defaultCategories = [];
+        }
     }
 
     init() {

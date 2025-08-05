@@ -27,94 +27,29 @@ class SupplierConfigManager {
         // Flags to prevent double operations
         this.isResetting = false;
         this.isSavingSupplier = false;
+        this.defaultConfigManager = new DefaultConfigManager();
         
-        // Default suppliers with the provided values
-        this.defaultSuppliers = [
-            {
-                id: 'reply-g1-it',
-                name: 'Reply',
-                role: 'G1',
-                department: 'IT',
-                realRate: 463.00,
-                officialRate: 463.00,
-                isGlobal: true
-            },
-            {
-                id: 'quid-g1-it',
-                name: 'Quid',
-                role: 'G1',
-                department: 'IT',
-                realRate: 506.30,
-                officialRate: 506.30,
-                isGlobal: true
-            },
-            {
-                id: 'pwc-g1-it',
-                name: 'PwC',
-                role: 'G1',
-                department: 'IT',
-                realRate: 402.60,
-                officialRate: 402.60,
-                isGlobal: true
-            },
-            {
-                id: 'reply-pm-it',
-                name: 'Reply',
-                role: 'PM',
-                department: 'IT',
-                realRate: 463.00,
-                officialRate: 463.00,
-                isGlobal: true
-            },
-            {
-                id: 'quid-pm-it',
-                name: 'Quid',
-                role: 'PM',
-                department: 'IT',
-                realRate: 506.30,
-                officialRate: 506.30,
-                isGlobal: true
-            },
-            {
-                id: 'pwc-pm-it',
-                name: 'PwC',
-                role: 'PM',
-                department: 'IT',
-                realRate: 402.60,
-                officialRate: 402.60,
-                isGlobal: true
-            },
-            {
-                id: 'reply-g2-it',
-                name: 'Reply',
-                role: 'G2',
-                department: 'IT',
-                realRate: 323.30,
-                officialRate: 323.30,
-                isGlobal: true
-            },
-            {
-                id: 'quid-g2-it',
-                name: 'Quid',
-                role: 'G2',
-                department: 'IT',
-                realRate: 375.76,
-                officialRate: 375.76,
-                isGlobal: true
-            },
-            {
-                id: 'pwc-g2-it',
-                name: 'PwC',
-                role: 'G2',
-                department: 'IT',
-                realRate: 317.20,
-                officialRate: 317.20,
-                isGlobal: true
-            }
-        ];
+        // Default suppliers will be loaded from configuration
+        this.defaultSuppliers = [];
+        
+        // Load default configuration
+        this.loadDefaults();
 
         // Bind methods to window for global access
         this.exposeGlobalMethods();
+    }
+
+    /**
+     * Load default suppliers from configuration
+     */
+    async loadDefaults() {
+        try {
+            this.defaultSuppliers = await this.defaultConfigManager.getDefaultSuppliers();
+            console.log('Default suppliers loaded:', this.defaultSuppliers.length);
+        } catch (error) {
+            console.warn('Failed to load default suppliers, using empty array:', error);
+            this.defaultSuppliers = [];
+        }
     }
 
     exposeGlobalMethods() {

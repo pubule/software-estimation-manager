@@ -27,67 +27,29 @@ class InternalResourcesConfigManager {
         // Flags to prevent double operations
         this.isResetting = false;
         this.isSavingResource = false;
+        this.defaultConfigManager = new DefaultConfigManager();
         
-        // Default internal resources with the provided values
-        this.defaultInternalResources = [
-            {
-                id: 'func-analyst-it',
-                name: 'Functional Analyst',
-                role: 'G1',
-                department: 'IT',
-                realRate: 624,
-                officialRate: 624,
-                isGlobal: true
-            },
-            {
-                id: 'func-analyst-ro',
-                name: 'Functional Analyst',
-                role: 'G1',
-                department: 'RO',
-                realRate: 362,
-                officialRate: 352,
-                isGlobal: true
-            },
-            {
-                id: 'developer-g2',
-                name: 'Developer',
-                role: 'G2',
-                department: 'IT',
-                realRate: 624,
-                officialRate: 624,
-                isGlobal: true
-            },
-            {
-                id: 'developer-g2-ro',
-                name: 'Developer',
-                role: 'G2',
-                department: 'RO',
-                realRate: 362,
-                officialRate: 352,
-                isGlobal: true
-            },
-            {
-                id: 'tech-analyst-it',
-                name: 'Tech Analyst',
-                role: 'TA',
-                department: 'IT',
-                realRate: 624,
-                officialRate: 624,
-                isGlobal: true
-            },
-            {
-                id: 'tech-analyst-ro',
-                name: 'Tech Analyst',
-                role: 'TA',
-                department: 'RO',
-                realRate: 352,
-                officialRate: 352,
-                isGlobal: true
-            }
-        ];
+        // Default internal resources will be loaded from configuration
+        this.defaultInternalResources = [];
+        
+        // Load default configuration
+        this.loadDefaults();
 
         // Bind methods to window for global access
         this.exposeGlobalMethods();
+    }
+
+    /**
+     * Load default internal resources from configuration
+     */
+    async loadDefaults() {
+        try {
+            this.defaultInternalResources = await this.defaultConfigManager.getDefaultInternalResources();
+            console.log('Default internal resources loaded:', this.defaultInternalResources.length);
+        } catch (error) {
+            console.warn('Failed to load default internal resources, using empty array:', error);
+            this.defaultInternalResources = [];
+        }
     }
 
     exposeGlobalMethods() {
