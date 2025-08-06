@@ -226,7 +226,8 @@ class ProjectPhasesManager {
         filteredSuppliers.forEach(supplier => {
             const selected = supplier.id === selectedValue ? 'selected' : '';
             const rate = supplier.realRate || supplier.officialRate || 0;
-            options += `<option value="${supplier.id}" data-rate="${rate}" ${selected}>${supplier.name} (€${rate}/day)</option>`;
+            const displayName = `${supplier.department} - ${supplier.name} (€${rate}/day)`;
+            options += `<option value="${supplier.id}" data-rate="${rate}" ${selected}>${displayName}</option>`;
         });
         
         return `<select id="${selectId}" data-resource="${resourceType}" class="supplier-select">${options}</select>`;

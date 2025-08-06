@@ -351,7 +351,7 @@ class FeatureManager {
                 const option = document.createElement('option');
                 option.value = supplier.id;
                 const rate = supplier.realRate || supplier.officialRate || 0;
-                option.textContent = `${supplier.name} (€${rate}/day)`;
+                option.textContent = `${supplier.department} - ${supplier.name} (€${rate}/day)`;
 
                 // Add visual indicator for global vs project-specific
                 if (supplier.isProjectSpecific) {
@@ -373,7 +373,7 @@ class FeatureManager {
                 const option = document.createElement('option');
                 option.value = resource.id;
                 const rate = resource.realRate || resource.officialRate || 0;
-                option.textContent = `${resource.name} (€${rate}/day)`;
+                option.textContent = `${resource.department} - ${resource.name} (€${rate}/day)`;
 
                 // Add visual indicator for global vs project-specific
                 if (resource.isProjectSpecific) {
@@ -562,7 +562,7 @@ class FeatureManager {
                 const option = document.createElement('option');
                 option.value = supplier.id;
                 const rate = supplier.realRate || supplier.officialRate || 0;
-                option.textContent = `${supplier.name} (€${rate}/day)`;
+                option.textContent = `${supplier.department} - ${supplier.name} (€${rate}/day)`;
 
                 // Add visual indicator for global vs project-specific
                 if (supplier.isProjectSpecific) {
@@ -581,7 +581,7 @@ class FeatureManager {
                 const option = document.createElement('option');
                 option.value = resource.id;
                 const rate = resource.realRate || resource.officialRate || 0;
-                option.textContent = `${resource.name} (€${rate}/day)`;
+                option.textContent = `${resource.department} - ${resource.name} (€${rate}/day)`;
 
                 // Add visual indicator for global vs project-specific
                 if (resource.isProjectSpecific) {
@@ -1643,14 +1643,14 @@ class FeatureManager {
         const supplier = projectConfig.suppliers.find(s => s.id === supplierId);
         if (supplier) {
             const rate = supplier.realRate || supplier.officialRate || 0;
-            return `${supplier.name} (€${rate}/day)`;
+            return `${supplier.department} - ${supplier.name} (€${rate}/day)`;
         }
 
         // Check internal resources
         const resource = projectConfig.internalResources.find(r => r.id === supplierId);
         if (resource) {
             const rate = resource.realRate || resource.officialRate || 0;
-            return `${resource.name} (€${rate}/day)`;
+            return `${resource.department} - ${resource.name} (€${rate}/day)`;
         }
 
         return `Unknown Supplier (${supplierId})`;

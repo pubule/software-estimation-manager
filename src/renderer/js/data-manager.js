@@ -512,11 +512,11 @@ class DataManager {
 
         // Check suppliers
         let supplier = projectData.config?.suppliers?.find(s => s.id === supplierId);
-        if (supplier) return supplier.name;
+        if (supplier) return `${supplier.department} - ${supplier.name}`;
 
         // Check internal resources
         supplier = projectData.config?.internalResources?.find(r => r.id === supplierId);
-        if (supplier) return `${supplier.name} (Internal)`;
+        if (supplier) return `${supplier.department} - ${supplier.name} (Internal)`;
 
         return supplierId;
     }
