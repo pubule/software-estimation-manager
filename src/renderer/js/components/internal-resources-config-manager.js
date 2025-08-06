@@ -666,6 +666,7 @@ class InternalResourcesConfigManager {
      */
     extractRowFormData(row) {
         const nameInput = row.querySelector('.name-input');
+        const ltaInput = row.querySelector('.lta-input');
         const roleInput = row.querySelector('.role-input');
         const departmentInput = row.querySelector('.department-input');
         const realRateInput = row.querySelector('.rate-input');
@@ -674,6 +675,7 @@ class InternalResourcesConfigManager {
         return {
             id: row.dataset.resourceId,
             name: nameInput.value.trim(),
+            lta: ltaInput.value.trim(),
             role: roleInput.value.trim(),
             department: departmentInput.value.trim(),
             realRate: parseFloat(realRateInput.value) || 0,
@@ -923,6 +925,11 @@ class InternalResourcesConfigManager {
                                 Name 
                                 <i class="fas fa-sort${this.getSortIcon('name')}"></i>
                             </th>
+                            <th class="lta-col sortable ${this.sortField === 'lta' ? 'sorted' : ''}" 
+                                data-field="lta">
+                                LTA
+                                <i class="fas fa-sort${this.getSortIcon('lta')}"></i>
+                            </th>
                             <th class="role-col sortable ${this.sortField === 'role' ? 'sorted' : ''}" 
                                 data-field="role">
                                 Role
@@ -986,6 +993,9 @@ class InternalResourcesConfigManager {
                         ${this.generateResourceBadges(resource)}
                     </div>
                 </td>
+                <td class="lta-cell">
+                    <span class="lta-value">${this.escapeHtml(resource.lta || '')}</span>
+                </td>
                 <td class="role-cell">
                     <span class="role-value">${this.escapeHtml(resource.role)}</span>
                 </td>
@@ -1017,6 +1027,10 @@ class InternalResourcesConfigManager {
                 <td class="name-cell">
                     <input type="text" class="edit-input name-input" value="${this.escapeHtml(resource.name)}" 
                            maxlength="100" required>
+                </td>
+                <td class="lta-cell">
+                    <input type="text" class="edit-input lta-input" value="${this.escapeHtml(resource.lta || '')}" 
+                           maxlength="50" placeholder="LTA code">
                 </td>
                 <td class="role-cell">
                     <select class="edit-input role-input" required>
@@ -1361,6 +1375,7 @@ class InternalResourcesConfigManager {
         // Popola i campi manualmente DOPO aver aperto la modal (come fa categories)
         setTimeout(() => {
             document.getElementById('resource-name').value = `${resource.name} (Copy)`;
+            document.getElementById('resource-lta').value = resource.lta || '';
             document.getElementById('resource-role').value = resource.role || '';
             document.getElementById('resource-department').value = resource.department || '';
             document.getElementById('resource-real-rate').value = resource.realRate || '';
@@ -1464,7 +1479,7 @@ class InternalResourcesConfigManager {
      * Popola il form con i dati della risorsa
      */
     populateForm(resource) {
-        const fields = ['name', 'role', 'department', 'realRate', 'officialRate'];
+        const fields = ['name', 'lta', 'role', 'department', 'realRate', 'officialRate'];
         fields.forEach(field => {
             const element = document.getElementById(`resource-${field.replace(/([A-Z])/g, '-$1').toLowerCase()}`);
             if (element) {
@@ -1622,6 +1637,7 @@ class InternalResourcesConfigManager {
      */
     extractFormData(form, resourceId, scope, isNewResource = false) {
         const nameField = document.getElementById('resource-name');
+        const ltaField = document.getElementById('resource-lta');
         const roleField = document.getElementById('resource-role');
         const departmentField = document.getElementById('resource-department');
         const realRateField = document.getElementById('resource-real-rate');
@@ -1630,6 +1646,7 @@ class InternalResourcesConfigManager {
         return {
             id: (isNewResource || !resourceId) ? this.generateId('internal_') : resourceId,
             name: nameField?.value?.trim() || '',
+            lta: ltaField?.value?.trim() || '',
             role: roleField?.value?.trim() || '',
             department: departmentField?.value?.trim() || '',
             realRate: parseFloat(realRateField?.value) || 0,
@@ -1740,6 +1757,11 @@ class InternalResourcesConfigManager {
                                 <label for="resource-name">Resource Name:</label>
                                 <input type="text" id="resource-name" name="name" required maxlength="100" 
                                        placeholder="Enter resource full name">
+                            </div>
+                            <div class="form-group">
+                                <label for="resource-lta">LTA:</label>
+                                <input type="text" id="resource-lta" name="lta" maxlength="50" 
+                                       placeholder="Enter LTA code">
                             </div>
                             <div class="form-group">
                                 <label for="resource-role">Role:</label>

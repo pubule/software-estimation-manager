@@ -666,6 +666,7 @@ class SupplierConfigManager {
      */
     extractRowFormData(row) {
         const nameInput = row.querySelector('.name-input');
+        const ltaInput = row.querySelector('.lta-input');
         const roleInput = row.querySelector('.role-input');
         const departmentInput = row.querySelector('.department-input');
         const realRateInput = row.querySelector('.rate-input');
@@ -674,6 +675,7 @@ class SupplierConfigManager {
         return {
             id: row.dataset.supplierId,
             name: nameInput.value.trim(),
+            lta: ltaInput.value.trim(),
             role: roleInput.value.trim(),
             department: departmentInput.value.trim(),
             realRate: parseFloat(realRateInput.value) || 0,
@@ -923,6 +925,11 @@ class SupplierConfigManager {
                                 Name 
                                 <i class="fas fa-sort${this.getSortIcon('name')}"></i>
                             </th>
+                            <th class="lta-col sortable ${this.sortField === 'lta' ? 'sorted' : ''}" 
+                                data-field="lta">
+                                LTA
+                                <i class="fas fa-sort${this.getSortIcon('lta')}"></i>
+                            </th>
                             <th class="role-col sortable ${this.sortField === 'role' ? 'sorted' : ''}" 
                                 data-field="role">
                                 Role
@@ -986,6 +993,9 @@ class SupplierConfigManager {
                         ${this.generateSupplierBadges(supplier)}
                     </div>
                 </td>
+                <td class="lta-cell">
+                    <span class="lta-value">${this.escapeHtml(supplier.lta || '')}</span>
+                </td>
                 <td class="role-cell">
                     <span class="role-value">${this.escapeHtml(supplier.role || '')}</span>
                 </td>
@@ -1017,6 +1027,10 @@ class SupplierConfigManager {
                 <td class="name-cell">
                     <input type="text" class="edit-input name-input" value="${this.escapeHtml(supplier.name)}" 
                            maxlength="100" required>
+                </td>
+                <td class="lta-cell">
+                    <input type="text" class="edit-input lta-input" value="${this.escapeHtml(supplier.lta || '')}" 
+                           maxlength="50" placeholder="LTA code">
                 </td>
                 <td class="role-cell">
                     <select class="edit-input role-input" required>
@@ -1366,6 +1380,7 @@ class SupplierConfigManager {
         // Popola i campi manualmente DOPO aver aperto la modal (come fa categories)
         setTimeout(() => {
             document.getElementById('supplier-name').value = `${supplier.name} (Copy)`;
+            document.getElementById('supplier-lta').value = supplier.lta || '';
             document.getElementById('supplier-role').value = supplier.role || '';
             document.getElementById('supplier-department').value = supplier.department || '';
             document.getElementById('supplier-real-rate').value = supplier.realRate || '';
@@ -1469,7 +1484,7 @@ class SupplierConfigManager {
      * Popola il form con i dati del supplier
      */
     populateForm(supplier) {
-        const fields = ['name', 'role', 'department', 'realRate', 'officialRate'];
+        const fields = ['name', 'lta', 'role', 'department', 'realRate', 'officialRate'];
         fields.forEach(field => {
             const element = document.getElementById(`supplier-${field.replace(/([A-Z])/g, '-$1').toLowerCase()}`);
             if (element) {
@@ -1633,6 +1648,7 @@ class SupplierConfigManager {
      */
     extractFormData(form, supplierId, scope, isNewSupplier = false) {
         const nameField = document.getElementById('supplier-name');
+        const ltaField = document.getElementById('supplier-lta');
         const roleField = document.getElementById('supplier-role');
         const departmentField = document.getElementById('supplier-department');
         const realRateField = document.getElementById('supplier-real-rate');
@@ -1641,6 +1657,7 @@ class SupplierConfigManager {
         return {
             id: (isNewSupplier || !supplierId) ? this.generateId('supplier_') : supplierId,
             name: nameField?.value?.trim() || '',
+            lta: ltaField?.value?.trim() || '',
             role: roleField?.value?.trim() || '',
             department: departmentField?.value?.trim() || '',
             realRate: parseFloat(realRateField?.value) || 0,
@@ -1811,6 +1828,11 @@ class SupplierConfigManager {
                                 <label for="supplier-name">Supplier Name:</label>
                                 <input type="text" id="supplier-name" name="name" required maxlength="100" 
                                        placeholder="Enter supplier company name">
+                            </div>
+                            <div class="form-group">
+                                <label for="supplier-lta">LTA:</label>
+                                <input type="text" id="supplier-lta" name="lta" maxlength="50" 
+                                       placeholder="Enter LTA code">
                             </div>
                             <div class="form-group">
                                 <label for="supplier-role">Role:</label>

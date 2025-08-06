@@ -178,6 +178,7 @@ class DefaultConfigManager {
                 {
                     "id": "example-g1-it",
                     "name": "Example Supplier G1",
+                    "lta": "LTA001",
                     "role": "G1",
                     "department": "IT",
                     "realRate": 450,
@@ -187,6 +188,7 @@ class DefaultConfigManager {
                 {
                     "id": "example-g2-it",
                     "name": "Example Supplier G2",
+                    "lta": "LTA002",
                     "role": "G2",
                     "department": "IT",
                     "realRate": 350,
@@ -196,6 +198,7 @@ class DefaultConfigManager {
                 {
                     "id": "example-pm-it",
                     "name": "Example Supplier PM",
+                    "lta": "LTA003",
                     "role": "PM",
                     "department": "IT",
                     "realRate": 500,
@@ -207,6 +210,7 @@ class DefaultConfigManager {
                 {
                     "id": "internal-analyst-it",
                     "name": "Internal Analyst",
+                    "lta": "INT001",
                     "role": "G1",
                     "department": "IT",
                     "realRate": 600,
@@ -216,6 +220,7 @@ class DefaultConfigManager {
                 {
                     "id": "internal-developer-it",
                     "name": "Internal Developer",
+                    "lta": "INT002",
                     "role": "G2",
                     "department": "IT",
                     "realRate": 550,
@@ -225,6 +230,7 @@ class DefaultConfigManager {
                 {
                     "id": "internal-tech-analyst-it",
                     "name": "Internal Tech Analyst",
+                    "lta": "INT003",
                     "role": "TA",
                     "department": "IT",
                     "realRate": 580,
