@@ -712,6 +712,10 @@ class VersionManager {
             // Generate next version ID
             const nextVersionId = this.generateNextVersionId();
 
+            // Update project version to match the new version ID
+            const newProjectVersion = this.convertVersionIdToSemver(nextVersionId);
+            this.app.currentProject.project.version = newProjectVersion;
+
             // Create deep copy of current project state
             const projectSnapshot = this.createProjectSnapshot();
             
@@ -778,6 +782,15 @@ class VersionManager {
         const nextVersion = `v${maxVersion + 1}`;
         
         return nextVersion;
+    }
+
+    /**
+     * Convert version ID to semantic version format
+     */
+    convertVersionIdToSemver(versionId) {
+        // Convert "v2" to "2.0.0", "v10" to "10.0.0", etc.
+        const versionNumber = parseInt(versionId.substring(1));
+        return `${versionNumber}.0.0`;
     }
 
     /**
