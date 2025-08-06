@@ -1,0 +1,474 @@
+{
+  "defaultConfiguration": {
+    "globalConfig": {
+      "suppliers": [
+        {
+          "name": "Internal Team",
+          "type": "internal",
+          "dailyRate": 100,
+          "currency": "USD",
+          "expertise": {
+            "Backend": 85,
+            "Frontend": 80,
+            "Database": 90,
+            "DevOps": 75
+          }
+        },
+        {
+          "name": "External Contractor",
+          "type": "external", 
+          "dailyRate": 120,
+          "currency": "USD",
+          "expertise": {
+            "Backend": 90,
+            "Frontend": 95,
+            "Mobile": 85,
+            "Design": 90
+          }
+        },
+        {
+          "name": "Offshore Team",
+          "type": "external",
+          "dailyRate": 60,
+          "currency": "USD", 
+          "expertise": {
+            "Backend": 70,
+            "Frontend": 75,
+            "Testing": 80,
+            "Maintenance": 85
+          }
+        }
+      ],
+      "categories": [
+        {
+          "name": "Backend",
+          "description": "Server-side development",
+          "defaultSupplier": "Internal Team",
+          "complexity": "medium"
+        },
+        {
+          "name": "Frontend", 
+          "description": "Client-side user interface",
+          "defaultSupplier": "External Contractor",
+          "complexity": "medium"
+        },
+        {
+          "name": "Database",
+          "description": "Data storage and management",
+          "defaultSupplier": "Internal Team",
+          "complexity": "high"
+        },
+        {
+          "name": "Integration",
+          "description": "System integrations and APIs",
+          "defaultSupplier": "Internal Team", 
+          "complexity": "high"
+        },
+        {
+          "name": "Mobile",
+          "description": "Mobile application development",
+          "defaultSupplier": "External Contractor",
+          "complexity": "high"
+        },
+        {
+          "name": "Testing",
+          "description": "Quality assurance and testing",
+          "defaultSupplier": "Offshore Team",
+          "complexity": "low"
+        },
+        {
+          "name": "DevOps",
+          "description": "Deployment and infrastructure",
+          "defaultSupplier": "Internal Team",
+          "complexity": "high"
+        }
+      ],
+      "internalResources": [
+        {
+          "name": "Senior Developer",
+          "roles": {
+            "G1": { "rate": 150, "availability": 0.8 },
+            "G2": { "rate": 120, "availability": 1.0 },
+            "TA": { "rate": 80, "availability": 0.6 },
+            "PM": { "rate": 100, "availability": 0.4 }
+          },
+          "expertise": ["Backend", "Database", "Integration"],
+          "cost": 150
+        },
+        {
+          "name": "Mid-Level Developer",
+          "roles": {
+            "G1": { "rate": 100, "availability": 0.6 },
+            "G2": { "rate": 90, "availability": 1.0 },
+            "TA": { "rate": 70, "availability": 0.8 },
+            "PM": { "rate": 60, "availability": 0.2 }
+          },
+          "expertise": ["Frontend", "Backend", "Testing"],
+          "cost": 100
+        },
+        {
+          "name": "Technical Architect",
+          "roles": {
+            "G1": { "rate": 200, "availability": 1.0 },
+            "G2": { "rate": 150, "availability": 0.4 },
+            "TA": { "rate": 180, "availability": 1.0 },
+            "PM": { "rate": 120, "availability": 0.6 }
+          },
+          "expertise": ["Architecture", "Integration", "DevOps"],
+          "cost": 200
+        },
+        {
+          "name": "Project Manager",
+          "roles": {
+            "G1": { "rate": 80, "availability": 0.2 },
+            "G2": { "rate": 60, "availability": 0.1 },
+            "TA": { "rate": 70, "availability": 0.4 },
+            "PM": { "rate": 120, "availability": 1.0 }
+          },
+          "expertise": ["Management", "Planning", "Coordination"],
+          "cost": 120
+        }
+      ],
+      "calculationParameters": {
+        "defaultExpertiseLevel": 80,
+        "defaultRiskMargin": 20,
+        "currencySymbol": "$",
+        "roundingDigits": 2,
+        "phases": {
+          "functionalSpec": {
+            "name": "Functional Specification",
+            "type": "pre-development",
+            "calculated": false,
+            "distribution": { "G1": 0, "G2": 0, "TA": 80, "PM": 20 }
+          },
+          "techSpec": {
+            "name": "Technical Specification", 
+            "type": "pre-development",
+            "calculated": false,
+            "distribution": { "G1": 20, "G2": 60, "TA": 15, "PM": 5 }
+          },
+          "development": {
+            "name": "Development",
+            "type": "development",
+            "calculated": true,
+            "distribution": { "G1": 10, "G2": 80, "TA": 5, "PM": 5 }
+          },
+          "sit": {
+            "name": "System Integration Testing",
+            "type": "testing", 
+            "calculated": false,
+            "distribution": { "G1": 0, "G2": 30, "TA": 50, "PM": 20 }
+          },
+          "uat": {
+            "name": "User Acceptance Testing",
+            "type": "testing",
+            "calculated": false, 
+            "distribution": { "G1": 0, "G2": 20, "TA": 60, "PM": 20 }
+          },
+          "vapt": {
+            "name": "Vulnerability Assessment & Penetration Testing",
+            "type": "testing",
+            "calculated": false,
+            "distribution": { "G1": 0, "G2": 0, "TA": 100, "PM": 0 }
+          },
+          "consolidation": {
+            "name": "Consolidation",
+            "type": "post-development",
+            "calculated": false,
+            "distribution": { "G1": 10, "G2": 60, "TA": 20, "PM": 10 }
+          },
+          "postGoLive": {
+            "name": "Post Go-Live Support", 
+            "type": "post-development",
+            "calculated": false,
+            "distribution": { "G1": 5, "G2": 70, "TA": 15, "PM": 10 }
+          }
+        }
+      }
+    },
+    "projectOverrides": {}
+  },
+
+  "enterpriseConfiguration": {
+    "globalConfig": {
+      "suppliers": [
+        {
+          "name": "Enterprise Internal Team",
+          "type": "internal",
+          "dailyRate": 140,
+          "currency": "USD",
+          "expertise": {
+            "Enterprise Backend": 95,
+            "Microservices": 90,
+            "Database": 95,
+            "Security": 85
+          }
+        },
+        {
+          "name": "Specialized Security Vendor",
+          "type": "external",
+          "dailyRate": 200,
+          "currency": "USD",
+          "expertise": {
+            "Security": 95,
+            "Compliance": 90,
+            "VAPT": 95,
+            "Architecture": 85
+          }
+        },
+        {
+          "name": "UI/UX Design Agency",
+          "type": "external", 
+          "dailyRate": 160,
+          "currency": "USD",
+          "expertise": {
+            "Design": 95,
+            "Frontend": 90,
+            "Mobile": 85,
+            "User Experience": 95
+          }
+        }
+      ],
+      "categories": [
+        {
+          "name": "Enterprise Backend",
+          "description": "Scalable enterprise backend services",
+          "defaultSupplier": "Enterprise Internal Team",
+          "complexity": "high"
+        },
+        {
+          "name": "Security",
+          "description": "Security implementation and compliance",
+          "defaultSupplier": "Specialized Security Vendor", 
+          "complexity": "very-high"
+        },
+        {
+          "name": "Frontend",
+          "description": "Enterprise user interfaces",
+          "defaultSupplier": "UI/UX Design Agency",
+          "complexity": "high"
+        },
+        {
+          "name": "Integration",
+          "description": "Enterprise system integrations",
+          "defaultSupplier": "Enterprise Internal Team",
+          "complexity": "very-high"
+        }
+      ],
+      "internalResources": [
+        {
+          "name": "Enterprise Architect",
+          "roles": {
+            "G1": { "rate": 250, "availability": 1.0 },
+            "G2": { "rate": 180, "availability": 0.3 },
+            "TA": { "rate": 220, "availability": 1.0 },
+            "PM": { "rate": 150, "availability": 0.5 }
+          },
+          "expertise": ["Enterprise Architecture", "Security", "Integration"],
+          "cost": 250
+        },
+        {
+          "name": "Senior Enterprise Developer",
+          "roles": {
+            "G1": { "rate": 180, "availability": 0.8 },
+            "G2": { "rate": 150, "availability": 1.0 },
+            "TA": { "rate": 120, "availability": 0.6 },
+            "PM": { "rate": 100, "availability": 0.3 }
+          },
+          "expertise": ["Enterprise Backend", "Microservices", "Database"],
+          "cost": 180
+        }
+      ]
+    },
+    "projectOverrides": {
+      "suppliers": [
+        {
+          "name": "Project-Specific Vendor",
+          "type": "external",
+          "dailyRate": 180,
+          "currency": "USD"
+        }
+      ]
+    }
+  },
+
+  "testConfiguration": {
+    "globalConfig": {
+      "suppliers": [
+        {
+          "name": "Test Team A",
+          "type": "internal",
+          "dailyRate": 50,
+          "currency": "USD"
+        },
+        {
+          "name": "Test Team B", 
+          "type": "external",
+          "dailyRate": 75,
+          "currency": "USD"
+        }
+      ],
+      "categories": [
+        {
+          "name": "Test Category 1",
+          "description": "First test category"
+        },
+        {
+          "name": "Test Category 2",
+          "description": "Second test category"
+        }
+      ],
+      "internalResources": [
+        {
+          "name": "Test Resource",
+          "roles": {
+            "G1": { "rate": 100, "availability": 1.0 },
+            "G2": { "rate": 80, "availability": 1.0 },
+            "TA": { "rate": 90, "availability": 1.0 },
+            "PM": { "rate": 70, "availability": 1.0 }
+          },
+          "cost": 100
+        }
+      ]
+    },
+    "projectOverrides": {}
+  },
+
+  "minimalConfiguration": {
+    "globalConfig": {
+      "suppliers": [
+        {
+          "name": "Team",
+          "type": "internal",
+          "dailyRate": 100
+        }
+      ],
+      "categories": [
+        {
+          "name": "Category"
+        }
+      ],
+      "internalResources": [
+        {
+          "name": "Resource",
+          "roles": {
+            "G1": { "rate": 100, "availability": 1.0 },
+            "G2": { "rate": 100, "availability": 1.0 },
+            "TA": { "rate": 100, "availability": 1.0 },
+            "PM": { "rate": 100, "availability": 1.0 }
+          },
+          "cost": 100
+        }
+      ]
+    },
+    "projectOverrides": {}
+  },
+
+  "specialCharacterConfiguration": {
+    "globalConfig": {
+      "suppliers": [
+        {
+          "name": "Team \"Alpha\" & Special Characters",
+          "type": "internal",
+          "dailyRate": 100,
+          "currency": "€",
+          "notes": "Team with special chars: @#$%^&*()\nMultiple lines\nCommas, semicolons;"
+        },
+        {
+          "name": "国际团队 (International Team)",
+          "type": "external",
+          "dailyRate": 80,
+          "currency": "¥",
+          "notes": "Unicode support: 中文, العربية, русский"
+        }
+      ],
+      "categories": [
+        {
+          "name": "Category with \"Quotes\"",
+          "description": "Testing CSV export with special characters"
+        },
+        {
+          "name": "Category, with comma",
+          "description": "Line 1\nLine 2\nLine 3 with breaks"
+        }
+      ],
+      "internalResources": [
+        {
+          "name": "Resource \"Special\"",
+          "roles": {
+            "G1": { "rate": 100, "availability": 1.0 },
+            "G2": { "rate": 100, "availability": 1.0 },
+            "TA": { "rate": 100, "availability": 1.0 },
+            "PM": { "rate": 100, "availability": 1.0 }
+          },
+          "cost": 100,
+          "notes": "Special character testing:\n\"Quotes\"\nCommas, semicolons;\nUnicode: αβγδε"
+        }
+      ]
+    },
+    "projectOverrides": {}
+  },
+
+  "configurationWithOverrides": {
+    "globalConfig": {
+      "suppliers": [
+        {
+          "name": "Global Supplier 1",
+          "type": "internal",
+          "dailyRate": 100
+        },
+        {
+          "name": "Global Supplier 2",
+          "type": "external", 
+          "dailyRate": 120
+        }
+      ],
+      "categories": [
+        {
+          "name": "Global Category 1"
+        },
+        {
+          "name": "Global Category 2"
+        }
+      ],
+      "internalResources": [
+        {
+          "name": "Global Resource",
+          "roles": {
+            "G1": { "rate": 100, "availability": 1.0 },
+            "G2": { "rate": 100, "availability": 1.0 },
+            "TA": { "rate": 100, "availability": 1.0 },
+            "PM": { "rate": 100, "availability": 1.0 }
+          },
+          "cost": 100
+        }
+      ]
+    },
+    "projectOverrides": {
+      "suppliers": [
+        {
+          "name": "Project-Specific Supplier",
+          "type": "external",
+          "dailyRate": 150
+        }
+      ],
+      "categories": [
+        {
+          "name": "Project-Specific Category"
+        }
+      ],
+      "internalResources": [
+        {
+          "name": "Project-Specific Resource", 
+          "roles": {
+            "G1": { "rate": 120, "availability": 0.8 },
+            "G2": { "rate": 110, "availability": 1.0 },
+            "TA": { "rate": 100, "availability": 0.9 },
+            "PM": { "rate": 130, "availability": 0.7 }
+          },
+          "cost": 120
+        }
+      ]
+    }
+  }
+}

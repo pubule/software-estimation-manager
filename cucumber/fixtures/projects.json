@@ -1,0 +1,300 @@
+{
+  "simpleProject": {
+    "name": "Simple Test Project",
+    "description": "A basic project for testing core functionality",
+    "version": "1.0.0",
+    "createdDate": "2024-01-01T10:00:00.000Z",
+    "lastModified": "2024-01-01T10:00:00.000Z",
+    "features": [
+      {
+        "id": "FEAT-001",
+        "description": "User Login System",
+        "category": "Authentication",
+        "type": "Core Feature",
+        "supplier": "Internal Team",
+        "realManDays": 8,
+        "expertiseLevel": 85,
+        "riskMargin": 15,
+        "manDays": 10.82,
+        "cost": 1082,
+        "notes": "Basic username/password authentication"
+      },
+      {
+        "id": "FEAT-002",
+        "description": "Dashboard Overview",
+        "category": "Frontend",
+        "type": "UI Component",
+        "supplier": "UI Team",
+        "realManDays": 6,
+        "expertiseLevel": 90,
+        "riskMargin": 10,
+        "manDays": 7.33,
+        "cost": 879,
+        "notes": "Main dashboard with key metrics"
+      }
+    ],
+    "phases": {
+      "functionalSpec": { "manDays": 4, "cost": 400, "calculated": false },
+      "techSpec": { "manDays": 6, "cost": 600, "calculated": false },
+      "development": { "manDays": 18.15, "cost": 1961, "calculated": true },
+      "sit": { "manDays": 9, "cost": 900, "calculated": false },
+      "uat": { "manDays": 7, "cost": 700, "calculated": false },
+      "vapt": { "manDays": 4, "cost": 400, "calculated": false },
+      "consolidation": { "manDays": 3, "cost": 300, "calculated": false },
+      "postGoLive": { "manDays": 2, "cost": 200, "calculated": false }
+    },
+    "coverage": 85.5,
+    "versionHistory": []
+  },
+  
+  "complexProject": {
+    "name": "Enterprise Software Solution",
+    "description": "Large-scale enterprise application with multiple modules",
+    "version": "2.1.0",
+    "createdDate": "2023-08-15T09:30:00.000Z",
+    "lastModified": "2024-02-10T14:45:00.000Z",
+    "features": [
+      {
+        "id": "FEAT-ENT-001",
+        "description": "Multi-tenant Authentication & Authorization",
+        "category": "Security",
+        "type": "Core Module",
+        "supplier": "Security Team",
+        "realManDays": 25,
+        "expertiseLevel": 75,
+        "riskMargin": 30,
+        "manDays": 43.33,
+        "cost": 5200,
+        "notes": "SAML, OAuth2, RBAC implementation"
+      },
+      {
+        "id": "FEAT-ENT-002", 
+        "description": "Advanced Reporting Engine",
+        "category": "Analytics",
+        "type": "Feature Module",
+        "supplier": "Data Team",
+        "realManDays": 35,
+        "expertiseLevel": 70,
+        "riskMargin": 25,
+        "manDays": 62.5,
+        "cost": 7500,
+        "notes": "Custom reports, charts, data export"
+      },
+      {
+        "id": "FEAT-ENT-003",
+        "description": "Real-time Notification System", 
+        "category": "Communication",
+        "type": "Integration",
+        "supplier": "External Vendor",
+        "realManDays": 18,
+        "expertiseLevel": 80,
+        "riskMargin": 20,
+        "manDays": 27,
+        "cost": 4050,
+        "notes": "WebSocket, push notifications, email alerts"
+      },
+      {
+        "id": "FEAT-ENT-004",
+        "description": "API Gateway & Microservices",
+        "category": "Infrastructure",
+        "type": "Core Architecture",
+        "supplier": "Platform Team",
+        "realManDays": 45,
+        "expertiseLevel": 85,
+        "riskMargin": 35,
+        "manDays": 71.47,
+        "cost": 10720,
+        "notes": "Service mesh, load balancing, rate limiting"
+      },
+      {
+        "id": "FEAT-ENT-005",
+        "description": "Mobile Application",
+        "category": "Mobile",
+        "type": "Client Application",
+        "supplier": "Mobile Team",
+        "realManDays": 55,
+        "expertiseLevel": 75,
+        "riskMargin": 40,
+        "manDays": 102.67,
+        "cost": 15400,
+        "notes": "iOS and Android native apps"
+      }
+    ],
+    "phases": {
+      "functionalSpec": { "manDays": 25, "cost": 2500, "calculated": false },
+      "techSpec": { "manDays": 40, "cost": 4000, "calculated": false },
+      "development": { "manDays": 306.97, "cost": 42870, "calculated": true },
+      "sit": { "manDays": 80, "cost": 8000, "calculated": false },
+      "uat": { "manDays": 65, "cost": 6500, "calculated": false },
+      "vapt": { "manDays": 35, "cost": 3500, "calculated": false },
+      "consolidation": { "manDays": 25, "cost": 2500, "calculated": false },
+      "postGoLive": { "manDays": 15, "cost": 1500, "calculated": false }
+    },
+    "coverage": 92.8,
+    "versionHistory": [
+      {
+        "id": "V1",
+        "name": "Initial Architecture",
+        "timestamp": "2023-09-01T10:00:00.000Z",
+        "checksum": "abc123def456",
+        "size": 2048
+      },
+      {
+        "id": "V2", 
+        "name": "Added Mobile Module",
+        "timestamp": "2023-11-15T14:30:00.000Z",
+        "checksum": "def456ghi789",
+        "size": 3072
+      },
+      {
+        "id": "V3",
+        "name": "Security Enhancements",
+        "timestamp": "2024-01-10T11:45:00.000Z", 
+        "checksum": "ghi789jkl012",
+        "size": 3584
+      }
+    ]
+  },
+  
+  "specialCharactersProject": {
+    "name": "Test \"Quotes\" & Special, Characters",
+    "description": "Project for testing CSV/JSON export with special characters\nMultiple lines\nTabs\tand other edge cases",
+    "version": "1.0.0-beta",
+    "createdDate": "2024-03-01T08:00:00.000Z",
+    "lastModified": "2024-03-01T08:00:00.000Z",
+    "features": [
+      {
+        "id": "FEAT-SPECIAL-1",
+        "description": "Feature with \"quoted text\" and, commas",
+        "category": "Test, Category",
+        "type": "Edge Case",
+        "supplier": "Team \"Alpha\"",
+        "realManDays": 5,
+        "expertiseLevel": 80,
+        "riskMargin": 20,
+        "manDays": 7.5,
+        "cost": 750,
+        "notes": "Line 1\nLine 2\nLine with \"quotes\" and, commas"
+      },
+      {
+        "id": "FEAT-SPECIAL-2",
+        "description": "Unicode characters: 中文, العربية, русский",
+        "category": "Internationalization",
+        "type": "i18n Feature",
+        "supplier": "Global Team",
+        "realManDays": 12,
+        "expertiseLevel": 70,
+        "riskMargin": 25,
+        "manDays": 21.43,
+        "cost": 2143,
+        "notes": "Support for: UTF-8, RTL languages, special characters: @#$%^&*()"
+      }
+    ],
+    "phases": {
+      "functionalSpec": { "manDays": 3, "cost": 300, "calculated": false },
+      "techSpec": { "manDays": 5, "cost": 500, "calculated": false },
+      "development": { "manDays": 28.93, "cost": 2893, "calculated": true },
+      "sit": { "manDays": 8, "cost": 800, "calculated": false },
+      "uat": { "manDays": 6, "cost": 600, "calculated": false },
+      "vapt": { "manDays": 4, "cost": 400, "calculated": false },
+      "consolidation": { "manDays": 2, "cost": 200, "calculated": false },
+      "postGoLive": { "manDays": 1, "cost": 100, "calculated": false }
+    },
+    "coverage": 78.2
+  },
+  
+  "emptyProject": {
+    "name": "New Project",
+    "description": "",
+    "version": "1.0.0",
+    "createdDate": "2024-01-01T00:00:00.000Z",
+    "lastModified": "2024-01-01T00:00:00.000Z",
+    "features": [],
+    "phases": {
+      "functionalSpec": { "manDays": 0, "cost": 0, "calculated": false },
+      "techSpec": { "manDays": 0, "cost": 0, "calculated": false },
+      "development": { "manDays": 0, "cost": 0, "calculated": true },
+      "sit": { "manDays": 0, "cost": 0, "calculated": false },
+      "uat": { "manDays": 0, "cost": 0, "calculated": false },
+      "vapt": { "manDays": 0, "cost": 0, "calculated": false },
+      "consolidation": { "manDays": 0, "cost": 0, "calculated": false },
+      "postGoLive": { "manDays": 0, "cost": 0, "calculated": false }
+    },
+    "coverage": 0,
+    "versionHistory": []
+  },
+  
+  "versionTestProject": {
+    "name": "Version Management Test Project",
+    "description": "Project specifically for testing version management functionality",
+    "version": "1.5.2",
+    "createdDate": "2024-01-15T12:00:00.000Z",
+    "lastModified": "2024-02-20T16:30:00.000Z",
+    "features": [
+      {
+        "id": "FEAT-V001",
+        "description": "Base Feature for Versioning",
+        "category": "Core",
+        "type": "Base",
+        "supplier": "Internal",
+        "realManDays": 10,
+        "expertiseLevel": 80,
+        "riskMargin": 20,
+        "manDays": 15,
+        "cost": 1500,
+        "notes": "This feature exists to test version comparisons"
+      }
+    ],
+    "phases": {
+      "functionalSpec": { "manDays": 3, "cost": 300, "calculated": false },
+      "techSpec": { "manDays": 5, "cost": 500, "calculated": false },
+      "development": { "manDays": 15, "cost": 1500, "calculated": true },
+      "sit": { "manDays": 8, "cost": 800, "calculated": false },
+      "uat": { "manDays": 6, "cost": 600, "calculated": false },
+      "vapt": { "manDays": 3, "cost": 300, "calculated": false },
+      "consolidation": { "manDays": 2, "cost": 200, "calculated": false },
+      "postGoLive": { "manDays": 1, "cost": 100, "calculated": false }
+    },
+    "coverage": 75.0,
+    "versionHistory": [
+      {
+        "id": "V1",
+        "name": "Initial Version",
+        "timestamp": "2024-01-15T12:00:00.000Z",
+        "checksum": "initial123",
+        "size": 1024,
+        "data": {
+          "features": [
+            {
+              "id": "FEAT-V001",
+              "description": "Initial Base Feature",
+              "manDays": 10,
+              "cost": 1000
+            }
+          ],
+          "totalManDays": 10,
+          "totalCost": 1000
+        }
+      },
+      {
+        "id": "V2",
+        "name": "Updated Calculations",
+        "timestamp": "2024-02-01T09:15:00.000Z",
+        "checksum": "updated456", 
+        "size": 1152,
+        "data": {
+          "features": [
+            {
+              "id": "FEAT-V001",
+              "description": "Updated Base Feature",
+              "manDays": 15,
+              "cost": 1500
+            }
+          ],
+          "totalManDays": 15,
+          "totalCost": 1500
+        }
+      }
+    ]
+  }
+}

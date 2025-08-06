@@ -1,0 +1,269 @@
+{
+  "basicFeature": {
+    "id": "FEAT-BASIC-001",
+    "description": "Basic User Management",
+    "category": "Backend",
+    "type": "Core Feature",
+    "supplier": "Internal Team",
+    "realManDays": 10,
+    "expertiseLevel": 80,
+    "riskMargin": 20,
+    "manDays": 15,
+    "cost": 1500,
+    "notes": "CRUD operations for user management"
+  },
+  
+  "complexFeature": {
+    "id": "FEAT-COMPLEX-001", 
+    "description": "Advanced Analytics Dashboard with Real-time Data Processing",
+    "category": "Analytics",
+    "type": "Advanced Module",
+    "supplier": "Data Analytics Team",
+    "realManDays": 45,
+    "expertiseLevel": 70,
+    "riskMargin": 35,
+    "manDays": 86.79,
+    "cost": 13018,
+    "notes": "Complex dashboard with:\n- Real-time data streaming\n- Custom visualizations\n- Export capabilities\n- User customization"
+  },
+  
+  "highRiskFeature": {
+    "id": "FEAT-RISK-001",
+    "description": "Legacy System Integration",
+    "category": "Integration", 
+    "type": "Integration Module",
+    "supplier": "External Vendor",
+    "realManDays": 20,
+    "expertiseLevel": 60,
+    "riskMargin": 50,
+    "manDays": 50,
+    "cost": 7500,
+    "notes": "High risk due to:\n- Legacy system documentation gaps\n- Outdated APIs\n- Complex data mapping requirements"
+  },
+  
+  "lowRiskFeature": {
+    "id": "FEAT-LOW-RISK-001",
+    "description": "Simple Contact Form",
+    "category": "Frontend",
+    "type": "UI Component", 
+    "supplier": "UI Team",
+    "realManDays": 3,
+    "expertiseLevel": 95,
+    "riskMargin": 5,
+    "manDays": 3.32,
+    "cost": 332,
+    "notes": "Standard contact form with validation"
+  },
+  
+  "expertiseTestFeature": {
+    "id": "FEAT-EXPERTISE-TEST",
+    "description": "Feature for Testing Expertise Calculations",
+    "category": "Test",
+    "type": "Test Feature",
+    "supplier": "Test Team",
+    "realManDays": 12,
+    "expertiseLevel": 100,
+    "riskMargin": 25,
+    "manDays": 15,
+    "cost": 1500,
+    "notes": "Perfect expertise level for calculation testing"
+  },
+  
+  "zeroExpertiseFeature": {
+    "id": "FEAT-ZERO-EXPERTISE",
+    "description": "Feature with Zero Expertise (Edge Case)",
+    "category": "Test",
+    "type": "Edge Case",
+    "supplier": "Test Team", 
+    "realManDays": 8,
+    "expertiseLevel": 0,
+    "riskMargin": 20,
+    "manDays": null,
+    "cost": 0,
+    "notes": "Edge case for testing division by zero handling"
+  },
+  
+  "specialCharFeature": {
+    "id": "FEAT-SPECIAL-CHARS",
+    "description": "Feature with \"quotes\", commas, and\nnew lines",
+    "category": "Test, Export",
+    "type": "Special \"Characters\"",
+    "supplier": "Team \"Alpha\"",
+    "realManDays": 5,
+    "expertiseLevel": 85,
+    "riskMargin": 15,
+    "manDays": 6.76,
+    "cost": 676,
+    "notes": "Testing CSV export:\n- Line breaks\n- \"Quotes\"\n- Commas, semicolons;\n- Special chars: @#$%^&*()"
+  },
+  
+  "unicodeFeature": {
+    "id": "FEAT-UNICODE-测试",
+    "description": "Unicode Support: 中文, العربية, русский, 日本語",
+    "category": "国际化",
+    "type": "i18n Feature",
+    "supplier": "Global Team",
+    "realManDays": 15,
+    "expertiseLevel": 75,
+    "riskMargin": 25,
+    "manDays": 25,
+    "cost": 3750,
+    "notes": "Internationalization support:\n- UTF-8 encoding\n- RTL languages\n- Currency symbols: €£¥₹\n- Mathematical symbols: αβγδ∑∆"
+  },
+  
+  "minimumFeature": {
+    "id": "F1",
+    "description": "Min",
+    "category": "Cat",
+    "type": "Type",
+    "supplier": "Team",
+    "realManDays": 1,
+    "expertiseLevel": 100,
+    "riskMargin": 0,
+    "manDays": 1,
+    "cost": 100,
+    "notes": "Minimal feature for testing minimum field lengths"
+  },
+  
+  "calculationTestFeatures": [
+    {
+      "id": "CALC-TEST-1",
+      "description": "Standard Calculation Test",
+      "realManDays": 10,
+      "expertiseLevel": 80,
+      "riskMargin": 20,
+      "expectedManDays": 15.0
+    },
+    {
+      "id": "CALC-TEST-2", 
+      "description": "High Expertise Test",
+      "realManDays": 10,
+      "expertiseLevel": 100,
+      "riskMargin": 20,
+      "expectedManDays": 12.0
+    },
+    {
+      "id": "CALC-TEST-3",
+      "description": "High Risk Test", 
+      "realManDays": 10,
+      "expertiseLevel": 80,
+      "riskMargin": 60,
+      "expectedManDays": 20.0
+    },
+    {
+      "id": "CALC-TEST-4",
+      "description": "Perfect Conditions",
+      "realManDays": 10,
+      "expertiseLevel": 100,
+      "riskMargin": 0,
+      "expectedManDays": 10.0
+    },
+    {
+      "id": "CALC-TEST-5",
+      "description": "Fractional Result",
+      "realManDays": 7,
+      "expertiseLevel": 90, 
+      "riskMargin": 30,
+      "expectedManDays": 10.11
+    }
+  ],
+  
+  "validationTestFeatures": [
+    {
+      "id": "VAL-VALID-1",
+      "description": "This is a valid description with enough characters",
+      "category": "Valid Category",
+      "isValid": true
+    },
+    {
+      "id": "VAL-INVALID-1",
+      "description": "No",
+      "category": "",
+      "isValid": false,
+      "errors": ["Description too short", "Category required"]
+    },
+    {
+      "id": "VAL-EDGE-1",
+      "description": "Exactly 10 chars",
+      "category": "Edge",
+      "isValid": true,
+      "note": "Tests 10-character boundary"
+    },
+    {
+      "id": "VAL-EDGE-2",
+      "description": "9 chars",
+      "category": "Edge", 
+      "isValid": false,
+      "note": "Just under 10-character boundary"
+    }
+  ],
+  
+  "bulkTestFeatures": {
+    "small": [
+      {
+        "id": "BULK-S-001",
+        "description": "Bulk Test Feature 1",
+        "realManDays": 5,
+        "manDays": 6
+      },
+      {
+        "id": "BULK-S-002", 
+        "description": "Bulk Test Feature 2",
+        "realManDays": 8,
+        "manDays": 10
+      }
+    ],
+    "medium": [
+      {
+        "id": "BULK-M-001",
+        "description": "Medium Bulk Feature 1",
+        "realManDays": 12,
+        "manDays": 15
+      },
+      {
+        "id": "BULK-M-002",
+        "description": "Medium Bulk Feature 2", 
+        "realManDays": 18,
+        "manDays": 22
+      },
+      {
+        "id": "BULK-M-003",
+        "description": "Medium Bulk Feature 3",
+        "realManDays": 25,
+        "manDays": 31
+      }
+    ],
+    "large": [
+      {
+        "id": "BULK-L-001",
+        "description": "Large Feature Set 1",
+        "realManDays": 35,
+        "manDays": 45
+      },
+      {
+        "id": "BULK-L-002",
+        "description": "Large Feature Set 2",
+        "realManDays": 40,
+        "manDays": 52
+      },
+      {
+        "id": "BULK-L-003", 
+        "description": "Large Feature Set 3",
+        "realManDays": 28,
+        "manDays": 37
+      },
+      {
+        "id": "BULK-L-004",
+        "description": "Large Feature Set 4",
+        "realManDays": 55,
+        "manDays": 71
+      },
+      {
+        "id": "BULK-L-005",
+        "description": "Large Feature Set 5",
+        "realManDays": 42,
+        "manDays": 58
+      }
+    ]
+  }
+}
