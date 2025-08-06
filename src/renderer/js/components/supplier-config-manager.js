@@ -82,7 +82,7 @@ class SupplierConfigManager {
         this.ensureDefaultSuppliers();
 
         const supplierData = this.getSupplierData();
-        this.suppliers = this.currentScope === 'global' ? supplierData.global : supplierData.project;
+        this.suppliers = supplierData.global;
 
         contentDiv.innerHTML = this.generateSuppliersHTML(supplierData);
         this.eventListenersSetup = false; // Reset flag when HTML is regenerated
@@ -151,7 +151,6 @@ class SupplierConfigManager {
         
         this.cleanupEventListeners();
 
-        this.setupScopeTabEvents();
         this.setupTableControls();
         this.setupTableEvents();
         this.setupScrollInfinito();
@@ -195,17 +194,6 @@ class SupplierConfigManager {
         });
     }
 
-    /**
-     * Setup eventi per i tab di scope
-     */
-    setupScopeTabEvents() {
-        document.querySelectorAll('.suppliers-config-container .scope-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                if (tab.disabled) return;
-                this.switchScope(tab.dataset.scope);
-            });
-        });
-    }
 
     /**
      * Setup eventi per i controlli della tabella
@@ -690,7 +678,7 @@ class SupplierConfigManager {
             department: departmentInput.value.trim(),
             realRate: parseFloat(realRateInput.value) || 0,
             officialRate: parseFloat(officialRateInput.value) || 0,
-            isGlobal: this.currentScope === 'global'
+            isGlobal: true
         };
     }
 
@@ -1444,25 +1432,6 @@ class SupplierConfigManager {
         }
     }
 
-    /**
-     * Cambia scope (global/project)
-     */
-    switchScope(scope) {
-        this.currentScope = scope;
-
-        // Cancella editing se attivo
-        if (this.editingRowId) {
-            this.cancelEditingRow(this.editingRowId);
-        }
-
-        // Aggiorna tab attivi
-        document.querySelectorAll('.suppliers-config-container .scope-tab').forEach(t =>
-            t.classList.remove('active'));
-        document.querySelector(`[data-scope="${scope}"]`)?.classList.add('active');
-
-        // Ricarica dati
-        this.loadSuppliersConfig();
-    }
 
     /**
      * Mostra modal per aggiungere/modificare supplier
@@ -1565,7 +1534,7 @@ class SupplierConfigManager {
 
             // Ricarica la lista dalla configurazione aggiornata invece di aggiungere manualmente
             const reloadedData = this.getSupplierData();
-            this.suppliers = this.currentScope === 'global' ? reloadedData.global : reloadedData.project;
+            this.suppliers = reloadedData.global;
 
             // Chiudi modal e aggiorna UI
             this.closeModal();
@@ -1815,13 +1784,8 @@ class SupplierConfigManager {
             <div class="suppliers-scope-selector">
                 <div class="scope-tabs">
                     <button class="scope-tab active" data-scope="global">
-                        <i class="fas fa-globe"></i> Global Suppliers
+                        <i class="fas fa-users"></i> Suppliers
                         <span class="count">(${data.global.length})</span>
-                    </button>
-                    <button class="scope-tab ${!data.hasProject ? 'disabled' : ''}" 
-                            data-scope="project" ${!data.hasProject ? 'disabled' : ''}>
-                        <i class="fas fa-project-diagram"></i> Project Suppliers
-                        <span class="count">(${data.project.length})</span>
                     </button>
                 </div>
                 <div class="scope-actions">

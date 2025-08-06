@@ -58,7 +58,6 @@ class InternalResourcesConfigManager {
         // Removed: window.saveResourcesModal - now using form submission
         // window.editResource = this.startEditingRow.bind(this); // Rimosso - usa solo delegazione eventi
         // window.deleteResource = this.deleteResource.bind(this); // Rimosso - usa solo delegazione eventi
-        window.disableResource = this.disableResource.bind(this);
         // window.duplicateResource = this.duplicateResource.bind(this); // Rimosso - usa solo delegazione eventi
     }
 
@@ -82,7 +81,7 @@ class InternalResourcesConfigManager {
         this.ensureDefaultInternalResources();
 
         const resourceData = this.getResourceData();
-        this.resources = this.currentScope === 'global' ? resourceData.global : resourceData.project;
+        this.resources = resourceData.global;
 
         contentDiv.innerHTML = this.generateResourcesHTML(resourceData);
         this.eventListenersSetup = false; // Reset flag when HTML is regenerated
@@ -151,7 +150,6 @@ class InternalResourcesConfigManager {
         
         this.cleanupEventListeners();
 
-        this.setupScopeTabEvents();
         this.setupTableControls();
         this.setupTableEvents();
         this.setupScrollInfinito();
@@ -189,23 +187,8 @@ class InternalResourcesConfigManager {
             chip.replaceWith(chip.cloneNode(true));
         });
 
-        // Rimuovi listener dai tab
-        document.querySelectorAll('.resources-config-container .scope-tab').forEach(tab => {
-            tab.replaceWith(tab.cloneNode(true));
-        });
     }
 
-    /**
-     * Setup eventi per i tab di scope
-     */
-    setupScopeTabEvents() {
-        document.querySelectorAll('.resources-config-container .scope-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                if (tab.disabled) return;
-                this.switchScope(tab.dataset.scope);
-            });
-        });
-    }
 
     /**
      * Setup eventi per i controlli della tabella
@@ -244,7 +227,7 @@ class InternalResourcesConfigManager {
 
         // Bottoni azioni principali
         document.getElementById('add-resource-btn')?.addEventListener('click', () => {
-            this.showModal(this.currentScope);
+            this.showModal('global');
         });
 
         document.getElementById('bulk-actions-btn')?.addEventListener('click', () => {
@@ -477,7 +460,7 @@ class InternalResourcesConfigManager {
             this.showRowLoading(row, true);
 
             // Salva resource
-            await this.persistResource(formData, this.currentScope, resourceId);
+            await this.persistResource(formData, 'global', resourceId);
 
             // Aggiorna lista locale
             const resourceIndex = this.resources.findIndex(r => r.id === resourceId);
@@ -695,7 +678,7 @@ class InternalResourcesConfigManager {
             department: departmentInput.value.trim(),
             realRate: parseFloat(realRateInput.value) || 0,
             officialRate: parseFloat(officialRateInput.value) || 0,
-            isGlobal: this.currentScope === 'global'
+            isGlobal: true
         };
     }
 
@@ -833,7 +816,7 @@ class InternalResourcesConfigManager {
             // Ctrl+N per nuova risorsa
             else if (e.ctrlKey && e.key === 'n') {
                 e.preventDefault();
-                this.showModal(this.currentScope);
+                this.showModal('global');
             }
             // Esc per cancellare editing
             else if (e.key === 'Escape' && this.editingRowId) {
@@ -1373,7 +1356,7 @@ class InternalResourcesConfigManager {
         this.isDuplicating = true;
 
         // Apri modal vuota per nuova risorsa
-        this.showModal(this.currentScope, null, true);
+        this.showModal('global', null, true);
         
         // Popola i campi manualmente DOPO aver aperto la modal (come fa categories)
         setTimeout(() => {
@@ -1444,25 +1427,6 @@ class InternalResourcesConfigManager {
         }
     }
 
-    /**
-     * Cambia scope (global/project)
-     */
-    switchScope(scope) {
-        this.currentScope = scope;
-
-        // Cancella editing se attivo
-        if (this.editingRowId) {
-            this.cancelEditingRow(this.editingRowId);
-        }
-
-        // Aggiorna tab attivi
-        document.querySelectorAll('.resources-config-container .scope-tab').forEach(t =>
-            t.classList.remove('active'));
-        document.querySelector(`[data-scope="${scope}"]`)?.classList.add('active');
-
-        // Ricarica dati
-        this.loadResourcesConfig();
-    }
 
     /**
      * Mostra modal per aggiungere/modificare risorsa
@@ -1559,7 +1523,7 @@ class InternalResourcesConfigManager {
 
             // Ricarica la lista dalla configurazione aggiornata invece di aggiungere manualmente
             const reloadedData = this.getResourceData();
-            this.resources = this.currentScope === 'global' ? reloadedData.global : reloadedData.project;
+            this.resources = reloadedData.global;
 
             // Chiudi modal e aggiorna UI
             this.closeModal();
@@ -1678,11 +1642,7 @@ class InternalResourcesConfigManager {
      * Persiste la risorsa
      */
     async persistResource(resourceData, scope, resourceId) {
-        if (scope === 'global') {
-            this.persistGlobalResource(resourceData, resourceId);
-        } else {
-            this.persistProjectResource(resourceData);
-        }
+        this.persistGlobalResource(resourceData, resourceId);
     }
 
     /**
@@ -1706,31 +1666,17 @@ class InternalResourcesConfigManager {
         this.configManager.saveGlobalConfig();
     }
 
-    /**
-     * Persiste risorsa di progetto
-     */
-    persistProjectResource(resourceData) {
-        this.configManager.addInternalResourceToProject(this.app.currentProject.config, resourceData);
-        this.app.markDirty();
-    }
 
     /**
      * Elimina risorsa
      */
-    async deleteResource(resourceId, scope = null) {
+    async deleteResource(resourceId) {
         if (!confirm('Are you sure you want to delete this internal resource?')) return;
 
         try {
-            const actualScope = scope || this.currentScope;
-
-            if (actualScope === 'global') {
-                this.configManager.globalConfig.internalResources =
-                    this.configManager.globalConfig.internalResources.filter(r => r.id !== resourceId);
-                this.configManager.saveGlobalConfig();
-            } else {
-                this.configManager.deleteInternalResourceFromProject(this.app.currentProject.config, resourceId);
-                this.app.markDirty();
-            }
+            this.configManager.globalConfig.internalResources =
+                this.configManager.globalConfig.internalResources.filter(r => r.id !== resourceId);
+            this.configManager.saveGlobalConfig();
 
             // Aggiorna tabella
             this.resources = this.resources.filter(r => r.id !== resourceId);
@@ -1744,49 +1690,7 @@ class InternalResourcesConfigManager {
         }
     }
 
-    /**
-     * Disabilita risorsa per il progetto corrente
-     */
-    async disableResource(resourceId) {
-        try {
-            if (!this.app.currentProject) return;
 
-            this.ensureProjectOverrides();
-
-            const existingOverride = this.app.currentProject.config.projectOverrides.internalResources.find(r => r.id === resourceId);
-            if (existingOverride) {
-                existingOverride.status = 'inactive';
-            } else {
-                this.app.currentProject.config.projectOverrides.internalResources.push({
-                    id: resourceId,
-                    status: 'inactive'
-                });
-            }
-
-            this.app.markDirty();
-            await this.loadResourcesConfig();
-            this.app.refreshDropdowns();
-
-            NotificationManager.success('Internal resource disabled for this project');
-        } catch (error) {
-            console.error('Failed to disable resource:', error);
-            NotificationManager.error('Failed to disable resource');
-        }
-    }
-
-    /**
-     * Assicura che gli override di progetto esistano
-     */
-    ensureProjectOverrides() {
-        if (!this.app.currentProject.config.projectOverrides) {
-            this.app.currentProject.config.projectOverrides = {
-                suppliers: [],
-                internalResources: [],
-                categories: [],
-                calculationParams: {}
-            };
-        }
-    }
 
     /**
      * Utility functions
@@ -1809,13 +1713,8 @@ class InternalResourcesConfigManager {
             <div class="resources-scope-selector">
                 <div class="scope-tabs">
                     <button class="scope-tab active" data-scope="global">
-                        <i class="fas fa-globe"></i> Global Resources
+                        <i class="fas fa-user-tie"></i> Internal Resources
                         <span class="count">(${data.global.length})</span>
-                    </button>
-                    <button class="scope-tab ${!data.hasProject ? 'disabled' : ''}" 
-                            data-scope="project" ${!data.hasProject ? 'disabled' : ''}>
-                        <i class="fas fa-project-diagram"></i> Project Resources
-                        <span class="count">(${data.project.length})</span>
                     </button>
                 </div>
                 <div class="scope-actions">

@@ -6,7 +6,8 @@
       "Bash(node:*)",
       "Bash(grep:*)",
       "Bash(ls:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(npm start)"
     ],
     "deny": []
   }
