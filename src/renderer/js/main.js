@@ -616,15 +616,9 @@ class SoftwareEstimationApp {
             // Refresh dropdowns to ensure all configuration changes are propagated to the current version
             this.refreshDropdowns();
 
-            // Update current version with latest project state
-            if (this.versionManager) {
-                try {
-                    await this.versionManager.updateCurrentVersion();
-                } catch (versionError) {
-                    console.warn('Failed to update current version:', versionError);
-                    // Don't fail the save if version update fails
-                }
-            }
+            // NOTE: Removed updateCurrentVersion() call to maintain version immutability
+            // Versions should only be created explicitly by user, not automatically updated during auto-save
+            // This ensures proper version comparison and prevents features/phases from appearing in both versions
 
             NotificationManager.show('Project saved successfully', 'success');
 
