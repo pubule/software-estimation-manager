@@ -786,6 +786,40 @@ class ProjectManager {
     }
 
     /**
+     * Update recent project if it exists with current project data
+     */
+    updateRecentProjectVersion() {
+        if (!this.app.currentProject?.project) return;
+        
+        const currentProject = this.app.currentProject.project;
+        const currentFilePath = this.app.dataManager.currentProjectPath;
+        
+        // Find existing recent project by ID or file path
+        const existingIndex = this.recentProjects.findIndex(p => 
+            p.id === currentProject.id || (currentFilePath && p.filePath === currentFilePath)
+        );
+        
+        if (existingIndex !== -1) {
+            // Update the existing recent project with current data
+            this.recentProjects[existingIndex] = {
+                ...this.recentProjects[existingIndex],
+                version: currentProject.version, // Update version
+                name: currentProject.name,
+                modified: currentProject.lastModified,
+                lastOpened: new Date().toISOString()
+            };
+            
+            // Save to storage
+            this.saveRecentProjects();
+            
+            // Update UI
+            this.updateRecentProjectsUI();
+            
+            console.log('Updated recent project version:', currentProject.name, 'to version', currentProject.version);
+        }
+    }
+
+    /**
      * Load recent projects from storage
      */
     loadRecentProjects() {
@@ -981,6 +1015,9 @@ class ProjectManager {
         if (hasLoadedProject) {
             this.app.updateProjectInfo();
             this.app.updateProjectStatus();
+            
+            // Update recent projects version to keep it synchronized
+            this.updateRecentProjectVersion();
         }
     }
 
