@@ -1,0 +1,128 @@
+Feature: Project Management
+  As a project manager
+  I want to create, manage, and save software estimation projects
+  So that I can track project features, costs, and phases
+
+  Background:
+    Given the Software Estimation Manager application is initialized
+    And all required components are loaded
+
+  Scenario: Create a new project with default structure
+    Given I am working on any existing project
+    When I create a new project
+    Then a new project should be created with name "New Project"
+    And the project should have version "1.0.0"
+    And the project should have an empty features list
+    And the project should have all 8 project phases defined
+    And each phase should have manDays and cost properties initialized
+    And the project status should show as unsaved
+
+  Scenario: Initialize project with hierarchical configuration system
+    Given no project configuration exists
+    When I initialize a new project
+    Then the project should have a hierarchical configuration structure
+    And the configuration should include global defaults for suppliers
+    And the configuration should include global defaults for categories
+    And the configuration should include global defaults for internal resources
+    And the configuration should have empty project overrides
+    And the configuration should be ready for project-specific customizations
+
+  Scenario: Project dirty state affects UI indicators
+    Given I have a clean project open
+    When I modify project data
+    Then the project should be marked as dirty
+    And the project status indicator should display "●"
+    And the status indicator should have "unsaved" CSS class
+    And the navigation manager should be notified of dirty state
+
+  Scenario: Save project with unsaved changes
+    Given I have a project with unsaved changes
+    When I request to save the project
+    Then the project should be saved successfully
+    And the project should be marked as clean
+    And the project status indicator should display "○"
+    And the status indicator should have "saved" CSS class
+
+  Scenario: Handle save request for missing project
+    Given no project is currently loaded
+    When I attempt to save the project
+    Then the save operation should return false
+    And no file operations should be performed
+
+  Scenario: Close project with unsaved changes
+    Given I have a project with unsaved changes
+    When I request to close the project
+    Then I should see a confirmation dialog asking to save changes
+    And the dialog should say "You have unsaved changes. Do you want to save before continuing?"
+    When I confirm to save before closing
+    Then the project should be saved
+    And the project should be closed
+    And the window close should be confirmed
+
+  Scenario: Auto-calculate coverage as 30% of total feature man days
+    Given I have a project with features totaling 35 man days
+    When the project summary is updated
+    Then the coverage should be automatically calculated as 10.5 man days
+    And the coverage should be marked as auto-calculated
+    And the coverage reset button should be hidden
+
+  Scenario: Override auto-calculated coverage with manual input
+    Given I have a project with auto-calculated coverage of 10.5 man days
+    When I manually enter coverage value of 15 man days
+    Then the coverage should be set to 15 man days
+    And the coverage should be marked as manually entered
+    And the coverage reset button should become visible
+
+  Scenario: Reset manual coverage to auto-calculated value
+    Given I have a project with manual coverage of 15 man days
+    And the auto-calculated coverage would be 10.5 man days
+    When I click the reset coverage button
+    Then the coverage should be restored to 10.5 man days
+    And the coverage should be marked as auto-calculated
+    And the coverage reset button should be hidden
+
+  Scenario: Load corrupted project data with graceful fallback
+    Given a corrupted project file exists
+    When I attempt to load the project
+    Then a warning should be logged about the failed load
+    And the system should continue operating normally
+    And no error should be thrown to the user
+
+  Scenario: Navigate to projects section with delayed activation
+    Given the application is fully initialized
+    When the navigation system starts
+    Then there should be a 200ms delay before navigation activation
+    And the projects section should be activated after the delay
+
+  Scenario: Migrate old project format to hierarchical configuration
+    Given I have a project in the old flat configuration format
+    And the project config lacks projectOverrides structure
+    When the project is loaded
+    Then the project should be automatically migrated to hierarchical format
+    And the migrated config should have projectOverrides with empty arrays
+    And the original project data should remain intact
+
+  Scenario: Leave already migrated project unchanged
+    Given I have a project already in hierarchical configuration format
+    And the project config contains projectOverrides structure
+    When the migration process runs
+    Then the project should remain unchanged
+    And no migration should be performed
+
+  # Error Scenarios - Documenting Known Bugs
+
+  Scenario: Handle multiple timeout delays during project creation
+    Given I am creating a new project
+    When the new project workflow starts
+    Then multiple timeout operations should be scheduled
+    And a 100ms timeout should be set for phase reset
+    And a 600ms timeout should be set for version creation
+    And the timeouts could potentially overlap causing timing issues
+
+  Scenario: Auto-save disabled but dirty state still triggers updates
+    Given auto-save functionality is disabled
+    And I am viewing the phases section
+    When the project is marked as dirty
+    Then the phase manager should still receive update notifications
+    And development phase calculations should still be triggered
+    And this occurs despite auto-save being disabled
