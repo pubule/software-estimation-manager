@@ -144,7 +144,6 @@ class SoftwareEstimationApp {
             },
             // Initialize with hierarchical configuration structure
             config: this.configManager.initializeProjectConfig(),
-            templates: [],
             versions: []
         };
 
