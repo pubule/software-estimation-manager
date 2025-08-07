@@ -1275,7 +1275,7 @@ class CalculationsManager {
 
 Please find below the estimation details for the implementation of ${projectName} based on the provided requirements.
 
-The estimated budget for GTO part is ${finalTotalCost.toLocaleString()} € vat incl.
+The estimated budget for the technical part is ${finalTotalCost.toLocaleString()} € vat incl.
 
 This includes all necessary activities such as technical analysis, development, SIT, support UAT phases, deployment, and post go live support.
 
