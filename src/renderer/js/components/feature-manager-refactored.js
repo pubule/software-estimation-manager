@@ -47,7 +47,6 @@ class FeatureManagerRefactored extends BaseComponent {
         
         // Listen for modal events
         this.modal.on('onSubmit', (data) => this.handleFeatureSubmission(data));
-        this.on('modal-submitted', (event) => this.handleModalSubmitted(event.detail));
     }
 
     /**
@@ -115,13 +114,20 @@ class FeatureManagerRefactored extends BaseComponent {
     duplicateFeature(feature) {
         if (!feature) return;
 
+        const newId = this.generateFeatureId();
         const duplicate = {
             ...feature,
-            id: this.generateFeatureId(),
+            id: newId,
             description: `${feature.description} (Copy)`,
             created: undefined,
             modified: undefined
         };
+
+        console.log('Duplicating feature:', {
+            originalId: feature.id,
+            newId: newId,
+            duplicateId: duplicate.id
+        });
 
         this.state.editingFeature = null;
         this.modal.open({
@@ -154,7 +160,9 @@ class FeatureManagerRefactored extends BaseComponent {
      */
     async handleFeatureSubmission({ formData, result }) {
         try {
+            console.log('Feature submission - formData ID:', formData.id);
             const processedData = await this.processFeatureData(formData);
+            console.log('Feature submission - processedData ID:', processedData.id);
             const success = await this.saveFeatureToProject(processedData);
             
             if (success) {
@@ -170,13 +178,6 @@ class FeatureManagerRefactored extends BaseComponent {
         }
     }
 
-    /**
-     * Handle modal submitted event (alternative event handler)
-     */
-    async handleModalSubmitted(eventDetail) {
-        // Delegate to the main feature submission handler
-        await this.handleFeatureSubmission(eventDetail);
-    }
 
     /**
      * Process feature data before saving
@@ -214,11 +215,32 @@ class FeatureManagerRefactored extends BaseComponent {
             currentProject.features = [];
         }
 
+        // SAFETY: Ensure unique ID (backup protection against edge cases)
+        if (!this.state.editingFeature) {
+            const existingIds = currentProject.features.map(f => f.id);
+            if (existingIds.includes(featureData.id)) {
+                console.warn('ID conflict detected (should not happen), generating new ID for feature:', featureData.id);
+                featureData.id = this.generateFeatureId();
+                console.log('New ID generated:', featureData.id);
+            }
+        }
+
         // Validate for duplicates (excluding current feature being edited)
+        console.log('Validating feature ID:', {
+            featureDataId: featureData.id,
+            editingFeature: this.state.editingFeature,
+            existingFeatureIds: currentProject.features.map(f => f.id)
+        });
+        
         const isDuplicate = currentProject.features.some(f => 
             f.id === featureData.id && 
             (!this.state.editingFeature || f.id !== this.state.editingFeature.id)
         );
+
+        console.log('Duplicate check result:', {
+            isDuplicate,
+            matchingFeatures: currentProject.features.filter(f => f.id === featureData.id)
+        });
 
         if (isDuplicate) {
             throw new Error('Feature ID already exists');
@@ -1063,6 +1085,18 @@ class FeatureModal extends ModalManagerBase {
         // Then populate form with feature data
         if (data.feature) {
             this.populateForm(data.feature);
+            
+            // Make ID readonly for duplicate mode to prevent accidental changes
+            const idField = this.getElement('feature-id');
+            if (idField && data.title === 'Duplicate Feature') {
+                idField.readOnly = true;
+                idField.style.backgroundColor = '#f5f5f5';
+                idField.title = 'ID auto-generated for duplicate feature';
+            } else if (idField) {
+                idField.readOnly = false;
+                idField.style.backgroundColor = '';
+                idField.title = '';
+            }
         }
     }
 
