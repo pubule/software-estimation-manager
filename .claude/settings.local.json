@@ -25,7 +25,9 @@
       "Bash(npm config:*)",
       "Bash(env)",
       "Bash(bash:*)",
-      "Bash(timeout 30s npm install electron-store papaparse uuid xlsx --save --no-audit --no-fund)"
+      "Bash(timeout 30s npm install electron-store papaparse uuid xlsx --save --no-audit --no-fund)",
+      "Bash(npm run build:mac:*)",
+      "Bash(sips:*)"
     ],
     "deny": []
   }

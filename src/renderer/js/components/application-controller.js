@@ -90,7 +90,7 @@ class ApplicationController extends BaseComponent {
             
             // Initialize default project if needed
             if (!this.currentProject) {
-                this.currentProject = this.createNewProject();
+                this.currentProject = await this.createNewProject();
             }
 
             this.initializeDropdowns();
@@ -149,6 +149,9 @@ class ApplicationController extends BaseComponent {
         this.modalManager = this.managers.modal;
         this.configurationUIManager = this.managers.configurationUI;
         
+        // Additional alias for navigation compatibility
+        this.configurationUI = this.managers.configurationUI;
+        
         console.log('UI manager backward compatibility aliases set up');
     }
 
@@ -204,7 +207,7 @@ class ApplicationController extends BaseComponent {
     /**
      * Create new project with default structure
      */
-    createNewProject() {
+    async createNewProject() {
         const baseProject = {
             project: {
                 id: Helpers.generateId(),
@@ -216,7 +219,7 @@ class ApplicationController extends BaseComponent {
             },
             features: [],
             phases: this.createDefaultPhases(),
-            config: this.managers.config.initializeProjectConfig(),
+            config: await this.managers.config.initializeProjectConfig(),
             versions: []
         };
 
@@ -416,6 +419,365 @@ class ApplicationController extends BaseComponent {
     }
 
     /**
+     * Show export menu for project export options
+     */
+    showExportMenu() {
+        // Create a simple context menu for export options
+        const menu = document.createElement('div');
+        menu.className = 'context-menu';
+        menu.style.cssText = `
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-sm);
+            z-index: 1000;
+            box-shadow: var(--shadow-md);
+        `;
+
+        menu.innerHTML = `
+            <div class="context-menu-item" data-action="export-json" style="padding: var(--spacing-sm); cursor: pointer; border-radius: var(--radius-sm);">
+                <i class="fas fa-file-code"></i> Export as JSON
+            </div>
+            <div class="context-menu-item" data-action="export-csv" style="padding: var(--spacing-sm); cursor: pointer; border-radius: var(--radius-sm);">
+                <i class="fas fa-file-csv"></i> Export as CSV
+            </div>
+            <div class="context-menu-item" data-action="export-excel" style="padding: var(--spacing-sm); cursor: pointer; border-radius: var(--radius-sm);">
+                <i class="fas fa-file-excel"></i> Export as Excel
+            </div>
+            <div style="height: 1px; background: var(--border-primary); margin: var(--spacing-xs) 0;"></div>
+            <div class="context-menu-item" data-action="export-global-config" style="padding: var(--spacing-sm); cursor: pointer; border-radius: var(--radius-sm);">
+                <i class="fas fa-globe"></i> Export Global Configuration
+            </div>
+        `;
+
+        // Position and show menu
+        document.body.appendChild(menu);
+
+        // Add hover effects
+        menu.querySelectorAll('.context-menu-item').forEach(item => {
+            this.addEventListener(item, 'mouseenter', () => {
+                item.style.backgroundColor = 'var(--bg-hover)';
+            });
+            this.addEventListener(item, 'mouseleave', () => {
+                item.style.backgroundColor = 'transparent';
+            });
+        });
+
+        // Handle menu clicks
+        this.addEventListener(menu, 'click', async (e) => {
+            const action = e.target.closest('.context-menu-item')?.dataset.action;
+            if (action) {
+                if (action === 'export-global-config') {
+                    await this.exportGlobalConfiguration();
+                } else {
+                    const format = action.replace('export-', '');
+                    await this.exportProject(format);
+                }
+            }
+            menu.remove();
+        });
+
+        // Remove menu on outside click
+        setTimeout(() => {
+            this.addEventListener(document, 'click', () => menu.remove(), { once: true });
+        }, 100);
+    }
+
+    /**
+     * Export project in various formats
+     */
+    async exportProject(format) {
+        if (!this.currentProject) return;
+
+        try {
+            this.showLoading(`Exporting to ${format.toUpperCase()}...`);
+
+            const filename = `${this.currentProject.project.name}_${new Date().toISOString().split('T')[0]}`;
+
+            switch (format) {
+                case 'json':
+                    await this.exportJSON(filename);
+                    break;
+                case 'csv':
+                    await this.exportCSV(filename);
+                    break;
+                case 'excel':
+                    await this.exportExcel(filename);
+                    break;
+            }
+
+            if (window.NotificationManager) {
+                NotificationManager.show(`Project exported to ${format.toUpperCase()}`, 'success');
+            }
+        } catch (error) {
+            console.error(`Export to ${format} failed:`, error);
+            if (window.NotificationManager) {
+                NotificationManager.show(`Export to ${format} failed`, 'error');
+            }
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    /**
+     * Export project as JSON
+     */
+    async exportJSON(filename) {
+        // Ensure hierarchical config format
+        if (!this.currentProject.config.projectOverrides) {
+            this.currentProject.config = this.managers.config.migrateProjectConfig(this.currentProject.config);
+        }
+
+        if (window.electronAPI && window.electronAPI.saveFile) {
+            const result = await window.electronAPI.saveFile(
+                `${filename}.json`,
+                this.currentProject
+            );
+
+            if (!result.success && !result.canceled) {
+                throw new Error(result.error || 'Failed to save JSON file');
+            }
+        } else {
+            // Fallback for web mode
+            const dataStr = JSON.stringify(this.currentProject, null, 2);
+            this.helpers.downloadAsFile(dataStr, `${filename}.json`, 'application/json');
+        }
+    }
+
+    /**
+     * Export project as CSV
+     */
+    async exportCSV(filename) {
+        // Export features to CSV using FeatureManager
+        const csvData = this.managers.feature?.generateCSV();
+        if (!csvData) {
+            throw new Error('No CSV data available');
+        }
+
+        if (window.electronAPI && window.electronAPI.saveFile) {
+            const result = await window.electronAPI.saveFile(
+                `${filename}_features.csv`,
+                csvData
+            );
+
+            if (!result.success && !result.canceled) {
+                throw new Error(result.error || 'Failed to save CSV file');
+            }
+        } else {
+            // Fallback for web mode
+            this.helpers.downloadAsFile(csvData, `${filename}_features.csv`, 'text/csv');
+        }
+    }
+
+    /**
+     * Export project as Excel
+     */
+    async exportExcel(filename) {
+        try {
+            // Check if XLSX library is available
+            if (typeof XLSX === 'undefined') {
+                throw new Error('XLSX library not available');
+            }
+
+            // Create new workbook
+            const workbook = XLSX.utils.book_new();
+
+            // Sheet 1: Features Data
+            const featuresSheet = this.createFeaturesSheet();
+            XLSX.utils.book_append_sheet(workbook, featuresSheet, 'Features');
+
+            // Sheet 2: Phases Data
+            const phasesSheet = this.createPhasesSheet();
+            XLSX.utils.book_append_sheet(workbook, phasesSheet, 'Phases');
+
+            // Sheet 3: Calculations Data
+            const calculationsSheet = this.createCalculationsSheet();
+            XLSX.utils.book_append_sheet(workbook, calculationsSheet, 'Calculations');
+
+            // Generate Excel file
+            const excelBuffer = XLSX.write(workbook, { 
+                bookType: 'xlsx', 
+                type: 'array',
+                bookSST: false
+            });
+
+            // Save file
+            if (window.electronAPI && window.electronAPI.saveFileBuffer) {
+                const result = await window.electronAPI.saveFileBuffer(
+                    `${filename}.xlsx`,
+                    excelBuffer
+                );
+                if (!result.success && !result.canceled) {
+                    throw new Error(result.error || 'Failed to save Excel file');
+                }
+            } else {
+                // Fallback for web mode
+                const blob = new Blob([excelBuffer], { 
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${filename}.xlsx`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+        } catch (error) {
+            console.error('Excel export failed:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Create Excel sheet for features data
+     */
+    createFeaturesSheet() {
+        if (!this.managers.feature || !this.currentProject) {
+            return XLSX.utils.aoa_to_sheet([['No features data available']]);
+        }
+
+        const features = this.currentProject.features || [];
+        const currentProject = this.currentProject;
+
+        // Headers
+        const headers = [
+            'ID', 'Description', 'Category', 'Feature Type', 'Supplier', 
+            'Real Man Days', 'Expertise %', 'Risk Margin %', 
+            'Calculated Man Days', 'Notes', 'Created', 'Modified'
+        ];
+
+        // Convert features to rows
+        const rows = features.map(feature => [
+            feature.id || '',
+            feature.description || '',
+            this.managers.feature?.getCategoryName(currentProject, feature.category) || '',
+            this.managers.feature?.getFeatureTypeName(currentProject, feature.featureType) || '',
+            this.managers.feature?.getSupplierName(currentProject, feature.supplier) || '',
+            feature.realManDays || 0,
+            feature.expertise || 100,
+            feature.riskMargin || 0,
+            feature.manDays || 0,
+            feature.notes || '',
+            feature.created ? new Date(feature.created).toLocaleDateString() : '',
+            feature.modified ? new Date(feature.modified).toLocaleDateString() : ''
+        ]);
+
+        // Create worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+        // Set column widths
+        const columnWidths = [
+            {wch: 12}, {wch: 40}, {wch: 15}, {wch: 18}, {wch: 15},
+            {wch: 12}, {wch: 12}, {wch: 12}, {wch: 15},
+            {wch: 30}, {wch: 12}, {wch: 12}
+        ];
+        worksheet['!cols'] = columnWidths;
+
+        return worksheet;
+    }
+
+    /**
+     * Create Excel sheet for phases data
+     */
+    createPhasesSheet() {
+        if (!this.managers.projectPhases || !this.currentProject) {
+            return XLSX.utils.aoa_to_sheet([['No phases data available']]);
+        }
+
+        const phases = this.managers.projectPhases.getProjectPhases() || [];
+        
+        // Headers
+        const headers = [
+            'Phase', 'Man Days', 'G1 (MDs)', 'G2 (MDs)', 'TA (MDs)', 'PM (MDs)',
+            'G1 Cost', 'G2 Cost', 'TA Cost', 'PM Cost', 'Total Cost'
+        ];
+
+        // Convert phases to rows
+        const rows = phases.map(phase => {
+            const manDaysByResource = this.managers.projectPhases.calculateManDaysByResource(phase.manDays, phase.effort) || {};
+            const costByResource = this.managers.projectPhases.calculateCostByResource(manDaysByResource, phase) || {};
+
+            return [
+                phase.name || '',
+                phase.manDays || 0,
+                manDaysByResource.G1?.toFixed(1) || '0.0',
+                manDaysByResource.G2?.toFixed(1) || '0.0', 
+                manDaysByResource.TA?.toFixed(1) || '0.0',
+                manDaysByResource.PM?.toFixed(1) || '0.0',
+                costByResource.G1 || 0,
+                costByResource.G2 || 0,
+                costByResource.TA || 0,
+                costByResource.PM || 0,
+                Object.values(costByResource).reduce((sum, cost) => sum + (cost || 0), 0)
+            ];
+        });
+
+        // Create worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+        // Set column widths
+        const columnWidths = [
+            {wch: 20}, {wch: 12}, {wch: 10}, {wch: 10}, {wch: 10}, {wch: 10},
+            {wch: 12}, {wch: 12}, {wch: 12}, {wch: 12}, {wch: 15}
+        ];
+        worksheet['!cols'] = columnWidths;
+
+        return worksheet;
+    }
+
+    /**
+     * Create Excel sheet for calculations data
+     */
+    createCalculationsSheet() {
+        // Create basic calculations sheet
+        const data = [
+            ['PROJECT CALCULATIONS', '', '', '', ''],
+            ['Project Name', this.currentProject?.project?.name || '', '', '', ''],
+            ['Export Date', new Date().toLocaleDateString(), '', '', ''],
+            ['', '', '', '', ''], // Empty row
+            ['FEATURES SUMMARY', '', '', '', ''],
+            ['Total Features', this.currentProject?.features?.length || 0, '', '', ''],
+            ['Total Man Days', this.currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0)?.toFixed(1) || '0.0', '', '', '']
+        ];
+
+        // Create worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet(data);
+
+        // Set column widths
+        worksheet['!cols'] = [
+            {wch: 25}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}
+        ];
+
+        return worksheet;
+    }
+
+    /**
+     * Export global configuration
+     */
+    async exportGlobalConfiguration() {
+        try {
+            const globalConfig = this.managers.config.getGlobalConfig();
+            const filename = `global-configuration-${new Date().toISOString().split('T')[0]}.json`;
+
+            const dataStr = JSON.stringify(globalConfig, null, 2);
+            this.helpers.downloadAsFile(dataStr, filename, 'application/json');
+
+            if (window.NotificationManager) {
+                NotificationManager.show('Global configuration exported successfully', 'success');
+            }
+        } catch (error) {
+            console.error('Failed to export global configuration:', error);
+            if (window.NotificationManager) {
+                NotificationManager.show('Failed to export global configuration', 'error');
+            }
+        }
+    }
+
+    /**
      * Handle menu actions from main process
      */
     async handleMenuAction(action) {
@@ -464,7 +826,7 @@ class ApplicationController extends BaseComponent {
             if (save) await this.saveProject();
         }
 
-        this.currentProject = this.createNewProject();
+        this.currentProject = await this.createNewProject();
         this.isDirty = false;
 
         this.managers.navigation.onProjectLoaded();
@@ -613,11 +975,13 @@ class ApplicationController extends BaseComponent {
      * Update project information display
      */
     updateProjectInfo() {
-        if (!this.currentProject) return;
-
         const projectNameEl = this.getElement('title-project-name');
-        if (projectNameEl) {
+        if (!projectNameEl) return;
+
+        if (this.currentProject && this.currentProject.project && this.currentProject.project.name) {
             projectNameEl.textContent = this.currentProject.project.name;
+        } else {
+            projectNameEl.textContent = 'No Project';
         }
     }
 
@@ -659,7 +1023,7 @@ class ApplicationController extends BaseComponent {
      */
     updateCoverage(defaultCoverage) {
         const coverageEl = this.getElement('coverage-value');
-        if (!coverageEl) return;
+        if (!coverageEl || !this.currentProject) return;
 
         const coverageIsAutoCalculated = this.currentProject.coverageIsAutoCalculated !== false;
         
@@ -775,7 +1139,7 @@ class ApplicationController extends BaseComponent {
                 return;
             }
             if (lastProject) {
-                this.currentProject = this.migrateProjectConfig(lastProject);
+                this.currentProject = await this.migrateProjectConfig(lastProject);
                 
                 this.managers.version?.onProjectChanged(this.currentProject);
                 this.managers.projectPhases?.synchronizeWithProject();
@@ -802,9 +1166,9 @@ class ApplicationController extends BaseComponent {
     /**
      * Migrate project configuration to hierarchical format
      */
-    migrateProjectConfig(projectData) {
+    async migrateProjectConfig(projectData) {
         if (!projectData.config) {
-            projectData.config = this.managers.config.initializeProjectConfig();
+            projectData.config = await this.managers.config.initializeProjectConfig();
         } else if (!projectData.config.projectOverrides) {
             projectData.config = this.managers.config.migrateProjectConfig(projectData.config);
         }
@@ -866,18 +1230,18 @@ class ApplicationController extends BaseComponent {
             if (result) {
                 const saveResult = await this.saveProject();
                 if (saveResult) {
-                    this.performProjectClose();
+                    await this.performProjectClose();
                     window.electronAPI?.confirmWindowClose(true);
                 } else {
                     window.electronAPI?.confirmWindowClose(false);
                 }
             } else {
-                this.performProjectClose();
+                await this.performProjectClose();
                 window.electronAPI?.confirmWindowClose(true);
             }
         } catch (error) {
             this.handleError('Error handling close request', error);
-            this.performProjectClose();
+            await this.performProjectClose();
             window.electronAPI?.confirmWindowClose(true);
         }
     }
@@ -885,8 +1249,8 @@ class ApplicationController extends BaseComponent {
     /**
      * Close project without confirmation
      */
-    performProjectClose() {
-        this.currentProject = this.createNewProject();
+    async performProjectClose() {
+        this.currentProject = await this.createNewProject();
         this.isDirty = false;
         
         this.managers.version?.onProjectChanged(null);

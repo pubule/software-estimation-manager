@@ -44,8 +44,8 @@ class ProjectManager {
             this.saveCurrentProject();
         });
 
-        document.getElementById('close-current-project-btn')?.addEventListener('click', () => {
-            this.closeCurrentProject();
+        document.getElementById('close-current-project-btn')?.addEventListener('click', async () => {
+            await this.closeCurrentProject();
         });
 
         // Recent projects actions
@@ -730,7 +730,7 @@ class ProjectManager {
             }
 
             // Reset to empty project
-            this.app.currentProject = this.app.createNewProject();
+            this.app.currentProject = await this.app.createNewProject();
             this.app.isDirty = false;
 
             // Notifica il navigation manager che il progetto è stato chiuso

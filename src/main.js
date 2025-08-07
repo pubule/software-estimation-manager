@@ -4,7 +4,7 @@ const fs = require('fs').promises;
 const os = require('os');
 
 // Initialize default projects folder
-const defaultProjectsPath = path.join(os.homedir(), 'Documents', 'Software Estimation Projects');
+const defaultProjectsPath = path.join(os.homedir(), 'OneDrive - Unicredit', 'Documentazione', 'TOOLS', 'Software Estimation Projects');
 
 let mainWindow;
 

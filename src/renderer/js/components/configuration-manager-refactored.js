@@ -21,6 +21,9 @@ class ConfigurationManagerRefactored extends BaseComponent {
         
         // Configuration merger
         this.merger = new ConfigurationMerger(this.cache);
+        
+        // Default configuration manager for loading rich defaults
+        this.defaultConfigManager = new DefaultConfigManager();
     }
 
     async onInit() {
@@ -29,7 +32,7 @@ class ConfigurationManagerRefactored extends BaseComponent {
             console.log('Configuration Manager initialized successfully');
         } catch (error) {
             this.handleError('Failed to initialize Configuration Manager', error);
-            this.globalConfig = this.createDefaultGlobalConfig();
+            this.globalConfig = await this.createDefaultGlobalConfig();
         }
     }
 
@@ -39,11 +42,11 @@ class ConfigurationManagerRefactored extends BaseComponent {
     async loadGlobalConfig() {
         try {
             const settings = await this.dataManager.getSettings();
-            this.globalConfig = settings.globalConfig || this.createDefaultGlobalConfig();
+            this.globalConfig = settings.globalConfig || await this.createDefaultGlobalConfig();
             this.cache.invalidate(); // Clear cache when global config changes
         } catch (error) {
             this.handleError('Failed to load global config', error);
-            this.globalConfig = this.createDefaultGlobalConfig();
+            this.globalConfig = await this.createDefaultGlobalConfig();
         }
     }
 
@@ -69,18 +72,32 @@ class ConfigurationManagerRefactored extends BaseComponent {
     }
 
     /**
-     * Create default global configuration
+     * Create default global configuration using DefaultConfigManager
      */
-    createDefaultGlobalConfig() {
-        return {
-            suppliers: this.createDefaultSuppliers(),
-            internalResources: this.createDefaultInternalResources(),
-            categories: this.createDefaultCategories(),
-            calculationParams: this.createDefaultCalculationParams()
-        };
+    async createDefaultGlobalConfig() {
+        try {
+            const defaultSuppliers = await this.defaultConfigManager.getDefaultSuppliers();
+            const defaultInternalResources = await this.defaultConfigManager.getDefaultInternalResources();
+            const defaultCategories = await this.defaultConfigManager.getDefaultCategories();
+            
+            return {
+                suppliers: defaultSuppliers || this.createFallbackSuppliers(),
+                internalResources: defaultInternalResources || this.createFallbackInternalResources(),
+                categories: this.normalizeCategoriesWithMultiplier(defaultCategories) || this.createFallbackCategories(),
+                calculationParams: this.createDefaultCalculationParams()
+            };
+        } catch (error) {
+            console.warn('Failed to load from DefaultConfigManager, using hardcoded fallbacks:', error);
+            return {
+                suppliers: this.createFallbackSuppliers(),
+                internalResources: this.createFallbackInternalResources(),
+                categories: this.createFallbackCategories(),
+                calculationParams: this.createDefaultCalculationParams()
+            };
+        }
     }
 
-    createDefaultSuppliers() {
+    createFallbackSuppliers() {
         return [
             {
                 id: 'supplier1',
@@ -105,7 +122,7 @@ class ConfigurationManagerRefactored extends BaseComponent {
         ];
     }
 
-    createDefaultInternalResources() {
+    createFallbackInternalResources() {
         return [
             {
                 id: 'internal1',
@@ -140,7 +157,7 @@ class ConfigurationManagerRefactored extends BaseComponent {
         ];
     }
 
-    createDefaultCategories() {
+    createFallbackCategories() {
         return [
             {
                 id: 'security',
@@ -211,6 +228,20 @@ class ConfigurationManagerRefactored extends BaseComponent {
         ];
     }
 
+    /**
+     * Normalize categories by adding default multiplier if missing
+     */
+    normalizeCategoriesWithMultiplier(categories) {
+        if (!categories || !Array.isArray(categories)) {
+            return null;
+        }
+        
+        return categories.map(category => ({
+            ...category,
+            multiplier: category.multiplier || 1.0 // Default multiplier if not present
+        }));
+    }
+
     createDefaultCalculationParams() {
         return {
             workingDaysPerMonth: 22,
@@ -224,9 +255,9 @@ class ConfigurationManagerRefactored extends BaseComponent {
     /**
      * Initialize project configuration with global defaults
      */
-    initializeProjectConfig() {
+    async initializeProjectConfig() {
         if (!this.globalConfig) {
-            this.globalConfig = this.createDefaultGlobalConfig();
+            this.globalConfig = await this.createDefaultGlobalConfig();
         }
 
         return {
@@ -892,7 +923,8 @@ class ConfigurationValidators {
             if (!category.id || !category.name) {
                 throw new Error(`Category at index ${index} missing required fields`);
             }
-            if (typeof category.multiplier !== 'number' || category.multiplier <= 0) {
+            // Multiplier is optional - only validate if present
+            if (category.multiplier !== undefined && (typeof category.multiplier !== 'number' || category.multiplier <= 0)) {
                 throw new Error(`Category at index ${index} has invalid multiplier`);
             }
         });

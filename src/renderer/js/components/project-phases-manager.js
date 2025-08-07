@@ -8,7 +8,6 @@ class ProjectPhasesManager {
         this.app = app;
         this.configManager = configManager;
         this.isDirty = false;
-        this.defaultConfigManager = new DefaultConfigManager();
 
         // Resource rates (daily) - ora vengono da supplier selezionati
         this.selectedSuppliers = {
@@ -32,13 +31,26 @@ class ProjectPhasesManager {
     }
 
     async init() {
-        // Load phase definitions from configuration
-        this.phaseDefinitions = await this.defaultConfigManager.getPhaseDefinitions();
-        
-        this.loadResourceRates();
-        this.initializePhases();
-        this.setupEventListeners();
-        console.log('Project Phases Manager initialized');
+        try {
+            // Load phase definitions from configuration manager
+            if (this.configManager && this.configManager.defaultConfigManager) {
+                this.phaseDefinitions = await this.configManager.defaultConfigManager.getPhaseDefinitions();
+            } else {
+                console.warn('DefaultConfigManager not available, using fallback phase definitions');
+                this.phaseDefinitions = this.createFallbackPhaseDefinitions();
+            }
+            
+            this.loadResourceRates();
+            this.initializePhases();
+            this.setupEventListeners();
+            console.log('Project Phases Manager initialized');
+        } catch (error) {
+            console.error('Failed to initialize Project Phases Manager:', error);
+            this.phaseDefinitions = this.createFallbackPhaseDefinitions();
+            this.loadResourceRates();
+            this.initializePhases();
+            this.setupEventListeners();
+        }
     }
 
     loadResourceRates() {
@@ -844,6 +856,79 @@ class ProjectPhasesManager {
 
     getProjectPhases() {
         return this.currentPhases;
+    }
+
+    /**
+     * Create fallback phase definitions if DefaultConfigManager is not available
+     */
+    createFallbackPhaseDefinitions() {
+        return [
+            {
+                id: "functionalAnalysis",
+                name: "Functional Analysis",
+                description: "Business requirements analysis and functional specification",
+                type: "analysis",
+                defaultEffort: { G1: 100, G2: 0, TA: 20, PM: 50 },
+                editable: true
+            },
+            {
+                id: "technicalAnalysis",
+                name: "Technical Analysis",
+                description: "Technical design and architecture specification",
+                type: "analysis",
+                defaultEffort: { G1: 0, G2: 100, TA: 60, PM: 20 },
+                editable: true
+            },
+            {
+                id: "development",
+                name: "Development",
+                description: "Implementation of features (calculated from features list)",
+                type: "development",
+                defaultEffort: { G1: 0, G2: 100, TA: 40, PM: 20 },
+                editable: true,
+                calculated: true
+            },
+            {
+                id: "integrationTests",
+                name: "Integration Tests",
+                description: "System integration and integration testing",
+                type: "testing",
+                defaultEffort: { G1: 100, G2: 50, TA: 50, PM: 75 },
+                editable: true
+            },
+            {
+                id: "uatTests",
+                name: "UAT Tests",
+                description: "User acceptance testing support and execution",
+                type: "testing",
+                defaultEffort: { G1: 50, G2: 50, TA: 40, PM: 75 },
+                editable: true
+            },
+            {
+                id: "consolidation",
+                name: "Consolidation",
+                description: "Final testing, bug fixing, and deployment preparation",
+                type: "testing",
+                defaultEffort: { G1: 30, G2: 30, TA: 30, PM: 20 },
+                editable: true
+            },
+            {
+                id: "deployment",
+                name: "Deployment",
+                description: "Production deployment and go-live activities",
+                type: "deployment",
+                defaultEffort: { G1: 10, G2: 20, TA: 50, PM: 40 },
+                editable: true
+            },
+            {
+                id: "projectManagement",
+                name: "Project Management",
+                description: "Project coordination, planning, and management activities",
+                type: "management",
+                defaultEffort: { G1: 0, G2: 0, TA: 10, PM: 100 },
+                editable: true
+            }
+        ];
     }
 
     getTotalProjectCost() {

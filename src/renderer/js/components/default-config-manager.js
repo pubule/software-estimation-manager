@@ -46,9 +46,10 @@ class DefaultConfigManager {
             return this.config;
         }
 
+        let configPath;
         try {
             // Get the configuration file path
-            const configPath = await this.getConfigPath();
+            configPath = await this.getConfigPath();
             
             // Try to load from external config file
             const response = await fetch(configPath);
@@ -63,7 +64,9 @@ class DefaultConfigManager {
             this.config = this.getFallbackConfiguration();
             
             // Try to create the config file with fallback data for future use
-            this.createConfigFileIfNeeded(configPath);
+            if (configPath) {
+                this.createConfigFileIfNeeded(configPath);
+            }
         }
 
         this.isLoaded = true;
