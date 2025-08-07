@@ -11,7 +11,21 @@
       "Bash(npm test)",
       "Bash(npm install)",
       "Bash(npm run behavioral-test:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(rm:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(npm config set:*)",
+      "Bash(npm install:*)",
+      "Bash(export ELECTRON_CACHE=/tmp/electron-cache)",
+      "Bash(ELECTRON_MIRROR=https://github.com/electron/electron/releases/download/ npm install electron)",
+      "Bash(unset:*)",
+      "Bash(export NODE_TLS_REJECT_UNAUTHORIZED=0)",
+      "Bash(npx:*)",
+      "Bash(DEBUG=*)",
+      "Bash(npm config:*)",
+      "Bash(env)",
+      "Bash(bash:*)",
+      "Bash(timeout 30s npm install electron-store papaparse uuid xlsx --save --no-audit --no-fund)"
     ],
     "deny": []
   }
