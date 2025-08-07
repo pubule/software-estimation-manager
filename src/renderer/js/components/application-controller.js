@@ -165,6 +165,7 @@ class ApplicationController extends BaseComponent {
         } else {
             this.managers.feature = new FeatureManager(this.managers.data, this.managers.config);
         }
+        await this.managers.feature.init();
         
         // Calculations manager
         this.managers.calculations = new CalculationsManager(this, this.managers.config);

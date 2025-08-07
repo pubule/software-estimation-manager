@@ -25,8 +25,6 @@ function createWindow() {
         frame: false,           // Rimuove il frame della finestra
         backgroundColor: '#1e1e1e',
         show: false,
-        // icon: path.join(__dirname, '../assets/icon.png'), // Commented out - no icon needed for now
-        // Menu già rimosso
         autoHideMenuBar: true,
         menuBarVisible: false,
         // Fullscreen all'avvio

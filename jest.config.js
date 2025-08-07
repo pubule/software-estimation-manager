@@ -28,7 +28,7 @@ module.exports = {
   },
   
   // Module name mapping for cleaner imports
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1'
   },
   

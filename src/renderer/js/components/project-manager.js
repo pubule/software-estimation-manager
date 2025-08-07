@@ -227,7 +227,7 @@ class ProjectManager {
                     consolidation: { manDays: 0, assignedResources: [], cost: 0 },
                     postGoLive: { manDays: 0, assignedResources: [], cost: 0 }
                 },
-                config: this.app.createNewProject().config // Use app's default config
+                config: await this.app.configManager.initializeProjectConfig() // Use properly initialized config
             };
 
             // Set as current project

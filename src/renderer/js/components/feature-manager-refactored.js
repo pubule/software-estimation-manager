@@ -171,6 +171,14 @@ class FeatureManagerRefactored extends BaseComponent {
     }
 
     /**
+     * Handle modal submitted event (alternative event handler)
+     */
+    async handleModalSubmitted(eventDetail) {
+        // Delegate to the main feature submission handler
+        await this.handleFeatureSubmission(eventDetail);
+    }
+
+    /**
      * Process feature data before saving
      */
     async processFeatureData(formData) {
