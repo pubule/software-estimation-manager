@@ -895,7 +895,7 @@ class ProjectPhasesManager {
         
         // Update project phases with clean data
         if (this.app.currentProject) {
-            this.app.currentProject.phases = this.getProjectPhasesData();
+            this.app.currentProject.phases = this.getProjectPhases();
         }
 
         // Force re-render of phases page to reflect clean state

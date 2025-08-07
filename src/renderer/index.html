@@ -629,7 +629,54 @@
 })();
 </script>
 
-<!-- Main application (depends on all other components) -->
-<script src="js/main.js"></script>
+<!-- Base classes and utilities (load first) -->
+<script src="js/utils/base-component.js"></script>
+<script src="js/utils/error-handler.js"></script>
+<script src="js/utils/modal-manager.js"></script>
+<script src="js/utils/performance-optimizer.js"></script>
+
+<!-- Refactored components -->
+<script src="js/components/application-controller.js"></script>
+<script src="js/components/feature-manager-refactored.js"></script>
+<script src="js/components/configuration-manager-refactored.js"></script>
+<script src="js/components/data-manager-refactored.js"></script>
+
+<!-- Original components (for backward compatibility) -->
+<script>
+// Only load original components if refactored ones are not available
+(function() {
+    // Check if we have the refactored components
+    const hasRefactoredComponents = window.ApplicationController && 
+                                   window.FeatureManagerRefactored && 
+                                   window.ConfigurationManagerRefactored && 
+                                   window.DataManagerRefactored;
+    
+    if (!hasRefactoredComponents) {
+        console.warn('Some refactored components missing, will load originals as fallback...');
+        window.useOriginalComponents = true;
+    } else {
+        console.log('All refactored components loaded successfully');
+        
+        // Set up compatibility aliases
+        window.FeatureManager = window.FeatureManagerRefactored;
+        window.ConfigurationManager = window.ConfigurationManagerRefactored;
+        window.DataManager = window.DataManagerRefactored;
+        window.useOriginalComponents = false;
+    }
+})();
+</script>
+
+<!-- Main application (prioritizes refactored version) -->
+<script src="js/main-refactored.js"></script>
+
+<!-- Conditionally load original main.js only if needed -->
+<script>
+if (window.useOriginalComponents) {
+    console.log('Loading original main.js as fallback...');
+    const script = document.createElement('script');
+    script.src = 'js/main.js';
+    document.body.appendChild(script);
+}
+</script>
 </body>
 </html>
