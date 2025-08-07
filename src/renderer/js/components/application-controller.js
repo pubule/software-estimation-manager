@@ -888,6 +888,33 @@ class ApplicationController extends BaseComponent {
 
             this.refreshDropdowns();
 
+            // Debug version update conditions
+            console.log('🔍 DEBUG - Version manager available:', !!this.managers.version);
+            console.log('🔍 DEBUG - Current project available:', !!this.currentProject);
+            console.log('🔍 DEBUG - Current project versions:', this.currentProject?.versions?.length || 0);
+            console.log('🔍 DEBUG - Current project versions array:', this.currentProject?.versions);
+
+            // Update current version with latest project state after successful save
+            if (this.managers.version && this.currentProject && this.currentProject.versions && this.currentProject.versions.length > 0) {
+                console.log('🔍 SAVE UPDATE - Updating current version with latest project state');
+                console.log('🔍 SAVE UPDATE - Current project features:', this.currentProject.features?.length || 0);
+                console.log('🔍 SAVE UPDATE - Current project coverage:', this.currentProject.coverage);
+                await this.managers.version.updateCurrentVersion();
+                
+                // Save the project again to persist the updated version data
+                console.log('🔍 SAVE UPDATE - Saving updated version data to disk');
+                await this.managers.data.saveProject(this.currentProject);
+                
+                // Update version manager UI if it's currently visible
+                if (this.managers.navigation.currentSection === 'versions') {
+                    this.managers.version.render();
+                }
+                
+                console.log('🔍 SAVE UPDATE - Current version updated and saved successfully');
+            } else {
+                console.log('🔍 SAVE UPDATE - Skipping version update. Conditions not met.');
+            }
+
             if (window.NotificationManager) {
                 NotificationManager.show('Project saved successfully', 'success');
             }

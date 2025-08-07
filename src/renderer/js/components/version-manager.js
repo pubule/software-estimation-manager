@@ -336,6 +336,7 @@ class VersionManager {
 
         if (this.currentVersions.length === 0) {
             // No versions exist, don't create one automatically
+            console.log('🔍 VERSION UPDATE - No versions exist, skipping update');
             return;
         }
 
@@ -347,14 +348,37 @@ class VersionManager {
                 return currentNum > latestNum ? version : latest;
             });
 
+            console.log('🔍 VERSION UPDATE - Updating current version:', latestVersion.id);
+            console.log('🔍 VERSION UPDATE - Previous checksum:', latestVersion.checksum);
+            
             // Create updated snapshot of current project state
             const updatedSnapshot = this.createProjectSnapshot();
+            console.log('🔍 VERSION UPDATE - Current project state:', {
+                features: updatedSnapshot.features?.length || 0,
+                coverage: updatedSnapshot.coverage,
+                phases: Object.keys(updatedSnapshot.phases || {}).length,
+                hasCalculationData: !!updatedSnapshot.calculationData
+            });
+
             const updatedChecksum = this.generateChecksum(updatedSnapshot);
+            console.log('🔍 VERSION UPDATE - New checksum:', updatedChecksum);
+
+            // Compare checksums to see if there are changes
+            const hasChanges = updatedChecksum !== latestVersion.checksum;
+            console.log('🔍 VERSION UPDATE - Has changes:', hasChanges);
+
+            if (hasChanges) {
+                console.log('🔍 VERSION UPDATE - Updating version snapshot with new data');
+            } else {
+                console.log('🔍 VERSION UPDATE - No changes detected, updating timestamps only');
+            }
 
             // Update the latest version with current project state
             latestVersion.projectSnapshot = updatedSnapshot;
             latestVersion.checksum = updatedChecksum;
             latestVersion.lastUpdated = new Date().toISOString();
+
+            console.log('🔍 VERSION UPDATE - Version', latestVersion.id, 'updated successfully');
 
             // Update title bar to reflect any changes
             this.updateTitleBar();
@@ -365,19 +389,35 @@ class VersionManager {
         }
     }
 
+
     /**
      * Generate checksum for data integrity
      */
     generateChecksum(data) {
+        // Create a copy of data excluding volatile fields for consistent comparison
+        const dataForHashing = JSON.parse(JSON.stringify(data));
+        
+        // Remove volatile timestamp fields that change during save but don't represent actual content changes
+        if (dataForHashing.project && dataForHashing.project.lastModified) {
+            delete dataForHashing.project.lastModified;
+        }
+        
+        // Remove calculation data timestamp if it exists
+        if (dataForHashing.calculationData && dataForHashing.calculationData.timestamp) {
+            delete dataForHashing.calculationData.timestamp;
+        }
+        
         // Simple checksum using JSON string hash
-        const str = JSON.stringify(data);
+        const str = JSON.stringify(dataForHashing);
+        
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
             hash = hash & hash; // Convert to 32-bit integer
         }
-        return Math.abs(hash).toString(16);
+        const result = Math.abs(hash).toString(16);
+        return result;
     }
 
     /**
@@ -684,6 +724,7 @@ class VersionManager {
             return;
         }
 
+
         try {
             this.isLoading = true;
             this.showLoading('Creating version...');
@@ -801,12 +842,11 @@ class VersionManager {
         const snapshot = JSON.parse(JSON.stringify(this.app.currentProject));
         delete snapshot.versions; // Remove versions to avoid storing versions within versions
         
-        
-        // Include current calculation data if available
+        // Include current calculation data if available, but exclude timestamp for comparison consistency
         if (this.app.calculationsManager?.vendorCosts) {
             snapshot.calculationData = {
-                vendorCosts: JSON.parse(JSON.stringify(this.app.calculationsManager.vendorCosts)),
-                timestamp: new Date().toISOString()
+                vendorCosts: JSON.parse(JSON.stringify(this.app.calculationsManager.vendorCosts))
+                // NOTE: Excluding timestamp to avoid false changes in version comparison
             };
         }
         
@@ -1157,7 +1197,19 @@ class VersionManager {
      * Show version comparison modal
      */
     showComparisonModal(versionToCompare) {
+        console.log('🔍 VERSION COMPARE - Starting comparison modal');
+        console.log('🔍 VERSION COMPARE - Version to compare:', {
+            id: versionToCompare.id,
+            timestamp: versionToCompare.timestamp,
+            checksum: versionToCompare.checksum,
+            reason: versionToCompare.reason
+        });
+        
         const currentVersion = this.getCurrentVersion();
+        console.log('🔍 VERSION COMPARE - Current version:', currentVersion);
+        console.log('🔍 VERSION COMPARE - Current project data keys:', Object.keys(this.app.currentProject));
+        console.log('🔍 VERSION COMPARE - Version snapshot data keys:', Object.keys(versionToCompare.projectSnapshot));
+        
         const modal = document.createElement('div');
         modal.className = 'modal version-compare-modal';
         modal.innerHTML = `
@@ -1231,6 +1283,22 @@ class VersionManager {
         const current = this.app.currentProject;
         const compare = versionToCompare.projectSnapshot;
         
+        console.log('🔍 PROJECT COMPARE - Current project data:', {
+            name: current.project?.name,
+            description: current.project?.description,
+            coverage: current.coverage,
+            version: current.project?.version,
+            lastModified: current.project?.lastModified
+        });
+        
+        console.log('🔍 PROJECT COMPARE - Compare project data:', {
+            name: compare.project?.name,
+            description: compare.project?.description,
+            coverage: compare.coverage,
+            version: compare.project?.version,
+            lastModified: compare.project?.lastModified
+        });
+        
         const projectFields = [
             {
                 label: 'Project Name',
@@ -1253,6 +1321,7 @@ class VersionManager {
         ];
         
         const fieldsWithDiff = projectFields.filter(field => field.currentValue !== field.compareValue);
+        console.log('🔍 PROJECT COMPARE - Fields with differences:', fieldsWithDiff.map(f => ({ label: f.label, current: f.currentValue, compare: f.compareValue })));
         
         return `
             <div class="comp-section comp-project">
@@ -1325,8 +1394,27 @@ class VersionManager {
         const currentFeatures = this.app.currentProject.features || [];
         const compareFeatures = versionToCompare.projectSnapshot.features || [];
         
+        console.log('🔍 FEATURES COMPARE - Current features:', currentFeatures.map(f => ({
+            id: f.id,
+            description: f.description,
+            manDays: f.manDays,
+            supplier: f.supplier,
+            category: f.category
+        })));
+        
+        console.log('🔍 FEATURES COMPARE - Compare features:', compareFeatures.map(f => ({
+            id: f.id,
+            description: f.description,
+            manDays: f.manDays,
+            supplier: f.supplier,
+            category: f.category
+        })));
+        
         const currentStats = this.calculateVersionStats(this.app.currentProject);
         const compareStats = this.calculateVersionStats(versionToCompare.projectSnapshot);
+        
+        console.log('🔍 FEATURES COMPARE - Current stats:', currentStats);
+        console.log('🔍 FEATURES COMPARE - Compare stats:', compareStats);
         
         // Calculate feature differences
         const added = currentFeatures.filter(cf => !compareFeatures.find(vf => vf.id === cf.id));
@@ -1335,6 +1423,18 @@ class VersionManager {
             const vf = compareFeatures.find(f => f.id === cf.id);
             return vf && JSON.stringify(cf) !== JSON.stringify(vf);
         });
+        
+        console.log('🔍 FEATURES COMPARE - Added features:', added.map(f => ({ id: f.id, manDays: f.manDays })));
+        console.log('🔍 FEATURES COMPARE - Removed features:', removed.map(f => ({ id: f.id, manDays: f.manDays })));
+        console.log('🔍 FEATURES COMPARE - Modified features:', modified.map(f => {
+            const vf = compareFeatures.find(cf => cf.id === f.id);
+            return {
+                id: f.id,
+                currentMD: f.manDays,
+                compareMD: vf?.manDays,
+                difference: f.manDays - (vf?.manDays || 0)
+            };
+        }));
         
         const totalChanges = added.length + removed.length + modified.length;
         
@@ -1596,6 +1696,12 @@ class VersionManager {
         // Get current phases from phases manager (the actual table data)
         let currentPhasesArray = this.app.phasesManager?.currentPhases || [];
         
+        console.log('🔍 PHASES COMPARE - Current phases array:', currentPhasesArray.map(p => ({
+            id: p.id,
+            name: p.name,
+            manDays: this.app.currentProject.phases?.[p.id]?.manDays || 0
+        })));
+        
         // Fallback: if phases manager is not available or empty, use phase definitions from current project phases
         if (currentPhasesArray.length === 0) {
             const currentPhasesMap = this.app.currentProject.phases || {};
@@ -1618,6 +1724,18 @@ class VersionManager {
         
         const currentPhasesMap = this.app.currentProject.phases || {};
         const comparePhasesMap = versionToCompare.projectSnapshot.phases || {};
+        
+        console.log('🔍 PHASES COMPARE - Current phases map:', Object.entries(currentPhasesMap).map(([id, data]) => ({
+            id,
+            manDays: data.manDays || 0,
+            effort: data.effort || 0
+        })));
+        
+        console.log('🔍 PHASES COMPARE - Compare phases map:', Object.entries(comparePhasesMap).map(([id, data]) => ({
+            id,
+            manDays: data.manDays || 0,
+            effort: data.effort || 0
+        })));
         
         // Calculate phases with differences using the real phase data
         const phasesWithDiff = currentPhasesArray.filter(phase => {

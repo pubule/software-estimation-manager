@@ -615,9 +615,32 @@ class SoftwareEstimationApp {
             // Refresh dropdowns to ensure all configuration changes are propagated to the current version
             this.refreshDropdowns();
 
-            // NOTE: Removed updateCurrentVersion() call to maintain version immutability
-            // Versions should only be created explicitly by user, not automatically updated during auto-save
-            // This ensures proper version comparison and prevents features/phases from appearing in both versions
+            // Debug version update conditions
+            console.log('🔍 DEBUG - Version manager available:', !!this.versionManager);
+            console.log('🔍 DEBUG - Current project available:', !!this.currentProject);
+            console.log('🔍 DEBUG - Current project versions:', this.currentProject?.versions?.length || 0);
+            console.log('🔍 DEBUG - Current project versions array:', this.currentProject?.versions);
+
+            // Update current version with latest project state after successful save
+            if (this.versionManager && this.currentProject && this.currentProject.versions && this.currentProject.versions.length > 0) {
+                console.log('🔍 SAVE UPDATE - Updating current version with latest project state');
+                console.log('🔍 SAVE UPDATE - Current project features:', this.currentProject.features?.length || 0);
+                console.log('🔍 SAVE UPDATE - Current project coverage:', this.currentProject.coverage);
+                await this.versionManager.updateCurrentVersion();
+                
+                // Save the project again to persist the updated version data
+                console.log('🔍 SAVE UPDATE - Saving updated version data to disk');
+                await this.dataManager.saveProject(this.currentProject);
+                
+                // Update version manager UI if it's currently visible
+                if (this.navigationManager.currentSection === 'versions') {
+                    this.versionManager.render();
+                }
+                
+                console.log('🔍 SAVE UPDATE - Current version updated and saved successfully');
+            } else {
+                console.log('🔍 SAVE UPDATE - Skipping version update. Conditions not met.');
+            }
 
             NotificationManager.show('Project saved successfully', 'success');
 
