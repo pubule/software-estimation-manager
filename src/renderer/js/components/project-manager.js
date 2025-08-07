@@ -230,6 +230,9 @@ class ProjectManager {
                 config: await this.app.configManager.initializeProjectConfig() // Use properly initialized config
             };
 
+            // CLEANUP: Clear all previous project data before setting new project
+            await this.cleanupPreviousProjectData();
+
             // Set as current project
             this.app.currentProject = newProject;
             this.app.isDirty = true;
@@ -269,23 +272,31 @@ class ProjectManager {
             this.app.updateUI();
             this.updateCurrentProjectUI();
 
-            // Reset all phase data AFTER UI updates to ensure clean state
-            setTimeout(() => {
-                if (this.app.projectPhasesManager) {
-                    this.app.projectPhasesManager.resetAllPhaseData();
-                }
-            }, 100);
+            // Reset all phase data to ensure clean state FIRST
+            if (this.app.projectPhasesManager) {
+                this.app.projectPhasesManager.resetAllPhaseData();
+            }
 
-            // Auto-create initial version AFTER phase reset
-            setTimeout(async () => {
-                try {
-                    if (this.app.versionManager) {
-                        await this.app.versionManager.createVersion('Initial project creation');
-                    }
-                } catch (error) {
-                    console.error('Failed to create initial version:', error);
+            // Wait a moment to ensure all async operations complete
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            // Verify project is clean before creating initial version
+            console.log('🔍 Verifying project state before initial version:', {
+                features: this.app.currentProject.features?.length || 0,
+                developmentManDays: this.app.currentProject.phases?.development?.manDays || 'N/A',
+                selectedSuppliers: this.app.currentProject.phases?.selectedSuppliers || 'N/A',
+                projectName: this.app.currentProject.project?.name
+            });
+
+            // Create initial version ONLY after everything is completely clean
+            try {
+                if (this.app.versionManager) {
+                    await this.app.versionManager.createVersion('Initial project creation');
+                    console.log('✅ Initial version created after complete cleanup and verification');
                 }
-            }, 600);
+            } catch (error) {
+                console.error('Failed to create initial version:', error);
+            }
 
             // Navigate to features section
             this.app.navigationManager.navigateTo('features');
@@ -1321,6 +1332,139 @@ class ProjectManager {
             const result = confirm('You have unsaved changes. Do you want to save before continuing?');
             resolve(result);
         });
+    }
+
+    /**
+     * Clean up all previous project data to prevent contamination
+     */
+    async cleanupPreviousProjectData() {
+        console.log('🧹 Cleaning up previous project data...');
+        
+        try {
+            // Clear current project reference
+            this.app.currentProject = null;
+            this.app.isDirty = false;
+            
+            // Clear data manager paths
+            if (this.app.dataManager) {
+                this.app.dataManager.currentProjectPath = null;
+            }
+            
+            // Clear feature manager state and UI
+            if (this.app.featureManager || this.app.managers?.feature) {
+                const featureManager = this.app.featureManager || this.app.managers.feature;
+                if (featureManager.state) {
+                    featureManager.state.editingFeature = null;
+                    featureManager.state.filteredFeatures = [];
+                    featureManager.state.isCalculating = false;
+                }
+                // Clear features table
+                if (featureManager.refreshTable) {
+                    featureManager.refreshTable();
+                }
+            }
+            
+            // Clear project phases manager - AGGRESSIVE CLEANUP
+            if (this.app.projectPhasesManager || this.app.managers?.projectPhases) {
+                const phasesManager = this.app.projectPhasesManager || this.app.managers.projectPhases;
+                
+                // Force clear all phase data to factory defaults
+                if (phasesManager.resetAllPhaseData) {
+                    phasesManager.resetAllPhaseData();
+                }
+                
+                // Force clear any cached or computed values
+                if (phasesManager.phases) {
+                    // Reset to completely clean state
+                    Object.keys(phasesManager.phases).forEach(phaseKey => {
+                        if (phasesManager.phases[phaseKey]) {
+                            phasesManager.phases[phaseKey].manDays = 0;
+                            phasesManager.phases[phaseKey].lastModified = new Date().toISOString();
+                            if (phasesManager.phases[phaseKey].cost !== undefined) {
+                                phasesManager.phases[phaseKey].cost = 0;
+                            }
+                            if (phasesManager.phases[phaseKey].assignedResources) {
+                                phasesManager.phases[phaseKey].assignedResources = [];
+                            }
+                        }
+                    });
+                    
+                    // Clear selected suppliers
+                    if (phasesManager.phases.selectedSuppliers) {
+                        phasesManager.phases.selectedSuppliers = { G1: null, G2: null, TA: null, PM: null };
+                    }
+                }
+                
+                console.log('🧹 Phases data aggressively cleaned');
+            }
+            
+            // Clear calculations manager
+            if (this.app.calculationsManager || this.app.managers?.calculations) {
+                const calcManager = this.app.calculationsManager || this.app.managers.calculations;
+                if (calcManager.clearCalculations) {
+                    calcManager.clearCalculations();
+                }
+            }
+            
+            // Clear version manager state
+            if (this.app.versionManager) {
+                // Don't clear versions completely, but reset current state
+                if (this.app.versionManager.clearCurrentState) {
+                    this.app.versionManager.clearCurrentState();
+                }
+            }
+            
+            // Clear configuration cache
+            if (this.app.configManager && this.app.configManager.clearCache) {
+                this.app.configManager.clearCache();
+            }
+            
+            // Clear UI elements
+            this.clearProjectUI();
+            
+            // Update navigation state
+            if (this.app.navigationManager) {
+                this.app.navigationManager.onProjectClosed();
+            }
+            
+            console.log('✅ Previous project data cleaned successfully');
+        } catch (error) {
+            console.warn('⚠️ Some cleanup operations failed:', error);
+        }
+    }
+    
+    /**
+     * Clear project-related UI elements
+     */
+    clearProjectUI() {
+        // Clear features table
+        const featuresTable = document.querySelector('#features-table-body');
+        if (featuresTable) {
+            featuresTable.innerHTML = '';
+        }
+        
+        // Clear project info displays
+        const projectName = document.getElementById('current-project-name');
+        if (projectName) {
+            projectName.textContent = '';
+        }
+        
+        const projectDescription = document.getElementById('current-project-description');
+        if (projectDescription) {
+            projectDescription.textContent = '';
+        }
+        
+        // Clear summary displays
+        const summaryElements = document.querySelectorAll('.project-summary-value');
+        summaryElements.forEach(el => el.textContent = '0');
+        
+        // Clear version history table
+        const versionTable = document.querySelector('#version-history-body');
+        if (versionTable) {
+            versionTable.innerHTML = '';
+        }
+        
+        console.log('UI elements cleared');
     }
 
     /**

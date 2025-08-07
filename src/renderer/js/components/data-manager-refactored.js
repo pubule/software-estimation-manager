@@ -46,22 +46,53 @@ class DataManagerRefactored extends BaseComponent {
         return this.withErrorBoundary(async () => {
             this.logOperation('saveProject', { projectId: projectData?.project?.id, filePath });
 
+            console.log('🔍 SAVE DEBUG - Original project data before save:', {
+                projectId: projectData?.project?.id,
+                lastModified: projectData?.project?.lastModified,
+                featuresCount: projectData?.features?.length,
+                originalDataHash: this.generateDataHash(projectData)
+            });
+
             // Validate data before saving
             await this.validators.validateProjectData(projectData);
 
-            // Update metadata
-            this.updateProjectMetadata(projectData);
+            // Create a deep copy to avoid modifying the original project data
+            const projectDataForSaving = this.deepClone(projectData);
+
+            console.log('🔍 SAVE DEBUG - Deep copy created:', {
+                originalHash: this.generateDataHash(projectData),
+                copyHash: this.generateDataHash(projectDataForSaving),
+                areEqual: this.generateDataHash(projectData) === this.generateDataHash(projectDataForSaving)
+            });
+
+            // Update metadata on the copy
+            this.updateProjectMetadata(projectDataForSaving);
+
+            console.log('🔍 SAVE DEBUG - After metadata update:', {
+                originalLastModified: projectData?.project?.lastModified,
+                copyLastModified: projectDataForSaving?.project?.lastModified,
+                originalHash: this.generateDataHash(projectData),
+                copyHash: this.generateDataHash(projectDataForSaving),
+                metadataChanged: projectData?.project?.lastModified !== projectDataForSaving?.project?.lastModified
+            });
 
             // Serialize data
-            const serializedData = this.serializers.serializeProject(projectData);
+            const serializedData = this.serializers.serializeProject(projectDataForSaving);
 
             // Save using appropriate strategy
             const result = await this.persistenceStrategy.saveProject(serializedData, filePath);
 
             if (result.success) {
                 this.currentProjectPath = result.filePath;
+                
+                console.log('🔍 SAVE DEBUG - After successful save:', {
+                    originalDataAfterSave: this.generateDataHash(projectData),
+                    savedDataHash: this.generateDataHash(projectDataForSaving),
+                    filePath: result.filePath
+                });
+                
                 this.emit('project-saved', { 
-                    projectId: projectData.project.id, 
+                    projectId: projectDataForSaving.project.id, 
                     filePath: result.filePath 
                 });
                 
@@ -368,6 +399,35 @@ class DataManagerRefactored extends BaseComponent {
         }
         
         return prefix ? `${prefix}_${result}` : result;
+    }
+
+    deepClone(obj) {
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+        
+        try {
+            return JSON.parse(JSON.stringify(obj));
+        } catch (error) {
+            console.error('Deep clone failed:', error);
+            return obj; // Fallback to original if cloning fails
+        }
+    }
+
+    generateDataHash(data) {
+        try {
+            const str = JSON.stringify(data, Object.keys(data).sort());
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            return hash.toString(16);
+        } catch (error) {
+            console.error('Hash generation failed:', error);
+            return 'error';
+        }
     }
 
     /**
