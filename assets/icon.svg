@@ -1,0 +1,77 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#357ABD;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#gradient)" stroke="#2C5F8F" stroke-width="4"/>
+  
+  <!-- Calculator/estimation icon -->
+  <rect x="160" y="140" width="192" height="232" rx="12" fill="white" opacity="0.95"/>
+  <rect x="160" y="140" width="192" height="40" rx="12" fill="#2C5F8F"/>
+  
+  <!-- Screen area -->
+  <rect x="175" y="195" width="162" height="32" rx="4" fill="#F0F0F0" stroke="#CCC"/>
+  <text x="330" y="215" font-family="Arial, sans-serif" font-size="16" text-anchor="end" fill="#333">$123.45K</text>
+  
+  <!-- Buttons grid -->
+  <g fill="white" stroke="#CCC" stroke-width="1">
+    <!-- Row 1 -->
+    <rect x="180" y="245" width="35" height="25" rx="2"/>
+    <rect x="225" y="245" width="35" height="25" rx="2"/>
+    <rect x="270" y="245" width="35" height="25" rx="2"/>
+    <rect x="315" y="245" width="20" height="55" rx="2" fill="#4A90E2"/>
+    
+    <!-- Row 2 -->
+    <rect x="180" y="280" width="35" height="25" rx="2"/>
+    <rect x="225" y="280" width="35" height="25" rx="2"/>
+    <rect x="270" y="280" width="35" height="25" rx="2"/>
+    
+    <!-- Row 3 -->
+    <rect x="180" y="315" width="35" height="25" rx="2"/>
+    <rect x="225" y="315" width="35" height="25" rx="2"/>
+    <rect x="270" y="315" width="35" height="25" rx="2"/>
+    <rect x="315" y="315" width="20" height="25" rx="2" fill="#4A90E2"/>
+  </g>
+  
+  <!-- Button labels -->
+  <g font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333">
+    <text x="197" y="260">7</text>
+    <text x="242" y="260">8</text>
+    <text x="287" y="260">9</text>
+    <text x="197" y="295">4</text>
+    <text x="242" y="295">5</text>
+    <text x="287" y="295">6</text>
+    <text x="197" y="330">1</text>
+    <text x="242" y="330">2</text>
+    <text x="287" y="330">3</text>
+  </g>
+  
+  <!-- Plus and equals symbols -->
+  <g font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="white" font-weight="bold">
+    <text x="325" y="265">+</text>
+    <text x="325" y="330">=</text>
+  </g>
+  
+  <!-- Software estimation elements -->
+  <g stroke="#4A90E2" stroke-width="2" fill="none" opacity="0.7">
+    <!-- Graph lines -->
+    <path d="M 120 100 L 150 90 L 180 95 L 210 85" stroke-width="3"/>
+    <path d="M 340 380 L 370 370 L 400 375 L 430 365" stroke-width="3"/>
+  </g>
+  
+  <!-- Small dots for graph points -->
+  <g fill="#4A90E2">
+    <circle cx="120" cy="100" r="3"/>
+    <circle cx="150" cy="90" r="3"/>
+    <circle cx="180" cy="95" r="3"/>
+    <circle cx="210" cy="85" r="3"/>
+    <circle cx="340" cy="380" r="3"/>
+    <circle cx="370" cy="370" r="3"/>
+    <circle cx="400" cy="375" r="3"/>
+    <circle cx="430" cy="365" r="3"/>
+  </g>
+</svg>
