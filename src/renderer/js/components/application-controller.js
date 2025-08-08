@@ -62,9 +62,9 @@ class ApplicationController extends BaseComponent {
             
             // Check for either original or refactored versions of core components
             const coreComponents = [
-                { original: 'DataManager', refactored: 'DataManagerRefactored' },
-                { original: 'ConfigurationManager', refactored: 'ConfigurationManagerRefactored' },
-                { original: 'FeatureManager', refactored: 'FeatureManagerRefactored' }
+                { original: 'DataManager', refactored: 'DataManager' },
+                { original: 'ConfigurationManager', refactored: 'ConfigurationManager' },
+                { original: 'FeatureManager', refactored: 'FeatureManager' }
             ];
             
             const missingCoreComponents = coreComponents.filter(comp => 
@@ -106,15 +106,15 @@ class ApplicationController extends BaseComponent {
      */
     async initializeCoreManagers() {
         // Data manager (use refactored if available, otherwise original)
-        if (window.DataManagerRefactored) {
-            this.managers.data = new DataManagerRefactored();
+        if (window.DataManager) {
+            this.managers.data = new DataManager();
         } else {
             this.managers.data = new DataManager();
         }
         
         // Configuration manager (use refactored if available, otherwise original)
-        if (window.ConfigurationManagerRefactored) {
-            this.managers.config = new ConfigurationManagerRefactored(this.managers.data);
+        if (window.ConfigurationManager) {
+            this.managers.config = new ConfigurationManager(this.managers.data);
         } else {
             this.managers.config = new ConfigurationManager(this.managers.data);
         }
@@ -160,8 +160,8 @@ class ApplicationController extends BaseComponent {
      */
     async initializeFeatureManagers() {
         // Feature manager (use refactored if available, otherwise original)
-        if (window.FeatureManagerRefactored) {
-            this.managers.feature = new FeatureManagerRefactored(this.managers.data, this.managers.config);
+        if (window.FeatureManager) {
+            this.managers.feature = new FeatureManager(this.managers.data, this.managers.config);
         } else {
             this.managers.feature = new FeatureManager(this.managers.data, this.managers.config);
         }
