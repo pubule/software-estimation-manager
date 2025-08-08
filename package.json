@@ -19,7 +19,11 @@
     "test:coverage": "jest --coverage",
     "cucumber": "cucumber-js",
     "cucumber:report": "cucumber-js --format html:reports/cucumber.html",
-    "test:e2e": "cucumber-js features/**/*.feature --require cucumber/**/*.js",
+    "test:e2e": "cucumber-js",
+    "test:e2e:headless": "HEADLESS=true cucumber-js",
+    "test:e2e:visible": "HEADLESS=false cucumber-js",
+    "test:e2e:slow": "HEADLESS=false SLOW_MO=1000 cucumber-js",
+    "test:e2e:debug": "HEADLESS=false DEBUG=true SLOW_MO=500 cucumber-js",
     "test:all": "npm run test && npm run test:e2e"
   },
   "keywords": [

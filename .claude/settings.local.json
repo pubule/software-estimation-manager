@@ -34,7 +34,10 @@
       "Bash(killall:*)",
       "Bash(pkill:*)",
       "Bash(npm test:*)",
-      "Bash(timeout 60s npm test:*)"
+      "Bash(timeout 60s npm test:*)",
+      "Bash(npm run test:e2e:*)",
+      "Bash(cat:*)",
+      "Bash(timeout 30s npm run test:e2e:*)"
     ],
     "deny": []
   }

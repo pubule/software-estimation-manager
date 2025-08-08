@@ -1,6 +1,7 @@
 const { Before, After, BeforeAll, AfterAll, Status } = require('@cucumber/cucumber');
 const path = require('path');
 const fs = require('fs');
+const sharedBrowserManager = require('./shared-browser');
 
 /**
  * Global setup before all scenarios
@@ -19,7 +20,7 @@ BeforeAll(async function() {
 });
 
 /**
- * Setup before each scenario
+ * Setup before each scenario - USA ISTANZA CONDIVISA
  */
 Before(async function(scenario) {
   this.log(`📝 Starting scenario: ${scenario.pickle.name}`);
@@ -27,26 +28,26 @@ Before(async function(scenario) {
   // Reset test context
   this.resetTestContext();
   
-  // Launch Electron app if not already running
-  if (!this.isAppRunning) {
-    await this.launchElectronApp();
-  }
+  // Ottieni browser e pagina condivisi (riusa la stessa istanza)
+  this.page = await sharedBrowserManager.getPage();
+  this.browser = await sharedBrowserManager.getBrowser();
+  this.isAppRunning = true;
   
-  // Wait for app to be fully initialized
-  await this.waitForAppReady();
+  // Reset stato applicazione per scenario pulito
+  await sharedBrowserManager.resetAppState();
   
-  this.log('✅ Scenario setup complete');
+  this.log('✅ Scenario setup complete (using shared browser)');
 });
 
 /**
- * Cleanup after each scenario
+ * Cleanup after each scenario - NON CHIUDE BROWSER
  */
 After(async function(scenario) {
   this.log(`📋 Finishing scenario: ${scenario.pickle.name} - Status: ${scenario.result.status}`);
   
-  // Take screenshot on failure
+  // Take screenshot on failure using shared browser
   if (scenario.result.status === Status.FAILED) {
-    await this.takeScreenshot(`failed-${scenario.pickle.name.replace(/[^a-zA-Z0-9]/g, '-')}`);
+    await sharedBrowserManager.takeScreenshot(`failed-${scenario.pickle.name.replace(/[^a-zA-Z0-9]/g, '-')}`);
     
     // Log error details
     if (this.testContext.lastError) {
@@ -54,69 +55,26 @@ After(async function(scenario) {
     }
   }
   
-  // Reset application state for next scenario
-  await resetApplicationState.call(this);
+  // NON chiudiamo il browser - solo reset dello stato
+  // Il browser condiviso resta aperto per il prossimo scenario
   
-  this.log('🧹 Scenario cleanup complete');
+  this.log('🧹 Scenario cleanup complete (browser stays open)');
 });
 
 /**
- * Global cleanup after all scenarios
+ * Global cleanup after all scenarios - CHIUDE BROWSER CONDIVISO
  */
 AfterAll(async function() {
   console.log('🏁 Software Estimation Manager test suite completed');
   
-  // Close any remaining Electron instances
-  if (this && this.isAppRunning) {
-    await this.closeElectronApp();
-  }
+  // Chiudi il browser condiviso SOLO alla fine di tutti i test
+  await sharedBrowserManager.cleanup();
   
   // Generate final test report summary
   await generateTestSummary();
 });
 
-/**
- * Reset application state between scenarios
- */
-async function resetApplicationState() {
-  this.log('🔄 Resetting application state');
-  
-  try {
-    // Close any open modals
-    await this.executeScript(`
-      const modals = document.querySelectorAll('.modal.show, .modal[style*="display: block"]');
-      modals.forEach(modal => {
-        modal.style.display = 'none';
-        modal.classList.remove('show');
-      });
-    `);
-    
-    // Clear any project data
-    await this.executeScript(`
-      if (window.app && window.app.newProject) {
-        window.app.newProject();
-      }
-    `);
-    
-    // Reset navigation to default state
-    await this.executeScript(`
-      if (window.navigationManager && window.navigationManager.showSection) {
-        window.navigationManager.showSection('features');
-      }
-    `);
-    
-    // Clear any form data
-    await this.executeScript(`
-      const forms = document.querySelectorAll('form');
-      forms.forEach(form => form.reset());
-    `);
-    
-    this.log('✅ Application state reset complete');
-  } catch (error) {
-    this.log(`⚠️  Error resetting application state: ${error.message}`);
-    // Don't fail the test for reset issues
-  }
-}
+// Reset application state now handled by SharedBrowserManager
 
 /**
  * Clean up test artifacts from previous runs

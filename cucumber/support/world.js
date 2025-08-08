@@ -271,9 +271,12 @@ class SoftwareEstimationWorld {
       this.fixtures.features = this.helpers.loadFixture('features', 'all') || {};
       this.fixtures.configurations = this.helpers.loadFixture('configurations', 'all') || {};
       
-      this.log('Fixtures loaded successfully');
+      // Note: Cannot log during constructor, only during step execution
+      // this.log('Fixtures loaded successfully');
     } catch (error) {
-      this.log(`Warning: Could not load fixtures: ${error.message}`);
+      // Note: Cannot log during constructor, only during step execution
+      // this.log(`Warning: Could not load fixtures: ${error.message}`);
+      console.warn(`Warning: Could not load fixtures: ${error.message}`);
     }
   }
 
