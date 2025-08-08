@@ -371,7 +371,7 @@ describe('Software Estimation Manager - Behavioral Documentation', () => {
 
             test('BEHAVIOR: Load project handles corrupted data with fallback', async () => {
                 const consoleSpy = jest.spyOn(console, 'warn');
-                app.dataManager.loadProject = jest.fn().rejects(new Error('Corrupted data'));
+                app.dataManager.loadProject = jest.fn().mockRejectedValue(new Error('Corrupted data'));
 
                 await app.loadLastProject();
 

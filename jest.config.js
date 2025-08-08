@@ -3,7 +3,7 @@ module.exports = {
   testEnvironment: 'jsdom',
   
   // Setup files to run after test environment is set up
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/tests/jest-setup.js'],
   
   // Test file patterns
   testMatch: [
@@ -40,7 +40,8 @@ module.exports = {
   // Files to ignore
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
-    '<rootDir>/dist/'
+    '<rootDir>/dist/',
+    '<rootDir>/tests/jest-setup.js'
   ],
   
   // Coverage output directory

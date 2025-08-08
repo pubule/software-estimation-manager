@@ -32,7 +32,9 @@
       "Bash(mv:*)",
       "Bash(npm run dev:*)",
       "Bash(killall:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(npm test:*)",
+      "Bash(timeout 60s npm test:*)"
     ],
     "deny": []
   }
