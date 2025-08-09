@@ -1755,7 +1755,7 @@ class InternalResourcesConfigManager {
                         <form id="resource-form">
                             <div class="form-group">
                                 <label for="resource-name">Resource Name:</label>
-                                <input type="text" id="resource-name" name="name" required maxlength="100" 
+                                <input type="text" id="resource-name" name="name" class="validation-tooltip required" required maxlength="100" 
                                        placeholder="Enter resource full name">
                             </div>
                             <div class="form-group">
@@ -1765,7 +1765,7 @@ class InternalResourcesConfigManager {
                             </div>
                             <div class="form-group">
                                 <label for="resource-role">Role:</label>
-                                <select id="resource-role" name="role" required>
+                                <select id="resource-role" name="role" class="validation-tooltip required" required>
                                     <option value="">Select Role</option>
                                     <option value="G1">G1</option>
                                     <option value="G2">G2</option>

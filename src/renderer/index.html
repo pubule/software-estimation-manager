@@ -388,7 +388,7 @@
             <form id="new-project-form">
                 <div class="form-group">
                     <label for="project-code">Project Code:</label>
-                    <input type="text" id="project-code" name="code" required
+                    <input type="text" id="project-code" name="code" class="validation-tooltip required" required
                            placeholder="e.g. PJ-001"
                            pattern="[A-Z0-9-_]+"
                            title="Only uppercase letters, numbers, hyphens and underscores allowed">
@@ -396,7 +396,7 @@
                 </div>
                 <div class="form-group">
                     <label for="project-name">Project Name:</label>
-                    <input type="text" id="project-name" name="name" required
+                    <input type="text" id="project-name" name="name" class="validation-tooltip required" required
                            placeholder="e.g. Customer Portal Development"
                            maxlength="100">
                     <small class="form-help">Descriptive name for the project</small>
