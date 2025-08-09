@@ -292,7 +292,7 @@ class CategoriesConfigManager {
                         <form id="category-form">
                             <div class="form-group">
                                 <label for="category-name">Name *</label>
-                                <input type="text" id="category-name" name="name" required maxlength="100">
+                                <input type="text" id="category-name" name="name" class="validation-tooltip required" required maxlength="100">
                             </div>
                             <div class="form-group">
                                 <label for="category-description">Description</label>
@@ -325,7 +325,7 @@ class CategoriesConfigManager {
                         <form id="feature-type-form">
                             <div class="form-group">
                                 <label for="feature-type-name">Name *</label>
-                                <input type="text" id="feature-type-name" name="name" required maxlength="100">
+                                <input type="text" id="feature-type-name" name="name" class="validation-tooltip required" required maxlength="100">
                             </div>
                             <div class="form-group">
                                 <label for="feature-type-description">Description</label>
@@ -334,7 +334,7 @@ class CategoriesConfigManager {
                             <div class="form-group">
                                 <label for="feature-type-average-mds">Average Man Days *</label>
                                 <input type="number" id="feature-type-average-mds" name="averageMDs" 
-                                       min="0.1" max="100" step="0.1" required>
+                                       min="0.1" max="100" step="0.1" class="validation-tooltip required" required>
                                 <small class="form-help">Estimated average effort in man days</small>
                             </div>
                         </form>

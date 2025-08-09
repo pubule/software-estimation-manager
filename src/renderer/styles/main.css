@@ -17,41 +17,203 @@
 }
 
 /* Validation Tooltips for Uniform UI */
+/* Validation Tooltip System - Consistent across all modals */
 .validation-tooltip {
     position: relative;
 }
 
-.validation-tooltip.required::after {
-    content: "Compila questo campo";
+/* Base tooltip styling with dynamic content support */
+.validation-tooltip.required:invalid::after {
+    content: attr(data-error-message);
     position: absolute;
     top: 50%;
     right: -220px;
     transform: translateY(-50%);
-    background-color: var(--bg-quaternary);
-    color: var(--text-primary);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
+    background-color: var(--error, #dc3545);
+    color: white;
+    padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+    border-radius: var(--radius-md, 4px);
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 500;
     white-space: nowrap;
     opacity: 0;
     visibility: hidden;
-    transition: all var(--transition-fast);
+    transition: all var(--transition-fast, 0.2s) ease-in-out;
     z-index: 1000;
-    border: 1px solid var(--border-primary);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--error, #dc3545);
+    box-shadow: var(--shadow-sm, 0 2px 4px rgba(0,0,0,0.1));
+    pointer-events: none;
 }
 
-.validation-tooltip.required:focus::after,
-.validation-tooltip.required.show-tooltip::after {
+/* Fallback for fields without data-error-message */
+.validation-tooltip.required:invalid:not([data-error-message])::after {
+    content: "Compila questo campo";
+}
+
+/* Show tooltip on focus for invalid required fields */
+.validation-tooltip.required:focus:invalid::after,
+.validation-tooltip.required:hover:invalid::after {
     opacity: 1;
     visibility: visible;
 }
 
-.validation-tooltip.invalid::after {
-    content: "Questo campo è obbligatorio";
-    background-color: var(--error);
+/* Show tooltip for JavaScript validation errors */
+.validation-tooltip.validation-error::after {
+    content: attr(data-error-message);
+    position: absolute;
+    top: 50%;
+    right: -220px;
+    transform: translateY(-50%);
+    background-color: var(--error, #dc3545);
     color: white;
-    border-color: var(--error);
+    padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+    border-radius: var(--radius-md, 4px);
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-fast, 0.2s) ease-in-out;
+    z-index: 1000;
+    border: 1px solid var(--error, #dc3545);
+    box-shadow: var(--shadow-sm, 0 2px 4px rgba(0,0,0,0.1));
+    pointer-events: none;
+}
+
+.validation-tooltip.validation-error:focus::after,
+.validation-tooltip.validation-error:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Validation tooltip arrow for JavaScript validation errors */
+.validation-tooltip.validation-error::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -8px;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid var(--error, #dc3545);
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-fast, 0.2s) ease-in-out;
+    z-index: 1001;
+}
+
+.validation-tooltip.validation-error:focus::before,
+.validation-tooltip.validation-error:hover::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Visual styling for JavaScript validation errors */
+.validation-tooltip.validation-error {
+    border-color: var(--error, #dc3545) !important;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+}
+
+/* Responsive tooltip positioning for smaller screens */
+@media (max-width: 768px) {
+    .validation-tooltip.required:invalid::after,
+    .validation-tooltip.validation-error::after {
+        right: auto;
+        left: 0;
+        top: 100%;
+        transform: translateY(4px);
+        margin-top: 2px;
+    }
+    
+    .validation-tooltip.required:invalid::before,
+    .validation-tooltip.validation-error::before {
+        right: auto;
+        left: 12px;
+        top: 100%;
+        transform: translateY(-6px);
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-bottom: 6px solid var(--error, #dc3545);
+        border-top: none;
+    }
+}
+
+/* Enhanced visual feedback for invalid fields */
+.validation-tooltip.required:invalid {
+    border-color: var(--error, #dc3545) !important;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+}
+
+/* Valid state styling */
+.validation-tooltip.required:valid {
+    border-color: var(--success, #28a745);
+}
+
+/* Focus states */
+.validation-tooltip:focus {
+    outline: none;
+    border-color: var(--primary, #007bff);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Validation tooltip arrow for better visual connection */
+.validation-tooltip.required:invalid::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -8px;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid var(--error, #dc3545);
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-fast, 0.2s) ease-in-out;
+    z-index: 1001;
+}
+
+.validation-tooltip.required:focus:invalid::before,
+.validation-tooltip.required:hover:invalid::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (max-width: 768px) {
+    .validation-tooltip.required:invalid::before,
+    .validation-tooltip.validation-error::before {
+        right: auto;
+        left: 12px;
+        top: 100%;
+        transform: translateY(-6px);
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-bottom: 6px solid var(--error, #dc3545);
+    }
+}
+
+/* Form validation states for better UX */
+.form-group {
+    position: relative;
+    margin-bottom: var(--spacing-md, 16px);
+}
+
+.form-group .validation-tooltip {
+    width: 100%;
+}
+
+/* Loading state for form submissions */
+.form-submitting .validation-tooltip {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.form-submitting .btn {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .text-center {

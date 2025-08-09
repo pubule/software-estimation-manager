@@ -452,33 +452,44 @@ class ProjectManager {
     }
 
     /**
-     * Show form validation errors
+     * Show form validation errors using tooltip system
      */
     showNewProjectFormErrors(errors) {
+        console.log('🔧 showNewProjectFormErrors called with:', errors);
+        
         // Clear existing errors
         this.clearNewProjectFormErrors();
 
-        // Show new errors
+        // Show new errors using tooltip system
         Object.keys(errors).forEach(field => {
             const fieldId = `project-${field}`;
             const element = document.getElementById(fieldId);
+            
+            console.log(`🔍 Looking for element: ${fieldId}`, element);
 
             if (element) {
-                element.classList.add('error');
-
-                // Add error message
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-message';
-                errorDiv.textContent = errors[field];
-
-                element.parentNode.appendChild(errorDiv);
+                console.log(`✅ Found element ${fieldId}, setting error message: "${errors[field]}"`);
+                
+                // Use validation tooltip system instead of DOM elements
+                element.setAttribute('data-error-message', errors[field]);
+                element.classList.add('validation-error');
+                
+                console.log(`📝 Element ${fieldId} classes:`, element.classList.toString());
+                console.log(`📝 Element ${fieldId} data-error-message:`, element.getAttribute('data-error-message'));
+                
+                // Trigger validation state to show tooltip
+                element.reportValidity();
+            } else {
+                console.log(`❌ Element ${fieldId} not found!`);
             }
         });
 
         // Focus first error field
-        const firstErrorField = document.querySelector('#new-project-form .error');
+        const firstErrorField = document.querySelector('#new-project-form [data-error-message]');
+        console.log('🎯 First error field:', firstErrorField);
         if (firstErrorField) {
             firstErrorField.focus();
+            console.log('🎯 Focused first error field');
         }
     }
 
@@ -486,12 +497,16 @@ class ProjectManager {
      * Clear form validation errors
      */
     clearNewProjectFormErrors() {
-        // Remove error classes
+        // Remove validation error classes and attributes
+        document.querySelectorAll('#new-project-form .validation-error').forEach(el => {
+            el.classList.remove('validation-error');
+            el.removeAttribute('data-error-message');
+        });
+
+        // Also clean up any legacy error elements (for compatibility)
         document.querySelectorAll('#new-project-form .error').forEach(el => {
             el.classList.remove('error');
         });
-
-        // Remove error messages
         document.querySelectorAll('#new-project-form .error-message').forEach(el => {
             el.remove();
         });

@@ -1833,7 +1833,7 @@ class SupplierConfigManager {
                         <form id="supplier-form">
                             <div class="form-group">
                                 <label for="supplier-name">Supplier Name:</label>
-                                <input type="text" id="supplier-name" name="name" required maxlength="100" 
+                                <input type="text" id="supplier-name" name="name" class="validation-tooltip required" required maxlength="100" 
                                        placeholder="Enter supplier company name">
                             </div>
                             <div class="form-group">
@@ -1843,7 +1843,7 @@ class SupplierConfigManager {
                             </div>
                             <div class="form-group">
                                 <label for="supplier-role">Role:</label>
-                                <select id="supplier-role" name="role" required>
+                                <select id="supplier-role" name="role" class="validation-tooltip required" required>
                                     <option value="">Select Role</option>
                                     <option value="G1">G1</option>
                                     <option value="G2">G2</option>
