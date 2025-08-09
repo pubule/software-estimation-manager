@@ -1998,6 +1998,11 @@ global.NotificationManager = {
   error: jest.fn()
 };
 
+// Import required components for testing
+const WorkingDaysCalculator = require('../src/renderer/js/components/working-days-calculator');
+const TeamManager = require('../src/renderer/js/components/team-manager');
+const AutoDistribution = require('../src/renderer/js/components/auto-distribution');
+
 // Set up window global classes
 global.window = global.window || {};
 Object.assign(global.window, {
@@ -2007,5 +2012,13 @@ Object.assign(global.window, {
   ProjectPhasesManager: MockProjectPhasesManager,
   VersionManager: MockVersionManager,
   NavigationManager: MockNavigationManager,
-  NotificationManager: global.NotificationManager
+  NotificationManager: global.NotificationManager,
+  WorkingDaysCalculator: WorkingDaysCalculator,
+  TeamManager: TeamManager,
+  AutoDistribution: AutoDistribution
 });
+
+// Make them globally available for tests
+global.WorkingDaysCalculator = WorkingDaysCalculator;
+global.TeamManager = TeamManager;
+global.AutoDistribution = AutoDistribution;

@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="styles/categories-config.css">
     <link rel="stylesheet" href="styles/calculations.css">
     <link rel="stylesheet" href="styles/version-history.css">
+    <link rel="stylesheet" href="styles/capacity.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -99,6 +100,14 @@
                     <div class="nav-item">
                         <i class="fas fa-cog"></i>
                         <span>Configuration</span>
+                    </div>
+                </div>
+
+                <!-- Capacity Section (independent) -->
+                <div class="nav-section" data-section="capacity">
+                    <div class="nav-item">
+                        <i class="fas fa-users"></i>
+                        <span>Capacity Planning</span>
                     </div>
                 </div>
 
@@ -361,6 +370,29 @@
                     <p>Version history will be implemented here...</p>
                 </div>
             </div>
+
+            <!-- Capacity Page -->
+            <div id="capacity-page" class="page">
+                <div class="page-header">
+                    <h2>📊 Capacity Planning</h2>
+                    <div class="page-actions">
+                        <button class="btn btn-secondary" id="refresh-capacity-btn">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button class="btn btn-secondary" id="export-capacity-btn">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Capacity content will be dynamically rendered here -->
+                <div id="capacity-content" class="capacity-main-content">
+                    <div class="loading-message">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading capacity planning...</p>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -576,6 +608,9 @@
 
 <!-- Calculations management (depends on data-manager and configuration-manager) -->
 <script src="js/components/calculations-manager.js"></script>
+
+<!-- Capacity management (depends on data-manager and configuration-manager) -->
+<script src="js/components/capacity-manager.js"></script>
 
 <!-- Navigation (depends on configuration-manager) -->
 <script src="js/components/navigation.js"></script>
