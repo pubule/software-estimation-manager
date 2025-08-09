@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Default Operating Instructions
+**SEMPRE**: Ottimizzando l'uso degli agenti e usando MCP quando necessario, esegui ogni task con massima efficienza utilizzando gli strumenti disponibili.
+
 ## Common Development Commands
 
 ### Development & Build

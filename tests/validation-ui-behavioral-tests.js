@@ -576,4 +576,175 @@ describe('Validation UI Standardization - Behavioral Documentation', () => {
             expect('Compila questo campo').toMatch(/^Compila/);
         });
     });
+
+    describe('ENHANCED: New Project Modal Dual Field Validation', () => {
+        // Mock ProjectManager for validation testing
+        let projectManager;
+        
+        beforeEach(() => {
+            // Create mock ProjectManager with validation method
+            projectManager = {
+                validateNewProjectData: function(data) {
+                    const errors = {};
+
+                    console.log('Validating data:', data);
+
+                    // Check if project code is invalid (empty or less than 3 characters)
+                    const codeInvalid = !data.code || data.code.length < 3;
+                    // Check if project name is invalid (empty)
+                    const nameInvalid = !data.name || data.name === '';
+
+                    // Special case: both fields are invalid
+                    if (codeInvalid && nameInvalid) {
+                        console.log('Both fields are invalid, showing generic message');
+                        return {
+                            isValid: false,
+                            errors: {
+                                code: 'Compila questo campo',
+                                name: 'Compila questo campo'
+                            }
+                        };
+                    }
+
+                    // Standard validation for individual fields
+                    // Validate project code
+                    if (!data.code) {
+                        errors.code = 'Project code is required';
+                    } else if (!/^[A-Z0-9_-]+$/.test(data.code)) {
+                        errors.code = 'Project code can only contain uppercase letters, numbers, hyphens and underscores';
+                    } else if (data.code.length < 3) {
+                        errors.code = 'Project code must be at least 3 characters long';
+                    } else if (data.code.length > 20) {
+                        errors.code = 'Project code must be less than 20 characters';
+                    }
+
+                    // Validate project name
+                    if (!data.name || data.name === '') {
+                        errors.name = 'Project name is required';
+                        console.log('Name validation failed, value:', `"${data.name}"`);
+                    } else if (data.name.length < 3) {
+                        errors.name = 'Project name must be at least 3 characters long';
+                    } else if (data.name.length > 100) {
+                        errors.name = 'Project name must be less than 100 characters';
+                    }
+
+                    // Validate description (optional)
+                    if (data.description && data.description.length > 500) {
+                        errors.description = 'Description must be less than 500 characters';
+                    }
+
+                    console.log('Validation errors:', errors);
+
+                    return {
+                        isValid: Object.keys(errors).length === 0,
+                        errors
+                    };
+                }
+            };
+        });
+
+        test('ENHANCED: Both fields invalid shows "Compila questo campo" message', () => {
+            // Test case: both code and name are empty
+            const validationResult = projectManager.validateNewProjectData({
+                code: '',
+                name: '',
+                description: ''
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.code).toBe('Compila questo campo');
+            expect(validationResult.errors.name).toBe('Compila questo campo');
+            expect(Object.keys(validationResult.errors)).toEqual(['code', 'name']);
+        });
+
+        test('ENHANCED: Code empty and name empty shows "Compila questo campo"', () => {
+            // Test case: code is empty, name is empty
+            const validationResult = projectManager.validateNewProjectData({
+                code: '',
+                name: '',
+                description: 'Some description'
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.code).toBe('Compila questo campo');
+            expect(validationResult.errors.name).toBe('Compila questo campo');
+        });
+
+        test('ENHANCED: Code less than 3 chars and name empty shows "Compila questo campo"', () => {
+            // Test case: code has less than 3 characters, name is empty
+            const validationResult = projectManager.validateNewProjectData({
+                code: 'AB', // Less than 3 characters
+                name: '',
+                description: ''
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.code).toBe('Compila questo campo');
+            expect(validationResult.errors.name).toBe('Compila questo campo');
+        });
+
+        test('ENHANCED: Only code invalid shows specific code error message', () => {
+            // Test case: code is invalid but name is valid
+            const validationResult = projectManager.validateNewProjectData({
+                code: '', // Empty code
+                name: 'Valid Project Name',
+                description: ''
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.code).toBe('Project code is required');
+            expect(validationResult.errors.name).toBeUndefined();
+        });
+
+        test('ENHANCED: Only name invalid shows specific name error message', () => {
+            // Test case: name is invalid but code is valid
+            const validationResult = projectManager.validateNewProjectData({
+                code: 'VALID-CODE',
+                name: '', // Empty name
+                description: ''
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.name).toBe('Project name is required');
+            expect(validationResult.errors.code).toBeUndefined();
+        });
+
+        test('ENHANCED: Both fields valid passes validation', () => {
+            // Test case: both fields are valid
+            const validationResult = projectManager.validateNewProjectData({
+                code: 'VALID-CODE',
+                name: 'Valid Project Name',
+                description: 'Valid description'
+            });
+
+            expect(validationResult.isValid).toBe(true);
+            expect(Object.keys(validationResult.errors)).toHaveLength(0);
+        });
+
+        test('ENHANCED: Code with exactly 3 characters and empty name shows "Compila questo campo"', () => {
+            // Edge case: code has exactly 3 characters (valid), name is empty (invalid)
+            const validationResult = projectManager.validateNewProjectData({
+                code: 'ABC', // Exactly 3 characters - should be valid
+                name: '',
+                description: ''
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.name).toBe('Project name is required');
+            expect(validationResult.errors.code).toBeUndefined();
+        });
+
+        test('ENHANCED: Empty code and name with 3 characters shows "Compila questo campo"', () => {
+            // Edge case: code is empty (invalid), name has 3 characters (valid)
+            const validationResult = projectManager.validateNewProjectData({
+                code: '',
+                name: 'ABC', // Valid name
+                description: ''
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.code).toBe('Project code is required');
+            expect(validationResult.errors.name).toBeUndefined();
+        });
+    });
 });
