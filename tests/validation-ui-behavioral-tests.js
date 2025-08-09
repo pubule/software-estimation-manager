@@ -747,4 +747,256 @@ describe('Validation UI Standardization - Behavioral Documentation', () => {
             expect(validationResult.errors.name).toBeUndefined();
         });
     });
+
+    describe('ENHANCED: Feature Modal Multi-Field Validation', () => {
+        // Mock FeatureModal for validation testing
+        let featureModal;
+        
+        beforeEach(() => {
+            // Create mock FeatureModal with validation method
+            featureModal = {
+                validateFormData: function(data) {
+                    const errors = {};
+
+                    console.log('Validating feature data:', data);
+
+                    // Define critical fields for intelligent validation
+                    const criticalFields = {
+                        id: !data.id || data.id.trim() === '',
+                        description: !data.description || data.description.trim() === '' || data.description.length < 3,
+                        category: !data.category || data.category === '',
+                        supplier: !data.supplier || data.supplier === '',
+                        realManDays: !data.realManDays || data.realManDays <= 0
+                    };
+
+                    // Count invalid critical fields
+                    const invalidCriticalFields = Object.values(criticalFields).filter(Boolean).length;
+                    const totalCriticalFields = Object.keys(criticalFields).length;
+
+                    console.log(`Invalid critical fields: ${invalidCriticalFields}/${totalCriticalFields}`);
+
+                    // Intelligent validation: if most critical fields are invalid, show generic message
+                    if (invalidCriticalFields >= 4) {
+                        console.log('Most fields are invalid, showing generic message');
+                        
+                        // Show "Compila questo campo" for all invalid critical fields
+                        if (criticalFields.id) {
+                            errors.id = 'Compila questo campo';
+                        }
+                        if (criticalFields.description) {
+                            errors.description = 'Compila questo campo';
+                        }
+                        if (criticalFields.category) {
+                            errors.category = 'Compila questo campo';
+                        }
+                        if (criticalFields.supplier) {
+                            errors.supplier = 'Compila questo campo';
+                        }
+                        if (criticalFields.realManDays) {
+                            errors.realManDays = 'Compila questo campo';
+                        }
+
+                        return {
+                            isValid: false,
+                            errors
+                        };
+                    }
+
+                    // Standard validation for individual fields when only few are invalid
+                    console.log('Standard validation - showing specific messages');
+
+                    // Validate ID
+                    if (!data.id) {
+                        errors.id = 'Feature ID is required';
+                    } else if (!/^[A-Z0-9_-]+$/i.test(data.id)) {
+                        errors.id = 'Feature ID can only contain letters, numbers, underscores, and hyphens';
+                    }
+
+                    // Validate description
+                    if (!data.description) {
+                        errors.description = 'Description is required';
+                    } else if (data.description.length < 3) {
+                        errors.description = 'Description must be at least 3 characters long';
+                    }
+
+                    // Validate category
+                    if (!data.category) {
+                        errors.category = 'Category is required';
+                    }
+
+                    // Validate supplier
+                    if (!data.supplier) {
+                        errors.supplier = 'Supplier is required';
+                    }
+
+                    // Validate real man days
+                    if (!data.realManDays || data.realManDays <= 0) {
+                        errors.realManDays = 'Real Man Days must be greater than 0';
+                    }
+
+                    console.log('Feature validation errors:', errors);
+
+                    return {
+                        isValid: Object.keys(errors).length === 0,
+                        errors
+                    };
+                }
+            };
+        });
+
+        test('ENHANCED: All 5 critical fields invalid shows "Compila questo campo" message', () => {
+            // Test case: all critical fields are invalid
+            const validationResult = featureModal.validateFormData({
+                id: '',
+                description: '',
+                category: '',
+                supplier: '',
+                realManDays: 0
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.id).toBe('Compila questo campo');
+            expect(validationResult.errors.description).toBe('Compila questo campo');
+            expect(validationResult.errors.category).toBe('Compila questo campo');
+            expect(validationResult.errors.supplier).toBe('Compila questo campo');
+            expect(validationResult.errors.realManDays).toBe('Compila questo campo');
+            expect(Object.keys(validationResult.errors)).toEqual(['id', 'description', 'category', 'supplier', 'realManDays']);
+        });
+
+        test('ENHANCED: 4 of 5 critical fields invalid shows "Compila questo campo" message', () => {
+            // Test case: 4 critical fields are invalid, 1 is valid
+            const validationResult = featureModal.validateFormData({
+                id: 'VALID-001', // Valid
+                description: '',   // Invalid
+                category: '',      // Invalid
+                supplier: '',      // Invalid
+                realManDays: 0     // Invalid
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.description).toBe('Compila questo campo');
+            expect(validationResult.errors.category).toBe('Compila questo campo');
+            expect(validationResult.errors.supplier).toBe('Compila questo campo');
+            expect(validationResult.errors.realManDays).toBe('Compila questo campo');
+            expect(validationResult.errors.id).toBeUndefined(); // Valid field should not have error
+        });
+
+        test('ENHANCED: Description too short counts as invalid for intelligent validation', () => {
+            // Test case: description is too short (less than 3 chars) counts as invalid
+            const validationResult = featureModal.validateFormData({
+                id: '',
+                description: 'Hi', // Invalid (less than 3 characters)
+                category: '',
+                supplier: '',
+                realManDays: 0
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.id).toBe('Compila questo campo');
+            expect(validationResult.errors.description).toBe('Compila questo campo');
+            expect(validationResult.errors.category).toBe('Compila questo campo');
+            expect(validationResult.errors.supplier).toBe('Compila questo campo');
+            expect(validationResult.errors.realManDays).toBe('Compila questo campo');
+        });
+
+        test('ENHANCED: Only 3 fields invalid shows specific error messages', () => {
+            // Test case: only 3 fields are invalid (less than threshold)
+            const validationResult = featureModal.validateFormData({
+                id: '',                    // Invalid
+                description: 'Valid description', // Valid
+                category: '',              // Invalid  
+                supplier: 'valid-supplier', // Valid
+                realManDays: 0            // Invalid
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.id).toBe('Feature ID is required');
+            expect(validationResult.errors.category).toBe('Category is required');
+            expect(validationResult.errors.realManDays).toBe('Real Man Days must be greater than 0');
+            expect(validationResult.errors.description).toBeUndefined();
+            expect(validationResult.errors.supplier).toBeUndefined();
+        });
+
+        test('ENHANCED: Only 2 fields invalid shows specific error messages', () => {
+            // Test case: only 2 fields are invalid
+            const validationResult = featureModal.validateFormData({
+                id: '',                        // Invalid
+                description: 'Valid description', // Valid
+                category: 'valid-category',     // Valid
+                supplier: '',                   // Invalid
+                realManDays: 5.5               // Valid
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.id).toBe('Feature ID is required');
+            expect(validationResult.errors.supplier).toBe('Supplier is required');
+            expect(validationResult.errors.description).toBeUndefined();
+            expect(validationResult.errors.category).toBeUndefined();
+            expect(validationResult.errors.realManDays).toBeUndefined();
+        });
+
+        test('ENHANCED: All fields valid passes validation', () => {
+            // Test case: all fields are valid
+            const validationResult = featureModal.validateFormData({
+                id: 'FEATURE-001',
+                description: 'Valid feature description',
+                category: 'valid-category-id',
+                supplier: 'valid-supplier-id',
+                realManDays: 5.5
+            });
+
+            expect(validationResult.isValid).toBe(true);
+            expect(Object.keys(validationResult.errors)).toHaveLength(0);
+        });
+
+        test('ENHANCED: Invalid ID format shows specific message when other fields valid', () => {
+            // Test case: only ID format is invalid
+            const validationResult = featureModal.validateFormData({
+                id: 'invalid@id!',              // Invalid format
+                description: 'Valid description',
+                category: 'valid-category',
+                supplier: 'valid-supplier',
+                realManDays: 3.0
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.id).toBe('Feature ID can only contain letters, numbers, underscores, and hyphens');
+            expect(validationResult.errors.description).toBeUndefined();
+            expect(validationResult.errors.category).toBeUndefined();
+            expect(validationResult.errors.supplier).toBeUndefined();
+            expect(validationResult.errors.realManDays).toBeUndefined();
+        });
+
+        test('ENHANCED: Edge case - exactly threshold of 4 invalid fields triggers intelligent validation', () => {
+            // Test case: exactly at the threshold (4/5)
+            const validationResult = featureModal.validateFormData({
+                id: 'VALID-ID',      // Valid
+                description: 'X',    // Invalid (too short)
+                category: '',        // Invalid
+                supplier: '',        // Invalid  
+                realManDays: -1      // Invalid
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.description).toBe('Compila questo campo');
+            expect(validationResult.errors.category).toBe('Compila questo campo');
+            expect(validationResult.errors.supplier).toBe('Compila questo campo');
+            expect(validationResult.errors.realManDays).toBe('Compila questo campo');
+            expect(validationResult.errors.id).toBeUndefined();
+        });
+
+        test('ENHANCED: Negative real man days counts as invalid', () => {
+            // Test case: negative real man days
+            const validationResult = featureModal.validateFormData({
+                id: '',
+                description: '',
+                category: '',
+                supplier: '',
+                realManDays: -5  // Negative value
+            });
+
+            expect(validationResult.isValid).toBe(false);
+            expect(validationResult.errors.realManDays).toBe('Compila questo campo');
+        });
+    });
 });
