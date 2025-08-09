@@ -1,0 +1,1 @@
+console.log('🧪 Testing CSS tooltip system'); const testField = document.getElementById('project-code'); if(testField) { testField.setAttribute('data-error-message', 'TEST MESSAGE'); testField.classList.add('validation-error'); testField.focus(); console.log('✅ Test applied, focus on project-code field'); } else { console.log('❌ project-code field not found'); }
