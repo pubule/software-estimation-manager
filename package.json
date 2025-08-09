@@ -24,7 +24,12 @@
     "test:e2e:visible": "HEADLESS=false cucumber-js",
     "test:e2e:slow": "HEADLESS=false SLOW_MO=1000 cucumber-js",
     "test:e2e:debug": "HEADLESS=false DEBUG=true SLOW_MO=500 cucumber-js",
-    "test:all": "npm run test && npm run test:e2e"
+    "test:all": "npm run test && npm run test:e2e",
+    "agents": "node agents/agent-runner.js",
+    "agents:list": "node agents/agent-runner.js list",
+    "agents:validate": "node agents/agent-runner.js validate",
+    "agents:test": "node agents/agent-runner.js test",
+    "tdd": "node agents/agent-runner.js tdd"
   },
   "keywords": [
     "electron",

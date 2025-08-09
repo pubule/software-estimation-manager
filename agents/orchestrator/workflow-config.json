@@ -1,0 +1,269 @@
+{
+  "name": "Agent Orchestrator",
+  "id": "agent-orchestrator",
+  "version": "1.0.0",
+  "description": "Coordinates AI agents for complete TDD lifecycle management",
+  "workflow_types": {
+    "tdd_feature_development": {
+      "description": "Complete TDD cycle for new feature development",
+      "phases": [
+        {
+          "name": "requirement_analysis",
+          "agents": ["architecture-guardian"],
+          "tasks": [
+            "Analyze feature requirements for architectural impact",
+            "Identify component dependencies and integration points",
+            "Validate against existing architectural patterns"
+          ]
+        },
+        {
+          "name": "test_creation",
+          "agents": ["test-creator", "tdd-developer"],
+          "tasks": [
+            "Create behavioral documentation tests",
+            "Write failing unit tests",
+            "Design integration test scenarios",
+            "Create E2E test workflows if needed"
+          ],
+          "validation": "All tests must fail initially"
+        },
+        {
+          "name": "minimal_implementation", 
+          "agents": ["tdd-developer", "architecture-guardian"],
+          "tasks": [
+            "Implement minimal code to make tests pass",
+            "Follow existing architectural patterns",
+            "Ensure proper component integration"
+          ],
+          "validation": "All tests must pass, no architectural violations"
+        },
+        {
+          "name": "refactoring",
+          "agents": ["tdd-developer", "code-reviewer"],
+          "tasks": [
+            "Improve code quality while keeping tests green",
+            "Optimize performance where needed", 
+            "Enhance error handling and edge cases"
+          ],
+          "validation": "All tests remain green, code quality improved"
+        },
+        {
+          "name": "integration_validation",
+          "agents": ["test-runner", "architecture-guardian", "configuration-orchestrator"],
+          "tasks": [
+            "Run complete test suite",
+            "Validate architectural compliance", 
+            "Check configuration system integration",
+            "Verify cross-platform compatibility"
+          ]
+        }
+      ]
+    },
+    "bug_fixing": {
+      "description": "Systematic bug resolution workflow",
+      "phases": [
+        {
+          "name": "bug_analysis",
+          "agents": ["bugfixer", "test-creator"],
+          "tasks": [
+            "Analyze bug reports and reproduce issues",
+            "Create failing regression tests",
+            "Identify root cause and impact scope"
+          ]
+        },
+        {
+          "name": "fix_implementation",
+          "agents": ["bugfixer", "architecture-guardian"], 
+          "tasks": [
+            "Implement minimal fix to resolve issue",
+            "Ensure fix doesn't break existing functionality",
+            "Validate architectural compliance"
+          ]
+        },
+        {
+          "name": "regression_testing",
+          "agents": ["test-runner", "test-creator"],
+          "tasks": [
+            "Run full test suite to prevent regressions",
+            "Add additional edge case tests",
+            "Update behavioral documentation if behavior changed"
+          ]
+        }
+      ]
+    },
+    "configuration_changes": {
+      "description": "Workflow for hierarchical configuration system changes",
+      "phases": [
+        {
+          "name": "config_analysis",
+          "agents": ["configuration-orchestrator"],
+          "tasks": [
+            "Analyze impact of configuration changes",
+            "Plan migration strategy if needed",
+            "Identify affected components"
+          ]
+        },
+        {
+          "name": "config_implementation",
+          "agents": ["configuration-orchestrator", "tdd-developer"],
+          "tasks": [
+            "Implement configuration changes",
+            "Handle migration scenarios",
+            "Update related components"
+          ]
+        },
+        {
+          "name": "config_validation", 
+          "agents": ["configuration-orchestrator", "test-runner"],
+          "tasks": [
+            "Test configuration inheritance",
+            "Validate migration scenarios",
+            "Verify backward compatibility"
+          ]
+        }
+      ]
+    },
+    "architectural_refactoring": {
+      "description": "Major architectural changes workflow",
+      "phases": [
+        {
+          "name": "impact_analysis",
+          "agents": ["architecture-guardian", "test-creator"],
+          "tasks": [
+            "Analyze architectural change impact",
+            "Identify all affected components",
+            "Plan testing strategy for changes"
+          ]
+        },
+        {
+          "name": "test_preparation", 
+          "agents": ["test-creator"],
+          "tasks": [
+            "Create comprehensive test coverage for existing behavior",
+            "Design tests for new architectural patterns",
+            "Ensure behavioral documentation is complete"
+          ]
+        },
+        {
+          "name": "incremental_refactoring",
+          "agents": ["tdd-developer", "architecture-guardian"],
+          "tasks": [
+            "Implement changes incrementally",
+            "Maintain test coverage throughout process",
+            "Validate architectural compliance at each step"
+          ]
+        },
+        {
+          "name": "final_validation",
+          "agents": ["test-runner", "architecture-guardian", "performance-monitor"],
+          "tasks": [
+            "Run complete test suite",
+            "Validate architectural integrity",
+            "Check performance impact",
+            "Verify all functionality maintained"
+          ]
+        }
+      ]
+    }
+  },
+  "agent_coordination": {
+    "communication_patterns": {
+      "sequential": "Agents work in defined sequence",
+      "collaborative": "Multiple agents work together on same phase", 
+      "parallel": "Independent agents work simultaneously",
+      "feedback_loop": "Agents iterate based on results"
+    },
+    "handoff_protocols": {
+      "work_product_validation": "Each agent validates previous agent's work",
+      "context_preservation": "Important context passed between agents",
+      "error_escalation": "Issues escalated to appropriate specialist agents"
+    }
+  },
+  "quality_gates": {
+    "architectural_compliance": {
+      "agent": "architecture-guardian",
+      "criteria": [
+        "Script loading order maintained",
+        "Component inheritance patterns followed",
+        "Manager system properly integrated"
+      ]
+    },
+    "test_coverage": {
+      "agent": "test-runner",
+      "criteria": [
+        "All critical paths tested",
+        "Behavioral documentation complete",
+        "Integration scenarios covered"
+      ]
+    },
+    "configuration_integrity": {
+      "agent": "configuration-orchestrator", 
+      "criteria": [
+        "Hierarchical inheritance working",
+        "Migration scenarios tested",
+        "External config loading validated"
+      ]
+    }
+  },
+  "workflow_triggers": {
+    "automatic": [
+      "Pre-commit hooks",
+      "Build pipeline stages",
+      "Scheduled quality checks"
+    ],
+    "manual": [
+      "Feature development request",
+      "Bug report resolution",
+      "Architectural change planning"
+    ],
+    "event_driven": [
+      "Test failures",
+      "Configuration changes",
+      "Performance threshold breaches"
+    ]
+  },
+  "monitoring_and_metrics": {
+    "workflow_metrics": [
+      "TDD cycle completion time",
+      "Test failure rates by phase",
+      "Architectural compliance rates",
+      "Bug resolution time"
+    ],
+    "quality_metrics": [
+      "Code coverage trends",
+      "Architectural debt accumulation",
+      "Configuration system health",
+      "Performance regression detection"
+    ],
+    "agent_performance": [
+      "Agent response times",
+      "Task completion rates",
+      "Inter-agent collaboration efficiency"
+    ]
+  },
+  "integration": {
+    "development_tools": {
+      "vscode": "Integration with VS Code for seamless development",
+      "git": "Git hooks for automated workflow triggers",
+      "npm": "Package.json scripts for agent orchestration"
+    },
+    "ci_cd": {
+      "github_actions": "Workflow integration with CI/CD pipeline",
+      "build_validation": "Pre-build agent validation",
+      "deployment_gates": "Quality gates before deployment"
+    }
+  },
+  "configuration": {
+    "agent_priorities": {
+      "critical": ["architecture-guardian"],
+      "core": ["tdd-developer", "test-creator"],
+      "high": ["configuration-orchestrator", "test-runner"],
+      "medium": ["code-reviewer", "bugfixer"]
+    },
+    "parallel_execution": {
+      "enabled": true,
+      "max_concurrent_agents": 3,
+      "resource_management": "Intelligent scheduling based on system resources"
+    }
+  }
+}

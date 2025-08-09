@@ -1,0 +1,189 @@
+{
+  "name": "Test Runner Agent", 
+  "id": "test-runner",
+  "version": "1.0.0",
+  "description": "Intelligently executes tests with optimal scheduling and comprehensive reporting",
+  "priority": "high",
+  "capabilities": [
+    "intelligent-test-execution",
+    "coverage-analysis",
+    "performance-monitoring",
+    "failure-analysis",
+    "regression-detection"
+  ],
+  "test_execution_strategies": {
+    "watch_mode": {
+      "description": "Continuous testing during development",
+      "command": "npm test -- --watch",
+      "triggers": ["File changes", "Manual request"],
+      "scope": "Changed files and dependencies"
+    },
+    "full_suite": {
+      "description": "Complete test suite execution",
+      "command": "npm run test:all",
+      "triggers": ["Pre-commit", "CI/CD", "Release validation"],
+      "scope": "All tests (unit + e2e)"
+    },
+    "targeted_execution": {
+      "description": "Execute tests related to specific changes",
+      "strategy": "Analyze changed files and run related tests only",
+      "efficiency": "Reduce test execution time while maintaining coverage"
+    },
+    "performance_testing": {
+      "description": "Performance and load testing scenarios",
+      "focus": ["Memory usage", "Startup time", "Large dataset handling"],
+      "thresholds": {
+        "startup_time": "< 5 seconds",
+        "memory_usage": "< 500MB for typical project",
+        "export_time": "< 30 seconds for 1000 features"
+      }
+    }
+  },
+  "test_frameworks_integration": {
+    "jest": {
+      "config": "jest.config.js",
+      "execution": "npm test",
+      "coverage": "npm run test:coverage", 
+      "watch": "npm run test:watch",
+      "reports": ["text", "lcov", "html"]
+    },
+    "cucumber": {
+      "config": "cucumber.config.js",
+      "execution": "npm run test:e2e",
+      "profiles": [
+        "default", "project-management", "feature-management",
+        "configuration-management", "version-management"
+      ],
+      "reports": ["progress-bar", "html", "json", "junit"]
+    },
+    "playwright": {
+      "integration": "Via Cucumber for Electron E2E testing",
+      "modes": ["headless", "visible", "debug", "slow-motion"],
+      "cross_platform": "Windows, macOS, Linux testing"
+    }
+  },
+  "intelligent_scheduling": {
+    "priority_based": {
+      "critical": "Tests that validate core business logic",
+      "high": "Integration tests and component interactions", 
+      "medium": "UI tests and user workflows",
+      "low": "Performance tests and edge cases"
+    },
+    "dependency_aware": {
+      "description": "Execute tests based on code dependencies",
+      "strategy": "Changed component → Related tests → Integration tests"
+    },
+    "failure_prioritization": {
+      "description": "Prioritize previously failed tests",
+      "strategy": "Run failing tests first to get quick feedback"
+    }
+  },
+  "reporting_and_analysis": {
+    "test_results": {
+      "summary": "Pass/fail counts with timing information",
+      "detailed": "Per-test results with stack traces for failures",
+      "trends": "Historical test performance and reliability"
+    },
+    "coverage_analysis": {
+      "line_coverage": "Percentage of code lines executed",
+      "branch_coverage": "Percentage of code branches tested",
+      "function_coverage": "Percentage of functions tested",
+      "behavioral_coverage": "Coverage of documented behaviors"
+    },
+    "performance_metrics": {
+      "execution_time": "Per-test and suite execution times",
+      "memory_usage": "Test memory consumption patterns",
+      "resource_utilization": "CPU and I/O usage during testing"
+    },
+    "failure_analysis": {
+      "categorization": "Group failures by type and component",
+      "root_cause": "Identify common failure patterns",
+      "regression_detection": "Flag tests that recently started failing"
+    }
+  },
+  "integration_with_development": {
+    "pre_commit_hooks": {
+      "fast_tests": "Run quick smoke tests before commit",
+      "validation": "Ensure code meets quality standards"
+    },
+    "ci_cd_integration": {
+      "build_validation": "Full test suite on build",
+      "deployment_gates": "Quality gates before deployment",
+      "cross_platform": "Test on multiple OS platforms"
+    },
+    "ide_integration": {
+      "vscode": "Integration with VS Code test explorer",
+      "inline_results": "Show test results inline with code"
+    }
+  },
+  "codebase_specific": {
+    "electron_testing": {
+      "main_process": "Test Electron main process functionality",
+      "renderer_process": "Test renderer process components",
+      "ipc_communication": "Test inter-process communication",
+      "file_operations": "Test file system operations"
+    },
+    "configuration_testing": {
+      "hierarchical_inheritance": "Test config hierarchy resolution",
+      "migration_scenarios": "Test config format migrations",
+      "external_config": "Test external configuration loading"
+    },
+    "data_persistence": {
+      "dual_storage": "Test Electron Store + localStorage fallback",
+      "data_validation": "Test data integrity and validation",
+      "migration": "Test data format migrations"
+    }
+  },
+  "test_maintenance": {
+    "flaky_test_detection": {
+      "description": "Identify unreliable tests",
+      "strategy": "Track test stability over multiple runs",
+      "action": "Flag tests with inconsistent results"
+    },
+    "test_optimization": {
+      "slow_test_identification": "Identify performance bottlenecks",
+      "parallel_execution": "Optimize test execution parallelization",
+      "resource_optimization": "Minimize resource usage during testing"
+    },
+    "outdated_test_detection": {
+      "description": "Identify tests that may be obsolete",
+      "indicators": ["Long-passing tests", "Unchanged for long period"],
+      "action": "Flag for review and potential removal"
+    }
+  },
+  "workflow_integration": {
+    "tdd_cycle": {
+      "red_phase": "Confirm tests fail as expected",
+      "green_phase": "Verify minimal implementation passes tests",
+      "refactor_phase": "Ensure refactoring doesn't break tests"
+    },
+    "bug_fixing": {
+      "regression_tests": "Run tests to confirm bug reproduction",
+      "fix_validation": "Verify bug fix doesn't break existing functionality"
+    },
+    "feature_development": {
+      "incremental_testing": "Test each development increment",
+      "integration_validation": "Ensure new features integrate properly"
+    }
+  },
+  "commands": {
+    "basic_execution": [
+      "npm test",
+      "npm run test:watch", 
+      "npm run test:coverage",
+      "npm run test:e2e",
+      "npm run test:all"
+    ],
+    "specialized_execution": [
+      "npm run test:e2e:headless",
+      "npm run test:e2e:visible",
+      "npm run test:e2e:debug",
+      "npm run test:e2e:slow"
+    ],
+    "reporting": [
+      "Generate coverage reports",
+      "Export test results to CI/CD",
+      "Create performance trend reports"
+    ]
+  }
+}

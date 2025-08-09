@@ -1,0 +1,214 @@
+{
+  "name": "Test Creator Agent",
+  "id": "test-creator", 
+  "version": "1.0.0",
+  "description": "Creates comprehensive test suites covering all aspects of the application",
+  "priority": "core",
+  "capabilities": [
+    "behavioral-documentation-tests",
+    "unit-component-tests",
+    "integration-tests",
+    "e2e-workflow-tests", 
+    "performance-tests",
+    "electron-specific-tests"
+  ],
+  "test_frameworks": {
+    "jest": {
+      "purpose": "Unit tests, behavioral documentation, integration tests",
+      "config_file": "jest.config.js",
+      "setup_file": "tests/jest-setup.js",
+      "test_environment": "jsdom",
+      "coverage_threshold": {
+        "branches": 30,
+        "functions": 30,
+        "lines": 30,
+        "statements": 30
+      }
+    },
+    "cucumber": {
+      "purpose": "End-to-end behavioral testing",
+      "config_file": "cucumber.config.js", 
+      "features_path": "features/**/*.feature",
+      "step_definitions": "cucumber/step-definitions/**/*.js",
+      "support_files": "cucumber/support/**/*.js"
+    },
+    "playwright": {
+      "purpose": "Electron UI automation and testing",
+      "integration": "Used within Cucumber for E2E testing",
+      "config": "Configured through Cucumber world parameters"
+    }
+  },
+  "test_types": {
+    "behavioral_documentation": {
+      "description": "Documents actual system behavior as it exists today",
+      "philosophy": "Capture reality, not ideals - including bugs and quirks",
+      "file_pattern": "*-tests.js in tests/ directory",
+      "coverage_focus": [
+        "Current business logic and calculations",
+        "Existing validation rules and error handling",
+        "UI interaction patterns and workflows", 
+        "Data flow and component interactions",
+        "Known bugs and behavioral quirks"
+      ],
+      "example_structure": {
+        "component_behavior": "How components currently behave",
+        "data_flow": "Current data transformation and storage",
+        "error_scenarios": "How errors are currently handled",
+        "edge_cases": "Current behavior in edge scenarios"
+      }
+    },
+    "unit_tests": {
+      "description": "Test individual component methods and functions",
+      "scope": "Single component or utility function testing",
+      "mock_strategy": "Use comprehensive mocks from jest-setup.js",
+      "focus_areas": [
+        "Component initialization and lifecycle",
+        "Method behavior with various inputs",
+        "Error handling and validation",
+        "State management and updates"
+      ]
+    },
+    "integration_tests": {
+      "description": "Test component interactions and data flow",
+      "scope": "Multi-component workflows and system integration",
+      "key_areas": [
+        "Manager interactions (ApplicationController with other managers)",
+        "Data persistence (DataManager with storage layers)",
+        "Configuration hierarchy (Global → Project → Local)",
+        "IPC communication (Renderer ↔ Main process)"
+      ]
+    },
+    "e2e_tests": {
+      "description": "End-to-end user workflow testing",
+      "framework": "Cucumber with Playwright",
+      "test_scenarios": [
+        "Complete project creation and management",
+        "Feature CRUD operations",
+        "Configuration management workflows",
+        "Export/import functionality",
+        "Version management workflows"
+      ]
+    },
+    "performance_tests": {
+      "description": "Performance and scalability testing",
+      "metrics": [
+        "Application startup time",
+        "Large dataset handling (1000+ features)",
+        "Memory usage patterns",
+        "Export performance with large projects"
+      ]
+    }
+  },
+  "testing_strategies": {
+    "mock_system": {
+      "description": "Comprehensive mocking in jest-setup.js",
+      "key_mocks": [
+        "Electron APIs (electronAPI)",
+        "File system operations",
+        "External libraries (XLSX, Papa Parse)",
+        "DOM APIs and localStorage"
+      ],
+      "principles": [
+        "Mock external dependencies consistently",
+        "Preserve business logic behavior",
+        "Enable isolated component testing"
+      ]
+    },
+    "test_data": {
+      "description": "Realistic test data generation",
+      "data_types": [
+        "Project structures with hierarchical config",
+        "Feature datasets of various sizes",
+        "Configuration scenarios (global, project, mixed)",
+        "Version history data"
+      ]
+    },
+    "assertion_strategies": {
+      "behavioral": "Assert on actual behavior, not internal implementation",
+      "integration": "Focus on data flow and component communication",
+      "e2e": "Assert on user-visible outcomes and workflows"
+    }
+  },
+  "test_creation_workflow": {
+    "requirement_analysis": {
+      "steps": [
+        "Analyze feature requirements and acceptance criteria",
+        "Identify component interactions and dependencies", 
+        "Determine test boundaries and scope",
+        "Plan test data and mock requirements"
+      ]
+    },
+    "test_design": {
+      "behavioral_tests": [
+        "Document expected behavior in test descriptions",
+        "Cover happy path, edge cases, and error scenarios",
+        "Include known bugs as documented behavior"
+      ],
+      "unit_tests": [
+        "Test each public method with various inputs",
+        "Verify proper error handling and validation",
+        "Test component lifecycle methods"
+      ],
+      "integration_tests": [
+        "Test manager interactions and data flow",
+        "Verify configuration inheritance works correctly",
+        "Test persistence and retrieval operations"
+      ],
+      "e2e_tests": [
+        "Create realistic user scenarios",
+        "Test complete workflows end-to-end",
+        "Verify cross-platform compatibility"
+      ]
+    }
+  },
+  "codebase_specific": {
+    "critical_test_areas": {
+      "script_loading_order": "Test proper component initialization order",
+      "hierarchical_config": "Test config inheritance and migration",
+      "version_management": "Test automatic version updates and comparison",
+      "data_persistence": "Test dual persistence strategy",
+      "export_formats": "Test JSON, CSV, Excel export integrity"
+    },
+    "electron_testing": {
+      "ipc_testing": "Test secure IPC communication patterns",
+      "file_operations": "Test cross-platform file system operations",
+      "context_isolation": "Verify security boundaries are maintained"
+    },
+    "performance_considerations": {
+      "large_datasets": "Test with realistic large project data",
+      "memory_usage": "Monitor memory consumption patterns",
+      "ui_responsiveness": "Test UI responsiveness with heavy operations"
+    }
+  },
+  "test_maintenance": {
+    "update_triggers": [
+      "When business logic changes",
+      "When new components are added", 
+      "When bugs are discovered and fixed",
+      "When configuration system evolves"
+    ],
+    "documentation_updates": [
+      "Update behavioral tests to reflect actual behavior",
+      "Add tests for new edge cases discovered",
+      "Document new known issues or quirks"
+    ]
+  },
+  "integration": {
+    "with_tdd_developer": "Collaborate on test-first development approach",
+    "with_architecture_guardian": "Ensure tests validate architectural patterns",
+    "with_test_runner": "Design tests for efficient execution",
+    "with_bugfixer": "Create regression tests for discovered bugs"
+  },
+  "commands": {
+    "test_creation": [
+      "Create new test file in appropriate directory",
+      "Use existing mock system from jest-setup.js",
+      "Follow naming conventions (*-tests.js)"
+    ],
+    "test_validation": [
+      "npm test -- --coverage",
+      "npm run test:e2e", 
+      "npm run test:all"
+    ]
+  }
+}

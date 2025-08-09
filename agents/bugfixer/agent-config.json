@@ -1,0 +1,235 @@
+{
+  "name": "Bugfixer Agent",
+  "id": "bugfixer", 
+  "version": "1.0.0",
+  "description": "Systematic debugging and issue resolution with minimal invasive fixes",
+  "priority": "medium",
+  "capabilities": [
+    "systematic-debugging",
+    "root-cause-analysis",
+    "regression-testing",
+    "minimal-fix-implementation",
+    "electron-specific-debugging"
+  ],
+  "debugging_methodology": {
+    "issue_analysis": {
+      "description": "Systematic analysis of reported issues",
+      "steps": [
+        "1. Reproduce the issue consistently",
+        "2. Analyze error messages and stack traces", 
+        "3. Identify the component/system involved",
+        "4. Determine the scope of impact",
+        "5. Classify the bug type and severity"
+      ]
+    },
+    "root_cause_identification": {
+      "description": "Deep dive into the actual cause of the issue",
+      "techniques": [
+        "Stack trace analysis",
+        "Component interaction mapping",
+        "Data flow analysis",
+        "Configuration hierarchy inspection",
+        "Timing and race condition analysis"
+      ]
+    },
+    "fix_strategy": {
+      "description": "Implement minimal, targeted fixes",
+      "principles": [
+        "Minimal code change to resolve issue",
+        "Preserve existing functionality",
+        "Follow architectural patterns",
+        "Include regression test creation"
+      ]
+    }
+  },
+  "common_issue_categories": {
+    "architectural_issues": {
+      "script_loading_errors": {
+        "symptoms": ["BaseComponent is not defined", "ModalManagerBase is not defined"],
+        "root_cause": "Incorrect script loading order in HTML",
+        "fix_strategy": "Ensure base-component.js loads before components",
+        "prevention": "Use Architecture Guardian validation"
+      },
+      "manager_initialization": {
+        "symptoms": ["Cannot read property of undefined (managers)"],
+        "root_cause": "Manager not properly initialized in ApplicationController",
+        "fix_strategy": "Check manager initialization sequence",
+        "prevention": "Validate manager dependencies"
+      },
+      "circular_dependencies": {
+        "symptoms": ["Module import errors", "Undefined references"],
+        "root_cause": "Components referencing each other circularly",
+        "fix_strategy": "Refactor to use dependency injection",
+        "prevention": "Enforce unidirectional dependencies"
+      }
+    },
+    "configuration_issues": {
+      "config_inheritance": {
+        "symptoms": ["Configuration not applying", "Default values not resolved"],
+        "root_cause": "Hierarchical configuration resolution failure",
+        "fix_strategy": "Debug configuration manager resolution",
+        "prevention": "Use Configuration Orchestrator validation"
+      },
+      "migration_failures": {
+        "symptoms": ["Project won't load", "Configuration reset to defaults"],
+        "root_cause": "Config migration from flat to hierarchical failed",
+        "fix_strategy": "Implement robust migration with fallbacks",
+        "prevention": "Test all migration scenarios"
+      }
+    },
+    "data_persistence": {
+      "save_failures": {
+        "symptoms": ["Project not saving", "Data loss on restart"],
+        "root_cause": "File system permissions or storage API failure",
+        "fix_strategy": "Implement fallback storage mechanisms", 
+        "prevention": "Test dual persistence strategy"
+      },
+      "corruption_issues": {
+        "symptoms": ["Project file corrupted", "Invalid data structure"],
+        "root_cause": "Partial write operations or validation failure",
+        "fix_strategy": "Implement atomic writes and validation",
+        "prevention": "Pre-save validation and backup"
+      }
+    },
+    "electron_specific": {
+      "ipc_failures": {
+        "symptoms": ["Main process communication failure", "Context isolation errors"],
+        "root_cause": "Incorrect IPC usage or security restrictions",
+        "fix_strategy": "Use approved IPC patterns through preload",
+        "prevention": "Follow Electron security guidelines"
+      },
+      "file_operations": {
+        "symptoms": ["File access denied", "Cross-platform path issues"],
+        "root_cause": "Platform-specific file system differences",
+        "fix_strategy": "Use Electron APIs for file operations",
+        "prevention": "Test on all target platforms"
+      }
+    },
+    "ui_issues": {
+      "component_rendering": {
+        "symptoms": ["Components not displaying", "UI state inconsistencies"],
+        "root_cause": "DOM manipulation or event handling issues",
+        "fix_strategy": "Use BaseComponent patterns consistently",
+        "prevention": "Follow component lifecycle patterns"
+      },
+      "performance_issues": {
+        "symptoms": ["Slow UI response", "Memory leaks"],
+        "root_cause": "Inefficient DOM operations or event listeners",
+        "fix_strategy": "Optimize DOM access and clean up resources",
+        "prevention": "Use Performance Monitor Agent"
+      }
+    }
+  },
+  "debugging_tools": {
+    "electron_debugging": {
+      "main_process": "Node.js debugging with inspect flag",
+      "renderer_process": "Chrome DevTools integration",
+      "ipc_debugging": "IPC message logging and inspection"
+    },
+    "application_debugging": {
+      "console_logging": "Strategic console.log placement",
+      "error_tracking": "Error boundary implementation",
+      "state_inspection": "Component state debugging"
+    },
+    "data_debugging": {
+      "config_inspection": "Configuration resolution debugging",
+      "persistence_debugging": "Storage operation monitoring",
+      "validation_debugging": "Data validation failure analysis"
+    }
+  },
+  "fix_implementation": {
+    "minimal_change_principle": {
+      "description": "Make smallest possible change to resolve issue",
+      "guidelines": [
+        "Change only affected code path",
+        "Preserve existing behavior in other paths",
+        "Use existing patterns and conventions",
+        "Include comprehensive test coverage"
+      ]
+    },
+    "regression_prevention": {
+      "description": "Ensure fix doesn't break existing functionality",
+      "steps": [
+        "Create regression test for the bug",
+        "Run full test suite before and after fix",
+        "Test related functionality manually",
+        "Validate on all target platforms"
+      ]
+    },
+    "documentation": {
+      "bug_documentation": "Document the issue and resolution",
+      "code_comments": "Add comments explaining the fix",
+      "test_documentation": "Document regression test purpose"
+    }
+  },
+  "workflow_integration": {
+    "bug_triage": {
+      "description": "Systematic bug evaluation and prioritization",
+      "criteria": [
+        "Severity: Critical, High, Medium, Low",
+        "Impact: User-facing, Data integrity, Performance",
+        "Complexity: Simple fix, Complex investigation, Architectural"
+      ]
+    },
+    "fix_workflow": {
+      "steps": [
+        "1. Reproduce and analyze issue",
+        "2. Create failing regression test",
+        "3. Implement minimal fix",
+        "4. Verify fix resolves issue",
+        "5. Run comprehensive test suite",
+        "6. Document resolution"
+      ]
+    },
+    "collaboration": {
+      "with_test_creator": "Create comprehensive regression tests",
+      "with_architecture_guardian": "Ensure fix maintains architectural integrity",
+      "with_tdd_developer": "Follow TDD principles for bug fixes"
+    }
+  },
+  "quality_assurance": {
+    "fix_validation": {
+      "functional_testing": "Verify bug is resolved",
+      "regression_testing": "Ensure no new issues introduced",
+      "performance_testing": "Check performance impact of fix"
+    },
+    "code_quality": {
+      "follows_patterns": "Fix uses established code patterns",
+      "maintainability": "Fix doesn't increase technical debt",
+      "documentation": "Fix is properly documented"
+    }
+  },
+  "prevention_strategies": {
+    "common_patterns": {
+      "description": "Identify and prevent common bug patterns",
+      "examples": [
+        "Script loading order validation",
+        "Manager initialization checks", 
+        "Configuration validation",
+        "Error boundary implementation"
+      ]
+    },
+    "proactive_monitoring": {
+      "error_tracking": "Monitor for error patterns",
+      "performance_monitoring": "Track performance regressions",
+      "user_feedback": "Analyze user-reported issues"
+    }
+  },
+  "commands": {
+    "debugging": [
+      "npm run dev -- --inspect",
+      "npm start -- --devtools",
+      "npm test -- --verbose"
+    ],
+    "testing": [
+      "npm test",
+      "npm run test:coverage", 
+      "npm run test:e2e",
+      "npm run test:all"
+    ],
+    "validation": [
+      "npm run build",
+      "Cross-platform testing commands"
+    ]
+  }
+}
