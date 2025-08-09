@@ -465,15 +465,15 @@
             <form id="feature-form">
                 <div class="form-group">
                     <label for="feature-id">ID:</label>
-                    <input type="text" id="feature-id" name="id" required>
+                    <input type="text" id="feature-id" name="id" class="validation-tooltip required" required>
                 </div>
                 <div class="form-group">
                     <label for="feature-description">Description:</label>
-                    <textarea id="feature-description" name="description" required rows="3"></textarea>
+                    <textarea id="feature-description" name="description" class="validation-tooltip required" required rows="3"></textarea>
                 </div>
                 <div class="form-group">
                     <label for="feature-category">Category:</label>
-                    <select id="feature-category" name="category" required>
+                    <select id="feature-category" name="category" class="validation-tooltip required" required>
                         <option value="">Select Category</option>
                     </select>
                 </div>
@@ -486,13 +486,13 @@
                 </div>
                 <div class="form-group">
                     <label for="feature-supplier">Supplier:</label>
-                    <select id="feature-supplier" name="supplier" required>
+                    <select id="feature-supplier" name="supplier" class="validation-tooltip required" required>
                         <option value="">Select Supplier</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label for="feature-real-man-days">Real Man Days:</label>
-                    <input type="number" id="feature-real-man-days" name="realManDays" min="0.1" step="0.1" required>
+                    <input type="number" id="feature-real-man-days" name="realManDays" min="0.1" step="0.1" class="validation-tooltip required" required>
                     <small class="form-help">Actual effort needed without considering expertise level</small>
                 </div>
                 <div class="form-group">
@@ -517,7 +517,7 @@
             </form>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" id="cancel-feature-btn">Cancel</button>
+            <button type="button" class="btn btn-secondary btn-cancel" id="cancel-feature-btn">Cancel</button>
             <button type="submit" class="btn btn-primary btn-submit" id="save-feature-btn">Save</button>
         </div>
     </div>

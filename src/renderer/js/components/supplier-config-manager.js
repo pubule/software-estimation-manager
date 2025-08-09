@@ -79,7 +79,7 @@ class SupplierConfigManager {
         }
 
         // Ensure default suppliers exist
-        this.ensureDefaultSuppliers();
+        await this.ensureDefaultSuppliers();
 
         const supplierData = this.getSupplierData();
         this.suppliers = supplierData.global;
@@ -95,7 +95,7 @@ class SupplierConfigManager {
     /**
      * Ensure default suppliers exist in global configuration
      */
-    ensureDefaultSuppliers(forceReset = false) {
+    async ensureDefaultSuppliers(forceReset = false) {
         console.log('ensureDefaultSuppliers called, forceReset:', forceReset);
         
         // Previene il reload durante la duplicazione
@@ -115,8 +115,15 @@ class SupplierConfigManager {
         if (!existingSuppliers || existingSuppliers.length === 0 || forceReset) {
             console.log('Initializing default suppliers:', this.defaultSuppliers.length);
             console.log('Force reset:', forceReset);
+            
+            // Clear any existing project-specific overrides if force reset
+            if (forceReset && this.configManager.app?.currentProject?.config?.projectOverrides?.suppliers) {
+                this.configManager.app.currentProject.config.projectOverrides.suppliers = [];
+                console.log('Cleared project-specific supplier overrides');
+            }
+            
             this.configManager.globalConfig.suppliers = [...this.defaultSuppliers];
-            this.configManager.saveGlobalConfig();
+            await this.configManager.saveGlobalConfig();
             console.log('Default suppliers initialized successfully');
         } else {
             console.log('Suppliers already exist, skipping initialization');
@@ -1414,7 +1421,7 @@ class SupplierConfigManager {
             console.log('Resetting suppliers to default values');
             
             // Force reset to default suppliers
-            this.ensureDefaultSuppliers(true);
+            await this.ensureDefaultSuppliers(true);
             
             // Reload the data and refresh the display
             console.log('Reset: calling loadSuppliersConfig');
