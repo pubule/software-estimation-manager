@@ -1343,30 +1343,83 @@ class FeatureModal extends ModalManagerBase {
     validateFormData(data) {
         const errors = {};
 
-        // Required fields validation
+        console.log('Validating feature data:', data);
+
+        // Define critical fields for intelligent validation
+        const criticalFields = {
+            id: !data.id || data.id.trim() === '',
+            description: !data.description || data.description.trim() === '' || data.description.length < 3,
+            category: !data.category || data.category === '',
+            supplier: !data.supplier || data.supplier === '',
+            realManDays: !data.realManDays || data.realManDays <= 0
+        };
+
+        // Count invalid critical fields
+        const invalidCriticalFields = Object.values(criticalFields).filter(Boolean).length;
+        const totalCriticalFields = Object.keys(criticalFields).length;
+
+        console.log(`Invalid critical fields: ${invalidCriticalFields}/${totalCriticalFields}`);
+
+        // Intelligent validation: if most critical fields are invalid, show generic message
+        if (invalidCriticalFields >= 4) {
+            console.log('Most fields are invalid, showing generic message');
+            
+            // Show "Compila questo campo" for all invalid critical fields
+            if (criticalFields.id) {
+                errors.id = 'Compila questo campo';
+            }
+            if (criticalFields.description) {
+                errors.description = 'Compila questo campo';
+            }
+            if (criticalFields.category) {
+                errors.category = 'Compila questo campo';
+            }
+            if (criticalFields.supplier) {
+                errors.supplier = 'Compila questo campo';
+            }
+            if (criticalFields.realManDays) {
+                errors.realManDays = 'Compila questo campo';
+            }
+
+            return {
+                isValid: false,
+                errors
+            };
+        }
+
+        // Standard validation for individual fields when only few are invalid
+        console.log('Standard validation - showing specific messages');
+
+        // Validate ID
         if (!data.id) {
             errors.id = 'Feature ID is required';
         } else if (!/^[A-Z0-9_-]+$/i.test(data.id)) {
             errors.id = 'Feature ID can only contain letters, numbers, underscores, and hyphens';
         }
 
+        // Validate description
         if (!data.description) {
             errors.description = 'Description is required';
         } else if (data.description.length < 3) {
             errors.description = 'Description must be at least 3 characters long';
         }
 
+        // Validate category
         if (!data.category) {
             errors.category = 'Category is required';
         }
 
+        // Validate supplier
         if (!data.supplier) {
             errors.supplier = 'Supplier is required';
         }
 
+        // Validate real man days
         if (!data.realManDays || data.realManDays <= 0) {
             errors.realManDays = 'Real Man Days must be greater than 0';
         }
+
+        console.log('Feature validation errors:', errors);
 
         return {
             isValid: Object.keys(errors).length === 0,
