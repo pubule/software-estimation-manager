@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tooltip Validation Test</title>
+    <link rel="stylesheet" href="src/renderer/styles/main.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: var(--bg-primary, #1e1e1e);
+            color: var(--text-primary, #cccccc);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #444;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input {
+            width: 300px;
+            padding: 8px 12px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #2a2a2a;
+            color: #cccccc;
+        }
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007acc;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005a9e;
+        }
+        button.danger {
+            background-color: #dc3545;
+        }
+        button.danger:hover {
+            background-color: #c82333;
+        }
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #2a2a2a;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tooltip Validation Test Page</h1>
+    <p>This page tests the tooltip validation system across different scenarios.</p>
+
+    <!-- Test 1: New Project Modal Style Validation -->
+    <div class="test-section">
+        <h3>Test 1: New Project Modal Validation (JavaScript Errors)</h3>
+        <form id="new-project-form">
+            <div class="form-group">
+                <label for="project-code">Project Code:</label>
+                <input type="text" id="project-code" class="validation-tooltip" required>
+            </div>
+            <div class="form-group">
+                <label for="project-name">Project Name:</label>
+                <input type="text" id="project-name" class="validation-tooltip" required>
+            </div>
+            <button type="button" onclick="testProjectValidation()">Trigger JS Validation Errors</button>
+            <button type="button" onclick="clearProjectErrors()">Clear Errors</button>
+        </form>
+        <div class="status" id="project-status">Click "Trigger JS Validation Errors" to test</div>
+    </div>
+
+    <!-- Test 2: Generic Form Validation -->
+    <div class="test-section">
+        <h3>Test 2: Generic Form Validation (HTML5 Required)</h3>
+        <form>
+            <div class="form-group">
+                <label for="generic-field1">Generic Field 1:</label>
+                <input type="text" id="generic-field1" class="validation-tooltip required" required>
+            </div>
+            <div class="form-group">
+                <label for="generic-field2">Generic Field 2:</label>
+                <input type="text" id="generic-field2" class="validation-tooltip required" required>
+            </div>
+            <button type="submit">Submit (will show HTML5 validation)</button>
+        </form>
+        <div class="status">Focus on empty fields or try to submit to see "Compila questo campo" tooltips</div>
+    </div>
+
+    <!-- Test 3: Mixed Validation -->
+    <div class="test-section">
+        <h3>Test 3: Mixed Validation (Both JS and HTML5)</h3>
+        <form id="mixed-form">
+            <div class="form-group">
+                <label for="mixed-field1">Field with Custom Error:</label>
+                <input type="text" id="mixed-field1" class="validation-tooltip required" required>
+            </div>
+            <div class="form-group">
+                <label for="mixed-field2">Field with Generic Error:</label>
+                <input type="text" id="mixed-field2" class="validation-tooltip required" required>
+            </div>
+            <button type="button" onclick="testMixedValidation()">Set Custom Error on First Field</button>
+            <button type="button" onclick="clearMixedErrors()">Clear Custom Errors</button>
+            <button type="submit">Submit for HTML5 Validation</button>
+        </form>
+        <div class="status" id="mixed-status">Test both JavaScript custom errors and HTML5 validation</div>
+    </div>
+
+    <!-- Test 4: Mobile Responsive Test -->
+    <div class="test-section">
+        <h3>Test 4: Responsive Tooltip Positioning</h3>
+        <p>Resize browser window to less than 768px width to test mobile positioning</p>
+        <form>
+            <div class="form-group">
+                <label for="mobile-field">Mobile Test Field:</label>
+                <input type="text" id="mobile-field" class="validation-tooltip required" required>
+            </div>
+            <button type="button" onclick="testMobileValidation()">Set Error for Mobile Test</button>
+        </form>
+        <div class="status" id="mobile-status">Resize window and check tooltip positioning</div>
+    </div>
+
+    <script>
+        // Test 1: Project validation errors (simulates project-manager.js behavior)
+        function testProjectValidation() {
+            clearProjectErrors();
+            
+            const codeField = document.getElementById('project-code');
+            const nameField = document.getElementById('project-name');
+            
+            // Simulate the exact behavior from showNewProjectFormErrors
+            codeField.setAttribute('data-error-message', 'Project code is required');
+            codeField.classList.add('validation-error');
+            codeField.reportValidity();
+            
+            nameField.setAttribute('data-error-message', 'Project name must be at least 3 characters');
+            nameField.classList.add('validation-error');
+            nameField.reportValidity();
+            
+            // Focus first error field
+            codeField.focus();
+            
+            document.getElementById('project-status').textContent = 'JavaScript validation errors applied. Focus/hover on fields to see tooltips.';
+        }
+        
+        function clearProjectErrors() {
+            // Simulate the exact behavior from clearNewProjectFormErrors
+            document.querySelectorAll('#new-project-form .validation-error').forEach(el => {
+                el.classList.remove('validation-error');
+                el.removeAttribute('data-error-message');
+            });
+            
+            document.getElementById('project-status').textContent = 'Errors cleared.';
+        }
+        
+        // Test 3: Mixed validation
+        function testMixedValidation() {
+            clearMixedErrors();
+            
+            const field1 = document.getElementById('mixed-field1');
+            field1.setAttribute('data-error-message', 'Custom error message from JavaScript');
+            field1.classList.add('validation-error');
+            field1.reportValidity();
+            field1.focus();
+            
+            document.getElementById('mixed-status').textContent = 'Custom error set on first field. Try submitting form to see HTML5 validation on second field.';
+        }
+        
+        function clearMixedErrors() {
+            document.querySelectorAll('#mixed-form .validation-error').forEach(el => {
+                el.classList.remove('validation-error');
+                el.removeAttribute('data-error-message');
+            });
+            
+            document.getElementById('mixed-status').textContent = 'Custom errors cleared.';
+        }
+        
+        // Test 4: Mobile validation
+        function testMobileValidation() {
+            const field = document.getElementById('mobile-field');
+            field.setAttribute('data-error-message', 'Mobile tooltip positioning test');
+            field.classList.add('validation-error');
+            field.reportValidity();
+            field.focus();
+            
+            document.getElementById('mobile-status').textContent = 'Error set. Check tooltip position at different window sizes.';
+        }
+        
+        // Prevent form submissions for testing
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                console.log('Form submission prevented for testing');
+                
+                // Let HTML5 validation show
+                const firstInvalid = form.querySelector(':invalid');
+                if (firstInvalid) {
+                    firstInvalid.focus();
+                }
+                
+                return false;
+            });
+        });
+        
+        // Add focus/blur event listeners to demonstrate tooltip behavior
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', function() {
+                console.log('Field focused:', this.id, 'Has error:', this.hasAttribute('data-error-message'));
+            });
+            
+            input.addEventListener('blur', function() {
+                console.log('Field blurred:', this.id);
+            });
+            
+            input.addEventListener('mouseover', function() {
+                if (this.hasAttribute('data-error-message')) {
+                    console.log('Hovering over field with error:', this.id, this.getAttribute('data-error-message'));
+                }
+            });
+        });
+        
+        console.log('Tooltip validation test page loaded');
+        console.log('Available tests:');
+        console.log('1. JavaScript validation errors (like new project modal)');
+        console.log('2. HTML5 required field validation');
+        console.log('3. Mixed validation scenarios');
+        console.log('4. Mobile responsive positioning');
+    </script>
+</body>
+</html>

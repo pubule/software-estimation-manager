@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tooltip Validation Test</title>
+    <style>
+        /* Validation Tooltip System - Test Version */
+        .validation-tooltip {
+            position: relative;
+        }
+
+        /* Base tooltip styling with dynamic content support */
+        .validation-tooltip.required:invalid::after {
+            content: attr(data-error-message);
+            position: absolute;
+            top: 50%;
+            right: -220px;
+            transform: translateY(-50%);
+            background-color: #dc3545;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease-in-out;
+            z-index: 1000;
+            border: 1px solid #dc3545;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            pointer-events: none;
+        }
+
+        /* Fallback for fields without data-error-message */
+        .validation-tooltip.required:invalid:not([data-error-message])::after {
+            content: "Compila questo campo";
+        }
+
+        /* JavaScript validation error tooltips */
+        .validation-tooltip.validation-error::after {
+            content: attr(data-error-message);
+            position: absolute;
+            top: 50%;
+            right: -220px;
+            transform: translateY(-50%);
+            background-color: #dc3545;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease-in-out;
+            z-index: 1000;
+            border: 1px solid #dc3545;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            pointer-events: none;
+        }
+
+        /* Show tooltip on focus for invalid required fields */
+        .validation-tooltip.required:focus:invalid::after,
+        .validation-tooltip.required:hover:invalid::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Show tooltip for JavaScript validation errors */
+        .validation-tooltip.validation-error:focus::after,
+        .validation-tooltip.validation-error:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Visual styling for JavaScript validation errors */
+        .validation-tooltip.validation-error {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+        }
+
+        /* Enhanced visual feedback for invalid fields */
+        .validation-tooltip.required:invalid {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+        }
+
+        /* Basic styling */
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1e1e1e;
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 300px;
+            background: #333;
+            color: white;
+        }
+
+        button {
+            background: #dc3545;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .test-result {
+            margin-top: 20px;
+            padding: 10px;
+            background: #333;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Tooltip Validation Test</h1>
+    
+    <div class="form-group">
+        <label for="test-field1">Test Field 1 (HTML5 validation):</label>
+        <input type="text" id="test-field1" class="validation-tooltip required" required>
+        <small>Leave empty and focus to see "Compila questo campo" tooltip</small>
+    </div>
+
+    <div class="form-group">
+        <label for="test-field2">Test Field 2 (JavaScript validation):</label>
+        <input type="text" id="test-field2" class="validation-tooltip required" required>
+        <small>Click "Test JS Error" to see custom error tooltip</small>
+    </div>
+
+    <div class="form-group">
+        <label for="test-field3">Test Field 3 (Project Code simulation):</label>
+        <input type="text" id="test-field3" class="validation-tooltip required" required>
+        <small>Click "Test Project Error" to simulate project validation</small>
+    </div>
+
+    <button onclick="testJavaScriptError()">Test JS Error</button>
+    <button onclick="testProjectError()">Test Project Error</button>
+    <button onclick="clearErrors()">Clear All Errors</button>
+
+    <div class="test-result" id="result">
+        <h3>📋 Test Results:</h3>
+        <p><strong>Instructions:</strong></p>
+        <ul>
+            <li>Focus on empty fields to see HTML5 validation tooltips</li>
+            <li>Click "Test JS Error" to see JavaScript validation tooltip</li>
+            <li>Hover or focus on red-bordered fields to see tooltips</li>
+        </ul>
+        <p id="status">Ready for testing...</p>
+    </div>
+
+    <script>
+        function showError(message) {
+            document.getElementById('status').innerHTML = '<span style="color: #dc3545;">❌ ' + message + '</span>';
+        }
+
+        function showSuccess(message) {
+            document.getElementById('status').innerHTML = '<span style="color: #28a745;">✅ ' + message + '</span>';
+        }
+
+        function testJavaScriptError() {
+            const field = document.getElementById('test-field2');
+            
+            // Apply JavaScript validation error
+            field.setAttribute('data-error-message', 'This is a JavaScript error message!');
+            field.classList.add('validation-error');
+            
+            showSuccess('JavaScript error applied to Test Field 2. Focus or hover on the field to see tooltip.');
+            
+            // Focus the field to show tooltip immediately
+            field.focus();
+        }
+
+        function testProjectError() {
+            const field = document.getElementById('test-field3');
+            
+            // Simulate project code validation error
+            field.setAttribute('data-error-message', 'Project code is required');
+            field.classList.add('validation-error');
+            
+            showSuccess('Project code error applied to Test Field 3. Focus or hover on the field to see tooltip.');
+            
+            // Focus the field to show tooltip immediately
+            field.focus();
+        }
+
+        function clearErrors() {
+            // Clear all validation errors
+            document.querySelectorAll('.validation-error').forEach(el => {
+                el.classList.remove('validation-error');
+                el.removeAttribute('data-error-message');
+            });
+            
+            document.getElementById('status').innerHTML = 'All errors cleared. Ready for testing...';
+        }
+
+        // Add event listeners for live testing
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', () => {
+                if (input.classList.contains('validation-error')) {
+                    showSuccess(`Tooltip should be visible on ${input.id}`);
+                } else if (input.value === '' && input.hasAttribute('required')) {
+                    showSuccess(`HTML5 validation tooltip should be visible on ${input.id}`);
+                }
+            });
+            
+            input.addEventListener('blur', () => {
+                showSuccess('Tooltip should be hidden now');
+            });
+        });
+    </script>
+</body>
+</html>
