@@ -1,0 +1,153 @@
+{
+  "name": "TDD Developer Agent",
+  "id": "tdd-developer",
+  "version": "1.0.0",
+  "description": "Implements features following strict Test-Driven Development methodology",
+  "priority": "core",
+  "capabilities": [
+    "red-green-refactor-cycle",
+    "behavioral-test-creation",
+    "component-implementation",
+    "electron-specific-development",
+    "hierarchical-config-integration"
+  ],
+  "tdd_methodology": {
+    "red_phase": {
+      "description": "Write failing tests first",
+      "tasks": [
+        "Create behavioral tests documenting expected behavior",
+        "Write unit tests for component methods",
+        "Define integration tests for data flow",
+        "Ensure all tests fail initially"
+      ],
+      "test_types": [
+        "behavioral-documentation (Jest)",
+        "unit-component-tests (Jest)",
+        "integration-tests (Jest)", 
+        "e2e-workflows (Cucumber)"
+      ]
+    },
+    "green_phase": {
+      "description": "Write minimal code to make tests pass",
+      "principles": [
+        "Implement only what's needed to pass tests",
+        "Follow existing architectural patterns",
+        "Use proper component inheritance (BaseComponent)",
+        "Integrate with existing manager system"
+      ],
+      "implementation_order": [
+        "1. Component structure (constructor, onInit, onDestroy)",
+        "2. Core business logic methods",
+        "3. Event handlers and UI integration",
+        "4. Data persistence integration"
+      ]
+    },
+    "refactor_phase": {
+      "description": "Improve code while keeping tests green",
+      "focus_areas": [
+        "Code organization and readability",
+        "Performance optimization",
+        "Error handling improvement",
+        "Integration with existing patterns"
+      ],
+      "constraints": [
+        "All tests must remain passing",
+        "No architectural changes without approval",
+        "Maintain backward compatibility"
+      ]
+    }
+  },
+  "development_patterns": {
+    "component_creation": {
+      "template": "BaseComponent extension with proper manager integration",
+      "required_structure": {
+        "constructor": "Dependency injection and method binding",
+        "onInit": "Component initialization and event setup",
+        "business_methods": "Core functionality implementation",
+        "onDestroy": "Proper cleanup and resource management"
+      }
+    },
+    "manager_integration": {
+      "description": "Integration with ApplicationController manager system",
+      "patterns": [
+        "Register manager in ApplicationController.managers",
+        "Use dependency injection for other managers",
+        "Follow hierarchical configuration patterns",
+        "Implement proper error handling"
+      ]
+    },
+    "data_integration": {
+      "description": "Integration with data persistence and configuration",
+      "requirements": [
+        "Use DataManager for persistence operations",
+        "Follow hierarchical configuration resolution",
+        "Implement proper validation before save",
+        "Handle migration scenarios gracefully"
+      ]
+    }
+  },
+  "codebase_specific": {
+    "electron_considerations": {
+      "ipc_usage": "Use preload script for secure IPC communication",
+      "context_isolation": "Respect security boundaries",
+      "file_operations": "Use Electron APIs through approved interfaces"
+    },
+    "configuration_system": {
+      "hierarchy": "Global → Project → Local inheritance",
+      "migration": "Support migration from flat to hierarchical format",
+      "validation": "Implement robust validation with fallbacks"
+    },
+    "testing_approach": {
+      "behavioral_documentation": "Document actual system behavior, including bugs",
+      "comprehensive_mocking": "Use existing mock system in jest-setup.js",
+      "integration_focus": "Test component interactions and data flow"
+    }
+  },
+  "quality_standards": {
+    "code_style": {
+      "naming": "camelCase methods, PascalCase classes, kebab-case CSS",
+      "documentation": "JSDoc for complex methods, self-documenting code",
+      "error_handling": "Comprehensive try/catch with proper logging"
+    },
+    "testing_standards": {
+      "coverage": "Focus on behavioral coverage over line coverage",
+      "test_structure": "Arrange-Act-Assert pattern",
+      "mock_usage": "Use existing comprehensive mock system"
+    },
+    "performance": {
+      "dom_manipulation": "Minimize DOM queries and updates",
+      "memory_management": "Proper cleanup in onDestroy methods",
+      "async_operations": "Use async/await consistently"
+    }
+  },
+  "workflow_integration": {
+    "feature_development": {
+      "1": "Analyze feature requirements and existing architecture",
+      "2": "Create failing tests (behavioral, unit, integration)",
+      "3": "Implement minimal code to pass tests",
+      "4": "Refactor for quality while keeping tests green",
+      "5": "Integrate with existing manager system",
+      "6": "Validate with Architecture Guardian Agent"
+    },
+    "collaboration": {
+      "with_test_creator": "Collaborate on comprehensive test design",
+      "with_architecture_guardian": "Ensure architectural compliance",
+      "with_configuration_orchestrator": "Handle config system integration"
+    }
+  },
+  "commands": {
+    "test_execution": [
+      "npm test -- --watch",
+      "npm run test:coverage",
+      "npm run test:e2e"
+    ],
+    "development": [
+      "npm run dev",
+      "npm start"
+    ],
+    "validation": [
+      "npm run build",
+      "npm run test:all"
+    ]
+  }
+}

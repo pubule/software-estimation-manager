@@ -1,0 +1,208 @@
+{
+  "name": "Configuration Orchestrator Agent",
+  "id": "configuration-orchestrator",
+  "version": "1.0.0", 
+  "description": "Manages the complex hierarchical configuration system and ensures proper inheritance",
+  "priority": "high",
+  "specialization": "App-specific agent for hierarchical configuration management",
+  "capabilities": [
+    "hierarchical-config-management",
+    "config-migration-orchestration",
+    "inheritance-resolution",
+    "external-config-validation",
+    "config-system-testing"
+  ],
+  "configuration_architecture": {
+    "hierarchy_levels": {
+      "global_config": {
+        "description": "Default configuration loaded from external files",
+        "location": "{ProjectsPath}/config/defaults.json",
+        "scope": "Application-wide defaults",
+        "contains": [
+          "defaultSuppliers",
+          "defaultInternalResources", 
+          "defaultCategories",
+          "phaseDefinitions"
+        ]
+      },
+      "project_overrides": {
+        "description": "Project-specific configuration overrides",
+        "location": "currentProject.config.projectOverrides",
+        "scope": "Project-specific customizations",
+        "inherits_from": "global_config"
+      },
+      "runtime_state": {
+        "description": "Current runtime configuration state",
+        "scope": "Active configuration resolved from hierarchy",
+        "resolution": "Global + Project overrides"
+      }
+    },
+    "inheritance_rules": {
+      "suppliers": "Project suppliers override global by ID, extend list",
+      "internal_resources": "Project resources override global by ID, extend list", 
+      "categories": "Project categories override global by ID, extend list",
+      "phases": "Project phases can override effort percentages",
+      "calculation_params": "Project can override global calculation parameters"
+    }
+  },
+  "migration_management": {
+    "flat_to_hierarchical": {
+      "description": "Migrate old flat configuration to new hierarchical format",
+      "trigger": "When project.config.projectOverrides is missing",
+      "process": [
+        "1. Detect flat configuration format",
+        "2. Extract project-specific customizations", 
+        "3. Create projectOverrides structure",
+        "4. Preserve existing data integrity",
+        "5. Validate migration success"
+      ],
+      "validation": "Ensure no data loss during migration"
+    },
+    "version_upgrades": {
+      "description": "Handle configuration format version upgrades",
+      "strategy": "Backward compatibility with automatic upgrades",
+      "rollback": "Maintain backup of original format"
+    }
+  },
+  "external_config_management": {
+    "loading_strategy": {
+      "primary": "Load from {ProjectsPath}/config/defaults.json",
+      "fallback": "Use built-in defaults if external file missing/invalid",
+      "validation": "Validate structure and provide fallback values"
+    },
+    "path_resolution": {
+      "description": "Automatically detect projects path from File System Storage config",
+      "default_path": "~/Documents/Software Estimation Projects/",
+      "config_file": "config/defaults.json"
+    },
+    "error_handling": [
+      "Missing file: Use built-in fallback data",
+      "Invalid JSON: Log warning and use fallback", 
+      "Invalid structure: Validate each section independently",
+      "Network errors: Handle fetch failures gracefully",
+      "Partial loading: Load valid sections even if others fail"
+    ]
+  },
+  "configuration_operations": {
+    "resolution": {
+      "description": "Resolve effective configuration from hierarchy",
+      "algorithm": "Merge global config with project overrides",
+      "caching": "Cache resolved config for performance",
+      "invalidation": "Invalidate cache on config changes"
+    },
+    "validation": {
+      "structure_validation": "Ensure proper structure at each level",
+      "data_integrity": "Validate relationships and references",
+      "business_rules": "Enforce business logic constraints"
+    },
+    "persistence": {
+      "global_config": "External file management",
+      "project_config": "Embedded in project file",
+      "backup_strategy": "Maintain config backups before changes"
+    }
+  },
+  "testing_strategies": {
+    "config_inheritance": {
+      "test_scenarios": [
+        "Pure global configuration usage",
+        "Project overrides with partial customization",
+        "Complete project-specific configuration",
+        "Mixed inheritance scenarios"
+      ]
+    },
+    "migration_testing": {
+      "test_cases": [
+        "Flat to hierarchical migration",
+        "Preserving existing customizations",
+        "Handling corrupted config data",
+        "Version upgrade scenarios"
+      ]
+    },
+    "external_config_testing": {
+      "scenarios": [
+        "Missing external config file",
+        "Invalid JSON in config file",
+        "Partial config file corruption",
+        "Network issues during config loading"
+      ]
+    }
+  },
+  "integration_points": {
+    "application_controller": {
+      "description": "Primary integration point for config system",
+      "responsibilities": [
+        "Initialize configuration manager",
+        "Handle config system errors",
+        "Coordinate config updates"
+      ]
+    },
+    "feature_manager": {
+      "description": "Consumes configuration for dropdowns and validation",
+      "dependencies": [
+        "Supplier configuration",
+        "Category configuration", 
+        "Feature type definitions"
+      ]
+    },
+    "project_phases_manager": {
+      "description": "Uses phase definitions and effort percentages",
+      "configuration_needs": [
+        "Phase definitions with default effort",
+        "Resource role definitions",
+        "Calculation parameters"
+      ]
+    }
+  },
+  "monitoring_and_debugging": {
+    "config_stats": {
+      "description": "Provide statistics on configuration usage",
+      "metrics": [
+        "Number of global vs project-specific items",
+        "Override utilization rates",
+        "Configuration complexity metrics"
+      ]
+    },
+    "validation_reporting": {
+      "description": "Detailed reporting on configuration validation",
+      "includes": [
+        "Validation errors with context",
+        "Migration success/failure details",
+        "Performance metrics for config operations"
+      ]
+    },
+    "debugging_support": {
+      "config_inspection": "Tools for inspecting resolved configuration",
+      "inheritance_tracing": "Trace configuration inheritance path",
+      "performance_profiling": "Profile configuration resolution performance"
+    }
+  },
+  "workflow_integration": {
+    "project_lifecycle": {
+      "project_creation": "Initialize project with hierarchical config",
+      "project_loading": "Migrate and validate config on load", 
+      "project_saving": "Ensure config integrity before save"
+    },
+    "development_workflow": {
+      "config_changes": "Validate and test config modifications",
+      "feature_development": "Ensure features work with config hierarchy",
+      "testing": "Include config scenarios in test suites"
+    }
+  },
+  "commands": {
+    "validation": [
+      "Validate current project configuration",
+      "Test configuration inheritance resolution",
+      "Verify external config loading"
+    ],
+    "migration": [
+      "Migrate project from flat to hierarchical format",
+      "Backup configuration before migration",
+      "Validate migration success"
+    ],
+    "debugging": [
+      "Inspect resolved configuration",
+      "Trace configuration inheritance",
+      "Generate configuration statistics"
+    ]
+  }
+}

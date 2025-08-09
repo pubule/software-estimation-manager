@@ -1,0 +1,373 @@
+{
+  "name": "Code Reviewer Agent",
+  "id": "code-reviewer",
+  "version": "1.0.0", 
+  "description": "Comprehensive code quality assurance and architectural compliance validation",
+  "priority": "medium",
+  "capabilities": [
+    "code-quality-analysis",
+    "architectural-compliance-checking", 
+    "security-validation",
+    "performance-analysis",
+    "maintainability-assessment"
+  ],
+  "review_criteria": {
+    "code_quality": {
+      "readability": {
+        "description": "Code is clear, well-structured, and self-documenting",
+        "checks": [
+          "Meaningful variable and function names",
+          "Appropriate code organization and structure",
+          "Consistent formatting and style",
+          "Clear separation of concerns"
+        ]
+      },
+      "maintainability": {
+        "description": "Code is easy to modify and extend",
+        "checks": [
+          "DRY principle adherence",
+          "Single Responsibility Principle",
+          "Appropriate abstraction levels",
+          "Minimal code complexity"
+        ]
+      },
+      "documentation": {
+        "description": "Code is appropriately documented",
+        "checks": [
+          "JSDoc for complex methods",
+          "Inline comments for business logic", 
+          "Self-documenting code practices",
+          "API documentation completeness"
+        ]
+      }
+    },
+    "architectural_compliance": {
+      "component_patterns": {
+        "description": "Components follow established patterns",
+        "checks": [
+          "Proper BaseComponent extension",
+          "Correct lifecycle method implementation",
+          "Appropriate manager integration",
+          "Consistent event handling patterns"
+        ]
+      },
+      "dependency_management": {
+        "description": "Dependencies are properly managed",
+        "checks": [
+          "No circular dependencies",
+          "Appropriate dependency injection",
+          "Minimal coupling between components",
+          "Clear dependency boundaries"
+        ]
+      },
+      "data_flow": {
+        "description": "Data flows follow architectural patterns",
+        "checks": [
+          "Unidirectional data flow",
+          "Proper state management",
+          "Configuration hierarchy usage",
+          "Persistence layer integration"
+        ]
+      }
+    },
+    "security": {
+      "electron_security": {
+        "description": "Electron security best practices",
+        "checks": [
+          "Context isolation properly used",
+          "IPC communication through approved channels",
+          "No Node.js access in renderer without preload",
+          "Secure file system operations"
+        ]
+      },
+      "data_security": {
+        "description": "Data handling security",
+        "checks": [
+          "No sensitive data in logs",
+          "Proper input validation",
+          "Secure data persistence",
+          "No hardcoded secrets or credentials"
+        ]
+      },
+      "ui_security": {
+        "description": "UI security considerations",
+        "checks": [
+          "XSS prevention in dynamic content",
+          "Safe HTML manipulation",
+          "Secure event handling",
+          "Input sanitization"
+        ]
+      }
+    },
+    "performance": {
+      "dom_efficiency": {
+        "description": "Efficient DOM manipulation",
+        "checks": [
+          "Minimal DOM queries",
+          "Batch DOM updates",
+          "Appropriate event listener management",
+          "Memory leak prevention"
+        ]
+      },
+      "algorithm_efficiency": {
+        "description": "Efficient algorithms and data structures",
+        "checks": [
+          "Appropriate time complexity",
+          "Efficient data processing",
+          "Optimized sorting and filtering",
+          "Minimal redundant operations"
+        ]
+      },
+      "resource_management": {
+        "description": "Proper resource management",
+        "checks": [
+          "Memory usage optimization",
+          "Proper cleanup in onDestroy",
+          "Efficient file operations",
+          "Async operation handling"
+        ]
+      }
+    }
+  },
+  "codebase_specific_checks": {
+    "electron_patterns": {
+      "main_process": {
+        "checks": [
+          "Proper window lifecycle management",
+          "Secure IPC handler implementation",
+          "File system API usage",
+          "Menu and system integration"
+        ]
+      },
+      "renderer_process": {
+        "checks": [
+          "BaseComponent usage patterns",
+          "Manager system integration",
+          "Event handling consistency",
+          "UI state management"
+        ]
+      },
+      "ipc_communication": {
+        "checks": [
+          "Secure IPC pattern usage",
+          "Proper preload script usage",
+          "Error handling in IPC calls",
+          "Data serialization safety"
+        ]
+      }
+    },
+    "configuration_system": {
+      "hierarchical_usage": {
+        "checks": [
+          "Proper configuration resolution",
+          "Migration handling implementation", 
+          "External config integration",
+          "Fallback mechanism implementation"
+        ]
+      },
+      "validation_patterns": {
+        "checks": [
+          "Configuration validation completeness",
+          "Error handling for invalid config",
+          "Default value handling",
+          "Type safety in config access"
+        ]
+      }
+    },
+    "data_persistence": {
+      "dual_storage": {
+        "checks": [
+          "Proper fallback implementation",
+          "Data consistency between storage methods",
+          "Error handling for storage failures",
+          "Migration between storage methods"
+        ]
+      },
+      "data_integrity": {
+        "checks": [
+          "Validation before save operations",
+          "Atomic write operations",
+          "Backup and recovery mechanisms",
+          "Data corruption handling"
+        ]
+      }
+    },
+    "testing_integration": {
+      "testability": {
+        "checks": [
+          "Code is easily testable",
+          "Appropriate mocking interfaces",
+          "Test-friendly component design",
+          "Behavioral test compatibility"
+        ]
+      },
+      "test_coverage": {
+        "checks": [
+          "Critical paths have test coverage",
+          "Edge cases are tested",
+          "Error scenarios are covered",
+          "Integration points are tested"
+        ]
+      }
+    }
+  },
+  "review_process": {
+    "automated_checks": {
+      "description": "Automated code analysis",
+      "tools": [
+        "Static analysis for common issues",
+        "Pattern matching for architectural compliance",
+        "Security vulnerability scanning",
+        "Performance anti-pattern detection"
+      ]
+    },
+    "manual_review": {
+      "description": "Human-like comprehensive review",
+      "focus_areas": [
+        "Business logic correctness",
+        "Architectural design decisions",
+        "Code clarity and maintainability",
+        "Edge case handling completeness"
+      ]
+    },
+    "contextual_analysis": {
+      "description": "Review code in context of larger system",
+      "considerations": [
+        "Impact on existing functionality",
+        "Consistency with codebase patterns",
+        "Integration with other components",
+        "Long-term maintainability implications"
+      ]
+    }
+  },
+  "feedback_categories": {
+    "blocking": {
+      "description": "Issues that must be fixed before merge",
+      "examples": [
+        "Security vulnerabilities",
+        "Architectural violations",
+        "Breaking changes without migration",
+        "Critical performance issues"
+      ]
+    },
+    "high_priority": {
+      "description": "Issues that should be addressed soon",
+      "examples": [
+        "Code quality improvements",
+        "Missing error handling",
+        "Maintainability concerns",
+        "Testing gaps"
+      ]
+    },
+    "suggestions": {
+      "description": "Recommendations for improvement",
+      "examples": [
+        "Performance optimizations",
+        "Code clarity improvements",
+        "Best practice suggestions",
+        "Alternative implementation ideas"
+      ]
+    },
+    "praise": {
+      "description": "Recognition of good practices",
+      "examples": [
+        "Excellent error handling",
+        "Clean architectural design",
+        "Comprehensive testing",
+        "Clear documentation"
+      ]
+    }
+  },
+  "integration_points": {
+    "tdd_workflow": {
+      "description": "Integration with TDD development cycle",
+      "stages": [
+        "Review test design and coverage",
+        "Review minimal implementation quality", 
+        "Review refactoring improvements",
+        "Final integration review"
+      ]
+    },
+    "architecture_guardian": {
+      "description": "Collaboration with Architecture Guardian",
+      "shared_concerns": [
+        "Architectural pattern compliance",
+        "Component dependency validation",
+        "System integration integrity"
+      ]
+    },
+    "performance_monitor": {
+      "description": "Collaboration with Performance Monitor",
+      "shared_metrics": [
+        "Code performance implications",
+        "Resource usage patterns",
+        "Scalability considerations"
+      ]
+    }
+  },
+  "quality_metrics": {
+    "code_health": {
+      "metrics": [
+        "Code complexity scores",
+        "Maintainability index",
+        "Technical debt indicators",
+        "Test coverage percentages"
+      ]
+    },
+    "architectural_health": {
+      "metrics": [
+        "Dependency coupling scores",
+        "Component cohesion measures",
+        "Pattern compliance rates",
+        "Integration complexity"
+      ]
+    },
+    "review_effectiveness": {
+      "metrics": [
+        "Issues caught per review",
+        "False positive rates",
+        "Review coverage completeness",
+        "Developer feedback satisfaction"
+      ]
+    }
+  },
+  "continuous_improvement": {
+    "pattern_learning": {
+      "description": "Learn from codebase patterns",
+      "activities": [
+        "Identify common good practices",
+        "Detect recurring issues",
+        "Update review criteria based on findings",
+        "Refine architectural guidelines"
+      ]
+    },
+    "feedback_incorporation": {
+      "description": "Incorporate developer feedback",
+      "activities": [
+        "Adjust review sensitivity",
+        "Improve false positive detection",
+        "Enhance feedback quality",
+        "Streamline review process"
+      ]
+    }
+  },
+  "commands": {
+    "review_execution": [
+      "Review specific file or component",
+      "Full codebase architectural review",
+      "Security-focused review",
+      "Performance-focused review"
+    ],
+    "quality_analysis": [
+      "Generate code quality metrics",
+      "Architectural health assessment", 
+      "Technical debt analysis",
+      "Maintainability scoring"
+    ],
+    "integration": [
+      "Pre-commit review automation",
+      "CI/CD quality gate integration",
+      "IDE integration for real-time feedback"
+    ]
+  }
+}

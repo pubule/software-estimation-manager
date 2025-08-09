@@ -1,0 +1,112 @@
+{
+  "name": "Architecture Guardian Agent",
+  "id": "architecture-guardian",
+  "version": "1.0.0",
+  "description": "Protects architectural integrity and prevents critical structural issues",
+  "priority": "critical",
+  "capabilities": [
+    "script-loading-order-validation",
+    "component-dependency-analysis", 
+    "base-component-usage-verification",
+    "architectural-pattern-enforcement",
+    "critical-error-prevention"
+  ],
+  "critical_validations": {
+    "script_loading_order": {
+      "description": "CRITICAL: Validates HTML script loading order to prevent 'BaseComponent is not defined' errors",
+      "required_order": [
+        "js/utils/base-component.js",
+        "js/utils/modal-manager.js", 
+        "js/utils/helpers.js",
+        "js/components/*.js"
+      ],
+      "failure_severity": "blocking"
+    },
+    "component_inheritance": {
+      "description": "Ensures all components properly extend BaseComponent",
+      "pattern": "class ComponentName extends BaseComponent",
+      "failure_severity": "high"
+    },
+    "dependency_injection": {
+      "description": "Validates proper dependency injection in constructors",
+      "required_patterns": [
+        "super('ComponentName')",
+        "this.managers = {}"
+      ],
+      "failure_severity": "medium"
+    },
+    "method_binding": {
+      "description": "Ensures critical methods are properly bound in constructors", 
+      "required_bindings": [
+        "this.handleMenuAction = this.handleMenuAction.bind(this)",
+        "this.markDirty = this.markDirty.bind(this)"
+      ],
+      "failure_severity": "high"
+    }
+  },
+  "architectural_patterns": {
+    "component_structure": {
+      "required_methods": ["constructor", "onInit", "onDestroy"],
+      "optional_methods": ["setupEventListeners", "updateUI"],
+      "naming_convention": "PascalCase"
+    },
+    "manager_pattern": {
+      "description": "Ensures proper manager initialization and dependency injection",
+      "validation_rules": [
+        "Managers are initialized in ApplicationController",
+        "Dependencies are injected via constructor",
+        "Circular dependencies are avoided"
+      ]
+    },
+    "hierarchical_config": {
+      "description": "Validates proper use of hierarchical configuration system",
+      "required_structure": "Global → Project → Local inheritance"
+    }
+  },
+  "prevention_rules": [
+    {
+      "error": "BaseComponent is not defined",
+      "cause": "Incorrect script loading order in HTML",
+      "prevention": "base-component.js must load before any components",
+      "auto_fix": true
+    },
+    {
+      "error": "ModalManagerBase is not defined", 
+      "cause": "modal-manager.js not loaded before components",
+      "prevention": "Ensure modal-manager.js loads early",
+      "auto_fix": true
+    },
+    {
+      "error": "Cannot read property of undefined (managers)",
+      "cause": "Manager not properly initialized",
+      "prevention": "Check manager initialization in ApplicationController",
+      "auto_fix": false
+    }
+  ],
+  "integration": {
+    "triggers": [
+      "before-component-creation",
+      "before-html-modification", 
+      "pre-test-execution",
+      "pre-build"
+    ],
+    "tools": [
+      "static-analysis",
+      "dependency-graph-analysis",
+      "html-validation",
+      "component-hierarchy-check"
+    ]
+  },
+  "workflow_integration": {
+    "tdd_cycle": {
+      "red_phase": "Validate test structure follows patterns",
+      "green_phase": "Ensure implementation follows architecture", 
+      "refactor_phase": "Check refactoring preserves architectural integrity"
+    },
+    "ci_cd": {
+      "pre_commit": "Run architecture validation",
+      "pre_build": "Validate script loading order",
+      "pre_deploy": "Complete architectural compliance check"
+    }
+  }
+}
