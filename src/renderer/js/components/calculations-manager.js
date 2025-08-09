@@ -1384,7 +1384,7 @@ class CapacityManager extends BaseComponent {
     initializeComponents() {
         // Initialize Team Manager if not exists
         if (!this.teamManager && typeof TeamManager !== 'undefined') {
-            this.teamManager = new TeamManager();
+            this.teamManager = new TeamManager(this.app?.dataManager, this.configManager);
         }
 
         // Initialize Working Days Calculator if not exists  
@@ -1486,125 +1486,114 @@ class CapacityManager extends BaseComponent {
     getEmbeddedCapacityHTML() {
         return `
         <section id="capacity-section">
-        <div class="section-header">
-            <h1>📊 Capacity Planning</h1>
-            <div class="header-actions">
-                <button id="refresh-capacity-btn" class="btn-secondary">
-                    🔄 Refresh
-                </button>
-                <button id="export-capacity-btn" class="btn-secondary">
-                    📊 Export
-                </button>
-            </div>
-        </div>
 
-        <div class="capacity-filters">
-            <div class="filter-group">
-                <label for="team-filter">Team:</label>
-                <select id="team-filter" class="filter-select">
-                    <option value="">All Teams</option>
-                    <option value="vendor-a">Vendor A</option>
-                    <option value="internal">Internal Resources</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="projects-filter">Projects:</label>
-                <select id="projects-filter" class="filter-select">
-                    <option value="">All Projects</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="timeline-range">Timeline:</label>
-                <select id="timeline-range" class="filter-select">
-                    <option value="15">15 months</option>
-                    <option value="12">12 months</option>
-                    <option value="6">6 months</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="status-filter">Status:</label>
-                <select id="status-filter" class="filter-select">
-                    <option value="all">Approved + Pending</option>
-                    <option value="approved">Approved Only</option>
-                    <option value="pending">Pending Only</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="capacity-main-grid">
-            <div class="team-panel">
-                <div class="panel-header">
-                    <h2>👥 Team Members</h2>
-                    <button id="add-team-member-btn" class="btn-primary">
-                        ➕ Add Member
-                    </button>
-                </div>
-                <div class="team-list" id="team-members-list">
-                    <div class="no-team-data">
-                        <p>No team members configured yet.</p>
-                        <button class="btn-primary" id="add-first-member-btn">Add First Team Member</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="timeline-panel">
-                <div class="panel-header">
-                    <h2>📅 Project Timeline</h2>
-                    <div class="timeline-controls">
-                        <button id="prev-months-btn" class="btn-icon">◀</button>
-                        <span id="timeline-range-display">${this.getTimelineRangeDisplay()}</span>
-                        <button id="next-months-btn" class="btn-icon">▶</button>
-                    </div>
-                </div>
-                <div class="timeline-header">
-                    <div class="timeline-months">
-                        ${this.generateTimelineMonths()}
-                    </div>
-                </div>
-                <div class="timeline-body" id="timeline-body">
-                    <div class="no-timeline-data">
-                        <p>No project assignments configured yet.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="assignments-panel">
-            <div class="panel-header">
-                <h2>📋 Project Assignments</h2>
-                <button id="add-assignment-btn" class="btn-primary">
-                    ➕ New Assignment
-                </button>
-            </div>
-            <div class="assignments-list" id="assignments-list">
-                <div class="no-assignments-data">
-                    <p>No project assignments configured yet.</p>
-                    <button class="btn-primary" id="create-first-assignment-btn">Create First Assignment</button>
-                </div>
-            </div>
-        </div>
-
+        <!-- Statistics and Alerts Panel -->
         <div class="stats-panel">
             <div class="panel-header">
-                <h2>📈 Capacity Statistics</h2>
+                <h2>📊 Resource Capacity Overview</h2>
+                <div class="overview-filters">
+                    <div class="filter-group">
+                        <label for="overview-member-filter">Member:</label>
+                        <select id="overview-member-filter" class="filter-select">
+                            <option value="">All Members</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="overview-status-filter">Status View:</label>
+                        <select id="overview-status-filter" class="filter-select">
+                            <option value="all">All Status (Forecast)</option>
+                            <option value="approved">Approved Only</option>
+                            <option value="pending">Pending Only</option>
+                        </select>
+                    </div>
+                </div>
             </div>
-            <div class="statistics-grid">
-                <div class="stat-card">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">Total Team</div>
+            <div class="capacity-overview-grid" id="capacity-overview-grid">
+                <!-- Dynamic capacity overview will be generated here -->
+            </div>
+        </div>
+
+        <!-- Capacity Planning Table -->
+        <div class="capacity-table-container">
+            <div class="capacity-table-header">
+                <h2>📋 Capacity Planning Timeline</h2>
+                <div class="table-actions">
+                    <button id="add-assignment-btn" class="btn-primary">
+                        ➕ Add Assignment
+                    </button>
+                    <button id="export-table-btn" class="btn-secondary">
+                        📊 Export Table
+                    </button>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">Active Projects</div>
+            </div>
+            
+            <!-- Table Filters -->
+            <div class="capacity-filters">
+                <div class="filter-group">
+                    <label for="team-filter">Team:</label>
+                    <select id="team-filter" class="filter-select">
+                        <option value="">All Teams</option>
+                        <option value="vendor-a">Vendor A</option>
+                        <option value="internal">Internal Resources</option>
+                    </select>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">0 MDs</div>
-                    <div class="stat-label">This Month Capacity</div>
+                <div class="filter-group">
+                    <label for="projects-filter">Projects:</label>
+                    <select id="projects-filter" class="filter-select">
+                        <option value="">All Projects</option>
+                    </select>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">0%</div>
-                    <div class="stat-label">Utilization Rate</div>
+                <div class="filter-group">
+                    <label for="timeline-range">Timeline:</label>
+                    <select id="timeline-range" class="filter-select">
+                        <option value="15">15 months</option>
+                        <option value="12">12 months</option>
+                        <option value="6">6 months</option>
+                    </select>
                 </div>
+                <div class="filter-group">
+                    <label for="status-filter">Status:</label>
+                    <select id="status-filter" class="filter-select">
+                        <option value="all">All Statuses</option>
+                        <option value="approved">Approved</option>
+                        <option value="pending">Pending</option>
+                        <option value="draft">Draft</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="scrollable-table-wrapper">
+                <table id="capacity-table" class="capacity-planning-table">
+                    <thead>
+                        <tr>
+                            <!-- Fixed columns -->
+                            <th class="fixed-col col-member">Team Member</th>
+                            <th class="fixed-col col-project">Project</th>
+                            <th class="fixed-col col-status">Status</th>
+                            <!-- Scrollable month columns will be generated here -->
+                            <th class="month-col" data-month="2024-08">Aug 24</th>
+                            <th class="month-col" data-month="2024-09">Sep 24</th>
+                            <th class="month-col" data-month="2024-10">Oct 24</th>
+                            <th class="month-col" data-month="2024-11">Nov 24</th>
+                            <th class="month-col" data-month="2024-12">Dec 24</th>
+                            <th class="month-col" data-month="2025-01">Jan 25</th>
+                            <th class="month-col" data-month="2025-02">Feb 25</th>
+                            <th class="month-col" data-month="2025-03">Mar 25</th>
+                        </tr>
+                    </thead>
+                    <tbody id="capacity-table-body">
+                        <!-- Table rows will be populated here -->
+                        <tr class="no-data-row">
+                            <td colspan="11" class="no-data-message">
+                                <div class="no-data-content">
+                                    <i class="fas fa-table"></i>
+                                    <p>No capacity assignments configured yet.</p>
+                                    <button class="btn-primary" id="create-first-row-btn">Create First Assignment</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
         </section>
@@ -1615,6 +1604,18 @@ class CapacityManager extends BaseComponent {
      * Initialize event listeners for capacity planning
      */
     initializeEventListeners() {
+        // Overview filter listeners
+        const overviewMemberFilter = document.getElementById('overview-member-filter');
+        const overviewStatusFilter = document.getElementById('overview-status-filter');
+
+        if (overviewMemberFilter) {
+            overviewMemberFilter.addEventListener('change', () => this.updateCapacityOverview());
+        }
+
+        if (overviewStatusFilter) {
+            overviewStatusFilter.addEventListener('change', () => this.updateCapacityOverview());
+        }
+
         // Filter event listeners
         const teamFilter = document.getElementById('team-filter');
         const projectsFilter = document.getElementById('projects-filter');
@@ -1639,6 +1640,7 @@ class CapacityManager extends BaseComponent {
             timelineRange.addEventListener('change', (e) => {
                 this.currentFilters.timeline = e.target.value;
                 this.updateTimelineRange();
+                this.updateCapacityOverview(); // Update overview when timeline changes
             });
         }
 
@@ -1659,6 +1661,34 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
+     * Populate overview filters with team member options
+     */
+    populateOverviewFilters() {
+        const teamMembers = this.getMockTeamMembers();
+        const memberFilter = document.getElementById('overview-member-filter');
+        
+        if (memberFilter) {
+            // Clear existing options except "All Members"
+            memberFilter.innerHTML = '<option value="">All Members</option>';
+            
+            // Add team member options
+            teamMembers.forEach(member => {
+                const option = document.createElement('option');
+                option.value = member.id;
+                option.textContent = `${member.firstName} ${member.lastName} (${member.role})`;
+                memberFilter.appendChild(option);
+            });
+        }
+    }
+
+    /**
+     * Update capacity overview based on current filters
+     */
+    updateCapacityOverview() {
+        this.generateCapacityOverview();
+    }
+
+    /**
      * Initialize action button listeners
      */
     initializeActionListeners() {
@@ -1674,29 +1704,25 @@ class CapacityManager extends BaseComponent {
             exportBtn.addEventListener('click', () => this.exportCapacityData());
         }
 
-        // Add team member buttons
-        const addMemberBtn = document.getElementById('add-team-member-btn');
-        const addFirstMemberBtn = document.getElementById('add-first-member-btn');
-        
-        if (addMemberBtn) {
-            addMemberBtn.addEventListener('click', () => this.showAddTeamMemberModal());
-        }
-        
-        if (addFirstMemberBtn) {
-            addFirstMemberBtn.addEventListener('click', () => this.showAddTeamMemberModal());
+        // Export table button
+        const exportTableBtn = document.getElementById('export-table-btn');
+        if (exportTableBtn) {
+            exportTableBtn.addEventListener('click', () => this.exportCapacityTable());
         }
 
-        // Add assignment buttons
+        // Add assignment buttons (main table actions)
         const addAssignmentBtn = document.getElementById('add-assignment-btn');
-        const createFirstAssignmentBtn = document.getElementById('create-first-assignment-btn');
-        
         if (addAssignmentBtn) {
             addAssignmentBtn.addEventListener('click', () => this.showAddAssignmentModal());
         }
         
-        if (createFirstAssignmentBtn) {
-            createFirstAssignmentBtn.addEventListener('click', () => this.showAddAssignmentModal());
+        // Create first assignment button (for empty state)
+        const createFirstRowBtn = document.getElementById('create-first-row-btn');
+        if (createFirstRowBtn) {
+            createFirstRowBtn.addEventListener('click', () => this.showAddAssignmentModal());
         }
+        
+        console.log('Action listeners initialized for capacity table');
     }
 
     /**
@@ -1719,13 +1745,16 @@ class CapacityManager extends BaseComponent {
      * Load initial data for capacity planning
      */
     loadInitialData() {
+        // Populate overview filters
+        this.populateOverviewFilters();
+        
         // Load team members
         this.loadTeamMembers();
         
         // Load project assignments
         this.loadProjectAssignments();
         
-        // Update statistics
+        // Update statistics (capacity overview)
         this.updateStatistics();
         
         // Load project options for filters
@@ -1735,11 +1764,222 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
+     * Get mock team members with project allocations
+     */
+    getMockTeamMembers() {
+        return [
+            {
+                id: 'tm-001',
+                firstName: 'Mario',
+                lastName: 'Rossi',
+                role: 'G2',
+                vendor: 'Vendor A',
+                monthlyCapacity: 22,
+                allocations: {
+                    '2024-08': { 
+                        'Customer Portal': { days: 18, status: 'approved' },
+                        'FERIE': { days: 4, status: 'approved' }
+                    },
+                    '2024-09': { 
+                        'Customer Portal': { days: 16, status: 'approved' },
+                        'Mobile App': { days: 6, status: 'pending' }
+                    },
+                    '2024-10': { 
+                        'Customer Portal': { days: 10, status: 'approved' },
+                        'Mobile App': { days: 7, status: 'pending' },
+                        'API Gateway': { days: 5, status: 'pending' }
+                    },
+                    '2024-11': { 
+                        'Mobile App': { days: 18, status: 'approved' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' },
+                        'Data Migration': { days: 2, status: 'pending' }
+                    },
+                    '2024-12': { 
+                        'Mobile App': { days: 8, status: 'approved' },
+                        'FERIE': { days: 10, status: 'approved' },
+                        'New Project': { days: 4, status: 'pending' }
+                    },
+                    '2025-01': { 
+                        'API Gateway': { days: 20, status: 'approved' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' }
+                    },
+                    '2025-02': { 
+                        'API Gateway': { days: 15, status: 'approved' },
+                        'New Project': { days: 7, status: 'pending' }
+                    },
+                    '2025-03': { 
+                        'API Gateway': { days: 12, status: 'approved' },
+                        'New Project': { days: 6, status: 'pending' },
+                        'FERIE': { days: 4, status: 'approved' }
+                    }
+                }
+            },
+            {
+                id: 'tm-002',
+                firstName: 'Anna',
+                lastName: 'Bianchi',
+                role: 'PM',
+                vendor: 'Internal',
+                monthlyCapacity: 20,
+                allocations: {
+                    '2024-08': { 
+                        'Customer Portal': { days: 8, status: 'approved' },
+                        'Mobile App': { days: 12, status: 'approved' }
+                    },
+                    '2024-09': { 
+                        'Customer Portal': { days: 6, status: 'approved' },
+                        'Mobile App': { days: 10, status: 'approved' },
+                        'Testing': { days: 4, status: 'pending' }
+                    },
+                    '2024-10': { 
+                        'API Gateway': { days: 15, status: 'approved' },
+                        'Testing': { days: 5, status: 'pending' }
+                    },
+                    '2024-11': { 
+                        'API Gateway': { days: 12, status: 'approved' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' },
+                        'Quality Assurance': { days: 6, status: 'pending' }
+                    },
+                    '2024-12': { 
+                        'API Gateway': { days: 10, status: 'approved' },
+                        'FERIE': { days: 5, status: 'approved' },
+                        'Quality Assurance': { days: 5, status: 'pending' }
+                    },
+                    '2025-01': { 
+                        'Data Migration': { days: 16, status: 'approved' },
+                        'Documentation': { days: 4, status: 'pending' }
+                    },
+                    '2025-02': { 
+                        'Data Migration': { days: 14, status: 'approved' },
+                        'Documentation': { days: 6, status: 'pending' }
+                    },
+                    '2025-03': { 
+                        'Data Migration': { days: 12, status: 'approved' },
+                        'Documentation': { days: 4, status: 'pending' },
+                        'FERIE': { days: 4, status: 'approved' }
+                    }
+                }
+            },
+            {
+                id: 'tm-003',
+                firstName: 'Luca',
+                lastName: 'Verdi',
+                role: 'G1',
+                vendor: 'Vendor A',
+                monthlyCapacity: 22,
+                allocations: {
+                    '2024-08': { 
+                        'Mobile App': { days: 20, status: 'approved' },
+                        'Research': { days: 2, status: 'pending' }
+                    },
+                    '2024-09': { 
+                        'Mobile App': { days: 18, status: 'approved' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' },
+                        'Research': { days: 2, status: 'pending' }
+                    },
+                    '2024-10': { 
+                        'Mobile App': { days: 12, status: 'approved' },
+                        'Data Migration': { days: 7, status: 'approved' },
+                        'Innovation Lab': { days: 3, status: 'pending' }
+                    },
+                    '2024-11': { 
+                        'Data Migration': { days: 16, status: 'approved' },
+                        'Innovation Lab': { days: 6, status: 'pending' }
+                    },
+                    '2024-12': { 
+                        'Data Migration': { days: 8, status: 'approved' },
+                        'FERIE': { days: 12, status: 'approved' },
+                        'Innovation Lab': { days: 2, status: 'pending' }
+                    },
+                    '2025-01': { 
+                        'Customer Portal V2': { days: 18, status: 'approved' },
+                        'Training': { days: 4, status: 'pending' }
+                    },
+                    '2025-02': { 
+                        'Customer Portal V2': { days: 16, status: 'approved' },
+                        'Training': { days: 6, status: 'pending' }
+                    },
+                    '2025-03': { 
+                        'Customer Portal V2': { days: 14, status: 'approved' },
+                        'Training': { days: 6, status: 'pending' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' }
+                    }
+                }
+            },
+            {
+                id: 'tm-004',
+                firstName: 'Sofia',
+                lastName: 'Conti',
+                role: 'TA',
+                vendor: 'Internal',
+                monthlyCapacity: 20,
+                allocations: {
+                    '2024-08': { 
+                        'Testing Portal': { days: 18, status: 'approved' },
+                        'Automation': { days: 2, status: 'pending' }
+                    },
+                    '2024-09': { 
+                        'Testing Portal': { days: 10, status: 'approved' },
+                        'Testing Mobile': { days: 5, status: 'approved' },
+                        'Automation': { days: 5, status: 'pending' }
+                    },
+                    '2024-10': { 
+                        'Testing Mobile': { days: 15, status: 'approved' },
+                        'Performance Testing': { days: 5, status: 'pending' }
+                    },
+                    '2024-11': { 
+                        'Testing Mobile': { days: 12, status: 'approved' },
+                        'FERIE': { days: 2, status: 'approved' },
+                        'Performance Testing': { days: 6, status: 'pending' }
+                    },
+                    '2024-12': { 
+                        'Testing API': { days: 12, status: 'approved' },
+                        'FERIE': { days: 5, status: 'approved' },
+                        'Security Testing': { days: 3, status: 'pending' }
+                    },
+                    '2025-01': { 
+                        'Testing API': { days: 16, status: 'approved' },
+                        'Security Testing': { days: 4, status: 'pending' }
+                    },
+                    '2025-02': { 
+                        'Testing API': { days: 14, status: 'approved' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' },
+                        'E2E Testing': { days: 4, status: 'pending' }
+                    },
+                    '2025-03': { 
+                        'Testing Data': { days: 16, status: 'approved' },
+                        'E2E Testing': { days: 4, status: 'pending' }
+                    }
+                }
+            }
+        ];
+    }
+
+    /**
+     * Get project colors for visual distinction
+     */
+    getProjectColors() {
+        return {
+            'Customer Portal': '#007acc',
+            'Mobile App': '#6a9955', 
+            'API Gateway': '#c586c0',
+            'Data Migration': '#d16969',
+            'Customer Portal V2': '#4fc1e9',
+            'Testing Portal': '#f7ca18',
+            'Testing Mobile': '#e67e22',
+            'Testing API': '#9b59b6',
+            'Testing Data': '#1abc9c',
+            'FERIE': '#ffce54',
+            'ALLINEAMENTO': '#9cdcfe'
+        };
+    }
+
+    /**
      * Load team members data
      */
     loadTeamMembers() {
-        // Get team members from TeamManager
-        const teamMembers = this.teamManager?.getTeamMembers() || [];
+        // Use mock data for demonstration
+        const teamMembers = this.getMockTeamMembers();
         
         const teamList = document.getElementById('team-members-list');
         if (!teamList) return;
@@ -1814,44 +2054,582 @@ class CapacityManager extends BaseComponent {
      * Load project assignments data
      */
     loadProjectAssignments() {
-        // This would load actual project assignments
-        // For now, show empty state
-        const assignmentsList = document.getElementById('assignments-list');
-        if (!assignmentsList) return;
-
-        assignmentsList.innerHTML = `
-            <div class="no-assignments-data">
-                <p>No project assignments configured yet.</p>
-                <button class="btn-primary" id="create-first-assignment-btn">Create First Assignment</button>
-            </div>
-        `;
+        // Load capacity table with mock data
+        this.loadCapacityTable();
         
-        // Re-attach event listener
-        const createFirstAssignmentBtn = document.getElementById('create-first-assignment-btn');
-        if (createFirstAssignmentBtn) {
-            createFirstAssignmentBtn.addEventListener('click', () => this.showAddAssignmentModal());
+        console.log('Capacity table loaded with mock assignment data');
+    }
+
+    /**
+     * Load timeline with team member allocations
+     */
+    loadTimeline() {
+        // This method is now replaced by loadCapacityTable()
+        this.loadCapacityTable();
+    }
+
+    /**
+     * Load capacity planning table with member-project rows
+     */
+    loadCapacityTable() {
+        const tableBody = document.getElementById('capacity-table-body');
+        if (!tableBody) return;
+
+        // Generate table header with dynamic months
+        this.generateTableHeader();
+
+        // Generate table rows from mock data
+        const tableRows = this.generateCapacityTableRows();
+        
+        if (tableRows.length > 0) {
+            tableBody.innerHTML = tableRows.join('');
+        } else {
+            tableBody.innerHTML = `
+                <tr class="no-data-row">
+                    <td colspan="11" class="no-data-message">
+                        <div class="no-data-content">
+                            <i class="fas fa-table"></i>
+                            <p>No capacity assignments configured yet.</p>
+                            <button class="btn-primary" id="create-first-row-btn">Create First Assignment</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            
+            // Re-attach event listener
+            const createFirstRowBtn = document.getElementById('create-first-row-btn');
+            if (createFirstRowBtn) {
+                createFirstRowBtn.addEventListener('click', () => this.showAddAssignmentModal());
+            }
         }
         
-        console.log('Project assignments loaded (empty state)');
+        console.log(`Capacity table loaded with ${tableRows.length} assignments`);
+    }
+
+    /**
+     * Generate table header with dynamic month columns
+     */
+    generateTableHeader() {
+        const tableHeader = document.querySelector('#capacity-table thead tr');
+        if (!tableHeader) return;
+
+        const months = this.getTimelineMonths();
+        const currentDate = new Date();
+        
+        // Clear existing month columns and regenerate
+        const existingMonthCols = tableHeader.querySelectorAll('.month-col');
+        existingMonthCols.forEach(col => col.remove());
+        
+        // Generate new month columns
+        months.forEach((monthDisplay, index) => {
+            const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + index, 1);
+            const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+            
+            const th = document.createElement('th');
+            th.className = 'month-col';
+            th.setAttribute('data-month', monthKey);
+            th.textContent = monthDisplay;
+            
+            tableHeader.appendChild(th);
+        });
+    }
+
+    /**
+     * Generate capacity table rows from mock data
+     */
+    generateCapacityTableRows() {
+        const teamMembers = this.getMockTeamMembers();
+        const months = this.getTimelineMonths();
+        const projectColors = this.getProjectColors();
+        const currentDate = new Date();
+        
+        const tableRows = [];
+        
+        teamMembers.forEach(member => {
+            // Get all unique projects for this member
+            const memberProjects = new Set();
+            Object.values(member.allocations || {}).forEach(monthAllocation => {
+                Object.keys(monthAllocation).forEach(project => {
+                    memberProjects.add(project);
+                });
+            });
+            
+            // Create a row for each member + project combination
+            Array.from(memberProjects).sort((a, b) => {
+                // Sort: work projects first, then special projects
+                const isSpecialA = ['FERIE', 'ALLINEAMENTO'].includes(a);
+                const isSpecialB = ['FERIE', 'ALLINEAMENTO'].includes(b);
+                
+                if (isSpecialA && !isSpecialB) return 1;
+                if (!isSpecialA && isSpecialB) return -1;
+                return a.localeCompare(b);
+            }).forEach(project => {
+                const isSpecialProject = ['FERIE', 'ALLINEAMENTO'].includes(project);
+                const projectColor = projectColors[project] || '#007acc';
+                const rowId = `${member.id}-${project.replace(/\s+/g, '-').toLowerCase()}`;
+                
+                // Generate month cells for this member-project combination
+                const monthCells = months.map((monthDisplay, index) => {
+                    const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + index, 1);
+                    const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+                    
+                    const monthAllocations = member.allocations[monthKey] || {};
+                    const projectDays = monthAllocations[project] || 0;
+                    
+                    const cellContent = projectDays > 0 ? 
+                        `<div class="month-allocation has-allocation" 
+                              style="background-color: ${projectColor};"
+                              title="${project}: ${projectDays} MDs in ${monthKey}"
+                              data-member="${member.id}"
+                              data-project="${project}"
+                              data-month="${monthKey}"
+                              data-days="${projectDays}">
+                            ${projectDays}
+                        </div>` :
+                        `<div class="month-allocation no-allocation">-</div>`;
+                    
+                    return `<td class="month-cell" data-month="${monthKey}">${cellContent}</td>`;
+                }).join('');
+                
+                // Determine status based on project type and allocation
+                let status = 'approved';
+                if (isSpecialProject) {
+                    status = 'approved'; // FERIE and ALLINEAMENTO are always approved
+                } else {
+                    // For work projects, you could implement logic to determine status
+                    status = Math.random() > 0.3 ? 'approved' : 'pending'; // Mock status
+                }
+                
+                const tableRow = `
+                    <tr class="capacity-row" data-row-id="${rowId}" data-member="${member.id}" data-project="${project}">
+                        <td class="fixed-col col-member">
+                            <div class="member-info-cell">
+                                <div class="member-avatar-small" style="background-color: ${projectColor};">
+                                    ${member.firstName.charAt(0)}
+                                </div>
+                                <div>
+                                    <div class="member-name">${member.firstName} ${member.lastName}</div>
+                                    <div class="member-role-small">${member.role} - ${member.vendor}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="fixed-col col-project">
+                            <div class="project-cell ${isSpecialProject ? 'special-project' : ''}">${project}</div>
+                        </td>
+                        <td class="fixed-col col-status">
+                            <span class="status-badge-small ${status}">${status.toUpperCase()}</span>
+                        </td>
+                        ${monthCells}
+                    </tr>
+                `;
+                
+                tableRows.push(tableRow);
+            });
+        });
+        
+        return tableRows;
+    }
+
+    /**
+     * Generate allocations for a team member across months
+     */
+    generateMemberAllocations(member, months, projectColors) {
+        const currentDate = new Date();
+        
+        return months.map((monthDisplay, index) => {
+            // Convert month display to YYYY-MM format
+            const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + index, 1);
+            const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+            
+            const monthAllocations = member.allocations[monthKey] || {};
+            
+            // Check for overflow
+            const totalAllocated = Object.values(monthAllocations).reduce((sum, days) => sum + days, 0);
+            const hasOverflow = totalAllocated > member.monthlyCapacity;
+            
+            // Generate allocation blocks for this month
+            let allocationBlocks = '';
+            
+            Object.entries(monthAllocations).forEach(([project, days]) => {
+                const color = projectColors[project] || '#666666';
+                const isSpecial = ['FERIE', 'ALLINEAMENTO'].includes(project);
+                const blockClass = isSpecial ? `special-${project.toLowerCase()}` : 'project-block';
+                
+                allocationBlocks += `
+                    <div class="allocation-block ${blockClass}" 
+                         style="background-color: ${color}; margin-bottom: 2px;"
+                         title="${project}: ${days} MDs"
+                         data-project="${project}"
+                         data-days="${days}">
+                        <div class="allocation-label">${this.truncateProjectName(project)}</div>
+                        <div class="allocation-days">${days}d</div>
+                    </div>
+                `;
+            });
+            
+            // Add overflow indicator if needed
+            const overflowIndicator = hasOverflow ? 
+                `<div class="overflow-indicator" title="Overflow: ${totalAllocated - member.monthlyCapacity} MDs">
+                    ⚠️ ${totalAllocated - member.monthlyCapacity}
+                </div>` : '';
+            
+            return `
+                <div class="timeline-month-cell ${hasOverflow ? 'has-overflow' : ''}" 
+                     data-month="${monthKey}"
+                     data-member="${member.id}">
+                    ${allocationBlocks}
+                    ${overflowIndicator}
+                    <div class="capacity-summary">
+                        <small>${totalAllocated}/${member.monthlyCapacity}</small>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Generate allocations for a specific member-project combination across months
+     */
+    generateProjectAllocations(member, projectName, months, projectColors) {
+        const currentDate = new Date();
+        const projectColor = projectColors[projectName] || '#666666';
+        const isSpecialProject = ['FERIE', 'ALLINEAMENTO'].includes(projectName);
+        
+        return months.map((monthDisplay, index) => {
+            // Convert month display to YYYY-MM format
+            const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + index, 1);
+            const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+            
+            const monthAllocations = member.allocations[monthKey] || {};
+            const projectDays = monthAllocations[projectName] || 0;
+            
+            // Generate allocation block only if this project has days in this month
+            let allocationBlock = '';
+            if (projectDays > 0) {
+                const blockClass = isSpecialProject ? `special-${projectName.toLowerCase()}` : 'project-block';
+                
+                allocationBlock = `
+                    <div class="allocation-block ${blockClass}" 
+                         style="background-color: ${projectColor};"
+                         title="${projectName}: ${projectDays} MDs in ${monthKey}"
+                         data-project="${projectName}"
+                         data-days="${projectDays}">
+                        <div class="allocation-label">${projectDays}</div>
+                        <div class="allocation-unit">MDs</div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="timeline-month-cell project-month-cell ${projectDays > 0 ? 'has-allocation' : ''}" 
+                     data-month="${monthKey}"
+                     data-member="${member.id}"
+                     data-project="${projectName}"
+                     data-days="${projectDays}">
+                    ${allocationBlock}
+                    ${projectDays === 0 ? '<div class="no-allocation">-</div>' : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Truncate long project names for display
+     */
+    truncateProjectName(projectName) {
+        if (projectName.length <= 12) return projectName;
+        return projectName.substring(0, 10) + '...';
+    }
+
+    /**
+     * Generate mock assignments for the assignments panel
+     */
+    generateMockAssignments() {
+        return [
+            {
+                id: 'pa-001',
+                projectName: 'Customer Portal',
+                teamMember: 'Mario Rossi',
+                startDate: '2024-08-01',
+                endDate: '2024-10-31',
+                totalMDs: 55,
+                status: 'approved',
+                progress: 35
+            },
+            {
+                id: 'pa-002', 
+                projectName: 'Mobile App',
+                teamMember: 'Mario Rossi',
+                startDate: '2024-10-15',
+                endDate: '2024-12-31',
+                totalMDs: 41,
+                status: 'approved',
+                progress: 0
+            },
+            {
+                id: 'pa-003',
+                projectName: 'API Gateway',
+                teamMember: 'Anna Bianchi',
+                startDate: '2024-10-01',
+                endDate: '2024-12-31',
+                totalMDs: 53,
+                status: 'approved',
+                progress: 15
+            },
+            {
+                id: 'pa-004',
+                projectName: 'Data Migration',
+                teamMember: 'Anna Bianchi',
+                startDate: '2025-01-01',
+                endDate: '2025-03-31',
+                totalMDs: 56,
+                status: 'pending',
+                progress: 0
+            }
+        ];
+    }
+
+    /**
+     * Render assignment card
+     */
+    renderAssignmentCard(assignment) {
+        const statusClass = assignment.status;
+        const statusIcon = assignment.status === 'approved' ? '✅' : '🟡';
+        const progressClass = assignment.progress > 0 ? '' : 'pending';
+        
+        return `
+            <div class="assignment-card ${statusClass}" data-assignment-id="${assignment.id}">
+                <div class="assignment-header">
+                    <div class="assignment-info">
+                        <h3>${statusIcon} ${assignment.projectName}</h3>
+                        <p class="assignment-details">${assignment.teamMember} • ${assignment.startDate} - ${assignment.endDate} • ${assignment.totalMDs} MDs</p>
+                    </div>
+                    <div class="assignment-actions">
+                        <button class="btn-secondary" onclick="window.capacityManager?.editAssignment('${assignment.id}')">Edit</button>
+                        ${assignment.status === 'pending' ? 
+                            `<button class="btn-primary" onclick="window.capacityManager?.approveAssignment('${assignment.id}')">Approve</button>` :
+                            `<button class="btn-secondary" onclick="window.capacityManager?.viewAssignmentDetails('${assignment.id}')">Details</button>`
+                        }
+                    </div>
+                </div>
+                <div class="assignment-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill ${progressClass}" style="width: ${assignment.progress}%"></div>
+                    </div>
+                    <span class="progress-text">
+                        ${assignment.progress > 0 ? 
+                            `${Math.round(assignment.totalMDs * assignment.progress / 100)}/${assignment.totalMDs} MDs completed (${assignment.progress}%)` :
+                            assignment.status === 'pending' ? 'Not started (Pending approval)' : 'Ready to start'
+                        }
+                    </span>
+                </div>
+                <div class="assignment-status">
+                    <span class="status-badge ${assignment.status}">${assignment.status.toUpperCase()}</span>
+                    ${assignment.progress === 0 && assignment.status === 'approved' ? 
+                        '<span class="capacity-badge available">✅ Ready to start</span>' : ''
+                    }
+                </div>
+            </div>
+        `;
     }
 
     /**
      * Update capacity statistics
      */
     updateStatistics() {
-        const teamMembers = this.teamManager?.getTeamMembers() || [];
-        const totalCapacity = teamMembers.reduce((sum, member) => sum + (member.monthlyCapacity || 0), 0);
+        // Generate capacity overview grid
+        this.generateCapacityOverview();
+    }
+
+    /**
+     * Generate capacity overview showing resource allocation by month
+     */
+    generateCapacityOverview() {
+        const overviewContainer = document.getElementById('capacity-overview-grid');
+        if (!overviewContainer) return;
+
+        const teamMembers = this.getMockTeamMembers();
+        const months = this.getTimelineMonths();
+        const currentDate = new Date();
         
-        // Update stat cards
-        const statCards = document.querySelectorAll('.stat-card');
-        if (statCards.length >= 4) {
-            statCards[0].querySelector('.stat-value').textContent = teamMembers.length;
-            statCards[1].querySelector('.stat-value').textContent = '0'; // Active projects
-            statCards[2].querySelector('.stat-value').textContent = `${totalCapacity} MDs`;
-            statCards[3].querySelector('.stat-value').textContent = '0%'; // Utilization
+        // Generate table structure
+        const tableHTML = this.buildCapacityOverviewTable(teamMembers, months, currentDate);
+        overviewContainer.innerHTML = tableHTML;
+        
+        console.log('Capacity overview generated for', teamMembers.length, 'resources across', months.length, 'months');
+    }
+
+    /**
+     * Build the capacity overview table HTML
+     */
+    buildCapacityOverviewTable(teamMembers, months, currentDate) {
+        // Get current member filter
+        const memberFilter = document.getElementById('overview-member-filter');
+        const selectedMemberId = memberFilter ? memberFilter.value : '';
+        
+        // Filter team members if specific member selected
+        let filteredMembers = teamMembers;
+        if (selectedMemberId) {
+            filteredMembers = teamMembers.filter(member => member.id === selectedMemberId);
         }
         
-        console.log(`Updated statistics - Team: ${teamMembers.length}, Capacity: ${totalCapacity} MDs`);
+        // Generate month headers
+        const monthHeaders = months.map(monthDisplay => 
+            `<th class="month-header">${monthDisplay}</th>`
+        ).join('');
+        
+        // Generate rows for each filtered team member
+        const memberRows = filteredMembers.map(member => {
+            const memberName = `${member.firstName} ${member.lastName}`;
+            const memberRole = `${member.role} - ${member.vendor}`;
+            
+            // Generate month cells for this member
+            const monthCells = months.map((monthDisplay, index) => {
+                const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + index, 1);
+                const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+                
+                return this.generateMonthCapacityCell(member, monthKey);
+            }).join('');
+            
+            return `
+                <tr class="capacity-overview-row" data-member="${member.id}">
+                    <td class="resource-name">
+                        <div class="resource-info">
+                            <div class="resource-name-text">${memberName}</div>
+                            <div class="resource-role">${memberRole}</div>
+                        </div>
+                    </td>
+                    ${monthCells}
+                </tr>
+            `;
+        }).join('');
+        
+        // Show message if no members match filter
+        const noDataRow = filteredMembers.length === 0 ? `
+            <tr>
+                <td class="resource-name">No members match the selected filter</td>
+                ${months.map(() => '<td class="capacity-month-cell"><span style="color: #666;">-</span></td>').join('')}
+            </tr>
+        ` : '';
+        
+        return `
+            <table class="capacity-overview-table">
+                <thead>
+                    <tr>
+                        <th class="resource-name">Resource</th>
+                        ${monthHeaders}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${memberRows}${noDataRow}
+                </tbody>
+            </table>
+        `;
+    }
+
+    /**
+     * Generate capacity cell for a specific member and month
+     */
+    generateMonthCapacityCell(member, monthKey) {
+        const monthAllocations = member.allocations[monthKey] || {};
+        const maxCapacity = member.monthlyCapacity || 22;
+        
+        // Get current overview status filter
+        const overviewStatusFilter = document.getElementById('overview-status-filter');
+        const statusFilterValue = overviewStatusFilter ? overviewStatusFilter.value : 'all';
+        
+        // Calculate MDs based on status filter
+        let totalAllocated = 0;
+        let approvedMDs = 0;
+        let pendingMDs = 0;
+        
+        Object.entries(monthAllocations).forEach(([project, allocation]) => {
+            const days = allocation.days || 0;
+            const status = allocation.status || 'approved';
+            
+            // Count totals for display
+            if (status === 'approved') {
+                approvedMDs += days;
+            } else if (status === 'pending') {
+                pendingMDs += days;
+            }
+            
+            // Calculate allocated based on filter
+            switch (statusFilterValue) {
+                case 'approved':
+                    if (status === 'approved') totalAllocated += days;
+                    break;
+                case 'pending':
+                    if (status === 'pending') totalAllocated += days;
+                    break;
+                case 'all':
+                default:
+                    totalAllocated += days;
+                    break;
+            }
+        });
+        
+        // Calculate percentage based on filtered allocation
+        const utilizationPercentage = maxCapacity > 0 ? Math.round((totalAllocated / maxCapacity) * 100) : 0;
+        
+        // Determine color class based on utilization
+        let percentageClass = 'low';
+        if (utilizationPercentage >= 90) {
+            percentageClass = 'high';
+        } else if (utilizationPercentage >= 70) {
+            percentageClass = 'medium';
+        }
+        
+        // Generate breakdown display based on filter
+        let breakdownContent = '';
+        if (statusFilterValue === 'all') {
+            breakdownContent = `
+                ${approvedMDs > 0 ? `<span class="approved-mds">✓ ${approvedMDs} MDs</span>` : ''}
+                ${pendingMDs > 0 ? `<span class="pending-mds">⏳ ${pendingMDs} MDs</span>` : ''}
+            `;
+        } else if (statusFilterValue === 'approved') {
+            breakdownContent = `<span class="approved-mds">✓ ${approvedMDs} MDs</span>`;
+        } else if (statusFilterValue === 'pending') {
+            breakdownContent = `<span class="pending-mds">⏳ ${pendingMDs} MDs</span>`;
+        }
+        
+        // Generate cell content
+        const cellContent = totalAllocated > 0 ? `
+            <div class="capacity-cell">
+                <span class="capacity-percentage ${percentageClass}">${utilizationPercentage}%</span>
+                <div class="capacity-breakdown">
+                    ${breakdownContent}
+                </div>
+                <div class="filter-indicator">
+                    <small>${statusFilterValue === 'all' ? 'Forecast' : statusFilterValue.toUpperCase()}</small>
+                </div>
+            </div>
+        ` : `
+            <div class="capacity-cell">
+                <span class="capacity-percentage low">0%</span>
+                <div class="capacity-breakdown">
+                    <span style="color: #666;">Available</span>
+                </div>
+            </div>
+        `;
+        
+        // Generate tooltip information
+        const allMDs = approvedMDs + pendingMDs;
+        const tooltipText = statusFilterValue === 'all' 
+            ? `${member.firstName} ${member.lastName} - ${monthKey}: ${allMDs}/${maxCapacity} MDs (Approved: ${approvedMDs}, Pending: ${pendingMDs})`
+            : `${member.firstName} ${member.lastName} - ${monthKey}: ${totalAllocated}/${maxCapacity} MDs (${statusFilterValue} only)`;
+        
+        return `
+            <td class="capacity-month-cell" 
+                data-month="${monthKey}" 
+                data-member="${member.id}"
+                data-utilization="${utilizationPercentage}"
+                data-approved="${approvedMDs}"
+                data-pending="${pendingMDs}"
+                title="${tooltipText}">
+                ${cellContent}
+            </td>
+        `;
     }
 
     /**
@@ -1985,6 +2763,62 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
+     * Edit assignment
+     */
+    editAssignment(assignmentId) {
+        console.log('Edit assignment:', assignmentId);
+        NotificationManager.info(`Edit Assignment ${assignmentId}: Feature in development`);
+    }
+
+    /**
+     * Approve assignment
+     */
+    approveAssignment(assignmentId) {
+        console.log('Approve assignment:', assignmentId);
+        NotificationManager.success(`Assignment ${assignmentId} approved!`);
+        
+        // Update the assignment status in the UI
+        const assignmentCard = document.querySelector(`[data-assignment-id="${assignmentId}"]`);
+        if (assignmentCard) {
+            assignmentCard.classList.remove('pending');
+            assignmentCard.classList.add('approved');
+            
+            const statusBadge = assignmentCard.querySelector('.status-badge');
+            if (statusBadge) {
+                statusBadge.textContent = 'APPROVED';
+                statusBadge.classList.remove('pending');
+                statusBadge.classList.add('approved');
+            }
+            
+            // Update the header icon
+            const headerIcon = assignmentCard.querySelector('h3');
+            if (headerIcon) {
+                headerIcon.innerHTML = headerIcon.innerHTML.replace('🟡', '✅');
+            }
+            
+            // Update action buttons
+            const actionsDiv = assignmentCard.querySelector('.assignment-actions');
+            const assignmentInfo = assignmentCard.querySelector('.assignment-info h3').textContent;
+            const projectName = assignmentInfo.replace('🟡 ', '').replace('✅ ', '');
+            
+            if (actionsDiv) {
+                actionsDiv.innerHTML = `
+                    <button class="btn-secondary" onclick="window.capacityManager?.editAssignment('${assignmentId}')">Edit</button>
+                    <button class="btn-secondary" onclick="window.capacityManager?.viewAssignmentDetails('${assignmentId}')">Details</button>
+                `;
+            }
+        }
+    }
+
+    /**
+     * View assignment details
+     */
+    viewAssignmentDetails(assignmentId) {
+        console.log('View assignment details:', assignmentId);
+        NotificationManager.info(`View Assignment Details ${assignmentId}: Feature in development`);
+    }
+
+    /**
      * View team member details
      */
     viewMemberDetails(memberId) {
@@ -2000,6 +2834,15 @@ class CapacityManager extends BaseComponent {
         console.log('Export capacity data');
         // This would export current capacity data to Excel/CSV
         NotificationManager.info('Export Capacity Data: Feature in development');
+    }
+
+    /**
+     * Export capacity table data
+     */
+    exportCapacityTable() {
+        console.log('Export capacity table');
+        // This would export the table data to Excel/CSV
+        NotificationManager.info('Export Capacity Table: Feature in development');
     }
 
     /**

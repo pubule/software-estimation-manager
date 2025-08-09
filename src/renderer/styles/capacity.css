@@ -128,6 +128,21 @@
     gap: 8px;
 }
 
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #333333;
+    background: #2d2d30;
+}
+
+.overview-filters {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
 .team-list {
     padding: 16px;
     display: flex;
@@ -291,36 +306,204 @@
     overflow-y: auto;
 }
 
+/* Timeline row with member info */
 .timeline-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
     position: relative;
     min-height: 60px;
     border-bottom: 1px solid #333333;
-    padding-bottom: 16px;
+    padding: 12px 0;
 }
 
+/* Enhanced styling for member-project rows */
+.member-project-row {
+    transition: background-color 0.2s ease;
+}
+
+.member-project-row:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.timeline-member-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 200px;
+    flex-shrink: 0;
+}
+
+.timeline-member-info .member-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #007acc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.timeline-member-info .member-details h4 {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+}
+
+.timeline-member-info .member-details p {
+    color: #cccccc;
+    font-size: 11px;
+    margin: 0 0 2px 0;
+}
+
+.timeline-member-info .member-role {
+    color: #9cdcfe !important;
+}
+
+.timeline-member-info .member-capacity {
+    color: #b5cea8 !important;
+}
+
+/* Project assignment styling */
+.project-assignment {
+    color: #9cdcfe !important;
+    font-weight: 600;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.project-assignment.work-project {
+    color: #9cdcfe !important;
+}
+
+.project-assignment.special-project {
+    color: #ffce54 !important;
+}
+
+/* Timeline allocations grid */
 .timeline-allocations {
     display: grid;
-    grid-template-columns: repeat(15, 60px);
-    gap: 2px;
+    grid-template-columns: repeat(15, 80px);
+    gap: 4px;
+    flex: 1;
+    align-items: flex-start;
+}
+
+.timeline-month-cell {
+    background: #1e1e1e;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    padding: 6px;
+    min-height: 60px;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.timeline-month-cell.has-overflow {
+    border-color: #f44747;
+    background: rgba(244, 71, 71, 0.1);
+}
+
+/* Project-specific month cells */
+.project-month-cell {
+    min-height: 50px;
+    display: flex;
     align-items: center;
+    justify-content: center;
+}
+
+.project-month-cell.has-allocation {
+    background: rgba(0, 122, 204, 0.05);
+}
+
+.project-month-cell .no-allocation {
+    color: #666666;
+    font-size: 14px;
+    font-weight: 300;
 }
 
 .allocation-block {
-    background: #007acc;
-    border-radius: 4px;
-    padding: 8px;
+    border-radius: 3px;
+    padding: 4px 6px;
     color: #ffffff;
-    font-size: 11px;
+    font-size: 10px;
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    min-height: 20px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: 44px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
+
+.allocation-block:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.allocation-label {
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 1px;
+}
+
+.allocation-days {
+    font-size: 9px;
+    opacity: 0.9;
+    line-height: 1;
+}
+
+/* Enhanced allocation styling for project rows */
+.allocation-unit {
+    font-size: 8px;
+    opacity: 0.8;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.special-ferie {
+    background: linear-gradient(135deg, #ffce54, #e6b84a) !important;
+    color: #2d2d30 !important;
+}
+
+.special-allineamento {
+    background: linear-gradient(135deg, #9cdcfe, #7bb3d3) !important;
+    color: #2d2d30 !important;
+}
+
+.overflow-indicator {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #f44747;
+    color: #ffffff;
+    border-radius: 10px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.capacity-summary {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 9px;
+    color: #999999;
+    background: rgba(30, 30, 30, 0.8);
+    padding: 1px 4px;
+    border-radius: 2px;
+}
+
+
 
 .allocation-block:hover {
     transform: translateY(-2px);
@@ -608,6 +791,140 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 16px;
+}
+
+/* Capacity Overview Grid for Resource/Month view */
+.capacity-overview-grid {
+    padding: 20px;
+    overflow-x: auto;
+}
+
+.capacity-overview-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #1e1e1e;
+    font-size: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.capacity-overview-table th {
+    background: #2d2d30;
+    color: #ffffff;
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #333333;
+}
+
+.capacity-overview-table td {
+    padding: 8px;
+    border-bottom: 1px solid #333333;
+    background: #1e1e1e;
+    color: #cccccc;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.capacity-overview-table .resource-name {
+    text-align: left;
+    font-weight: 600;
+    color: #ffffff;
+    position: sticky;
+    left: 0;
+    background: #1e1e1e;
+    border-right: 2px solid #007acc;
+    min-width: 150px;
+}
+
+.capacity-overview-table .month-header {
+    text-align: center;
+    min-width: 80px;
+}
+
+.capacity-cell {
+    position: relative;
+    font-size: 11px;
+    padding: 4px;
+}
+
+.capacity-percentage {
+    font-weight: 600;
+    font-size: 14px;
+    display: block;
+}
+
+.capacity-percentage.high {
+    color: #f44747;
+}
+
+.capacity-percentage.medium {
+    color: #ffce54;
+}
+
+.capacity-percentage.low {
+    color: #b5cea8;
+}
+
+.capacity-breakdown {
+    font-size: 9px;
+    color: #999999;
+    margin-top: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.approved-mds {
+    color: #b5cea8;
+}
+
+.pending-mds {
+    color: #ffce54;
+}
+
+.resource-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.resource-name-text {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 12px;
+}
+
+.resource-role {
+    font-size: 10px;
+    color: #9cdcfe;
+    font-weight: normal;
+}
+
+.capacity-overview-row:hover {
+    background-color: rgba(0, 122, 204, 0.1);
+}
+
+.capacity-overview-row:hover td {
+    background-color: rgba(0, 122, 204, 0.1) !important;
+}
+
+.capacity-month-cell:hover {
+    background-color: rgba(0, 122, 204, 0.2) !important;
+    cursor: pointer;
+}
+
+.filter-indicator {
+    font-size: 8px;
+    color: #666666;
+    text-align: center;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .stat-card {
@@ -1125,6 +1442,43 @@
 }
 
 /* =====================================================
+   CAPACITY CONTENT CONTAINER
+   ===================================================== */
+
+#capacity-content {
+    max-height: calc(100vh - 180px); /* Account for header and margins */
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px; /* Space for scrollbar */
+}
+
+/* Custom scrollbar for capacity content */
+#capacity-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+#capacity-content::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 4px;
+}
+
+#capacity-content::-webkit-scrollbar-thumb {
+    background: #555555;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+#capacity-content::-webkit-scrollbar-thumb:hover {
+    background: #777777;
+}
+
+/* Firefox scrollbar */
+#capacity-content {
+    scrollbar-width: thin;
+    scrollbar-color: #555555 #1e1e1e;
+}
+
+/* =====================================================
    UTILITY CLASSES
    ===================================================== */
 
@@ -1178,4 +1532,256 @@
 
 .gap-16 {
     gap: 16px;
+}
+
+/* =====================================================
+   CAPACITY TABLE LAYOUT
+   ===================================================== */
+
+.capacity-table-container {
+    background: #252526;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.capacity-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #333333;
+    background: #2d2d30;
+}
+
+.capacity-table-header h2 {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.table-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.scrollable-table-wrapper {
+    overflow-x: auto;
+    overflow-y: visible;
+    max-width: 100%;
+    position: relative;
+}
+
+/* Capacity Planning Table */
+.capacity-planning-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #1e1e1e;
+    font-size: 12px;
+}
+
+.capacity-planning-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.capacity-planning-table th {
+    background: #2d2d30;
+    color: #ffffff;
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #333333;
+    position: sticky;
+    top: 0;
+    z-index: 15;
+}
+
+.capacity-planning-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #333333;
+    background: #1e1e1e;
+    color: #cccccc;
+    vertical-align: middle;
+}
+
+/* Fixed columns styling */
+.fixed-col {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background: #2d2d30 !important;
+    border-right: 2px solid #007acc;
+}
+
+.capacity-planning-table td.fixed-col {
+    background: #1e1e1e !important;
+    border-right: 2px solid #007acc;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+}
+
+.col-member {
+    left: 0;
+    min-width: 150px;
+    width: 150px;
+}
+
+.col-project {
+    left: 150px;
+    min-width: 120px;
+    width: 120px;
+}
+
+.col-status {
+    left: 270px;
+    min-width: 90px;
+    width: 90px;
+}
+
+/* Month columns */
+.month-col {
+    min-width: 80px;
+    width: 80px;
+    text-align: center;
+    background: #252526;
+}
+
+.capacity-planning-table td.month-cell {
+    text-align: center;
+    font-weight: 600;
+    background: #1e1e1e;
+    position: relative;
+}
+
+/* Row styling */
+.capacity-planning-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.capacity-planning-table tbody tr:hover {
+    background: rgba(0, 122, 204, 0.1);
+}
+
+.capacity-planning-table tbody tr:hover td {
+    background: rgba(0, 122, 204, 0.1) !important;
+}
+
+/* Team member info */
+.member-info-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.member-avatar-small {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #007acc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+    flex-shrink: 0;
+}
+
+.member-name {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 12px;
+}
+
+.member-role-small {
+    font-size: 10px;
+    color: #9cdcfe;
+    margin-top: 2px;
+}
+
+/* Project cell */
+.project-cell {
+    font-weight: 600;
+    color: #9cdcfe;
+}
+
+.project-cell.special-project {
+    color: #ffce54;
+}
+
+/* Status badges */
+.status-badge-small {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    text-align: center;
+    display: inline-block;
+    min-width: 50px;
+}
+
+.status-badge-small.approved {
+    background: rgba(106, 153, 85, 0.2);
+    color: #b5cea8;
+    border: 1px solid #6a9955;
+}
+
+.status-badge-small.pending {
+    background: rgba(255, 206, 84, 0.2);
+    color: #ffce54;
+    border: 1px solid #ffce54;
+}
+
+.status-badge-small.draft {
+    background: rgba(156, 220, 254, 0.2);
+    color: #9cdcfe;
+    border: 1px solid #9cdcfe;
+}
+
+/* Month allocation cells */
+.month-allocation {
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    border-radius: 3px;
+    margin: 2px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.month-allocation:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.month-allocation.has-allocation {
+    background: #007acc;
+    color: #ffffff;
+}
+
+.month-allocation.no-allocation {
+    color: #666666;
+    background: transparent;
+    cursor: default;
+}
+
+.month-allocation.no-allocation:hover {
+    transform: none;
+    box-shadow: none;
 }
