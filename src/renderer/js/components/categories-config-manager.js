@@ -117,6 +117,17 @@ class CategoriesConfigManager {
             return;
         }
 
+        // Modal close buttons
+        if (e.target.closest('.modal-close')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const modalElement = e.target.closest('.modal');
+            if (modalElement) {
+                this.closeModal(modalElement.id);
+            }
+            return;
+        }
+
         // Category selection (but not if clicking on action buttons)
         if (e.target.closest('.category-item') && !e.target.closest('.category-actions')) {
             e.preventDefault();
