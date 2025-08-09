@@ -392,6 +392,24 @@ class ProjectManager {
 
         console.log('Validating data:', data);
 
+        // Check if project code is invalid (empty or less than 3 characters)
+        const codeInvalid = !data.code || data.code.length < 3;
+        // Check if project name is invalid (empty)
+        const nameInvalid = !data.name || data.name === '';
+
+        // Special case: both fields are invalid
+        if (codeInvalid && nameInvalid) {
+            console.log('Both fields are invalid, showing generic message');
+            return {
+                isValid: false,
+                errors: {
+                    code: 'Compila questo campo',
+                    name: 'Compila questo campo'
+                }
+            };
+        }
+
+        // Standard validation for individual fields
         // Validate project code
         if (!data.code) {
             errors.code = 'Project code is required';
