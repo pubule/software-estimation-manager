@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capacity Planning - Software Estimation Manager</title>
+    <link rel="stylesheet" href="styles/capacity.css">
+</head>
+<body>
+    <!-- Capacity Planning Section -->
+    <section id="capacity-section" class="main-section">
+        <div class="section-header">
+            <h1>📊 Capacity Planning</h1>
+            <div class="header-actions">
+                <button id="refresh-capacity-btn" class="btn-secondary">
+                    🔄 Refresh
+                </button>
+                <button id="export-capacity-btn" class="btn-secondary">
+                    📊 Export
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters and Controls -->
+        <div class="capacity-filters">
+            <div class="filter-group">
+                <label for="team-filter">Team:</label>
+                <select id="team-filter" class="filter-select">
+                    <option value="">All Teams</option>
+                    <option value="vendor-a">Vendor A</option>
+                    <option value="internal">Internal Resources</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="projects-filter">Projects:</label>
+                <select id="projects-filter" class="filter-select">
+                    <option value="">All Projects</option>
+                    <option value="customer-portal">Customer Portal</option>
+                    <option value="mobile-app">Mobile App</option>
+                    <option value="api-gateway">API Gateway</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="timeline-range">Timeline:</label>
+                <select id="timeline-range" class="filter-select">
+                    <option value="15">15 months</option>
+                    <option value="12">12 months</option>
+                    <option value="6">6 months</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="status-filter">Status:</label>
+                <select id="status-filter" class="filter-select">
+                    <option value="all">Approved + Pending</option>
+                    <option value="approved">Approved Only</option>
+                    <option value="pending">Pending Only</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="capacity-main-grid">
+            <!-- Team Members Panel -->
+            <div class="team-panel">
+                <div class="panel-header">
+                    <h2>👥 Team Members</h2>
+                    <button id="add-team-member-btn" class="btn-primary">
+                        ➕ Add Member
+                    </button>
+                </div>
+
+                <div class="team-list" id="team-members-list">
+                    <!-- Team Member Card -->
+                    <div class="team-member-card" data-member-id="tm-001">
+                        <div class="member-info">
+                            <div class="member-avatar">👤</div>
+                            <div class="member-details">
+                                <h3>Mario Rossi</h3>
+                                <p class="member-role">G2 - Vendor A</p>
+                                <p class="member-capacity">22 MD/month</p>
+                            </div>
+                        </div>
+                        <div class="member-status">
+                            <span class="status-indicator overflow">⚠️ Feb overflow</span>
+                            <div class="member-actions">
+                                <button class="btn-icon" onclick="editTeamMember('tm-001')" title="Edit">✏️</button>
+                                <button class="btn-icon" onclick="viewMemberDetails('tm-001')" title="Details">📊</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="team-member-card" data-member-id="tm-002">
+                        <div class="member-info">
+                            <div class="member-avatar">👤</div>
+                            <div class="member-details">
+                                <h3>Anna Bianchi</h3>
+                                <p class="member-role">PM - Internal</p>
+                                <p class="member-capacity">20 MD/month</p>
+                            </div>
+                        </div>
+                        <div class="member-status">
+                            <span class="status-indicator available">✅ Available</span>
+                            <div class="member-actions">
+                                <button class="btn-icon" onclick="editTeamMember('tm-002')" title="Edit">✏️</button>
+                                <button class="btn-icon" onclick="viewMemberDetails('tm-002')" title="Details">📊</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="team-member-card" data-member-id="tm-003">
+                        <div class="member-info">
+                            <div class="member-avatar">👤</div>
+                            <div class="member-details">
+                                <h3>Luca Verdi</h3>
+                                <p class="member-role">G1 - Vendor A</p>
+                                <p class="member-capacity">22 MD/month</p>
+                            </div>
+                        </div>
+                        <div class="member-status">
+                            <span class="status-indicator vacation">🏖️ On vacation</span>
+                            <div class="member-actions">
+                                <button class="btn-icon" onclick="editTeamMember('tm-003')" title="Edit">✏️</button>
+                                <button class="btn-icon" onclick="viewMemberDetails('tm-003')" title="Details">📊</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline and Assignments Panel -->
+            <div class="timeline-panel">
+                <div class="panel-header">
+                    <h2>📅 Project Timeline</h2>
+                    <div class="timeline-controls">
+                        <button id="prev-months-btn" class="btn-icon">◀</button>
+                        <span id="timeline-range-display">2024-01 to 2025-03</span>
+                        <button id="next-months-btn" class="btn-icon">▶</button>
+                    </div>
+                </div>
+
+                <!-- Timeline Header -->
+                <div class="timeline-header">
+                    <div class="timeline-months">
+                        <div class="month-cell">Jan</div>
+                        <div class="month-cell">Feb</div>
+                        <div class="month-cell">Mar</div>
+                        <div class="month-cell">Apr</div>
+                        <div class="month-cell">May</div>
+                        <div class="month-cell">Jun</div>
+                        <div class="month-cell">Jul</div>
+                        <div class="month-cell">Aug</div>
+                        <div class="month-cell">Sep</div>
+                        <div class="month-cell">Oct</div>
+                        <div class="month-cell">Nov</div>
+                        <div class="month-cell">Dec</div>
+                        <div class="month-cell">J25</div>
+                        <div class="month-cell">F25</div>
+                        <div class="month-cell">M25</div>
+                    </div>
+                </div>
+
+                <!-- Timeline Body -->
+                <div class="timeline-body" id="timeline-body">
+                    <!-- Team Member Row -->
+                    <div class="timeline-row" data-member-id="tm-001">
+                        <div class="timeline-allocations">
+                            <!-- Project A allocation -->
+                            <div class="allocation-block project-a" style="grid-column: 2 / 5;" title="Project A: 72 MDs (Feb-Apr)">
+                                <span class="allocation-label">Project A</span>
+                                <span class="allocation-mds">72 MDs</span>
+                            </div>
+                            
+                            <!-- FERIE allocation -->
+                            <div class="allocation-block ferie" style="grid-column: 7 / 8;" title="FERIE: 10 MDs (Jul)">
+                                <span class="allocation-label">FERIE</span>
+                                <span class="allocation-mds">10 MDs</span>
+                            </div>
+
+                            <!-- Project B allocation -->
+                            <div class="allocation-block project-b" style="grid-column: 9 / 12;" title="Project B: 60 MDs (Sep-Nov)">
+                                <span class="allocation-label">Project B</span>
+                                <span class="allocation-mds">60 MDs</span>
+                            </div>
+
+                            <!-- Overflow indicator -->
+                            <div class="overflow-indicator" style="grid-column: 2;" title="Overflow: 3 MDs">⚠️</div>
+                        </div>
+                    </div>
+
+                    <div class="timeline-row" data-member-id="tm-002">
+                        <div class="timeline-allocations">
+                            <!-- API Gateway allocation -->
+                            <div class="allocation-block project-c" style="grid-column: 3 / 7;" title="API Gateway: 80 MDs (Mar-Jun)">
+                                <span class="allocation-label">API Gateway</span>
+                                <span class="allocation-mds">80 MDs</span>
+                            </div>
+
+                            <!-- ALLINEAMENTO allocation -->
+                            <div class="allocation-block allineamento" style="grid-column: 8 / 9;" title="ALLINEAMENTO: 2 MDs (Aug)">
+                                <span class="allocation-label">ALIGN</span>
+                                <span class="allocation-mds">2 MDs</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="timeline-row" data-member-id="tm-003">
+                        <div class="timeline-allocations">
+                            <!-- Mobile App allocation -->
+                            <div class="allocation-block project-d" style="grid-column: 1 / 4;" title="Mobile App: 66 MDs (Jan-Mar)">
+                                <span class="allocation-label">Mobile App</span>
+                                <span class="allocation-mds">66 MDs</span>
+                            </div>
+
+                            <!-- Vacation allocation -->
+                            <div class="allocation-block ferie" style="grid-column: 7 / 9;" title="FERIE: 22 MDs (Jul-Aug)">
+                                <span class="allocation-label">FERIE</span>
+                                <span class="allocation-mds">22 MDs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Assignments Panel -->
+        <div class="assignments-panel">
+            <div class="panel-header">
+                <h2>📋 Project Assignments</h2>
+                <button id="add-assignment-btn" class="btn-primary">
+                    ➕ New Assignment
+                </button>
+            </div>
+
+            <div class="assignments-list" id="assignments-list">
+                <!-- Assignment Card - Approved -->
+                <div class="assignment-card approved" data-assignment-id="pa-001">
+                    <div class="assignment-header">
+                        <div class="assignment-info">
+                            <h3>✅ Customer Portal Project</h3>
+                            <p class="assignment-details">Mario Rossi • Feb 2024 - Aug 2024 • 120 MDs</p>
+                        </div>
+                        <div class="assignment-actions">
+                            <button class="btn-secondary" onclick="editAssignment('pa-001')">Edit</button>
+                            <button class="btn-secondary" onclick="viewAssignmentDetails('pa-001')">View Details</button>
+                        </div>
+                    </div>
+                    <div class="assignment-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 35%"></div>
+                        </div>
+                        <span class="progress-text">42/120 MDs completed (35%)</span>
+                    </div>
+                    <div class="assignment-status">
+                        <span class="status-badge approved">Approved</span>
+                        <span class="overflow-badge">⚠️ Feb overflow: 3 MDs</span>
+                    </div>
+                </div>
+
+                <!-- Assignment Card - Pending -->
+                <div class="assignment-card pending" data-assignment-id="pa-002">
+                    <div class="assignment-header">
+                        <div class="assignment-info">
+                            <h3>🟡 Mobile App Enhancement</h3>
+                            <p class="assignment-details">Anna Bianchi • Sep 2024 - Dec 2024 • 80 MDs</p>
+                        </div>
+                        <div class="assignment-actions">
+                            <button class="btn-secondary" onclick="editAssignment('pa-002')">Edit</button>
+                            <button class="btn-primary" onclick="approveAssignment('pa-002')">Approve</button>
+                        </div>
+                    </div>
+                    <div class="assignment-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill pending" style="width: 0%"></div>
+                        </div>
+                        <span class="progress-text">Not started (Pending approval)</span>
+                    </div>
+                    <div class="assignment-status">
+                        <span class="status-badge pending">Pending</span>
+                        <span class="capacity-badge available">✅ Capacity available</span>
+                    </div>
+                </div>
+
+                <!-- Virtual Assignment - FERIE -->
+                <div class="assignment-card virtual ferie" data-assignment-id="ferie-tm-001">
+                    <div class="assignment-header">
+                        <div class="assignment-info">
+                            <h3>📊 FERIE - Mario Rossi</h3>
+                            <p class="assignment-details">Vacation tracking • 2024 • 25 days planned</p>
+                        </div>
+                        <div class="assignment-actions">
+                            <button class="btn-secondary" onclick="editCalendar('tm-001')">📅 Edit Calendar</button>
+                        </div>
+                    </div>
+                    <div class="assignment-progress">
+                        <div class="progress-bar vacation">
+                            <div class="progress-fill vacation" style="width: 40%"></div>
+                        </div>
+                        <span class="progress-text">10/25 days taken (40%)</span>
+                    </div>
+                    <div class="assignment-status">
+                        <span class="status-badge virtual">Virtual Project</span>
+                    </div>
+                </div>
+
+                <!-- Virtual Assignment - ALLINEAMENTO -->
+                <div class="assignment-card virtual allineamento" data-assignment-id="align-tm-002">
+                    <div class="assignment-header">
+                        <div class="assignment-info">
+                            <h3>⚙️ ALLINEAMENTO - Anna Bianchi</h3>
+                            <p class="assignment-details">Capacity adjustments • Various periods • 5 MDs total</p>
+                        </div>
+                        <div class="assignment-actions">
+                            <button class="btn-secondary" onclick="adjustCapacity('tm-002')">Adjust</button>
+                        </div>
+                    </div>
+                    <div class="assignment-progress">
+                        <div class="progress-bar alignment">
+                            <div class="progress-fill alignment" style="width: 60%"></div>
+                        </div>
+                        <span class="progress-text">3/5 MDs allocated (60%)</span>
+                    </div>
+                    <div class="assignment-status">
+                        <span class="status-badge virtual">Virtual Project</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics and Alerts Panel -->
+        <div class="stats-panel">
+            <div class="panel-header">
+                <h2>📈 Capacity Statistics</h2>
+            </div>
+
+            <!-- Overflow Alerts -->
+            <div class="alerts-section">
+                <h3>⚠️ Overflow Alerts</h3>
+                <div class="alerts-list">
+                    <div class="alert-item overflow">
+                        <span class="alert-icon">⚠️</span>
+                        <span class="alert-text">Mario Rossi: February 2024 overallocated by 3 MDs</span>
+                        <button class="btn-link" onclick="resolveOverflow('tm-001', '2024-02')">Resolve</button>
+                    </div>
+                    <div class="alert-item warning">
+                        <span class="alert-icon">⚠️</span>
+                        <span class="alert-text">Luca Verdi: Approaching capacity limit in March 2025</span>
+                        <button class="btn-link" onclick="viewCapacity('tm-003', '2025-03')">View</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Statistics -->
+            <div class="statistics-grid">
+                <div class="stat-card">
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">Total Team</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">Active Projects</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">64 MDs</div>
+                    <div class="stat-label">This Month Capacity</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">58 MDs</div>
+                    <div class="stat-label">This Month Allocated</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">91%</div>
+                    <div class="stat-label">Utilization Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">6 MDs</div>
+                    <div class="stat-label">Available Capacity</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modals -->
+    
+    <!-- Add/Edit Team Member Modal -->
+    <div id="team-member-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="team-member-modal-title">Add Team Member</h2>
+                <button class="modal-close" onclick="closeTeamMemberModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="team-member-form">
+                    <div class="form-group">
+                        <label for="tm-first-name">First Name:</label>
+                        <input type="text" id="tm-first-name" name="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tm-last-name">Last Name:</label>
+                        <input type="text" id="tm-last-name" name="lastName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tm-vendor">Vendor:</label>
+                        <select id="tm-vendor" name="vendor" required>
+                            <option value="">Select vendor...</option>
+                            <option value="vendor-a">Vendor A</option>
+                            <option value="internal">Internal Resources</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="tm-role">Role:</label>
+                        <select id="tm-role" name="role">
+                            <option value="G2">G2</option>
+                            <option value="G1">G1</option>
+                            <option value="PM">PM</option>
+                            <option value="TA">TA</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="tm-capacity">Monthly Capacity (working days):</label>
+                        <input type="number" id="tm-capacity" name="monthlyCapacity" value="22" min="1" max="31">
+                    </div>
+                    
+                    <div class="vacation-planning-section">
+                        <h3>🏖️ Vacation Planning</h3>
+                        <div class="vacation-years">
+                            <div class="vacation-year">
+                                <label>2024: <input type="number" id="tm-vacation-2024" min="0" max="50" value="25"> days</label>
+                                <button type="button" class="btn-secondary" onclick="editVacationCalendar(2024)">📅 Edit Calendar</button>
+                            </div>
+                            <div class="vacation-year">
+                                <label>2025: <input type="number" id="tm-vacation-2025" min="0" max="50" value="25"> days</label>
+                                <button type="button" class="btn-secondary" onclick="editVacationCalendar(2025)">📅 Edit Calendar</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeTeamMemberModal()">Cancel</button>
+                <button type="submit" class="btn-primary" onclick="saveTeamMember()">Save Member</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Assignment Modal -->
+    <div id="assignment-modal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2 id="assignment-modal-title">New Project Assignment</h2>
+                <button class="modal-close" onclick="closeAssignmentModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="assignment-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pa-project">Project:</label>
+                            <select id="pa-project" name="projectId" required>
+                                <option value="">Select project...</option>
+                                <option value="customer-portal">Customer Portal Project</option>
+                                <option value="mobile-app">Mobile App Enhancement</option>
+                                <option value="api-gateway">API Gateway Development</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="pa-team-member">Team Member:</label>
+                            <select id="pa-team-member" name="teamMemberId" required>
+                                <option value="">Select team member...</option>
+                                <option value="tm-001">Mario Rossi (G2 - Vendor A)</option>
+                                <option value="tm-002">Anna Bianchi (PM - Internal)</option>
+                                <option value="tm-003">Luca Verdi (G1 - Vendor A)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pa-start-date">Start Date:</label>
+                            <input type="date" id="pa-start-date" name="startDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="pa-end-date">End Date (auto-calculated):</label>
+                            <input type="date" id="pa-end-date" name="endDate" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="pa-status">Status:</label>
+                            <select id="pa-status" name="status">
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="project-calculation-section">
+                        <h3>📊 Project Calculation Data</h3>
+                        <div class="calculation-info">
+                            <div class="calc-item">
+                                <label>Total MDs from calculations:</label>
+                                <span id="pa-total-mds" class="calc-value">120</span>
+                            </div>
+                            <div class="calc-breakdown">
+                                <span>Development: 80 MDs</span>
+                                <span>UAT: 25 MDs</span>
+                                <span>Other: 15 MDs</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="monthly-allocation-section">
+                        <h3>📅 Monthly Allocation (Auto-Distributed)</h3>
+                        <div class="allocation-grid">
+                            <div class="allocation-month">
+                                <label>Feb 2024:</label>
+                                <input type="number" class="allocation-input" value="20" min="0">
+                                <span class="capacity-indicator available">✅</span>
+                            </div>
+                            <div class="allocation-month">
+                                <label>Mar 2024:</label>
+                                <input type="number" class="allocation-input" value="22" min="0">
+                                <span class="capacity-indicator available">✅</span>
+                            </div>
+                            <div class="allocation-month">
+                                <label>Apr 2024:</label>
+                                <input type="number" class="allocation-input" value="18" min="0">
+                                <span class="capacity-indicator available">✅</span>
+                            </div>
+                            <div class="allocation-month">
+                                <label>May 2024:</label>
+                                <input type="number" class="allocation-input overflow" value="25" min="0">
+                                <span class="capacity-indicator overflow">⚠️</span>
+                            </div>
+                            <div class="allocation-month">
+                                <label>Jun 2024:</label>
+                                <input type="number" class="allocation-input" value="22" min="0">
+                                <span class="capacity-indicator available">✅</span>
+                            </div>
+                            <div class="allocation-month">
+                                <label>Jul 2024:</label>
+                                <input type="number" class="allocation-input" value="13" min="0">
+                                <span class="capacity-indicator vacation">🏖️</span>
+                            </div>
+                        </div>
+                        <div class="auto-redistribute-section">
+                            <button type="button" class="btn-secondary" onclick="autoRedistribute()">🔄 Auto-Redistribute</button>
+                            <span class="redistribute-info">Automatically redistribute MDs to avoid overflow</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-alerts-section" id="assignment-overflow-alerts">
+                        <h3>⚠️ Overflow Alerts</h3>
+                        <div class="alert-item overflow">
+                            <span class="alert-icon">⚠️</span>
+                            <span class="alert-text">May 2024: Capacity exceeded by 3 MDs</span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeAssignmentModal()">Cancel</button>
+                <button type="submit" class="btn-primary" onclick="saveAssignment()">Save Assignment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Mock functions for demonstration
+        function editTeamMember(id) {
+            console.log('Edit team member:', id);
+            document.getElementById('team-member-modal').style.display = 'block';
+        }
+
+        function viewMemberDetails(id) {
+            console.log('View member details:', id);
+        }
+
+        function closeTeamMemberModal() {
+            document.getElementById('team-member-modal').style.display = 'none';
+        }
+
+        function editAssignment(id) {
+            console.log('Edit assignment:', id);
+            document.getElementById('assignment-modal').style.display = 'block';
+        }
+
+        function viewAssignmentDetails(id) {
+            console.log('View assignment details:', id);
+        }
+
+        function approveAssignment(id) {
+            console.log('Approve assignment:', id);
+        }
+
+        function closeAssignmentModal() {
+            document.getElementById('assignment-modal').style.display = 'none';
+        }
+
+        function resolveOverflow(memberId, month) {
+            console.log('Resolve overflow for:', memberId, month);
+        }
+
+        function viewCapacity(memberId, month) {
+            console.log('View capacity for:', memberId, month);
+        }
+
+        function editCalendar(memberId) {
+            console.log('Edit calendar for:', memberId);
+        }
+
+        function adjustCapacity(memberId) {
+            console.log('Adjust capacity for:', memberId);
+        }
+
+        function editVacationCalendar(year) {
+            console.log('Edit vacation calendar for:', year);
+        }
+
+        function saveTeamMember() {
+            console.log('Save team member');
+            closeTeamMemberModal();
+        }
+
+        function autoRedistribute() {
+            console.log('Auto-redistribute allocations');
+        }
+
+        function saveAssignment() {
+            console.log('Save assignment');
+            closeAssignmentModal();
+        }
+
+        // Initialize capacity section
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Capacity section loaded with mock data');
+        });
+    </script>
+</body>
+</html>

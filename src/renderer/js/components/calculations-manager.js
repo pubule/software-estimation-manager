@@ -1346,6 +1346,695 @@ Assumptions and out of scopes:`;
     }
 }
 
+/**
+ * Capacity Planning Manager
+ * Handles team resource allocation and capacity planning
+ */
+/**
+ * Capacity Planning Manager
+ * Handles team resource allocation and capacity planning
+ */
+class CapacityManager extends BaseComponent {
+    constructor(app, configManager) {
+        super('CapacityManager');
+        
+        this.app = app;
+        this.configManager = configManager;
+        this.teamManager = null;
+        this.workingDaysCalculator = null;
+        this.autoDistribution = null;
+        this.currentFilters = {
+            team: '',
+            projects: '',
+            timeline: '15',
+            status: 'all'
+        };
+
+        // Make this instance available globally for modal interactions
+        if (typeof window !== 'undefined') {
+            window.capacityManager = this;
+        }
+
+        console.log('CapacityManager initialized');
+    }
+
+    /**
+     * Initialize core components for capacity planning
+     */
+    initializeComponents() {
+        // Initialize Team Manager if not exists
+        if (!this.teamManager && typeof TeamManager !== 'undefined') {
+            this.teamManager = new TeamManager();
+        }
+
+        // Initialize Working Days Calculator if not exists  
+        if (!this.workingDaysCalculator && typeof WorkingDaysCalculator !== 'undefined') {
+            this.workingDaysCalculator = new WorkingDaysCalculator();
+        }
+
+        // Initialize Auto Distribution if not exists
+        if (!this.autoDistribution && typeof AutoDistribution !== 'undefined') {
+            this.autoDistribution = new AutoDistribution(this.workingDaysCalculator, this.teamManager);
+        }
+
+        console.log('Capacity planning components initialized');
+        console.log('Available components:', {
+            teamManager: !!this.teamManager,
+            workingDaysCalculator: !!this.workingDaysCalculator,
+            autoDistribution: !!this.autoDistribution
+        });
+    }
+
+    /**
+     * Render the capacity planning section
+     */
+    async render() {
+        const container = document.getElementById('capacity-content');
+        if (!container) {
+            console.error('Capacity content container not found');
+            return;
+        }
+
+        try {
+            // Show loading state
+            container.innerHTML = `
+                <div class="loading-message">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading capacity planning...</p>
+                </div>
+            `;
+
+            // Initialize components
+            this.initializeComponents();
+
+            // Load capacity section HTML content
+            const capacityHTML = await this.loadCapacitySectionHTML();
+            
+            if (capacityHTML) {
+                // Extract the section content from the loaded HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = capacityHTML;
+                
+                const capacitySection = tempDiv.querySelector('#capacity-section');
+                if (capacitySection) {
+                    // Remove the section wrapper and use its content
+                    container.innerHTML = capacitySection.innerHTML;
+                    
+                    // Initialize event listeners
+                    this.initializeEventListeners();
+                    
+                    // Load initial data
+                    this.loadInitialData();
+                    
+                    console.log('Capacity planning section rendered successfully');
+                } else {
+                    throw new Error('Capacity section not found in loaded HTML');
+                }
+            } else {
+                throw new Error('Failed to load capacity section HTML');
+            }
+        } catch (error) {
+            console.error('Error rendering capacity section:', error);
+            container.innerHTML = this.renderErrorState(error.message);
+        }
+    }
+
+    /**
+     * Load capacity section HTML content
+     */
+    async loadCapacitySectionHTML() {
+        try {
+            const response = await fetch('capacity-section.html');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const html = await response.text();
+            return html;
+        } catch (error) {
+            console.error('Error loading capacity section HTML:', error);
+            console.log('Using embedded fallback HTML');
+            
+            // Fallback: return embedded mock HTML for development
+            return this.getEmbeddedCapacityHTML();
+        }
+    }
+
+    /**
+     * Get embedded capacity HTML as fallback
+     */
+    getEmbeddedCapacityHTML() {
+        return `
+        <section id="capacity-section">
+        <div class="section-header">
+            <h1>📊 Capacity Planning</h1>
+            <div class="header-actions">
+                <button id="refresh-capacity-btn" class="btn-secondary">
+                    🔄 Refresh
+                </button>
+                <button id="export-capacity-btn" class="btn-secondary">
+                    📊 Export
+                </button>
+            </div>
+        </div>
+
+        <div class="capacity-filters">
+            <div class="filter-group">
+                <label for="team-filter">Team:</label>
+                <select id="team-filter" class="filter-select">
+                    <option value="">All Teams</option>
+                    <option value="vendor-a">Vendor A</option>
+                    <option value="internal">Internal Resources</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="projects-filter">Projects:</label>
+                <select id="projects-filter" class="filter-select">
+                    <option value="">All Projects</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="timeline-range">Timeline:</label>
+                <select id="timeline-range" class="filter-select">
+                    <option value="15">15 months</option>
+                    <option value="12">12 months</option>
+                    <option value="6">6 months</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="status-filter">Status:</label>
+                <select id="status-filter" class="filter-select">
+                    <option value="all">Approved + Pending</option>
+                    <option value="approved">Approved Only</option>
+                    <option value="pending">Pending Only</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="capacity-main-grid">
+            <div class="team-panel">
+                <div class="panel-header">
+                    <h2>👥 Team Members</h2>
+                    <button id="add-team-member-btn" class="btn-primary">
+                        ➕ Add Member
+                    </button>
+                </div>
+                <div class="team-list" id="team-members-list">
+                    <div class="no-team-data">
+                        <p>No team members configured yet.</p>
+                        <button class="btn-primary" id="add-first-member-btn">Add First Team Member</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-panel">
+                <div class="panel-header">
+                    <h2>📅 Project Timeline</h2>
+                    <div class="timeline-controls">
+                        <button id="prev-months-btn" class="btn-icon">◀</button>
+                        <span id="timeline-range-display">${this.getTimelineRangeDisplay()}</span>
+                        <button id="next-months-btn" class="btn-icon">▶</button>
+                    </div>
+                </div>
+                <div class="timeline-header">
+                    <div class="timeline-months">
+                        ${this.generateTimelineMonths()}
+                    </div>
+                </div>
+                <div class="timeline-body" id="timeline-body">
+                    <div class="no-timeline-data">
+                        <p>No project assignments configured yet.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="assignments-panel">
+            <div class="panel-header">
+                <h2>📋 Project Assignments</h2>
+                <button id="add-assignment-btn" class="btn-primary">
+                    ➕ New Assignment
+                </button>
+            </div>
+            <div class="assignments-list" id="assignments-list">
+                <div class="no-assignments-data">
+                    <p>No project assignments configured yet.</p>
+                    <button class="btn-primary" id="create-first-assignment-btn">Create First Assignment</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-panel">
+            <div class="panel-header">
+                <h2>📈 Capacity Statistics</h2>
+            </div>
+            <div class="statistics-grid">
+                <div class="stat-card">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Total Team</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Active Projects</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">0 MDs</div>
+                    <div class="stat-label">This Month Capacity</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">0%</div>
+                    <div class="stat-label">Utilization Rate</div>
+                </div>
+            </div>
+        </div>
+        </section>
+        `;
+    }
+
+    /**
+     * Initialize event listeners for capacity planning
+     */
+    initializeEventListeners() {
+        // Filter event listeners
+        const teamFilter = document.getElementById('team-filter');
+        const projectsFilter = document.getElementById('projects-filter');
+        const timelineRange = document.getElementById('timeline-range');
+        const statusFilter = document.getElementById('status-filter');
+
+        if (teamFilter) {
+            teamFilter.addEventListener('change', (e) => {
+                this.currentFilters.team = e.target.value;
+                this.applyFilters();
+            });
+        }
+
+        if (projectsFilter) {
+            projectsFilter.addEventListener('change', (e) => {
+                this.currentFilters.projects = e.target.value;
+                this.applyFilters();
+            });
+        }
+
+        if (timelineRange) {
+            timelineRange.addEventListener('change', (e) => {
+                this.currentFilters.timeline = e.target.value;
+                this.updateTimelineRange();
+            });
+        }
+
+        if (statusFilter) {
+            statusFilter.addEventListener('change', (e) => {
+                this.currentFilters.status = e.target.value;
+                this.applyFilters();
+            });
+        }
+
+        // Action button listeners
+        this.initializeActionListeners();
+        
+        // Timeline navigation listeners
+        this.initializeTimelineListeners();
+        
+        console.log('Capacity planning event listeners initialized');
+    }
+
+    /**
+     * Initialize action button listeners
+     */
+    initializeActionListeners() {
+        // Refresh button
+        const refreshBtn = document.getElementById('refresh-capacity-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.refresh());
+        }
+
+        // Export button
+        const exportBtn = document.getElementById('export-capacity-btn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => this.exportCapacityData());
+        }
+
+        // Add team member buttons
+        const addMemberBtn = document.getElementById('add-team-member-btn');
+        const addFirstMemberBtn = document.getElementById('add-first-member-btn');
+        
+        if (addMemberBtn) {
+            addMemberBtn.addEventListener('click', () => this.showAddTeamMemberModal());
+        }
+        
+        if (addFirstMemberBtn) {
+            addFirstMemberBtn.addEventListener('click', () => this.showAddTeamMemberModal());
+        }
+
+        // Add assignment buttons
+        const addAssignmentBtn = document.getElementById('add-assignment-btn');
+        const createFirstAssignmentBtn = document.getElementById('create-first-assignment-btn');
+        
+        if (addAssignmentBtn) {
+            addAssignmentBtn.addEventListener('click', () => this.showAddAssignmentModal());
+        }
+        
+        if (createFirstAssignmentBtn) {
+            createFirstAssignmentBtn.addEventListener('click', () => this.showAddAssignmentModal());
+        }
+    }
+
+    /**
+     * Initialize timeline navigation listeners
+     */
+    initializeTimelineListeners() {
+        const prevBtn = document.getElementById('prev-months-btn');
+        const nextBtn = document.getElementById('next-months-btn');
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => this.navigateTimeline(-1));
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.navigateTimeline(1));
+        }
+    }
+
+    /**
+     * Load initial data for capacity planning
+     */
+    loadInitialData() {
+        // Load team members
+        this.loadTeamMembers();
+        
+        // Load project assignments
+        this.loadProjectAssignments();
+        
+        // Update statistics
+        this.updateStatistics();
+        
+        // Load project options for filters
+        this.loadProjectOptions();
+        
+        console.log('Initial data loaded for capacity planning');
+    }
+
+    /**
+     * Load team members data
+     */
+    loadTeamMembers() {
+        // Get team members from TeamManager
+        const teamMembers = this.teamManager?.getTeamMembers() || [];
+        
+        const teamList = document.getElementById('team-members-list');
+        if (!teamList) return;
+
+        if (teamMembers.length === 0) {
+            teamList.innerHTML = `
+                <div class="no-team-data">
+                    <p>No team members configured yet.</p>
+                    <button class="btn-primary" id="add-first-member-btn">Add First Team Member</button>
+                </div>
+            `;
+            
+            // Re-attach event listener for the new button
+            const addFirstMemberBtn = document.getElementById('add-first-member-btn');
+            if (addFirstMemberBtn) {
+                addFirstMemberBtn.addEventListener('click', () => this.showAddTeamMemberModal());
+            }
+        } else {
+            teamList.innerHTML = teamMembers.map(member => this.renderTeamMemberCard(member)).join('');
+        }
+        
+        console.log(`Loaded ${teamMembers.length} team members`);
+    }
+
+    /**
+     * Render team member card
+     */
+    renderTeamMemberCard(member) {
+        const statusClass = this.getTeamMemberStatus(member);
+        const statusText = this.getTeamMemberStatusText(member);
+        
+        return `
+            <div class="team-member-card" data-member-id="${member.id}">
+                <div class="member-info">
+                    <div class="member-avatar">${member.firstName.charAt(0)}</div>
+                    <div class="member-details">
+                        <h3>${member.firstName} ${member.lastName}</h3>
+                        <p class="member-role">${member.role} - ${member.vendor}</p>
+                        <p class="member-capacity">${member.monthlyCapacity} MD/month</p>
+                    </div>
+                </div>
+                <div class="member-status">
+                    <span class="status-indicator ${statusClass}">${statusText}</span>
+                    <div class="member-actions">
+                        <button class="btn-icon" onclick="window.capacityManager?.editTeamMember('${member.id}')" title="Edit">✏️</button>
+                        <button class="btn-icon" onclick="window.capacityManager?.viewMemberDetails('${member.id}')" title="Details">📊</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Get team member status class
+     */
+    getTeamMemberStatus(member) {
+        // This would normally check current allocations
+        // For now, return available as default
+        return 'available';
+    }
+
+    /**
+     * Get team member status text
+     */
+    getTeamMemberStatusText(member) {
+        // This would normally check current allocations
+        // For now, return available as default
+        return '✅ Available';
+    }
+
+    /**
+     * Load project assignments data
+     */
+    loadProjectAssignments() {
+        // This would load actual project assignments
+        // For now, show empty state
+        const assignmentsList = document.getElementById('assignments-list');
+        if (!assignmentsList) return;
+
+        assignmentsList.innerHTML = `
+            <div class="no-assignments-data">
+                <p>No project assignments configured yet.</p>
+                <button class="btn-primary" id="create-first-assignment-btn">Create First Assignment</button>
+            </div>
+        `;
+        
+        // Re-attach event listener
+        const createFirstAssignmentBtn = document.getElementById('create-first-assignment-btn');
+        if (createFirstAssignmentBtn) {
+            createFirstAssignmentBtn.addEventListener('click', () => this.showAddAssignmentModal());
+        }
+        
+        console.log('Project assignments loaded (empty state)');
+    }
+
+    /**
+     * Update capacity statistics
+     */
+    updateStatistics() {
+        const teamMembers = this.teamManager?.getTeamMembers() || [];
+        const totalCapacity = teamMembers.reduce((sum, member) => sum + (member.monthlyCapacity || 0), 0);
+        
+        // Update stat cards
+        const statCards = document.querySelectorAll('.stat-card');
+        if (statCards.length >= 4) {
+            statCards[0].querySelector('.stat-value').textContent = teamMembers.length;
+            statCards[1].querySelector('.stat-value').textContent = '0'; // Active projects
+            statCards[2].querySelector('.stat-value').textContent = `${totalCapacity} MDs`;
+            statCards[3].querySelector('.stat-value').textContent = '0%'; // Utilization
+        }
+        
+        console.log(`Updated statistics - Team: ${teamMembers.length}, Capacity: ${totalCapacity} MDs`);
+    }
+
+    /**
+     * Load project options for filters
+     */
+    loadProjectOptions() {
+        const currentProject = this.app?.currentProject;
+        const projectsFilter = document.getElementById('projects-filter');
+        
+        if (!projectsFilter) return;
+
+        if (currentProject) {
+            projectsFilter.innerHTML = `
+                <option value="">All Projects</option>
+                <option value="current">${currentProject.project?.name || 'Current Project'}</option>
+            `;
+        } else {
+            projectsFilter.innerHTML = '<option value="">No Projects Available</option>';
+        }
+        
+        console.log('Project options loaded for filters');
+    }
+
+    /**
+     * Generate timeline months header
+     */
+    generateTimelineMonths() {
+        const months = this.getTimelineMonths();
+        return months.map(month => `<div class="month-cell">${month}</div>`).join('');
+    }
+
+    /**
+     * Get timeline months based on current range
+     */
+    getTimelineMonths() {
+        const monthCount = parseInt(this.currentFilters.timeline);
+        const months = [];
+        const currentDate = new Date();
+        
+        for (let i = 0; i < monthCount; i++) {
+            const month = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+            const monthName = month.toLocaleDateString('en', { month: 'short' });
+            const year = month.getFullYear();
+            const displayYear = year !== currentDate.getFullYear() ? year.toString().slice(-2) : '';
+            months.push(monthName + displayYear);
+        }
+        
+        return months;
+    }
+
+    /**
+     * Get timeline range display text
+     */
+    getTimelineRangeDisplay() {
+        const currentDate = new Date();
+        const endMonth = parseInt(this.currentFilters.timeline) - 1;
+        const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + endMonth, 1);
+        
+        const startText = currentDate.toLocaleDateString('en', { year: 'numeric', month: '2-digit' });
+        const endText = endDate.toLocaleDateString('en', { year: 'numeric', month: '2-digit' });
+        
+        return `${startText} to ${endText}`;
+    }
+
+    /**
+     * Apply current filters
+     */
+    applyFilters() {
+        // This would filter the displayed data based on current filters
+        console.log('Applying filters:', this.currentFilters);
+        
+        // For now, just log the filters
+        // In a full implementation, this would update the visible data
+    }
+
+    /**
+     * Update timeline range
+     */
+    updateTimelineRange() {
+        const timelineDisplay = document.getElementById('timeline-range-display');
+        if (timelineDisplay) {
+            timelineDisplay.textContent = this.getTimelineRangeDisplay();
+        }
+
+        // Regenerate timeline months
+        const timelineMonths = document.querySelector('.timeline-months');
+        if (timelineMonths) {
+            timelineMonths.innerHTML = this.generateTimelineMonths();
+        }
+        
+        console.log('Timeline range updated:', this.currentFilters.timeline, 'months');
+    }
+
+    /**
+     * Navigate timeline (previous/next)
+     */
+    navigateTimeline(direction) {
+        console.log(`Navigate timeline: ${direction > 0 ? 'next' : 'previous'}`);
+        // This would shift the timeline view
+        // For now, just log the action
+        NotificationManager.info(`Timeline navigation: ${direction > 0 ? 'Next' : 'Previous'} period`);
+    }
+
+    /**
+     * Show add team member modal
+     */
+    showAddTeamMemberModal() {
+        console.log('Show add team member modal');
+        // This would open the team member modal
+        // For now, just log the action
+        NotificationManager.info('Add Team Member: Feature in development');
+    }
+
+    /**
+     * Show add assignment modal
+     */
+    showAddAssignmentModal() {
+        console.log('Show add assignment modal');
+        // This would open the assignment modal
+        // For now, just log the action  
+        NotificationManager.info('Add Assignment: Feature in development');
+    }
+
+    /**
+     * Edit team member
+     */
+    editTeamMember(memberId) {
+        console.log('Edit team member:', memberId);
+        // This would open the edit team member modal
+        NotificationManager.info(`Edit Team Member ${memberId}: Feature in development`);
+    }
+
+    /**
+     * View team member details
+     */
+    viewMemberDetails(memberId) {
+        console.log('View member details:', memberId);
+        // This would show detailed member information
+        NotificationManager.info(`View Member Details ${memberId}: Feature in development`);
+    }
+
+    /**
+     * Export capacity data
+     */
+    exportCapacityData() {
+        console.log('Export capacity data');
+        // This would export current capacity data to Excel/CSV
+        NotificationManager.info('Export Capacity Data: Feature in development');
+    }
+
+    /**
+     * Refresh capacity data
+     */
+    refresh() {
+        console.log('Refreshing capacity data...');
+        NotificationManager.info('Refreshing capacity planning data...');
+        this.loadInitialData();
+    }
+
+    /**
+     * Render error state
+     */
+    renderErrorState(errorMessage) {
+        return `
+            <div class="error-state">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>Error Loading Capacity Planning</h3>
+                <p>${errorMessage}</p>
+                <button class="btn-primary" onclick="window.capacityManager?.refresh()">
+                    <i class="fas fa-sync"></i> Retry
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Make CapacityManager available globally
+if (typeof window !== 'undefined') {
+    window.CapacityManager = CapacityManager;
+}
+
 // Make CalculationsManager available globally
 if (typeof window !== 'undefined') {
     window.CalculationsManager = CalculationsManager;

@@ -144,6 +144,12 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
+        // Special handling for capacity navigation
+        if (sectionName === 'capacity') {
+            this.showCapacityPage();
+            return;
+        }
+
         // Hide all pages
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
@@ -310,6 +316,38 @@ class EnhancedNavigationManager extends NavigationManager {
         }
 
         console.log('Navigated to version history page');
+    }
+
+    // Special method for capacity page
+    showCapacityPage() {
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // Update active states
+        this.updateActiveStates('capacity');
+
+        // Show target page
+        const targetPage = document.getElementById('capacity-page');
+        if (targetPage) {
+            targetPage.classList.add('active');
+
+            // Initialize capacity manager if not exists
+            if (!this.app.capacityManager) {
+                this.app.capacityManager = new CapacityManager(this.app, this.configManager);
+            }
+
+            // Render capacity content
+            setTimeout(() => {
+                this.app.capacityManager.render();
+            }, 100);
+        }
+
+        // Store current section
+        this.currentSection = 'capacity';
+
+        console.log('Navigated to capacity planning page');
     }
 
     updateActiveStates(activeSectionName) {
