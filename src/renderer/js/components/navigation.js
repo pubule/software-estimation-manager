@@ -1,8 +1,9 @@
 /**
  * Base Navigation Manager
  */
-class NavigationManager {
+class NavigationManager extends BaseComponent {
     constructor(app) {
+        super('NavigationManager');
         this.app = app;
         this.currentSection = 'projects';
     }

@@ -569,16 +569,17 @@ describe('VersionManager - Behavioral Documentation', () => {
             // The behavior depends on user's timezone which could be inconsistent
         });
 
-        test('BUG: attachEventListeners calls updateTable method but its not defined', () => {
-            // The method calls this.updateTable() but the method doesn't exist
+        test('BEHAVIOR: attachEventListeners properly calls updateTable method on input', () => {
+            // The method correctly calls this.updateTable() when input events occur
             versionManager.attachEventListeners();
 
             const reasonSearch = document.getElementById('reason-search');
             reasonSearch.value = 'test';
             
+            // Should not throw error - updateTable method exists and works
             expect(() => {
                 reasonSearch.dispatchEvent(new Event('input'));
-            }).toThrow(); // updateTable is not defined
+            }).not.toThrow();
         });
 
         test('BUG: Version limit cleanup removes oldest without considering importance', () => {
