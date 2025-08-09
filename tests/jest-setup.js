@@ -923,8 +923,13 @@ class MockVersionManager {
   }
 
   updateTable() {
-    // Mock implementation for table updates - this method doesn't exist, causing the documented bug
-    throw new Error('updateTable is not defined');
+    // Mock implementation for table updates
+    console.log('MockVersionManager.updateTable called');
+    // Mock DOM operations that would happen in real implementation
+    const container = document.querySelector('.version-table-container');
+    if (container) {
+      container.innerHTML = '<table><tr><td>Mock table content</td></tr></table>';
+    }
   }
 
   onProjectChanged(project) {
