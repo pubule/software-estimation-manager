@@ -221,7 +221,7 @@ For detailed agent information:
         }
 
         const htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
-        const scriptMatches = [...htmlContent.matchAll(/<script src="([^"]+)"><\\/script>/g)];
+        const scriptMatches = [...htmlContent.matchAll(/<script\s+src="([^"]+)"[^>]*><\/script>/g)];
         const scriptOrder = scriptMatches.map(match => match[1]);
 
         const requiredOrder = [
