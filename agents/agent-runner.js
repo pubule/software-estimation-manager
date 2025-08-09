@@ -279,7 +279,7 @@ For detailed agent information:
             const filePath = path.join(componentsDir, file);
             const content = fs.readFileSync(filePath, 'utf8');
             
-            const classMatch = content.match(/class\\s+(\\w+)\\s+extends\\s+(\\w+)/);
+            const classMatch = content.match(/class\s+(\w+)\s+extends\s+(\w+)/);
             if (classMatch) {
                 totalComponents++;
                 const [, className, baseClass] = classMatch;
