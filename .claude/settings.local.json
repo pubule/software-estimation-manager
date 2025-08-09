@@ -37,7 +37,8 @@
       "Bash(timeout 60s npm test:*)",
       "Bash(npm run test:e2e:*)",
       "Bash(cat:*)",
-      "Bash(timeout 30s npm run test:e2e:*)"
+      "Bash(timeout 30s npm run test:e2e:*)",
+      "Bash(claude mcp:*)"
     ],
     "deny": []
   }
