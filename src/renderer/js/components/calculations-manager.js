@@ -1570,7 +1570,14 @@ class CapacityManager extends BaseComponent {
                             <th class="fixed-col col-member">Team Member</th>
                             <th class="fixed-col col-project">Project</th>
                             <th class="fixed-col col-status">Status</th>
-                            <!-- Scrollable month columns will be generated here -->
+                            <!-- Scrollable month columns - All current year months + 3 next year months -->
+                            <th class="month-col" data-month="2024-01">Jan 24</th>
+                            <th class="month-col" data-month="2024-02">Feb 24</th>
+                            <th class="month-col" data-month="2024-03">Mar 24</th>
+                            <th class="month-col" data-month="2024-04">Apr 24</th>
+                            <th class="month-col" data-month="2024-05">May 24</th>
+                            <th class="month-col" data-month="2024-06">Jun 24</th>
+                            <th class="month-col" data-month="2024-07">Jul 24</th>
                             <th class="month-col" data-month="2024-08">Aug 24</th>
                             <th class="month-col" data-month="2024-09">Sep 24</th>
                             <th class="month-col" data-month="2024-10">Oct 24</th>
@@ -1776,6 +1783,34 @@ class CapacityManager extends BaseComponent {
                 vendor: 'Vendor A',
                 monthlyCapacity: 22,
                 allocations: {
+                    '2024-01': { 
+                        'Customer Portal': { days: 20, status: 'approved' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' }
+                    },
+                    '2024-02': { 
+                        'Customer Portal': { days: 19, status: 'approved' },
+                        'Training': { days: 1, status: 'pending' }
+                    },
+                    '2024-03': { 
+                        'Customer Portal': { days: 18, status: 'approved' },
+                        'FERIE': { days: 4, status: 'approved' }
+                    },
+                    '2024-04': { 
+                        'Customer Portal': { days: 21, status: 'approved' },
+                        'ALLINEAMENTO': { days: 1, status: 'approved' }
+                    },
+                    '2024-05': { 
+                        'Customer Portal': { days: 20, status: 'approved' },
+                        'Innovation Lab': { days: 2, status: 'pending' }
+                    },
+                    '2024-06': { 
+                        'Customer Portal': { days: 19, status: 'approved' },
+                        'Testing': { days: 3, status: 'pending' }
+                    },
+                    '2024-07': { 
+                        'Customer Portal': { days: 15, status: 'approved' },
+                        'FERIE': { days: 7, status: 'approved' }
+                    },
                     '2024-08': { 
                         'Customer Portal': { days: 18, status: 'approved' },
                         'FERIE': { days: 4, status: 'approved' }
@@ -1822,6 +1857,35 @@ class CapacityManager extends BaseComponent {
                 vendor: 'Internal',
                 monthlyCapacity: 20,
                 allocations: {
+                    '2024-01': { 
+                        'Strategic Planning': { days: 18, status: 'approved' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' }
+                    },
+                    '2024-02': { 
+                        'Strategic Planning': { days: 17, status: 'approved' },
+                        'Training': { days: 3, status: 'pending' }
+                    },
+                    '2024-03': { 
+                        'Customer Portal': { days: 15, status: 'approved' },
+                        'FERIE': { days: 5, status: 'approved' }
+                    },
+                    '2024-04': { 
+                        'Customer Portal': { days: 18, status: 'approved' },
+                        'Quality Review': { days: 2, status: 'pending' }
+                    },
+                    '2024-05': { 
+                        'Customer Portal': { days: 19, status: 'approved' },
+                        'ALLINEAMENTO': { days: 1, status: 'approved' }
+                    },
+                    '2024-06': { 
+                        'Customer Portal': { days: 17, status: 'approved' },
+                        'Process Improvement': { days: 3, status: 'pending' }
+                    },
+                    '2024-07': { 
+                        'Customer Portal': { days: 12, status: 'approved' },
+                        'Mobile App': { days: 5, status: 'approved' },
+                        'FERIE': { days: 3, status: 'approved' }
+                    },
                     '2024-08': { 
                         'Customer Portal': { days: 8, status: 'approved' },
                         'Mobile App': { days: 12, status: 'approved' }
@@ -1868,6 +1932,40 @@ class CapacityManager extends BaseComponent {
                 vendor: 'Vendor A',
                 monthlyCapacity: 22,
                 allocations: {
+                    '2024-01': { 
+                        'Architecture Review': { days: 16, status: 'approved' },
+                        'Training': { days: 4, status: 'approved' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' }
+                    },
+                    '2024-02': { 
+                        'Architecture Review': { days: 18, status: 'approved' },
+                        'Code Review': { days: 2, status: 'pending' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' }
+                    },
+                    '2024-03': { 
+                        'System Design': { days: 15, status: 'approved' },
+                        'FERIE': { days: 5, status: 'approved' },
+                        'Technical Docs': { days: 2, status: 'pending' }
+                    },
+                    '2024-04': { 
+                        'System Design': { days: 19, status: 'approved' },
+                        'Code Review': { days: 3, status: 'pending' }
+                    },
+                    '2024-05': { 
+                        'Customer Portal': { days: 18, status: 'approved' },
+                        'Research': { days: 2, status: 'pending' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' }
+                    },
+                    '2024-06': { 
+                        'Customer Portal': { days: 16, status: 'approved' },
+                        'Performance Testing': { days: 4, status: 'pending' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' }
+                    },
+                    '2024-07': { 
+                        'Customer Portal': { days: 14, status: 'approved' },
+                        'Mobile App': { days: 3, status: 'approved' },
+                        'FERIE': { days: 5, status: 'approved' }
+                    },
                     '2024-08': { 
                         'Mobile App': { days: 20, status: 'approved' },
                         'Research': { days: 2, status: 'pending' }
@@ -2663,17 +2761,28 @@ class CapacityManager extends BaseComponent {
 
     /**
      * Get timeline months based on current range
+     * Modified to show all months of current year + 3 months of next year
      */
     getTimelineMonths() {
-        const monthCount = parseInt(this.currentFilters.timeline);
         const months = [];
         const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
         
-        for (let i = 0; i < monthCount; i++) {
-            const month = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-            const monthName = month.toLocaleDateString('en', { month: 'short' });
-            const year = month.getFullYear();
+        // Add all months from January of current year to December of current year
+        for (let month = 0; month < 12; month++) {
+            const monthDate = new Date(currentYear, month, 1);
+            const monthName = monthDate.toLocaleDateString('en', { month: 'short' });
+            const year = monthDate.getFullYear();
             const displayYear = year !== currentDate.getFullYear() ? year.toString().slice(-2) : '';
+            months.push(monthName + displayYear);
+        }
+        
+        // Add first 3 months of next year
+        for (let month = 0; month < 3; month++) {
+            const monthDate = new Date(currentYear + 1, month, 1);
+            const monthName = monthDate.toLocaleDateString('en', { month: 'short' });
+            const year = monthDate.getFullYear();
+            const displayYear = year.toString().slice(-2);
             months.push(monthName + displayYear);
         }
         
