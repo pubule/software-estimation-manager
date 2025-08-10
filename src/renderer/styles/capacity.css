@@ -2580,12 +2580,21 @@
     transition: background-color 0.2s ease;
 }
 
-.capacity-planning-table tbody tr:hover {
-    background: rgba(0, 122, 204, 0.1);
+/* Alternating row colors for capacity table */
+.capacity-planning-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
 }
 
-.capacity-planning-table tbody tr:hover td {
-    background: rgba(0, 122, 204, 0.1) !important;
+.capacity-planning-table tbody tr:nth-child(odd) {
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.capacity-planning-table tbody tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.capacity-planning-table tbody tr:nth-child(odd) td {
+    background: rgba(255, 255, 255, 0.01);
 }
 
 /* Team member info */

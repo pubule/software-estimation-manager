@@ -2012,7 +2012,7 @@ class CapacityManager extends BaseComponent {
 <!-- Table Filters -->
                     <div class="capacity-filters">
                         <div class="filter-group">
-                            <label for="team-filter">Team:</label>
+                            <label for="team-filter">Team member:</label>
                             <select id="team-filter" class="filter-select">
                                 <option value="">All Teams</option>
                                 <option value="vendor-a">Vendor A</option>
@@ -2026,11 +2026,9 @@ class CapacityManager extends BaseComponent {
                             </select>
                         </div>
                         <div class="filter-group">
-                            <label for="timeline-range">Timeline:</label>
-                            <select id="timeline-range" class="filter-select">
-                                <option value="15">15 months</option>
-                                <option value="12">12 months</option>
-                                <option value="6">6 months</option>
+                            <label for="vendor-filter">Vendor:</label>
+                            <select id="vendor-filter" class="filter-select">
+                                <option value="">All Vendors</option>
                             </select>
                         </div>
                         <div class="filter-group">
@@ -2119,7 +2117,7 @@ class CapacityManager extends BaseComponent {
         // Filter event listeners
         const teamFilter = document.getElementById('team-filter');
         const projectsFilter = document.getElementById('projects-filter');
-        const timelineRange = document.getElementById('timeline-range');
+        const vendorFilter = document.getElementById('vendor-filter');
         const statusFilter = document.getElementById('status-filter');
 
         if (teamFilter) {
@@ -2136,11 +2134,10 @@ class CapacityManager extends BaseComponent {
             });
         }
 
-        if (timelineRange) {
-            timelineRange.addEventListener('change', (e) => {
-                this.currentFilters.timeline = e.target.value;
-                this.updateTimelineRange();
-                this.updateCapacityOverview();
+        if (vendorFilter) {
+            vendorFilter.addEventListener('change', (e) => {
+                this.currentFilters.vendor = e.target.value;
+                this.applyFilters();
             });
         }
 
@@ -2195,6 +2192,12 @@ class CapacityManager extends BaseComponent {
     loadTimelineData() {
         // Load project options for filters
         this.loadProjectOptions();
+        
+        // Load team member options for filters
+        this.loadTeamMemberOptions();
+        
+        // Load vendor options for filters
+        this.loadVendorOptions();
         
         // Load capacity table
         this.loadCapacityTable();
@@ -2267,7 +2270,7 @@ class CapacityManager extends BaseComponent {
             <!-- Table Filters -->
             <div class="capacity-filters">
                 <div class="filter-group">
-                    <label for="team-filter">Team:</label>
+                    <label for="team-filter">Team member:</label>
                     <select id="team-filter" class="filter-select">
                         <option value="">All Teams</option>
                         <option value="vendor-a">Vendor A</option>
@@ -2281,11 +2284,9 @@ class CapacityManager extends BaseComponent {
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="timeline-range">Timeline:</label>
-                    <select id="timeline-range" class="filter-select">
-                        <option value="15">15 months</option>
-                        <option value="12">12 months</option>
-                        <option value="6">6 months</option>
+                    <label for="vendor-filter">Vendor:</label>
+                    <select id="vendor-filter" class="filter-select">
+                        <option value="">All Vendors</option>
                     </select>
                 </div>
                 <div class="filter-group">
@@ -2512,6 +2513,214 @@ class CapacityManager extends BaseComponent {
                     '2026-02': { 'New Project': { days: 20, status: 'pending' } },
                     '2026-03': { 'New Project': { days: 22, status: 'pending' } }
                 }
+            },
+            {
+                id: 'alessandro-lombardi',
+                firstName: 'Alessandro',
+                lastName: 'Lombardi',
+                role: 'Tech Lead',
+                vendor: 'Internal',
+                maxCapacity: 18,
+                currentUtilization: 95,
+                allocations: {
+                    '2025-01': { 'E-Commerce Platform': { days: 16, status: 'approved' }, 'Team Management': { days: 2, status: 'approved' } },
+                    '2025-02': { 'E-Commerce Platform': { days: 14, status: 'approved' }, 'CRM System': { days: 4, status: 'approved' } },
+                    '2025-03': { 'CRM System': { days: 12, status: 'approved' }, 'Mobile App': { days: 6, status: 'approved' } },
+                    '2025-04': { 'Mobile App': { days: 15, status: 'approved' }, 'Analytics Dashboard': { days: 3, status: 'pending' } },
+                    '2025-05': { 'Analytics Dashboard': { days: 16, status: 'approved' }, 'FERIE': { days: 2, status: 'approved' } },
+                    '2025-06': { 'Analytics Dashboard': { days: 14, status: 'approved' }, 'Payment System': { days: 4, status: 'approved' } },
+                    '2025-07': { 'Payment System': { days: 18, status: 'approved' } },
+                    '2025-08': { 'FERIE': { days: 10, status: 'approved' }, 'API Gateway': { days: 8, status: 'pending' } },
+                    '2025-09': { 'API Gateway': { days: 16, status: 'approved' }, 'Training': { days: 2, status: 'approved' } },
+                    '2025-10': { 'API Gateway': { days: 14, status: 'approved' }, 'E-Commerce Platform': { days: 4, status: 'pending' } },
+                    '2025-11': { 'E-Commerce Platform': { days: 18, status: 'approved' } },
+                    '2025-12': { 'E-Commerce Platform': { days: 12, status: 'approved' }, 'Planning 2026': { days: 6, status: 'pending' } },
+                    '2026-01': { 'Planning 2026': { days: 16, status: 'pending' }, 'New Project': { days: 2, status: 'pending' } },
+                    '2026-02': { 'New Project': { days: 18, status: 'pending' } },
+                    '2026-03': { 'New Project': { days: 16, status: 'pending' }, 'Research': { days: 2, status: 'pending' } }
+                }
+            },
+            {
+                id: 'francesca-marino',
+                firstName: 'Francesca',
+                lastName: 'Marino',
+                role: 'Frontend Developer',
+                vendor: 'Vendor B',
+                maxCapacity: 20,
+                currentUtilization: 88,
+                allocations: {
+                    '2025-01': { 'Mobile App': { days: 18, status: 'approved' } },
+                    '2025-02': { 'Mobile App': { days: 16, status: 'approved' }, 'E-Commerce Platform': { days: 4, status: 'approved' } },
+                    '2025-03': { 'E-Commerce Platform': { days: 20, status: 'approved' } },
+                    '2025-04': { 'E-Commerce Platform': { days: 15, status: 'approved' }, 'Analytics Dashboard': { days: 5, status: 'pending' } },
+                    '2025-05': { 'Analytics Dashboard': { days: 18, status: 'approved' }, 'Training': { days: 2, status: 'approved' } },
+                    '2025-06': { 'Analytics Dashboard': { days: 16, status: 'approved' }, 'CRM System': { days: 4, status: 'pending' } },
+                    '2025-07': { 'CRM System': { days: 20, status: 'approved' } },
+                    '2025-08': { 'CRM System': { days: 14, status: 'approved' }, 'Payment System': { days: 6, status: 'approved' } },
+                    '2025-09': { 'Payment System': { days: 18, status: 'approved' }, 'Mobile App': { days: 2, status: 'pending' } },
+                    '2025-10': { 'Mobile App': { days: 20, status: 'approved' } },
+                    '2025-11': { 'Mobile App': { days: 16, status: 'approved' }, 'API Gateway': { days: 4, status: 'pending' } },
+                    '2025-12': { 'API Gateway': { days: 20, status: 'approved' } },
+                    '2026-01': { 'API Gateway': { days: 15, status: 'pending' }, 'Innovation Project': { days: 5, status: 'pending' } },
+                    '2026-02': { 'Innovation Project': { days: 18, status: 'pending' }, 'Mobile App': { days: 2, status: 'pending' } },
+                    '2026-03': { 'Mobile App': { days: 20, status: 'pending' } }
+                }
+            },
+            {
+                id: 'roberto-galli',
+                firstName: 'Roberto',
+                lastName: 'Galli',
+                role: 'Database Admin',
+                vendor: 'Vendor A',
+                maxCapacity: 22,
+                currentUtilization: 60,
+                allocations: {
+                    '2025-01': { 'CRM System': { days: 14, status: 'approved' }, 'Maintenance': { days: 4, status: 'approved' } },
+                    '2025-02': { 'CRM System': { days: 12, status: 'approved' }, 'E-Commerce Platform': { days: 6, status: 'approved' } },
+                    '2025-03': { 'E-Commerce Platform': { days: 16, status: 'approved' }, 'Payment System': { days: 4, status: 'pending' } },
+                    '2025-04': { 'Payment System': { days: 18, status: 'approved' }, 'Training': { days: 2, status: 'approved' } },
+                    '2025-05': { 'Payment System': { days: 14, status: 'approved' }, 'Analytics Dashboard': { days: 6, status: 'approved' } },
+                    '2025-06': { 'Analytics Dashboard': { days: 20, status: 'approved' } },
+                    '2025-07': { 'Analytics Dashboard': { days: 16, status: 'approved' }, 'API Gateway': { days: 4, status: 'pending' } },
+                    '2025-08': { 'FERIE': { days: 15, status: 'approved' }, 'Maintenance': { days: 5, status: 'approved' } },
+                    '2025-09': { 'API Gateway': { days: 18, status: 'approved' }, 'Mobile App': { days: 2, status: 'pending' } },
+                    '2025-10': { 'Mobile App': { days: 16, status: 'approved' }, 'CRM System': { days: 4, status: 'approved' } },
+                    '2025-11': { 'CRM System': { days: 20, status: 'approved' } },
+                    '2025-12': { 'CRM System': { days: 14, status: 'approved' }, 'Year End Tasks': { days: 6, status: 'pending' } },
+                    '2026-01': { 'Year End Tasks': { days: 18, status: 'pending' }, 'Planning': { days: 2, status: 'pending' } },
+                    '2026-02': { 'Planning': { days: 20, status: 'pending' } },
+                    '2026-03': { 'Planning': { days: 16, status: 'pending' }, 'New Infrastructure': { days: 4, status: 'pending' } }
+                }
+            },
+            {
+                id: 'valentina-costa',
+                firstName: 'Valentina',
+                lastName: 'Costa',
+                role: 'Product Manager',
+                vendor: 'Internal',
+                maxCapacity: 20,
+                currentUtilization: 78,
+                allocations: {
+                    '2025-01': { 'E-Commerce Platform': { days: 8, status: 'approved' }, 'Mobile App': { days: 8, status: 'approved' }, 'Planning': { days: 4, status: 'approved' } },
+                    '2025-02': { 'Mobile App': { days: 10, status: 'approved' }, 'CRM System': { days: 6, status: 'approved' }, 'Strategy': { days: 4, status: 'pending' } },
+                    '2025-03': { 'CRM System': { days: 12, status: 'approved' }, 'Analytics Dashboard': { days: 8, status: 'approved' } },
+                    '2025-04': { 'Analytics Dashboard': { days: 16, status: 'approved' }, 'Product Research': { days: 4, status: 'pending' } },
+                    '2025-05': { 'Analytics Dashboard': { days: 10, status: 'approved' }, 'Payment System': { days: 8, status: 'approved' }, 'Training': { days: 2, status: 'approved' } },
+                    '2025-06': { 'Payment System': { days: 16, status: 'approved' }, 'Market Analysis': { days: 4, status: 'pending' } },
+                    '2025-07': { 'Payment System': { days: 12, status: 'approved' }, 'API Gateway': { days: 6, status: 'approved' }, 'FERIE': { days: 2, status: 'approved' } },
+                    '2025-08': { 'FERIE': { days: 12, status: 'approved' }, 'API Gateway': { days: 8, status: 'pending' } },
+                    '2025-09': { 'API Gateway': { days: 14, status: 'approved' }, 'Mobile App': { days: 6, status: 'approved' } },
+                    '2025-10': { 'Mobile App': { days: 12, status: 'approved' }, 'E-Commerce Platform': { days: 8, status: 'pending' } },
+                    '2025-11': { 'E-Commerce Platform': { days: 16, status: 'approved' }, 'Roadmap Planning': { days: 4, status: 'approved' } },
+                    '2025-12': { 'Roadmap Planning': { days: 18, status: 'approved' }, 'Budget Planning': { days: 2, status: 'pending' } },
+                    '2026-01': { 'Budget Planning': { days: 16, status: 'pending' }, 'Q1 Strategy': { days: 4, status: 'pending' } },
+                    '2026-02': { 'Q1 Strategy': { days: 20, status: 'pending' } },
+                    '2026-03': { 'Q1 Strategy': { days: 12, status: 'pending' }, 'Innovation Lab': { days: 8, status: 'pending' } }
+                }
+            },
+            {
+                id: 'davide-ricci',
+                firstName: 'Davide',
+                lastName: 'Ricci',
+                role: 'Security Engineer',
+                vendor: 'Vendor C',
+                maxCapacity: 20,
+                currentUtilization: 82,
+                allocations: {
+                    '2025-01': { 'E-Commerce Platform': { days: 10, status: 'approved' }, 'Security Audit': { days: 8, status: 'approved' } },
+                    '2025-02': { 'CRM System': { days: 14, status: 'approved' }, 'Compliance': { days: 4, status: 'approved' } },
+                    '2025-03': { 'Payment System': { days: 16, status: 'approved' }, 'Penetration Testing': { days: 4, status: 'pending' } },
+                    '2025-04': { 'Payment System': { days: 18, status: 'approved' }, 'Documentation': { days: 2, status: 'approved' } },
+                    '2025-05': { 'API Gateway': { days: 15, status: 'approved' }, 'Security Training': { days: 3, status: 'approved' }, 'Audit': { days: 2, status: 'pending' } },
+                    '2025-06': { 'API Gateway': { days: 18, status: 'approved' }, 'Monitoring': { days: 2, status: 'approved' } },
+                    '2025-07': { 'Analytics Dashboard': { days: 12, status: 'approved' }, 'Infrastructure Security': { days: 8, status: 'approved' } },
+                    '2025-08': { 'Infrastructure Security': { days: 16, status: 'approved' }, 'FERIE': { days: 4, status: 'approved' } },
+                    '2025-09': { 'Mobile App': { days: 14, status: 'approved' }, 'Vulnerability Assessment': { days: 6, status: 'pending' } },
+                    '2025-10': { 'Mobile App': { days: 12, status: 'approved' }, 'E-Commerce Platform': { days: 8, status: 'approved' } },
+                    '2025-11': { 'E-Commerce Platform': { days: 16, status: 'approved' }, 'Security Review': { days: 4, status: 'pending' } },
+                    '2025-12': { 'Security Review': { days: 18, status: 'approved' }, 'Year End Audit': { days: 2, status: 'approved' } },
+                    '2026-01': { 'Year End Audit': { days: 14, status: 'pending' }, 'New Security Framework': { days: 6, status: 'pending' } },
+                    '2026-02': { 'New Security Framework': { days: 20, status: 'pending' } },
+                    '2026-03': { 'New Security Framework': { days: 16, status: 'pending' }, 'Q1 Security Assessment': { days: 4, status: 'pending' } }
+                }
+            },
+            {
+                id: 'chiara-fontana',
+                firstName: 'Chiara',
+                lastName: 'Fontana',
+                role: 'Data Analyst',
+                vendor: 'Vendor A',
+                maxCapacity: 22,
+                currentUtilization: 72,
+                allocations: {
+                    '2025-01': { 'Analytics Dashboard': { days: 16, status: 'approved' }, 'Data Migration': { days: 4, status: 'approved' } },
+                    '2025-02': { 'Analytics Dashboard': { days: 18, status: 'approved' }, 'Reporting': { days: 2, status: 'approved' } },
+                    '2025-03': { 'Analytics Dashboard': { days: 14, status: 'approved' }, 'CRM System': { days: 6, status: 'pending' } },
+                    '2025-04': { 'CRM System': { days: 20, status: 'approved' }, 'Training': { days: 2, status: 'approved' } },
+                    '2025-05': { 'CRM System': { days: 16, status: 'approved' }, 'Payment System': { days: 4, status: 'approved' } },
+                    '2025-06': { 'Payment System': { days: 18, status: 'approved' }, 'Data Quality': { days: 4, status: 'pending' } },
+                    '2025-07': { 'Payment System': { days: 14, status: 'approved' }, 'API Gateway': { days: 6, status: 'approved' } },
+                    '2025-08': { 'API Gateway': { days: 20, status: 'approved' }, 'FERIE': { days: 2, status: 'approved' } },
+                    '2025-09': { 'API Gateway': { days: 16, status: 'approved' }, 'Mobile App': { days: 4, status: 'approved' } },
+                    '2025-10': { 'Mobile App': { days: 18, status: 'approved' }, 'Analytics Dashboard': { days: 4, status: 'pending' } },
+                    '2025-11': { 'Analytics Dashboard': { days: 20, status: 'approved' }, 'BI Dashboard': { days: 2, status: 'pending' } },
+                    '2025-12': { 'BI Dashboard': { days: 22, status: 'approved' } },
+                    '2026-01': { 'BI Dashboard': { days: 18, status: 'pending' }, 'ML Pipeline': { days: 4, status: 'pending' } },
+                    '2026-02': { 'ML Pipeline': { days: 20, status: 'pending' }, 'Data Warehouse': { days: 2, status: 'pending' } },
+                    '2026-03': { 'Data Warehouse': { days: 22, status: 'pending' } }
+                }
+            },
+            {
+                id: 'stefano-mancini',
+                firstName: 'Stefano',
+                lastName: 'Mancini',
+                role: 'DevOps Engineer',
+                vendor: 'Vendor B',
+                maxCapacity: 20,
+                currentUtilization: 92,
+                allocations: {
+                    '2025-01': { 'Infrastructure': { days: 12, status: 'approved' }, 'E-Commerce Platform': { days: 6, status: 'approved' }, 'Monitoring': { days: 2, status: 'approved' } },
+                    '2025-02': { 'E-Commerce Platform': { days: 14, status: 'approved' }, 'CRM System': { days: 6, status: 'approved' } },
+                    '2025-03': { 'CRM System': { days: 16, status: 'approved' }, 'CI/CD Pipeline': { days: 4, status: 'pending' } },
+                    '2025-04': { 'CI/CD Pipeline': { days: 18, status: 'approved' }, 'Infrastructure': { days: 2, status: 'approved' } },
+                    '2025-05': { 'Payment System': { days: 16, status: 'approved' }, 'Security Setup': { days: 4, status: 'approved' } },
+                    '2025-06': { 'Payment System': { days: 14, status: 'approved' }, 'Analytics Dashboard': { days: 6, status: 'pending' } },
+                    '2025-07': { 'Analytics Dashboard': { days: 18, status: 'approved' }, 'Cloud Migration': { days: 2, status: 'pending' } },
+                    '2025-08': { 'Cloud Migration': { days: 20, status: 'approved' } },
+                    '2025-09': { 'API Gateway': { days: 16, status: 'approved' }, 'Backup Systems': { days: 4, status: 'approved' } },
+                    '2025-10': { 'API Gateway': { days: 14, status: 'approved' }, 'Mobile App': { days: 6, status: 'pending' } },
+                    '2025-11': { 'Mobile App': { days: 18, status: 'approved' }, 'Infrastructure': { days: 2, status: 'approved' } },
+                    '2025-12': { 'Infrastructure': { days: 20, status: 'approved' } },
+                    '2026-01': { 'Infrastructure': { days: 16, status: 'pending' }, 'Kubernetes Migration': { days: 4, status: 'pending' } },
+                    '2026-02': { 'Kubernetes Migration': { days: 18, status: 'pending' }, 'Automation': { days: 2, status: 'pending' } },
+                    '2026-03': { 'Automation': { days: 20, status: 'pending' } }
+                }
+            },
+            {
+                id: 'elena-benedetti',
+                firstName: 'Elena',
+                lastName: 'Benedetti',
+                role: 'Scrum Master',
+                vendor: 'Internal',
+                maxCapacity: 20,
+                currentUtilization: 68,
+                allocations: {
+                    '2025-01': { 'Team Coordination': { days: 8, status: 'approved' }, 'E-Commerce Platform': { days: 6, status: 'approved' }, 'Mobile App': { days: 4, status: 'approved' } },
+                    '2025-02': { 'Team Coordination': { days: 10, status: 'approved' }, 'Mobile App': { days: 6, status: 'approved' }, 'CRM System': { days: 4, status: 'pending' } },
+                    '2025-03': { 'CRM System': { days: 8, status: 'approved' }, 'Analytics Dashboard': { days: 8, status: 'approved' }, 'Process Improvement': { days: 4, status: 'approved' } },
+                    '2025-04': { 'Analytics Dashboard': { days: 12, status: 'approved' }, 'Payment System': { days: 6, status: 'pending' }, 'Training': { days: 2, status: 'approved' } },
+                    '2025-05': { 'Payment System': { days: 10, status: 'approved' }, 'API Gateway': { days: 8, status: 'approved' }, 'ALLINEAMENTO': { days: 2, status: 'approved' } },
+                    '2025-06': { 'API Gateway': { days: 14, status: 'approved' }, 'Agile Coaching': { days: 6, status: 'approved' } },
+                    '2025-07': { 'Agile Coaching': { days: 16, status: 'approved' }, 'Team Building': { days: 4, status: 'pending' } },
+                    '2025-08': { 'Team Building': { days: 18, status: 'approved' }, 'FERIE': { days: 2, status: 'approved' } },
+                    '2025-09': { 'Mobile App': { days: 12, status: 'approved' }, 'Performance Review': { days: 8, status: 'approved' } },
+                    '2025-10': { 'Performance Review': { days: 16, status: 'approved' }, 'Sprint Planning': { days: 4, status: 'approved' } },
+                    '2025-11': { 'Sprint Planning': { days: 18, status: 'approved' }, 'Retrospectives': { days: 2, status: 'approved' } },
+                    '2025-12': { 'Retrospectives': { days: 14, status: 'approved' }, 'Q4 Review': { days: 6, status: 'pending' } },
+                    '2026-01': { 'Q4 Review': { days: 12, status: 'pending' }, 'Q1 Planning': { days: 8, status: 'pending' } },
+                    '2026-02': { 'Q1 Planning': { days: 20, status: 'pending' } },
+                    '2026-03': { 'Q1 Planning': { days: 16, status: 'pending' }, 'Process Optimization': { days: 4, status: 'pending' } }
+                }
             }
         ];
     }
@@ -2574,16 +2783,45 @@ class CapacityManager extends BaseComponent {
                         const statusIcon = projectData.status === 'approved' ? '✅' : '🟡';
                         const statusClass = projectData.status;
                         return `
-                            <td class="timeline-cell ${statusClass}" 
+                            <td class="timeline-cell editable-cell ${statusClass}" 
                                 title="${memberName} - ${project}: ${projectData.days} MDs (${projectData.status})">
-                                <div class="allocation-info">
-                                    <span class="allocation-days">${projectData.days}</span>
-                                    <span class="allocation-status">${statusIcon}</span>
-                                </div>
+                                <input type="number" class="capacity-mds-input" 
+                                       value="${projectData.days}" 
+                                       min="0" 
+                                       step="1" 
+                                       data-member-id="${member.id}"
+                                       data-project="${project}"
+                                       data-month="${monthKey}"
+                                       data-original-value="${projectData.days}">
+                                <button type="button" class="reset-capacity-mds-btn" 
+                                        title="Reset to original value" 
+                                        data-member-id="${member.id}"
+                                        data-project="${project}"
+                                        data-month="${monthKey}">
+                                    <i class="fas fa-undo"></i>
+                                </button>
                             </td>
                         `;
                     } else {
-                        return '<td class="timeline-cell empty">-</td>';
+                        const mockDays = Math.floor(Math.random() * 20) + 1;
+                        return `<td class="timeline-cell editable-cell mock" 
+                                    title="Mock: ${mockDays} MD - ${memberName} - ${project}">
+                                <input type="number" class="capacity-mds-input" 
+                                       value="${mockDays}" 
+                                       min="0" 
+                                       step="1" 
+                                       data-member-id="${member.id}"
+                                       data-project="${project}"
+                                       data-month="${monthKey}"
+                                       data-original-value="${mockDays}">
+                                <button type="button" class="reset-capacity-mds-btn" 
+                                        title="Reset to original value" 
+                                        data-member-id="${member.id}"
+                                        data-project="${project}"
+                                        data-month="${monthKey}">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                            </td>`;
                     }
                 }).join('');
                 
@@ -2600,7 +2838,7 @@ class CapacityManager extends BaseComponent {
                         <td class="fixed-col col-project">${project}</td>
                         <td class="fixed-col col-status">
                             <div class="project-status">
-                                <span class="status-badge active">Active</span>
+                                ${this.generateProjectStatus(member, project)}
                             </div>
                         </td>
                         ${monthCells}
@@ -2610,7 +2848,165 @@ class CapacityManager extends BaseComponent {
         });
         
         tableBody.innerHTML = tableHTML;
+        
+        // Initialize event listeners for editable cells
+        this.initializeCapacityCellEventListeners();
+        
         console.log('Capacity table loaded with', teamMembers.length, 'team members');
+    }
+
+    /**
+     * Initialize event listeners for editable capacity cells
+     */
+    initializeCapacityCellEventListeners() {
+        // Add event listeners for capacity input changes
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('capacity-mds-input')) {
+                this.handleCapacityValueChange(e.target);
+            }
+        });
+
+        // Add event listeners for reset buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('reset-capacity-mds-btn') || 
+                e.target.closest('.reset-capacity-mds-btn')) {
+                const button = e.target.closest('.reset-capacity-mds-btn') || e.target;
+                this.handleCapacityValueReset(button);
+            }
+        });
+
+        console.log('Capacity cell event listeners initialized');
+    }
+
+    /**
+     * Handle capacity value change
+     */
+    handleCapacityValueChange(input) {
+        const memberId = input.dataset.memberId;
+        const project = input.dataset.project;
+        const month = input.dataset.month;
+        const newValue = parseInt(input.value) || 0;
+
+        console.log(`Capacity changed: ${memberId} - ${project} - ${month}: ${newValue} MDs`);
+        
+        // Here you would typically save the change to your data structure
+        // and potentially trigger recalculations
+        this.updateCapacityValue(memberId, project, month, newValue);
+        
+        // Mark as modified (visual feedback)
+        input.classList.add('modified');
+        
+        // Update tooltip
+        const originalValue = input.dataset.originalValue;
+        const cell = input.closest('td');
+        if (cell) {
+            const currentTitle = cell.title;
+            cell.title = currentTitle.replace(/: \d+ MDs/, `: ${newValue} MDs`) + 
+                       (newValue != originalValue ? ` (Original: ${originalValue})` : '');
+        }
+    }
+
+    /**
+     * Handle capacity value reset
+     */
+    handleCapacityValueReset(button) {
+        const memberId = button.dataset.memberId;
+        const project = button.dataset.project;
+        const month = button.dataset.month;
+        
+        // Find the corresponding input
+        const input = document.querySelector(
+            `input[data-member-id="${memberId}"][data-project="${project}"][data-month="${month}"]`
+        );
+        
+        if (input) {
+            const originalValue = parseInt(input.dataset.originalValue) || 0;
+            input.value = originalValue;
+            input.classList.remove('modified');
+            
+            console.log(`Capacity reset: ${memberId} - ${project} - ${month}: back to ${originalValue} MDs`);
+            
+            // Update data structure
+            this.updateCapacityValue(memberId, project, month, originalValue);
+            
+            // Update tooltip
+            const cell = input.closest('td');
+            if (cell) {
+                const memberName = this.getMockTeamMembers().find(m => m.id === memberId);
+                const displayName = memberName ? `${memberName.firstName} ${memberName.lastName}` : memberId;
+                cell.title = `${displayName} - ${project}: ${originalValue} MDs`;
+            }
+        }
+    }
+
+    /**
+     * Update capacity value in data structure
+     */
+    updateCapacityValue(memberId, project, month, newValue) {
+        // This is a placeholder for updating the actual data structure
+        // In a real implementation, you would update your data model here
+        console.log(`Updating data: ${memberId} - ${project} - ${month} = ${newValue} MDs`);
+        
+        // You might want to:
+        // 1. Update the mock data structure
+        // 2. Trigger recalculations
+        // 3. Mark data as dirty for saving
+        // 4. Validate the new value
+        
+        // For now, just log the change
+        const teamMembers = this.getMockTeamMembers();
+        const member = teamMembers.find(m => m.id === memberId);
+        if (member && member.allocations && member.allocations[month] && member.allocations[month][project]) {
+            member.allocations[month][project].days = newValue;
+            member.allocations[month][project].modified = true;
+        }
+    }
+
+    /**
+     * Generate project status badge based on member allocations
+     */
+    generateProjectStatus(member, project) {
+        const allocations = Object.values(member.allocations);
+        const projectAllocations = allocations.filter(monthAlloc => 
+            monthAlloc && monthAlloc[project]
+        );
+        
+        if (projectAllocations.length === 0) {
+            return '<span class="status-badge draft">Draft</span>';
+        }
+        
+        // Check status distribution for this project
+        let approvedCount = 0;
+        let pendingCount = 0;
+        let draftCount = 0;
+        
+        projectAllocations.forEach(monthAlloc => {
+            const allocation = monthAlloc[project];
+            if (allocation) {
+                switch (allocation.status) {
+                    case 'approved':
+                        approvedCount++;
+                        break;
+                    case 'pending':
+                        pendingCount++;
+                        break;
+                    default:
+                        draftCount++;
+                        break;
+                }
+            }
+        });
+        
+        // Determine overall status
+        if (approvedCount > 0 && pendingCount === 0 && draftCount === 0) {
+            return '<span class="status-badge approved">Approved</span>';
+        } else if (pendingCount > 0 && approvedCount === 0 && draftCount === 0) {
+            return '<span class="status-badge pending">Pending</span>';
+        } else if (approvedCount > 0 && (pendingCount > 0 || draftCount > 0)) {
+            return '<span class="status-badge partial">Mixed</span>';
+        } else {
+            return '<span class="status-badge draft">Draft</span>';
+        }
     }
 
     /**
@@ -2893,6 +3289,49 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
+     * Load team member options for filters
+     */
+    loadTeamMemberOptions() {
+        const teamMembers = this.getMockTeamMembers();
+        const teamFilter = document.getElementById('team-filter');
+        
+        if (!teamFilter) return;
+        
+        let options = '<option value="">All Team Members</option>';
+        
+        // Add individual team members only
+        teamMembers.forEach(member => {
+            options += `<option value="${member.id}">${member.firstName} ${member.lastName}</option>`;
+        });
+        
+        teamFilter.innerHTML = options;
+        console.log('Team member options loaded for filters');
+    }
+
+    /**
+     * Load vendor options for filters
+     */
+    loadVendorOptions() {
+        const teamMembers = this.getMockTeamMembers();
+        const vendorFilter = document.getElementById('vendor-filter');
+        
+        if (!vendorFilter) return;
+        
+        // Get unique vendors
+        const vendors = [...new Set(teamMembers.map(m => m.vendor))];
+        
+        let options = '<option value="">All Vendors</option>';
+        
+        vendors.forEach(vendor => {
+            const vendorValue = vendor.toLowerCase().replace(' ', '-');
+            options += `<option value="${vendorValue}">${vendor}</option>`;
+        });
+        
+        vendorFilter.innerHTML = options;
+        console.log('Vendor options loaded for filters');
+    }
+
+    /**
      * Generate timeline months header
      */
     generateTimelineMonths() {
@@ -2948,11 +3387,56 @@ class CapacityManager extends BaseComponent {
      * Apply current filters
      */
     applyFilters() {
-        // This would filter the displayed data based on current filters
         console.log('Applying filters:', this.currentFilters);
         
-        // For now, just log the filters
-        // In a full implementation, this would update the visible data
+        // Get all capacity rows
+        const capacityRows = document.querySelectorAll('.capacity-row');
+        
+        capacityRows.forEach(row => {
+            let shouldShow = true;
+            
+            // Apply team filter (only by member ID now)
+            if (this.currentFilters.team && this.currentFilters.team.trim() !== '') {
+                if (this.currentFilters.team !== row.dataset.member) {
+                    shouldShow = false;
+                }
+            }
+            
+            // Apply vendor filter
+            if (this.currentFilters.vendor && this.currentFilters.vendor.trim() !== '') {
+                const memberData = this.getMockTeamMembers().find(m => m.id === row.dataset.member);
+                if (memberData) {
+                    const memberVendor = memberData.vendor.toLowerCase().replace(' ', '-');
+                    if (memberVendor !== this.currentFilters.vendor) {
+                        shouldShow = false;
+                    }
+                }
+            }
+            
+            // Apply project filter
+            if (this.currentFilters.projects && this.currentFilters.projects.trim() !== '') {
+                const projectName = row.dataset.project;
+                if (this.currentFilters.projects === 'current' && !projectName.toLowerCase().includes('current')) {
+                    shouldShow = false;
+                }
+            }
+            
+            // Apply status filter
+            if (this.currentFilters.status && this.currentFilters.status !== 'all') {
+                const statusBadge = row.querySelector('.status-badge');
+                if (statusBadge) {
+                    const rowStatus = statusBadge.textContent.toLowerCase();
+                    if (rowStatus !== this.currentFilters.status) {
+                        shouldShow = false;
+                    }
+                }
+            }
+            
+            // Show/hide row
+            row.style.display = shouldShow ? '' : 'none';
+        });
+        
+        console.log('Filters applied successfully');
     }
 
     /**
