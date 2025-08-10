@@ -53,7 +53,7 @@ class EnhancedNavigationManager extends NavigationManager {
         this.setupNestedEventListeners();
         this.updateProjectStatus();
         this.setupCapacityToggle();
-        this.capacityExpanded = false;
+        this.capacityExpanded = true;
         this.setupVSCodeSidebar();
         this.currentActivePanel = null;
     }
@@ -149,20 +149,7 @@ class EnhancedNavigationManager extends NavigationManager {
             });
         });
 
-        // Panel close button handlers
-        const closeButtons = document.querySelectorAll('.panel-close');
-        console.log('Found close buttons:', closeButtons.length);
-        
-        closeButtons.forEach(closeBtn => {
-            closeBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const panelType = closeBtn.dataset.panel;
-                console.log('Close button clicked:', panelType);
-                this.closeSidebarPanel(panelType);
-            });
-        });
+        // Panel close buttons have been removed - no handlers needed
 
         // Initialize with projects panel active by default
         setTimeout(() => {
