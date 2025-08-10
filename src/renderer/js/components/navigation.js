@@ -573,7 +573,8 @@ class EnhancedNavigationManager extends NavigationManager {
     }
 
     updateProjectSubSections() {
-        const subSections = document.querySelectorAll('.nav-child[data-section]');
+        // Only select nav-child elements under projects-children, not capacity-children
+        const subSections = document.querySelectorAll('#projects-children .nav-child[data-section]');
         subSections.forEach(child => {
             if (this.projectLoaded) {
                 child.classList.remove('disabled');
