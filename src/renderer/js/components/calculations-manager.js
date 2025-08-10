@@ -1482,6 +1482,23 @@ class CapacityManager extends BaseComponent {
                 <!-- Detailed Analytics Section -->
                 <div class="dashboard-analytics">
                     
+                    <!-- Capacity Timeline Overview -->
+                    <div class="analytics-card timeline-overview">
+                        <div class="card-header">
+                            <h3><i class="fas fa-calendar-alt"></i> 6-Month Capacity Overview</h3>
+                            <div class="card-actions">
+                                <button class="btn btn-small" onclick="window.app?.navigationManager?.navigateToCapacitySubSection('capacity-timeline')">
+                                    <i class="fas fa-external-link-alt"></i> View Details
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div class="timeline-overview-chart" id="timeline-overview-chart">
+                                <!-- Timeline overview chart will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Resource Allocation Chart -->
                     <div class="analytics-card resource-allocation-chart">
                         <div class="card-header">
@@ -1495,22 +1512,13 @@ class CapacityManager extends BaseComponent {
                             </div>
                         </div>
                         <div class="card-content">
-                            <div class="allocation-chart-container" id="allocation-chart">
+                            <div class="allocation-chart-container allocation-chart-scrollable" id="allocation-chart">
                                 <!-- Chart will be generated here -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- Capacity Timeline Overview -->
-                    <div class="analytics-card timeline-overview">
-                        <div class="card-header">
-                            <h3><i class="fas fa-calendar-alt"></i> 6-Month Capacity Overview</h3>
-                            <div class="card-actions">
-                                <button class="btn btn-small" onclick="window.app?.navigationManager?.navigateToCapacitySubSection('capacity-timeline')">
-                                    <i class="fas fa-external-link-alt"></i> View Details
-                                </button>
-                            </div>
-                        </div>
+                </div>
                         <div class="card-content">
                             <div class="timeline-overview-chart" id="timeline-overview-chart">
                                 <!-- Timeline overview chart will be generated here -->
@@ -1694,35 +1702,57 @@ class CapacityManager extends BaseComponent {
             return totalB - totalA;
         });
 
-        // Generate HTML for each project
-        const chartHTML = sortedProjects.map(([projectName, resources]) => {
-            const totalDays = resources.reduce((sum, resource) => sum + resource.days, 0);
-            
-            const resourcesHTML = resources.map(resource => `
-                <div class="resource-allocation">
-                    <div class="resource-info">
-                        <span class="resource-name">${resource.resource}</span>
-                        <span class="resource-role">${resource.role} (${resource.vendor})</span>
-                    </div>
-                    <div class="resource-days">
-                        <span class="days-count ${resource.status === 'approved' ? 'approved' : 'pending'}">${resource.days} MDs</span>
-                        <span class="status-indicator ${resource.status === 'approved' ? 'approved' : 'pending'}">${resource.status === 'approved' ? '✓' : '⏳'}</span>
-                    </div>
+        // Generate tabular HTML structure
+        const chartHTML = `
+            <div class="allocation-chart-table">
+                <div class="allocation-chart-header">
+                    <div class="allocation-header-project">Project</div>
+                    <div class="allocation-header-resource">Resource</div>
+                    <div class="allocation-header-role">Role</div>
+                    <div class="allocation-header-vendor">Vendor</div>
+                    <div class="allocation-header-days">Days</div>
+                    <div class="allocation-header-status">Status</div>
                 </div>
-            `).join('');
-            
-            return `
-                <div class="project-allocation-section">
-                    <div class="project-header">
-                        <h4 class="project-name">${projectName}</h4>
-                        <span class="project-total">${totalDays} MDs total</span>
-                    </div>
-                    <div class="project-resources">
-                        ${resourcesHTML}
-                    </div>
+                <div class="allocation-chart-body">
+                    ${sortedProjects.map(([projectName, resources]) => {
+                        const totalDays = resources.reduce((sum, resource) => sum + resource.days, 0);
+                        const approvedCount = resources.filter(r => r.status === 'approved').length;
+                        const pendingCount = resources.length - approvedCount;
+                        
+                        return resources.map((resource, index) => `
+                            <div class="allocation-chart-row">
+                                <div class="allocation-cell-project">
+                                    ${index === 0 ? `
+                                        <div class="allocation-project-info">
+                                            <span class="allocation-project-name">${projectName}</span>
+                                            <div class="allocation-project-summary">
+                                                <span class="allocation-project-total">${totalDays} MDs</span>
+                                                <span class="allocation-project-resources">${resources.length} resources</span>
+                                                <div class="allocation-project-status">
+                                                    ${approvedCount > 0 ? `<span class="approved-count">${approvedCount} ✓</span>` : ''}
+                                                    ${pendingCount > 0 ? `<span class="pending-count">${pendingCount} ⏳</span>` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="allocation-cell-resource">${resource.resource}</div>
+                                <div class="allocation-cell-role">${resource.role}</div>
+                                <div class="allocation-cell-vendor">${resource.vendor}</div>
+                                <div class="allocation-cell-days">
+                                    <span class="allocation-days-value ${resource.status}">${resource.days}</span>
+                                </div>
+                                <div class="allocation-cell-status">
+                                    <span class="allocation-status-badge ${resource.status}">
+                                        ${resource.status === 'approved' ? '✓ Approved' : '⏳ Pending'}
+                                    </span>
+                                </div>
+                            </div>
+                        `).join('');
+                    }).join('')}
                 </div>
-            `;
-        }).join('');
+            </div>
+        `;
 
         chartContainer.innerHTML = chartHTML || '<div class="no-data">No project allocations found for the selected period</div>';
     }
@@ -1761,6 +1791,35 @@ class CapacityManager extends BaseComponent {
         `;
 
         chartContainer.innerHTML = chartHTML;
+    }
+
+    // Initialize allocation chart toggle functionality
+    initializeAllocationChartToggle() {
+        // Create global reference for onclick handlers
+        if (!window.allocationChart) {
+            window.allocationChart = {
+                toggleProject: (projectId) => {
+                    const projectResources = document.getElementById(projectId);
+                    const expandIcon = document.getElementById(`${projectId}-icon`);
+                    
+                    if (!projectResources || !expandIcon) return;
+                    
+                    const isCollapsed = projectResources.classList.contains('collapsed');
+                    
+                    if (isCollapsed) {
+                        // Expand
+                        projectResources.classList.remove('collapsed');
+                        projectResources.classList.add('expanded');
+                        expandIcon.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                    } else {
+                        // Collapse  
+                        projectResources.classList.remove('expanded');
+                        projectResources.classList.add('collapsed');
+                        expandIcon.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                    }
+                }
+            };
+        }
     }
 
     // Get Utilization Class
@@ -2472,7 +2531,8 @@ class CapacityManager extends BaseComponent {
                         'FERIE': { days: 7, status: 'approved' }
                     },
                     '2024-08': { 
-                        'Customer Portal': { days: 18, status: 'approved' },
+                        'Customer Portal': { days: 14, status: 'approved' },
+                        'Mobile App': { days: 4, status: 'approved' },
                         'FERIE': { days: 4, status: 'approved' }
                     },
                     '2024-09': { 

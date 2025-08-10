@@ -127,7 +127,7 @@
 /* Analytics Section */
 .dashboard-analytics {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 24px;
     margin-bottom: 32px;
 }
@@ -163,10 +163,200 @@
 }
 
 /* Allocation Chart */
+/* Resource Allocation Chart - Tabular Structure */
 .allocation-chart-container {
+    background: #2d2d30;
+    border: 1px solid #404040;
+    border-radius: 6px;
+    margin: 20px 0;
+}
+
+.allocation-chart-scrollable {
+    max-height: 320px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0;
+}
+
+.allocation-chart-scrollable::-webkit-scrollbar {
+    width: 8px;
+}
+
+.allocation-chart-scrollable::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 4px;
+}
+
+.allocation-chart-scrollable::-webkit-scrollbar-thumb {
+    background: #404040;
+    border-radius: 4px;
+}
+
+.allocation-chart-scrollable::-webkit-scrollbar-thumb:hover {
+    background: #505050;
+}
+
+.allocation-chart-table {
     display: flex;
     flex-direction: column;
+    width: 100%;
+}
+
+.allocation-chart-header {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 80px 120px 80px 120px;
     gap: 12px;
+    padding: 12px 16px;
+    background: #383838;
+    border-bottom: 1px solid #404040;
+    font-weight: 600;
+    color: #e8e8e8;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.allocation-chart-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.allocation-chart-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 80px 120px 80px 120px;
+    gap: 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid #333;
+    align-items: center;
+    min-height: 50px;
+    transition: background-color 0.2s ease;
+}
+
+.allocation-chart-row:hover {
+    background-color: #363636;
+}
+
+.allocation-chart-row:last-child {
+    border-bottom: none;
+}
+
+/* Project cell - spans multiple rows for same project */
+.allocation-cell-project {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.allocation-project-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.allocation-project-name {
+    font-weight: 600;
+    color: #4fc3f7;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+.allocation-project-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: #cccccc;
+}
+
+.allocation-project-total {
+    font-weight: 600;
+    color: #81c784;
+}
+
+.allocation-project-resources {
+    color: #ffb74d;
+}
+
+.allocation-project-status {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.approved-count {
+    color: #81c784;
+    font-size: 11px;
+}
+
+.pending-count {
+    color: #ffb74d;
+    font-size: 11px;
+}
+
+/* Resource details cells */
+.allocation-cell-resource {
+    font-weight: 500;
+    color: #e8e8e8;
+    font-size: 13px;
+}
+
+.allocation-cell-role {
+    font-size: 12px;
+    color: #4fc3f7;
+    font-weight: 600;
+    text-align: center;
+}
+
+.allocation-cell-vendor {
+    font-size: 12px;
+    color: #cccccc;
+    text-align: center;
+}
+
+.allocation-cell-days {
+    text-align: center;
+}
+
+.allocation-days-value {
+    font-weight: 600;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    min-width: 40px;
+}
+
+.allocation-days-value.approved {
+    background: rgba(129, 199, 132, 0.2);
+    color: #81c784;
+}
+
+.allocation-days-value.pending {
+    background: rgba(255, 183, 77, 0.2);
+    color: #ffb74d;
+}
+
+.allocation-cell-status {
+    text-align: center;
+}
+
+.allocation-status-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.allocation-status-badge.approved {
+    background: rgba(129, 199, 132, 0.2);
+    color: #81c784;
+}
+
+.allocation-status-badge.pending {
+    background: rgba(255, 183, 77, 0.2);
+    color: #ffb74d;
 }
 
 .allocation-bar {
