@@ -2083,9 +2083,37 @@
 
 .scrollable-table-wrapper {
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: auto;
     max-width: 100%;
+    max-height: 500px;
     position: relative;
+    border: 1px solid #333333;
+    border-radius: 6px;
+}
+
+/* Custom scrollbars for table wrapper */
+.scrollable-table-wrapper::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.scrollable-table-wrapper::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 4px;
+}
+
+.scrollable-table-wrapper::-webkit-scrollbar-thumb {
+    background: #555555;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.scrollable-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #777777;
+}
+
+.scrollable-table-wrapper::-webkit-scrollbar-corner {
+    background: #1e1e1e;
 }
 
 /* Capacity Planning Table */
@@ -2129,7 +2157,6 @@
 /* Fixed columns styling */
 .fixed-col {
     position: sticky;
-    left: 0;
     z-index: 10;
     background: #2d2d30 !important;
     border-right: 2px solid #007acc;
@@ -2139,26 +2166,53 @@
     background: #1e1e1e !important;
     border-right: 2px solid #007acc;
     position: sticky;
-    left: 0;
-    z-index: 5;
+    z-index: 10;
 }
 
 .col-member {
-    left: 0;
+    left: 0px;
     min-width: 150px;
     width: 150px;
+    z-index: 13; /* Highest priority */
 }
 
 .col-project {
     left: 150px;
     min-width: 120px;
     width: 120px;
+    z-index: 12; /* Medium priority */
 }
 
 .col-status {
     left: 270px;
     min-width: 90px;
     width: 90px;
+    z-index: 11; /* Lower priority */
+}
+
+/* Ensure TD cells also have the correct positioning */
+.capacity-planning-table td.col-member {
+    left: 0px;
+    z-index: 13;
+    position: sticky;
+    background: #1e1e1e !important;
+    border-right: 2px solid #007acc;
+}
+
+.capacity-planning-table td.col-project {
+    left: 150px;
+    z-index: 12;
+    position: sticky;
+    background: #1e1e1e !important;
+    border-right: 2px solid #007acc;
+}
+
+.capacity-planning-table td.col-status {
+    left: 270px;
+    z-index: 11;
+    position: sticky;
+    background: #1e1e1e !important;
+    border-right: 2px solid #007acc;
 }
 
 /* Month columns */
