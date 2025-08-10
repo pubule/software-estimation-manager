@@ -1918,7 +1918,7 @@ class CapacityManager extends BaseComponent {
             this.initializeOverviewEventListeners();
             
             // Load overview data
-            this.loadOverviewData();
+            await this.loadOverviewData();
             
             console.log('Resource capacity overview rendered successfully');
         } catch (error) {
@@ -2082,16 +2082,16 @@ class CapacityManager extends BaseComponent {
         const overviewStatusFilter = document.getElementById('overview-status-filter');
 
         if (overviewMemberFilter) {
-            overviewMemberFilter.addEventListener('change', (e) => {
+            overviewMemberFilter.addEventListener('change', async (e) => {
                 console.log('Member filter changed to:', e.target.value);
-                this.updateCapacityOverview();
+                await this.updateCapacityOverview();
             });
         }
 
         if (overviewStatusFilter) {
-            overviewStatusFilter.addEventListener('change', (e) => {
+            overviewStatusFilter.addEventListener('change', async (e) => {
                 console.log('Status filter changed to:', e.target.value);
-                this.updateCapacityOverview();
+                await this.updateCapacityOverview();
             });
         }
 
@@ -2176,12 +2176,12 @@ class CapacityManager extends BaseComponent {
     /**
      * Load overview-specific data
      */
-    loadOverviewData() {
+    async loadOverviewData() {
         // Populate overview filters
         this.populateOverviewFilters();
         
         // Generate capacity overview
-        this.generateCapacityOverview();
+        await this.generateCapacityOverview();
         
         console.log('Overview data loaded');
     }
@@ -2726,6 +2726,258 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
+     * Data Service Layer - Abstract all data access
+     * These methods can be replaced with real API calls in the future
+     */
+    
+    // === TEAM DATA SERVICES ===
+    /**
+     * Get all team members - abstraction layer for future API integration
+     */
+    async getTeamMembers() {
+        // TODO: Replace with actual API call
+        // return await this.api.getTeamMembers();
+        return this.getMockTeamMembers();
+    }
+    
+    /**
+     * Get team member by ID
+     */
+    async getTeamMember(memberId) {
+        // TODO: Replace with actual API call
+        // return await this.api.getTeamMember(memberId);
+        const members = await this.getTeamMembers();
+        return members.find(m => m.id === memberId);
+    }
+    
+    /**
+     * Get unique vendors from team data
+     */
+    async getVendors() {
+        // TODO: Replace with actual API call
+        // return await this.api.getVendors();
+        const members = await this.getTeamMembers();
+        return [...new Set(members.map(m => m.vendor))];
+    }
+    
+    // === PROJECT DATA SERVICES ===
+    /**
+     * Get all projects - abstraction for future API
+     */
+    async getProjects() {
+        // TODO: Replace with actual API call
+        // return await this.api.getProjects();
+        const members = await this.getTeamMembers();
+        const projects = new Set();
+        members.forEach(member => {
+            Object.values(member.allocations).forEach(monthAlloc => {
+                Object.keys(monthAlloc).forEach(project => projects.add(project));
+            });
+        });
+        return Array.from(projects);
+    }
+    
+    // === CAPACITY DATA SERVICES ===
+    /**
+     * Get capacity data for a member in a specific month
+     */
+    async getCapacityData(memberId, monthKey) {
+        // TODO: Replace with actual API call
+        // return await this.api.getCapacityData(memberId, monthKey);
+        const member = await this.getTeamMember(memberId);
+        if (!member || !member.allocations || !member.allocations[monthKey]) {
+            return this.generateDefaultCapacityData(memberId, monthKey);
+        }
+        return member.allocations[monthKey];
+    }
+    
+    /**
+     * Generate default/mock capacity data when no real data exists
+     */
+    generateDefaultCapacityData(memberId, monthKey) {
+        // TODO: Replace with intelligent defaults based on historical data
+        const mockDays = Math.floor(Math.random() * 20) + 1;
+        return {
+            [`Mock Project ${monthKey.slice(-2)}`]: {
+                days: mockDays,
+                status: 'pending'
+            }
+        };
+    }
+    
+    /**
+     * Update capacity allocation - abstraction for future API
+     */
+    async updateCapacityAllocation(memberId, project, monthKey, days) {
+        // TODO: Replace with actual API call
+        // return await this.api.updateCapacityAllocation(memberId, project, monthKey, days);
+        const member = await this.getTeamMember(memberId);
+        if (member && member.allocations && member.allocations[monthKey] && member.allocations[monthKey][project]) {
+            member.allocations[monthKey][project].days = days;
+            member.allocations[monthKey][project].modified = true;
+            member.allocations[monthKey][project].lastUpdated = new Date().toISOString();
+            return true;
+        }
+        return false;
+    }
+
+    
+    // === CALCULATION SERVICES ===
+    /**
+     * Calculate capacity metrics for a member in a specific month
+     */
+    async calculateCapacityMetrics(memberId, monthKey, maxCapacity = 22) {
+        const capacityData = await this.getCapacityData(memberId, monthKey);
+        
+        let approvedMDs = 0;
+        let pendingMDs = 0;
+        
+        Object.entries(capacityData).forEach(([project, allocation]) => {
+            const days = allocation.days || 0;
+            const status = allocation.status || 'approved';
+            
+            if (status === 'approved') {
+                approvedMDs += days;
+            } else if (status === 'pending') {
+                pendingMDs += days;
+            }
+        });
+        
+        const totalMDs = approvedMDs + pendingMDs;
+        
+        return {
+            approvedMDs,
+            pendingMDs,
+            totalMDs,
+            approvedPercentage: maxCapacity > 0 ? Math.round((approvedMDs / maxCapacity) * 100) : 0,
+            pendingPercentage: maxCapacity > 0 ? Math.round((pendingMDs / maxCapacity) * 100) : 0,
+            totalPercentage: maxCapacity > 0 ? Math.round((totalMDs / maxCapacity) * 100) : 0,
+            maxCapacity
+        };
+    }
+    
+    /**
+     * Calculate percentage class for styling
+     */
+    getPercentageClass(percentage) {
+        if (percentage >= 90) return 'high';    // Verde >= 90%
+        if (percentage >= 50) return 'medium';  // Giallo 50-89%
+        return 'low';                           // Rosso < 50%
+    }
+    
+    /**
+     * Get filtered team members based on current filters
+     */
+    async getFilteredTeamMembers(filters = {}) {
+        let members = await this.getTeamMembers();
+        
+        if (filters.memberId) {
+            members = members.filter(m => m.id === filters.memberId);
+        }
+        
+        if (filters.vendor) {
+            const vendorValue = filters.vendor.toLowerCase().replace(' ', '-');
+            members = members.filter(m => m.vendor.toLowerCase().replace(' ', '-') === vendorValue);
+        }
+        
+        return members;
+    }
+    
+    /**
+     * Get timeline months - abstraction for future customization
+     */
+    getTimelineMonths() {
+        // TODO: Replace with user-configurable timeline
+        const months = [];
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        
+        // Add all months from January of current year to December of current year
+        for (let month = 0; month < 12; month++) {
+            const monthDate = new Date(currentYear, month, 1);
+            const monthName = monthDate.toLocaleDateString('en', { month: 'short' });
+            const year = monthDate.getFullYear();
+            const displayYear = year !== currentDate.getFullYear() ? year.toString().slice(-2) : '';
+            months.push(monthName + displayYear);
+        }
+        
+        // Add first 3 months of next year
+        for (let month = 0; month < 3; month++) {
+            const monthDate = new Date(currentYear + 1, month, 1);
+            const monthName = monthDate.toLocaleDateString('en', { month: 'short' });
+            const year = monthDate.getFullYear();
+            const displayYear = year.toString().slice(-2);
+            months.push(monthName + displayYear);
+        }
+        
+        return months;
+    }
+    
+    /**
+     * Get month keys for data access
+     */
+    getTimelineMonthKeys() {
+        const monthKeys = [];
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        
+        // Current year months
+        for (let month = 1; month <= 12; month++) {
+            monthKeys.push(`${currentYear}-${month.toString().padStart(2, '0')}`);
+        }
+        
+        // Next year first 3 months
+        for (let month = 1; month <= 3; month++) {
+            monthKeys.push(`${currentYear + 1}-${month.toString().padStart(2, '0')}`);
+        }
+        
+        return monthKeys;
+    }
+    
+    // === FILTER SERVICES ===
+    /**
+     * Get filter options for vendors
+     */
+    async getVendorFilterOptions() {
+        const vendors = await this.getVendors();
+        return [
+            { value: '', label: 'All Vendors' },
+            ...vendors.map(vendor => ({
+                value: vendor.toLowerCase().replace(' ', '-'),
+                label: vendor
+            }))
+        ];
+    }
+    
+    /**
+     * Get filter options for team members
+     */
+    async getTeamMemberFilterOptions() {
+        const members = await this.getTeamMembers();
+        return [
+            { value: '', label: 'All Team Members' },
+            ...members.map(member => ({
+                value: member.id,
+                label: `${member.firstName} ${member.lastName}`
+            }))
+        ];
+    }
+    
+    /**
+     * Get filter options for projects
+     */
+    async getProjectFilterOptions() {
+        const projects = await this.getProjects();
+        return [
+            { value: '', label: 'All Projects' },
+            ...projects.map(project => ({
+                value: project.toLowerCase().replace(/\s+/g, '-'),
+                label: project
+            }))
+        ];
+    }
+
+    /**
      * Populate overview filters with team member options
      */
     populateOverviewFilters() {
@@ -3012,9 +3264,9 @@ class CapacityManager extends BaseComponent {
     /**
      * Update capacity overview when filters change
      */
-    updateCapacityOverview() {
+    async updateCapacityOverview() {
         console.log('Updating capacity overview with current filter settings');
-        this.generateCapacityOverview();
+        await this.generateCapacityOverview();
     }
 
     /**
@@ -3064,24 +3316,24 @@ class CapacityManager extends BaseComponent {
     /**
      * Update capacity statistics
      */
-    updateStatistics() {
+    async updateStatistics() {
         // Generate capacity overview grid
-        this.generateCapacityOverview();
+        await this.generateCapacityOverview();
     }
 
     /**
      * Generate capacity overview showing resource allocation by month
      */
-    generateCapacityOverview() {
+    async generateCapacityOverview() {
         const overviewContainer = document.getElementById('capacity-overview-grid');
         if (!overviewContainer) return;
 
-        const teamMembers = this.getMockTeamMembers();
+        const teamMembers = await this.getTeamMembers();
         const months = this.getTimelineMonths();
         const currentDate = new Date();
         
-        // Generate table structure
-        const tableHTML = this.buildCapacityOverviewTable(teamMembers, months, currentDate);
+        // Generate table structure - AWAIT the async method
+        const tableHTML = await this.buildCapacityOverviewTable(teamMembers, months, currentDate);
         overviewContainer.innerHTML = tableHTML;
         
         console.log('Capacity overview generated for', teamMembers.length, 'resources across', months.length, 'months');
@@ -3090,7 +3342,7 @@ class CapacityManager extends BaseComponent {
     /**
      * Build the capacity overview table HTML
      */
-    buildCapacityOverviewTable(teamMembers, months, currentDate) {
+    async buildCapacityOverviewTable(teamMembers, months, currentDate) {
         // Get current member filter
         const memberFilter = document.getElementById('overview-member-filter');
         const selectedMemberId = memberFilter ? memberFilter.value : '';
@@ -3107,13 +3359,13 @@ class CapacityManager extends BaseComponent {
             `<th class="month-col">${monthDisplay}</th>`
         ).join('');
         
-        // Generate rows for each filtered team member
-        const memberRows = filteredMembers.map(member => {
+        // Generate rows for each filtered team member - AWAIT all async cell generation
+        const memberRowsPromises = filteredMembers.map(async member => {
             const memberName = `${member.firstName} ${member.lastName}`;
             const memberRole = `${member.role} - ${member.vendor}`;
             
-            // Generate month cells for this member
-            const monthCells = months.map((monthDisplay, index) => {
+            // Generate month cells for this member - AWAIT each cell
+            const monthCellPromises = months.map(async (monthDisplay, index) => {
                 // Calculate correct month: 0-11 for current year, 0-2 for next year
                 const currentYear = currentDate.getFullYear();
                 const monthDate = index < 12 
@@ -3121,8 +3373,11 @@ class CapacityManager extends BaseComponent {
                     : new Date(currentYear + 1, index - 12, 1);
                 const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
                 
-                return this.generateMonthCapacityCell(member, monthKey);
-            }).join('');
+                return await this.generateMonthCapacityCell(member, monthKey);
+            });
+            
+            // Wait for all month cells to be generated
+            const monthCells = (await Promise.all(monthCellPromises)).join('');
             
             return `
                 <tr class="capacity-overview-row" data-member="${member.id}">
@@ -3135,7 +3390,10 @@ class CapacityManager extends BaseComponent {
                     ${monthCells}
                 </tr>
             `;
-        }).join('');
+        });
+        
+        // Wait for all member rows to be generated
+        const memberRows = (await Promise.all(memberRowsPromises)).join('');
         
         // Show message if no members match filter
         const noDataRow = filteredMembers.length === 0 ? `
@@ -3163,142 +3421,79 @@ class CapacityManager extends BaseComponent {
     /**
      * Generate capacity cell for a specific member and month
      */
-    generateMonthCapacityCell(member, monthKey) {
-        const monthAllocations = member.allocations[monthKey] || {};
-        const maxCapacity = member.monthlyCapacity || 22;
+    // Generate capacity cell content based on business rules and filters
+    generateCapacityCellContent(metrics, statusFilter) {
+        const { approvedMDs, pendingMDs, totalMDs, approvedPercentage, pendingPercentage, totalPercentage } = metrics;
         
+        // Apply business logic for showing/hiding subcells based on filter
+        const showAll = statusFilter === 'all';
+        const showOnlyApproved = statusFilter === 'approved';
+        const showOnlyPending = statusFilter === 'pending';
+        
+        if (showAll) {
+            // Show only total data in 2x1 grid for 'all' filter
+            return `
+                <div class="capacity-cell-grid grid-2x1">
+                    <div class="capacity-subcell total">
+                        <strong>${totalMDs}</strong>
+                    </div>
+                    <div class="capacity-subcell percentage total ${this.getPercentageColorClass(totalPercentage)}">
+                        <strong>${totalPercentage}%</strong>
+                    </div>
+                </div>
+            `;
+        } else if (showOnlyApproved) {
+            // Show only approved data in 2x1 grid
+            return `
+                <div class="capacity-cell-grid grid-2x1">
+                    <div class="capacity-subcell approved">
+                        ${approvedMDs}
+                    </div>
+                    <div class="capacity-subcell percentage approved ${this.getPercentageColorClass(approvedPercentage)}">
+                        ${approvedPercentage}%
+                    </div>
+                </div>
+            `;
+        } else if (showOnlyPending) {
+            // Show only pending data in 2x1 grid
+            return `
+                <div class="capacity-cell-grid grid-2x1">
+                    <div class="capacity-subcell pending">
+                        ${pendingMDs}
+                    </div>
+                    <div class="capacity-subcell percentage pending ${this.getPercentageColorClass(pendingPercentage)}">
+                        ${pendingPercentage}%
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // Helper method to determine color class based on percentage thresholds
+    getPercentageColorClass(percentage) {
+        if (percentage >= 90) return 'high-utilization';
+        if (percentage >= 50) return 'medium-utilization';
+        return 'low-utilization';
+    }
+
+    async generateMonthCapacityCell(member, monthKey) {
         // Get current overview status filter
         const overviewStatusFilter = document.getElementById('overview-status-filter');
         const statusFilterValue = overviewStatusFilter ? overviewStatusFilter.value : 'all';
         
         console.log(`Generating capacity cell for ${member.firstName} ${member.lastName} - ${monthKey} with filter: ${statusFilterValue}`);
         
-        // Calculate MDs based on status filter
-        let totalAllocated = 0;
-        let approvedMDs = 0;
-        let pendingMDs = 0;
+        // Use data service to get capacity metrics
+        const metrics = await this.calculateCapacityMetrics(member.id, monthKey, member.monthlyCapacity || 22);
         
-        Object.entries(monthAllocations).forEach(([project, allocation]) => {
-            const days = allocation.days || 0;
-            const status = allocation.status || 'approved';
-            
-            // Count totals for display
-            if (status === 'approved') {
-                approvedMDs += days;
-            } else if (status === 'pending') {
-                pendingMDs += days;
-            }
-            
-            // Calculate allocated based on filter
-            switch (statusFilterValue) {
-                case 'approved':
-                    if (status === 'approved') totalAllocated += days;
-                    break;
-                case 'pending':
-                    if (status === 'pending') totalAllocated += days;
-                    break;
-                case 'all':
-                default:
-                    totalAllocated += days;
-                    break;
-            }
-        });
+        // Extract values from metrics for easier access
+        const { approvedMDs, pendingMDs, totalMDs, approvedPercentage, pendingPercentage, totalPercentage, maxCapacity } = metrics;
         
-        // Calculate percentages for all scenarios
-        const approvedPercentage = maxCapacity > 0 ? Math.round((approvedMDs / maxCapacity) * 100) : 0;
-        const pendingPercentage = maxCapacity > 0 ? Math.round((pendingMDs / maxCapacity) * 100) : 0;
-        const totalMDs = approvedMDs + pendingMDs;
-        const totalPercentage = maxCapacity > 0 ? Math.round((totalMDs / maxCapacity) * 100) : 0;
-        
-        // Determine color classes based on utilization
-        const getPercentageClass = (percentage) => {
-            if (percentage >= 90) return 'high';    // Verde >= 90%
-            if (percentage >= 50) return 'medium';  // Giallo 50-89%
-            return 'low';                           // Rosso < 50%
-        };
-        
-        // Generate filtered grid content based on overview status filter
-        let gridClass = 'capacity-cell-grid';
-        let subcellsContent = '';
-        
-        switch (statusFilterValue) {
-            case 'all':
-                gridClass += ' filter-all';
-                if (totalMDs > 0) {
-                    subcellsContent = `
-                        <div class="capacity-subcell percentage total ${getPercentageClass(totalPercentage)}">${totalPercentage}%</div>
-                        <div class="capacity-subcell mds total">${totalMDs}</div>
-                    `;
-                } else {
-                    subcellsContent = `
-                        <div class="capacity-subcell percentage total low">0%</div>
-                        <div class="capacity-subcell mds total">0</div>
-                    `;
-                }
-                break;
-                
-            case 'approved':
-                gridClass += ' filter-approved';
-                if (approvedMDs > 0) {
-                    subcellsContent = `
-                        <div class="capacity-subcell percentage approved ${getPercentageClass(approvedPercentage)}">${approvedPercentage}%</div>
-                        <div class="capacity-subcell mds approved">${approvedMDs}</div>
-                    `;
-                } else {
-                    subcellsContent = `
-                        <div class="capacity-subcell percentage approved low">0%</div>
-                        <div class="capacity-subcell mds approved">0</div>
-                    `;
-                }
-                break;
-                
-            case 'pending':
-                gridClass += ' filter-pending';
-                if (pendingMDs > 0) {
-                    subcellsContent = `
-                        <div class="capacity-subcell percentage pending ${getPercentageClass(pendingPercentage)}">${pendingPercentage}%</div>
-                        <div class="capacity-subcell mds pending">${pendingMDs}</div>
-                    `;
-                } else {
-                    subcellsContent = `
-                        <div class="capacity-subcell percentage pending low">0%</div>
-                        <div class="capacity-subcell mds pending">0</div>
-                    `;
-                }
-                break;
-                
-            default:
-                // Fallback to showing all cells
-                gridClass += ' filter-all';
-                if (totalMDs > 0) {
-                    subcellsContent = `
-                        <div class="capacity-subcell percentage approved ${getPercentageClass(approvedPercentage)}">${approvedPercentage}%</div>
-                        <div class="capacity-subcell mds approved">${approvedMDs}</div>
-                        <div class="capacity-subcell percentage pending ${getPercentageClass(pendingPercentage)}">${pendingPercentage}%</div>
-                        <div class="capacity-subcell mds pending">${pendingMDs}</div>
-                        <div class="capacity-subcell percentage total ${getPercentageClass(totalPercentage)}">${totalPercentage}%</div>
-                        <div class="capacity-subcell mds total">${totalMDs}</div>
-                    `;
-                } else {
-                    subcellsContent = `
-                        <div class="capacity-subcell percentage approved low">0%</div>
-                        <div class="capacity-subcell mds approved">0</div>
-                        <div class="capacity-subcell percentage pending low">0%</div>
-                        <div class="capacity-subcell mds pending">0</div>
-                        <div class="capacity-subcell percentage total low">0%</div>
-                        <div class="capacity-subcell mds total">0</div>
-                    `;
-                }
-                break;
-        }
-        
-        const cellContent = `<div class="${gridClass}">${subcellsContent}</div>`;
+        // Generate filtered grid content using business logic service
+        const cellContent = this.generateCapacityCellContent(metrics, statusFilterValue);
         
         // Generate comprehensive tooltip information
-        const tooltipText = `${member.firstName} ${member.lastName} - ${monthKey}: 
-Approved: ${approvedMDs} MDs (${approvedPercentage}%)
-Pending: ${pendingMDs} MDs (${pendingPercentage}%)
-Total: ${totalMDs}/${maxCapacity} MDs (${totalPercentage}%)`;
+        const tooltipText = `${member.firstName} ${member.lastName} - ${monthKey}: \nApproved: ${approvedMDs} MDs (${approvedPercentage}%)\nPending: ${pendingMDs} MDs (${pendingPercentage}%)\nTotal: ${totalMDs}/${maxCapacity} MDs (${totalPercentage}%)`;
         
         return `
             <td class="capacity-month-cell" 

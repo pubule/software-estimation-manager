@@ -1714,11 +1714,11 @@
 }
 
 /* Filtered grid layouts - 2x1 for specific filters */
-.capacity-cell-grid.filter-all,
-.capacity-cell-grid.filter-approved,
-.capacity-cell-grid.filter-pending {
+.capacity-cell-grid.grid-2x1 {
     grid-template-rows: 1fr;
-    min-height: 30px;
+    min-height: 40px;
+    width: 100%;
+    height: 100%;
 }
 
 .capacity-subcell {
@@ -1731,6 +1731,8 @@
     padding: 2px;
     text-align: center;
     border-radius: 1px;
+    width: 100%;
+    height: 100%;
 }
 
 .capacity-subcell.percentage {
@@ -1847,6 +1849,13 @@
 
 .capacity-overview-row:hover td {
     background-color: rgba(0, 122, 204, 0.1) !important;
+}
+
+.capacity-month-cell {
+    min-height: 60px;
+    height: 60px;
+    padding: 0 !important;
+    position: relative;
 }
 
 .capacity-month-cell:hover {
@@ -2796,4 +2805,23 @@
 .month-allocation.no-allocation:hover {
     transform: none;
     box-shadow: none;
+}
+
+/* =====================================================
+   PERCENTAGE COLOR CLASSES FOR CAPACITY SUBCELLS
+   ===================================================== */
+
+.capacity-subcell.percentage.high-utilization {
+    background: rgba(40, 167, 69, 0.3) !important;
+    color: #28a745 !important;
+}
+
+.capacity-subcell.percentage.medium-utilization {
+    background: rgba(255, 193, 7, 0.3) !important;
+    color: #ffc107 !important;
+}
+
+.capacity-subcell.percentage.low-utilization {
+    background: rgba(220, 53, 69, 0.3) !important;
+    color: #dc3545 !important;
 }
