@@ -1458,6 +1458,14 @@
     min-width: 80px;
 }
 
+.capacity-overview-table .month-col {
+    text-align: center;
+}
+
+.capacity-planning-table .month-col {
+    text-align: center;
+}
+
 .capacity-cell {
     position: relative;
     font-size: 11px;
