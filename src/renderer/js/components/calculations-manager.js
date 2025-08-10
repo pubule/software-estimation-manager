@@ -3212,9 +3212,9 @@ class CapacityManager extends BaseComponent {
         
         // Determine color classes based on utilization
         const getPercentageClass = (percentage) => {
-            if (percentage >= 90) return 'high';
-            if (percentage >= 70) return 'medium';
-            return 'low';
+            if (percentage >= 90) return 'high';    // Verde >= 90%
+            if (percentage >= 50) return 'medium';  // Giallo 50-89%
+            return 'low';                           // Rosso < 50%
         };
         
         // Generate filtered grid content based on overview status filter
