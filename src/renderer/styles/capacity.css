@@ -2215,6 +2215,31 @@
     border-right: 2px solid #007acc;
 }
 
+/* Header cells (TH) for fixed columns */
+.capacity-planning-table th.col-member {
+    left: 0px;
+    z-index: 23; /* Higher than standard th z-index: 15 */
+    position: sticky;
+    background: #2d2d30 !important;
+    border-right: 2px solid #007acc;
+}
+
+.capacity-planning-table th.col-project {
+    left: 150px;
+    z-index: 22;
+    position: sticky;
+    background: #2d2d30 !important;
+    border-right: 2px solid #007acc;
+}
+
+.capacity-planning-table th.col-status {
+    left: 270px;
+    z-index: 21;
+    position: sticky;
+    background: #2d2d30 !important;
+    border-right: 2px solid #007acc;
+}
+
 /* Month columns */
 .month-col {
     min-width: 80px;
