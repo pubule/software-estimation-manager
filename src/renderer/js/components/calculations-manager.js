@@ -1485,7 +1485,7 @@ class CapacityManager extends BaseComponent {
                     <!-- Capacity Timeline Overview -->
                     <div class="analytics-card timeline-overview">
                         <div class="card-header">
-                            <h3><i class="fas fa-calendar-alt"></i> 6-Month Capacity Overview</h3>
+                            <h3><i class="fas fa-calendar-alt"></i> 15-Month Capacity Overview</h3>
                             <div class="card-actions">
                                 <button class="btn btn-small" onclick="window.app?.navigationManager?.navigateToCapacitySubSection('capacity-timeline')">
                                     <i class="fas fa-external-link-alt"></i> View Details
@@ -1702,56 +1702,67 @@ class CapacityManager extends BaseComponent {
             return totalB - totalA;
         });
 
-        // Generate tabular HTML structure
-        const chartHTML = `
-            <div class="allocation-chart-table">
-                <div class="allocation-chart-header">
-                    <div class="allocation-header-project">Project</div>
-                    <div class="allocation-header-resource">Resource</div>
-                    <div class="allocation-header-role">Role</div>
-                    <div class="allocation-header-vendor">Vendor</div>
-                    <div class="allocation-header-days">Days</div>
-                    <div class="allocation-header-status">Status</div>
-                </div>
-                <div class="allocation-chart-body">
-                    ${sortedProjects.map(([projectName, resources]) => {
-                        const totalDays = resources.reduce((sum, resource) => sum + resource.days, 0);
-                        const approvedCount = resources.filter(r => r.status === 'approved').length;
-                        const pendingCount = resources.length - approvedCount;
-                        
-                        return resources.map((resource, index) => `
-                            <div class="allocation-chart-row">
-                                <div class="allocation-cell-project">
-                                    ${index === 0 ? `
-                                        <div class="allocation-project-info">
-                                            <span class="allocation-project-name">${projectName}</span>
-                                            <div class="allocation-project-summary">
-                                                <span class="allocation-project-total">${totalDays} MDs</span>
-                                                <span class="allocation-project-resources">${resources.length} resources</span>
-                                                <div class="allocation-project-status">
-                                                    ${approvedCount > 0 ? `<span class="approved-count">${approvedCount} ✓</span>` : ''}
-                                                    ${pendingCount > 0 ? `<span class="pending-count">${pendingCount} ⏳</span>` : ''}
-                                                </div>
-                                            </div>
+        // Generate HTML table with rowspan for project column
+        let tableRows = '';
+        
+        sortedProjects.forEach(([projectName, resources]) => {
+            const totalDays = resources.reduce((sum, resource) => sum + resource.days, 0);
+            const approvedCount = resources.filter(r => r.status === 'approved').length;
+            const pendingCount = resources.length - approvedCount;
+            const resourceCount = resources.length;
+            
+            resources.forEach((resource, index) => {
+                const isFirstRow = index === 0;
+                
+                tableRows += `
+                    <tr class="allocation-chart-row ${isFirstRow ? 'project-first-row' : ''}">
+                        ${isFirstRow ? `
+                            <td class="allocation-cell-project" rowspan="${resourceCount}">
+                                <div class="allocation-project-info">
+                                    <span class="allocation-project-name">${projectName}</span>
+                                    <div class="allocation-project-summary">
+                                        <span class="allocation-project-total">${totalDays} MDs</span>
+                                        <span class="allocation-project-resources">${resources.length} resources</span>
+                                        <div class="allocation-project-status">
+                                            ${approvedCount > 0 ? `<span class="approved-count">${approvedCount} ✓</span>` : ''}
+                                            ${pendingCount > 0 ? `<span class="pending-count">${pendingCount} ⏳</span>` : ''}
                                         </div>
-                                    ` : ''}
+                                    </div>
                                 </div>
-                                <div class="allocation-cell-resource">${resource.resource}</div>
-                                <div class="allocation-cell-role">${resource.role}</div>
-                                <div class="allocation-cell-vendor">${resource.vendor}</div>
-                                <div class="allocation-cell-days">
-                                    <span class="allocation-days-value ${resource.status}">${resource.days}</span>
-                                </div>
-                                <div class="allocation-cell-status">
-                                    <span class="allocation-status-badge ${resource.status}">
-                                        ${resource.status === 'approved' ? '✓ Approved' : '⏳ Pending'}
-                                    </span>
-                                </div>
-                            </div>
-                        `).join('');
-                    }).join('')}
-                </div>
-            </div>
+                            </td>
+                        ` : ''}
+                        <td class="allocation-cell-resource">${resource.resource}</td>
+                        <td class="allocation-cell-role">${resource.role}</td>
+                        <td class="allocation-cell-vendor">${resource.vendor}</td>
+                        <td class="allocation-cell-days">
+                            <span class="allocation-days-value ${resource.status}">${resource.days}</span>
+                        </td>
+                        <td class="allocation-cell-status">
+                            <span class="allocation-status-badge ${resource.status}">
+                                ${resource.status === 'approved' ? '✓' : '✗'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+
+        const chartHTML = `
+            <table class="allocation-chart-table">
+                <thead>
+                    <tr>
+                        <th class="allocation-header-project">Project</th>
+                        <th class="allocation-header-resource">Resource</th>
+                        <th class="allocation-header-role">Role</th>
+                        <th class="allocation-header-vendor">Vendor</th>
+                        <th class="allocation-header-days">Days</th>
+                        <th class="allocation-header-status">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
         `;
 
         chartContainer.innerHTML = chartHTML || '<div class="no-data">No project allocations found for the selected period</div>';
@@ -1761,12 +1772,12 @@ class CapacityManager extends BaseComponent {
     loadTimelineOverviewChart() {
         const chartContainer = document.getElementById('timeline-overview-chart');
         
-        // Generate 6 months of mock data
+        // Generate 15 months of mock data (Jan current year + 3 months next year)
         const months = [];
-        const currentDate = new Date();
+        const currentYear = new Date().getFullYear();
         
-        for (let i = 0; i < 6; i++) {
-            const month = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+        for (let i = 0; i < 15; i++) {
+            const month = new Date(currentYear, i, 1); // Start from January (month 0)
             const monthStr = month.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
             const utilization = Math.round(Math.random() * 40 + 50); // 50-90%
             
