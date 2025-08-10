@@ -1,7 +1,428 @@
 /**
  * Capacity Planning CSS - VSCode Dark Theme
- * Comprehensive styling for the capacity planning section
+ * Comprehensive styling for the capacity planning section and dashboard
  */
+
+/* =====================================================
+   DASHBOARD STYLES
+   ===================================================== */
+
+.capacity-dashboard {
+    padding: 20px;
+    max-width: 100%;
+    background: #1e1e1e;
+    color: #cccccc;
+}
+
+/* Quick Actions Bar */
+.dashboard-quick-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #252526;
+    border: 1px solid #333333;
+    border-radius: 6px;
+}
+
+.dashboard-quick-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+/* Statistics Grid */
+.dashboard-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+/* Dashboard Cards */
+.dashboard-card {
+    background: #252526;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+}
+
+.dashboard-card:hover {
+    border-color: #007acc;
+}
+
+.dashboard-card .card-header {
+    background: #2d2d30;
+    padding: 16px 20px;
+    border-bottom: 1px solid #333333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.dashboard-card .card-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dashboard-card .card-content {
+    padding: 20px;
+}
+
+.dashboard-card .stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.dashboard-card .stat-item:last-child {
+    margin-bottom: 0;
+}
+
+.dashboard-card .stat-label {
+    font-size: 13px;
+    color: #cccccc;
+    font-weight: 500;
+}
+
+.dashboard-card .stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+/* Capacity Percentage Color Coding */
+.capacity-percentage.over-capacity { color: #f14c4c; }
+.capacity-percentage.high-capacity { color: #ffcc02; }
+.capacity-percentage.normal-capacity { color: #73c991; }
+.capacity-percentage.low-capacity { color: #007acc; }
+
+.pending-mds {
+    color: #ffcc02;
+}
+
+/* Analytics Section */
+.dashboard-analytics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.analytics-card {
+    background: #252526;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.analytics-card .card-header {
+    background: #2d2d30;
+    padding: 16px 20px;
+    border-bottom: 1px solid #333333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.analytics-card .card-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.analytics-card .card-content {
+    padding: 20px;
+}
+
+/* Allocation Chart */
+.allocation-chart-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.allocation-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.allocation-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+
+.project-name {
+    color: #cccccc;
+    font-weight: 500;
+}
+
+.allocation-percentage {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.allocation-progress {
+    height: 8px;
+    background: #3c3c3c;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.allocation-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+/* Timeline Overview Chart */
+.timeline-chart {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    height: 120px;
+    gap: 8px;
+}
+
+.timeline-month {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+
+.month-bar {
+    height: 80px;
+    width: 100%;
+    background: #3c3c3c;
+    border-radius: 4px;
+    position: relative;
+    display: flex;
+    align-items: end;
+}
+
+.month-fill {
+    width: 100%;
+    border-radius: 4px;
+    transition: height 0.3s ease;
+}
+
+.month-fill.over-capacity { background: #f14c4c; }
+.month-fill.high-capacity { background: #ffcc02; }
+.month-fill.normal-capacity { background: #73c991; }
+.month-fill.low-capacity { background: #007acc; }
+
+.month-label {
+    font-size: 11px;
+    color: #cccccc;
+    font-weight: 500;
+}
+
+.month-percentage {
+    font-size: 10px;
+    color: #999999;
+}
+
+/* Alerts Card */
+.alerts-card .card-content {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.alert-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.alert-item:last-child {
+    margin-bottom: 0;
+}
+
+.alert-item.alert-high {
+    background: rgba(241, 76, 76, 0.1);
+    border: 1px solid rgba(241, 76, 76, 0.3);
+    color: #f14c4c;
+}
+
+.alert-item.alert-medium {
+    background: rgba(255, 204, 2, 0.1);
+    border: 1px solid rgba(255, 204, 2, 0.3);
+    color: #ffcc02;
+}
+
+.alert-item.alert-low {
+    background: rgba(0, 122, 204, 0.1);
+    border: 1px solid rgba(0, 122, 204, 0.3);
+    color: #007acc;
+}
+
+.no-alerts {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    text-align: center;
+    color: #73c991;
+    font-size: 14px;
+}
+
+/* Team Performance Section */
+.dashboard-team-performance {
+    background: #252526;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.dashboard-team-performance .card-header {
+    background: #2d2d30;
+    padding: 16px 20px;
+    border-bottom: 1px solid #333333;
+}
+
+.dashboard-team-performance .card-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.team-performance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    padding: 20px;
+}
+
+.team-performance-card {
+    background: #2d2d30;
+    border: 1px solid #3c3c3c;
+    border-radius: 6px;
+    padding: 16px;
+}
+
+.performance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.member-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.member-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.member-role {
+    font-size: 12px;
+    color: #999999;
+}
+
+.performance-score {
+    font-size: 16px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 4px;
+    min-width: 50px;
+    text-align: center;
+}
+
+.performance-score.score-critical { background: rgba(241, 76, 76, 0.2); color: #f14c4c; }
+.performance-score.score-high { background: rgba(255, 204, 2, 0.2); color: #ffcc02; }
+.performance-score.score-good { background: rgba(115, 201, 145, 0.2); color: #73c991; }
+.performance-score.score-low { background: rgba(0, 122, 204, 0.2); color: #007acc; }
+
+.performance-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.performance-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+
+.performance-label {
+    color: #cccccc;
+}
+
+.performance-value {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Loading States */
+.loading-alerts {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    justify-content: center;
+    color: #999999;
+    font-size: 13px;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .dashboard-analytics {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-quick-actions {
+        flex-wrap: wrap;
+    }
+    
+    .timeline-chart {
+        height: 100px;
+    }
+    
+    .month-bar {
+        height: 60px;
+    }
+}
 
 /* =====================================================
    MAIN SECTION LAYOUT

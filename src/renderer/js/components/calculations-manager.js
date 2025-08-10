@@ -1420,43 +1420,441 @@ class CapacityManager extends BaseComponent {
             container.innerHTML = `
                 <div class="loading-message">
                     <i class="fas fa-spinner fa-spin"></i>
-                    <p>Loading capacity planning...</p>
+                    <p>Loading capacity planning dashboard...</p>
                 </div>
             `;
 
             // Initialize components
             this.initializeComponents();
 
-            // Load capacity section HTML content
-            const capacityHTML = await this.loadCapacitySectionHTML();
+            // Generate dashboard HTML
+            const dashboardHTML = this.generateCapacityDashboard();
             
-            if (capacityHTML) {
-                // Extract the section content from the loaded HTML
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = capacityHTML;
-                
-                const capacitySection = tempDiv.querySelector('#capacity-section');
-                if (capacitySection) {
-                    // Remove the section wrapper and use its content
-                    container.innerHTML = capacitySection.innerHTML;
-                    
-                    // Initialize event listeners
-                    this.initializeEventListeners();
-                    
-                    // Load initial data
-                    this.loadInitialData();
-                    
-                    console.log('Capacity planning section rendered successfully');
-                } else {
-                    throw new Error('Capacity section not found in loaded HTML');
-                }
-            } else {
-                throw new Error('Failed to load capacity section HTML');
-            }
+            container.innerHTML = dashboardHTML;
+            
+            // Initialize dashboard event listeners
+            this.initializeDashboardEventListeners();
+            
+            // Load and display dashboard data
+            this.loadDashboardData();
+            
+            console.log('Capacity planning dashboard rendered successfully');
+            
         } catch (error) {
-            console.error('Error rendering capacity section:', error);
+            console.error('Error rendering capacity dashboard:', error);
             container.innerHTML = this.renderErrorState(error.message);
         }
+    }
+
+    // Generate Capacity Planning Dashboard HTML
+    generateCapacityDashboard() {
+        return `
+            <div class="capacity-dashboard">
+                
+                <!-- Quick Actions Bar -->
+                <div class="dashboard-quick-actions">
+                    <button class="btn btn-primary" onclick="window.app?.navigationManager?.navigateToCapacitySubSection('resource-overview')">
+                        <i class="fas fa-chart-pie"></i> Resource Overview
+                    </button>
+                    <button class="btn btn-primary" onclick="window.app?.navigationManager?.navigateToCapacitySubSection('capacity-timeline')">
+                        <i class="fas fa-calendar-alt"></i> Timeline Planning
+                    </button>
+                    <button class="btn btn-secondary" id="refresh-dashboard-btn">
+                        <i class="fas fa-sync-alt"></i> Refresh Data
+                    </button>
+                </div>
+
+                <!-- Statistics Cards Row -->
+                <div class="dashboard-stats-grid">
+                    <!-- Team Overview Card -->
+                    <div class="dashboard-card team-overview-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-users"></i> Team Overview</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Team Members</span>
+                                <span class="stat-value" id="total-team-members">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Active Resources</span>
+                                <span class="stat-value" id="active-resources">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Vendors</span>
+                                <span class="stat-value" id="vendor-count">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Capacity Utilization Card -->
+                    <div class="dashboard-card capacity-util-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-bar"></i> Capacity Utilization</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-item">
+                                <span class="stat-label">Current Month</span>
+                                <span class="stat-value capacity-percentage" id="current-month-util">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Next Month</span>
+                                <span class="stat-value capacity-percentage" id="next-month-util">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Average (6 months)</span>
+                                <span class="stat-value capacity-percentage" id="avg-utilization">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Project Allocation Card -->
+                    <div class="dashboard-card project-allocation-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-project-diagram"></i> Project Allocation</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-item">
+                                <span class="stat-label">Active Projects</span>
+                                <span class="stat-value" id="active-projects-count">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Approved MDs</span>
+                                <span class="stat-value" id="approved-mds">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Pending MDs</span>
+                                <span class="stat-value pending-mds" id="pending-mds">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alerts & Warnings Card -->
+                    <div class="dashboard-card alerts-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-exclamation-triangle"></i> Alerts & Warnings</h3>
+                        </div>
+                        <div class="card-content" id="alerts-content">
+                            <div class="loading-alerts">
+                                <i class="fas fa-spinner fa-spin"></i> Loading alerts...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Analytics Section -->
+                <div class="dashboard-analytics">
+                    
+                    <!-- Resource Allocation Chart -->
+                    <div class="analytics-card resource-allocation-chart">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-pie"></i> Resource Allocation by Project</h3>
+                            <div class="card-actions">
+                                <select id="allocation-timeframe" class="filter-select">
+                                    <option value="current-month">Current Month</option>
+                                    <option value="next-month">Next Month</option>
+                                    <option value="current-quarter">Current Quarter</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div class="allocation-chart-container" id="allocation-chart">
+                                <!-- Chart will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Capacity Timeline Overview -->
+                    <div class="analytics-card timeline-overview">
+                        <div class="card-header">
+                            <h3><i class="fas fa-calendar-alt"></i> 6-Month Capacity Overview</h3>
+                            <div class="card-actions">
+                                <button class="btn btn-small" onclick="window.app?.navigationManager?.navigateToCapacitySubSection('capacity-timeline')">
+                                    <i class="fas fa-external-link-alt"></i> View Details
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div class="timeline-overview-chart" id="timeline-overview-chart">
+                                <!-- Timeline overview chart will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Team Performance Section -->
+                <div class="dashboard-team-performance">
+                    <div class="card-header">
+                        <h3><i class="fas fa-users-cog"></i> Team Performance Summary</h3>
+                    </div>
+                    <div class="team-performance-grid" id="team-performance-grid">
+                        <!-- Team performance cards will be generated here -->
+                    </div>
+                </div>
+
+            </div>
+        `;
+    }
+
+    // Initialize Dashboard Event Listeners
+    initializeDashboardEventListeners() {
+        // Refresh button
+        const refreshBtn = document.getElementById('refresh-dashboard-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.loadDashboardData());
+        }
+
+        // Allocation timeframe filter
+        const allocationTimeframe = document.getElementById('allocation-timeframe');
+        if (allocationTimeframe) {
+            allocationTimeframe.addEventListener('change', () => this.updateAllocationChart());
+        }
+    }
+
+    // Load Dashboard Data
+    loadDashboardData() {
+        // Load team overview data
+        this.loadTeamOverviewData();
+        
+        // Load capacity utilization data
+        this.loadCapacityUtilizationData();
+        
+        // Load project allocation data
+        this.loadProjectAllocationData();
+        
+        // Load alerts and warnings
+        this.loadAlertsData();
+        
+        // Load analytics charts
+        this.loadAllocationChart();
+        this.loadTimelineOverviewChart();
+        
+        // Load team performance data
+        this.loadTeamPerformanceData();
+    }
+
+    // Load Team Overview Data
+    loadTeamOverviewData() {
+        const teamMembers = this.getMockTeamMembers();
+        
+        document.getElementById('total-team-members').textContent = teamMembers.length;
+        
+        const activeMembers = teamMembers.filter(member => 
+            member.status === 'available' || member.status === 'allocated'
+        );
+        document.getElementById('active-resources').textContent = activeMembers.length;
+        
+        const vendors = [...new Set(teamMembers.map(member => member.vendor))];
+        document.getElementById('vendor-count').textContent = vendors.length;
+    }
+
+    // Load Capacity Utilization Data
+    loadCapacityUtilizationData() {
+        // Mock capacity utilization data
+        const currentDate = new Date();
+        const currentMonth = currentDate.toISOString().slice(0, 7);
+        const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+            .toISOString().slice(0, 7);
+
+        // Calculate utilization percentages
+        const currentUtil = Math.round(Math.random() * 40 + 60); // 60-100%
+        const nextUtil = Math.round(Math.random() * 30 + 50); // 50-80%
+        const avgUtil = Math.round(Math.random() * 25 + 65); // 65-90%
+
+        this.updateUtilizationDisplay('current-month-util', currentUtil);
+        this.updateUtilizationDisplay('next-month-util', nextUtil);
+        this.updateUtilizationDisplay('avg-utilization', avgUtil);
+    }
+
+    // Update Utilization Display with Color Coding
+    updateUtilizationDisplay(elementId, percentage) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = percentage + '%';
+            
+            // Apply color coding based on utilization percentage
+            element.className = 'stat-value capacity-percentage';
+            if (percentage >= 90) {
+                element.classList.add('over-capacity');
+            } else if (percentage >= 80) {
+                element.classList.add('high-capacity');
+            } else if (percentage >= 60) {
+                element.classList.add('normal-capacity');
+            } else {
+                element.classList.add('low-capacity');
+            }
+        }
+    }
+
+    // Load Project Allocation Data
+    loadProjectAllocationData() {
+        // Mock project data
+        const projects = ['Customer Portal', 'Mobile App', 'API Gateway', 'Dashboard'];
+        const approvedMDs = Math.round(Math.random() * 200 + 150);
+        const pendingMDs = Math.round(Math.random() * 100 + 50);
+
+        document.getElementById('active-projects-count').textContent = projects.length;
+        document.getElementById('approved-mds').textContent = approvedMDs;
+        document.getElementById('pending-mds').textContent = pendingMDs;
+    }
+
+    // Load Alerts Data
+    loadAlertsData() {
+        const alertsContainer = document.getElementById('alerts-content');
+        
+        // Generate mock alerts
+        const alerts = [
+            { type: 'warning', message: 'Mario Rossi over-allocated by 5 MDs in Dec 2024', severity: 'medium' },
+            { type: 'error', message: 'Vendor A capacity exceeded for Q1 2025', severity: 'high' },
+            { type: 'info', message: '3 pending project assignments need approval', severity: 'low' }
+        ];
+
+        if (alerts.length === 0) {
+            alertsContainer.innerHTML = `
+                <div class="no-alerts">
+                    <i class="fas fa-check-circle"></i>
+                    <span>No alerts at this time</span>
+                </div>
+            `;
+        } else {
+            alertsContainer.innerHTML = alerts.map(alert => `
+                <div class="alert-item alert-${alert.severity}">
+                    <i class="fas fa-${this.getAlertIcon(alert.type)}"></i>
+                    <span class="alert-message">${alert.message}</span>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Get Alert Icon
+    getAlertIcon(type) {
+        switch(type) {
+            case 'error': return 'exclamation-circle';
+            case 'warning': return 'exclamation-triangle';
+            case 'info': return 'info-circle';
+            default: return 'bell';
+        }
+    }
+
+    // Load Allocation Chart
+    loadAllocationChart() {
+        const chartContainer = document.getElementById('allocation-chart');
+        
+        // Mock allocation data
+        const allocations = [
+            { project: 'Customer Portal', percentage: 35, color: '#007acc' },
+            { project: 'Mobile App', percentage: 28, color: '#28a745' },
+            { project: 'API Gateway', percentage: 22, color: '#ffc107' },
+            { project: 'Dashboard', percentage: 15, color: '#dc3545' }
+        ];
+
+        const chartHTML = allocations.map(allocation => `
+            <div class="allocation-bar">
+                <div class="allocation-label">
+                    <span class="project-name">${allocation.project}</span>
+                    <span class="allocation-percentage">${allocation.percentage}%</span>
+                </div>
+                <div class="allocation-progress">
+                    <div class="allocation-fill" 
+                         style="width: ${allocation.percentage}%; background-color: ${allocation.color};">
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        chartContainer.innerHTML = chartHTML;
+    }
+
+    // Load Timeline Overview Chart
+    loadTimelineOverviewChart() {
+        const chartContainer = document.getElementById('timeline-overview-chart');
+        
+        // Generate 6 months of mock data
+        const months = [];
+        const currentDate = new Date();
+        
+        for (let i = 0; i < 6; i++) {
+            const month = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+            const monthStr = month.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            const utilization = Math.round(Math.random() * 40 + 50); // 50-90%
+            
+            months.push({ month: monthStr, utilization });
+        }
+
+        const chartHTML = `
+            <div class="timeline-chart">
+                ${months.map(data => `
+                    <div class="timeline-month">
+                        <div class="month-bar">
+                            <div class="month-fill ${this.getUtilizationClass(data.utilization)}" 
+                                 style="height: ${data.utilization}%;"
+                                 title="${data.month}: ${data.utilization}% utilization">
+                            </div>
+                        </div>
+                        <div class="month-label">${data.month}</div>
+                        <div class="month-percentage">${data.utilization}%</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        chartContainer.innerHTML = chartHTML;
+    }
+
+    // Get Utilization Class
+    getUtilizationClass(percentage) {
+        if (percentage >= 90) return 'over-capacity';
+        if (percentage >= 80) return 'high-capacity';
+        if (percentage >= 60) return 'normal-capacity';
+        return 'low-capacity';
+    }
+
+    // Load Team Performance Data
+    loadTeamPerformanceData() {
+        const container = document.getElementById('team-performance-grid');
+        const teamMembers = this.getMockTeamMembers();
+        
+        const performanceHTML = teamMembers.slice(0, 4).map(member => `
+            <div class="team-performance-card">
+                <div class="performance-header">
+                    <div class="member-info">
+                        <span class="member-name">${member.firstName} ${member.lastName}</span>
+                        <span class="member-role">${member.role} - ${member.vendor}</span>
+                    </div>
+                    <div class="performance-score ${this.getPerformanceScoreClass(member.currentUtilization)}">
+                        ${member.currentUtilization}%
+                    </div>
+                </div>
+                <div class="performance-details">
+                    <div class="performance-item">
+                        <span class="performance-label">Current Projects</span>
+                        <span class="performance-value">${Object.keys(member.allocations?.['2024-12'] || {}).length || 1}</span>
+                    </div>
+                    <div class="performance-item">
+                        <span class="performance-label">Next Month</span>
+                        <span class="performance-value">${Math.round(member.currentUtilization * 0.9)}%</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = performanceHTML;
+    }
+
+    // Get Performance Score Class
+    getPerformanceScoreClass(utilization) {
+        if (utilization >= 95) return 'score-critical';
+        if (utilization >= 85) return 'score-high';
+        if (utilization >= 70) return 'score-good';
+        return 'score-low';
+    }
+
+    // Update Allocation Chart (when timeframe changes)
+    updateAllocationChart() {
+        // For now, just reload the chart
+        // In a real implementation, this would fetch different data based on timeframe
+        this.loadAllocationChart();
     }
 
     /**
