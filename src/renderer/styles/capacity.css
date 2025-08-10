@@ -1713,6 +1713,14 @@
     padding: 0;
 }
 
+/* Filtered grid layouts - 2x1 for specific filters */
+.capacity-cell-grid.filter-all,
+.capacity-cell-grid.filter-approved,
+.capacity-cell-grid.filter-pending {
+    grid-template-rows: 1fr;
+    min-height: 30px;
+}
+
 .capacity-subcell {
     display: flex;
     align-items: center;
@@ -1766,6 +1774,12 @@
     .capacity-cell-grid {
         min-height: 50px;
         gap: 0.5px;
+    }
+    
+    .capacity-cell-grid.filter-all,
+    .capacity-cell-grid.filter-approved,
+    .capacity-cell-grid.filter-pending {
+        min-height: 25px;
     }
     
     .capacity-subcell {

@@ -3217,26 +3217,82 @@ class CapacityManager extends BaseComponent {
             return 'low';
         };
         
-        // Generate 3x2 grid content
-        const cellContent = totalMDs > 0 ? `
-            <div class="capacity-cell-grid">
-                <div class="capacity-subcell percentage approved ${getPercentageClass(approvedPercentage)}">${approvedPercentage}%</div>
-                <div class="capacity-subcell mds approved">${approvedMDs}</div>
-                <div class="capacity-subcell percentage pending ${getPercentageClass(pendingPercentage)}">${pendingPercentage}%</div>
-                <div class="capacity-subcell mds pending">${pendingMDs}</div>
-                <div class="capacity-subcell percentage total ${getPercentageClass(totalPercentage)}">${totalPercentage}%</div>
-                <div class="capacity-subcell mds total">${totalMDs}</div>
-            </div>
-        ` : `
-            <div class="capacity-cell-grid">
-                <div class="capacity-subcell percentage approved low">0%</div>
-                <div class="capacity-subcell mds approved">0</div>
-                <div class="capacity-subcell percentage pending low">0%</div>
-                <div class="capacity-subcell mds pending">0</div>
-                <div class="capacity-subcell percentage total low">0%</div>
-                <div class="capacity-subcell mds total">0</div>
-            </div>
-        `;
+        // Generate filtered grid content based on overview status filter
+        let gridClass = 'capacity-cell-grid';
+        let subcellsContent = '';
+        
+        switch (statusFilterValue) {
+            case 'all':
+                gridClass += ' filter-all';
+                if (totalMDs > 0) {
+                    subcellsContent = `
+                        <div class="capacity-subcell percentage total ${getPercentageClass(totalPercentage)}">${totalPercentage}%</div>
+                        <div class="capacity-subcell mds total">${totalMDs}</div>
+                    `;
+                } else {
+                    subcellsContent = `
+                        <div class="capacity-subcell percentage total low">0%</div>
+                        <div class="capacity-subcell mds total">0</div>
+                    `;
+                }
+                break;
+                
+            case 'approved':
+                gridClass += ' filter-approved';
+                if (approvedMDs > 0) {
+                    subcellsContent = `
+                        <div class="capacity-subcell percentage approved ${getPercentageClass(approvedPercentage)}">${approvedPercentage}%</div>
+                        <div class="capacity-subcell mds approved">${approvedMDs}</div>
+                    `;
+                } else {
+                    subcellsContent = `
+                        <div class="capacity-subcell percentage approved low">0%</div>
+                        <div class="capacity-subcell mds approved">0</div>
+                    `;
+                }
+                break;
+                
+            case 'pending':
+                gridClass += ' filter-pending';
+                if (pendingMDs > 0) {
+                    subcellsContent = `
+                        <div class="capacity-subcell percentage pending ${getPercentageClass(pendingPercentage)}">${pendingPercentage}%</div>
+                        <div class="capacity-subcell mds pending">${pendingMDs}</div>
+                    `;
+                } else {
+                    subcellsContent = `
+                        <div class="capacity-subcell percentage pending low">0%</div>
+                        <div class="capacity-subcell mds pending">0</div>
+                    `;
+                }
+                break;
+                
+            default:
+                // Fallback to showing all cells
+                gridClass += ' filter-all';
+                if (totalMDs > 0) {
+                    subcellsContent = `
+                        <div class="capacity-subcell percentage approved ${getPercentageClass(approvedPercentage)}">${approvedPercentage}%</div>
+                        <div class="capacity-subcell mds approved">${approvedMDs}</div>
+                        <div class="capacity-subcell percentage pending ${getPercentageClass(pendingPercentage)}">${pendingPercentage}%</div>
+                        <div class="capacity-subcell mds pending">${pendingMDs}</div>
+                        <div class="capacity-subcell percentage total ${getPercentageClass(totalPercentage)}">${totalPercentage}%</div>
+                        <div class="capacity-subcell mds total">${totalMDs}</div>
+                    `;
+                } else {
+                    subcellsContent = `
+                        <div class="capacity-subcell percentage approved low">0%</div>
+                        <div class="capacity-subcell mds approved">0</div>
+                        <div class="capacity-subcell percentage pending low">0%</div>
+                        <div class="capacity-subcell mds pending">0</div>
+                        <div class="capacity-subcell percentage total low">0%</div>
+                        <div class="capacity-subcell mds total">0</div>
+                    `;
+                }
+                break;
+        }
+        
+        const cellContent = `<div class="${gridClass}">${subcellsContent}</div>`;
         
         // Generate comprehensive tooltip information
         const tooltipText = `${member.firstName} ${member.lastName} - ${monthKey}: 
