@@ -3204,24 +3204,39 @@ class CapacityManager extends BaseComponent {
             }
         });
         
-        // Calculate percentage based on filtered allocation
-        const utilizationPercentage = maxCapacity > 0 ? Math.round((totalAllocated / maxCapacity) * 100) : 0;
+        // Calculate percentages for all scenarios
+        const approvedPercentage = maxCapacity > 0 ? Math.round((approvedMDs / maxCapacity) * 100) : 0;
+        const pendingPercentage = maxCapacity > 0 ? Math.round((pendingMDs / maxCapacity) * 100) : 0;
+        const totalMDs = approvedMDs + pendingMDs;
+        const totalPercentage = maxCapacity > 0 ? Math.round((totalMDs / maxCapacity) * 100) : 0;
         
-        // Determine color class based on utilization
-        let percentageClass = 'low';
-        if (utilizationPercentage >= 90) {
-            percentageClass = 'high';
-        } else if (utilizationPercentage >= 70) {
-            percentageClass = 'medium';
-        }
+        // Determine color classes based on utilization
+        const getPercentageClass = (percentage) => {
+            if (percentage >= 90) return 'high';
+            if (percentage >= 70) return 'medium';
+            return 'low';
+        };
         
-        // Generate breakdown display based on filter
-        let breakdownContent = '';
-        if (statusFilterValue === 'all') {
-            breakdownContent = `
-                ${approvedMDs > 0 ? `<span class="approved-mds">✓ ${approvedMDs} MDs</span>` : ''}
-                ${pendingMDs > 0 ? `<span class="pending-mds">⏳ ${pendingMDs} MDs</span>` : ''}
-            `;
+        // Generate 3x2 grid content
+        const cellContent = totalMDs > 0 ? `
+            <div class="capacity-cell-grid">
+                <div class="capacity-subcell percentage approved ${getPercentageClass(approvedPercentage)}">${approvedPercentage}%</div>
+                <div class="capacity-subcell mds approved">${approvedMDs}</div>
+                <div class="capacity-subcell percentage pending ${getPercentageClass(pendingPercentage)}">${pendingPercentage}%</div>
+                <div class="capacity-subcell mds pending">${pendingMDs}</div>
+                <div class="capacity-subcell percentage total ${getPercentageClass(totalPercentage)}">${totalPercentage}%</div>
+                <div class="capacity-subcell mds total">${totalMDs}</div>
+            </div>
+        ` : `
+            <div class="capacity-cell-grid">
+                <div class="capacity-subcell percentage approved low">0%</div>
+                <div class="capacity-subcell mds approved">0</div>
+                <div class="capacity-subcell percentage pending low">0%</div>
+                <div class="capacity-subcell mds pending">0</div>
+                <div class="capacity-subcell percentage total low">0%</div>
+                <div class="capacity-subcell mds total">0</div>
+            </div>
+        `;
         } else if (statusFilterValue === 'approved') {
             breakdownContent = `<span class="approved-mds">✓ ${approvedMDs} MDs</span>`;
         } else if (statusFilterValue === 'pending') {
@@ -3248,11 +3263,11 @@ class CapacityManager extends BaseComponent {
             </div>
         `;
         
-        // Generate tooltip information
-        const allMDs = approvedMDs + pendingMDs;
-        const tooltipText = statusFilterValue === 'all' 
-            ? `${member.firstName} ${member.lastName} - ${monthKey}: ${allMDs}/${maxCapacity} MDs (Approved: ${approvedMDs}, Pending: ${pendingMDs})`
-            : `${member.firstName} ${member.lastName} - ${monthKey}: ${totalAllocated}/${maxCapacity} MDs (${statusFilterValue} only)`;
+        // Generate comprehensive tooltip information
+        const tooltipText = `${member.firstName} ${member.lastName} - ${monthKey}: 
+Approved: ${approvedMDs} MDs (${approvedPercentage}%)
+Pending: ${pendingMDs} MDs (${pendingPercentage}%)
+Total: ${totalMDs}/${maxCapacity} MDs (${totalPercentage}%)`;
         
         return `
             <td class="capacity-month-cell" 
