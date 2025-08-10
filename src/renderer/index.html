@@ -95,19 +95,34 @@
                     </div>
                 </div>
 
+                <!-- Capacity Section with nested children -->
+                <div class="nav-section has-children" data-section="capacity">
+                    <div class="nav-item">
+                        <i class="fas fa-users"></i>
+                        <span>Capacity Planning</span>
+                        <button class="nav-toggle" id="capacity-toggle">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="nav-children" id="capacity-children">
+                        <div class="nav-child active" data-section="resource-overview">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>Resource Capacity Overview</span>
+                        </div>
+
+                        <div class="nav-child" data-section="capacity-timeline">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Capacity Planning Timeline</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Configuration Section (independent) -->
                 <div class="nav-section" data-section="configuration">
                     <div class="nav-item">
                         <i class="fas fa-cog"></i>
                         <span>Configuration</span>
-                    </div>
-                </div>
-
-                <!-- Capacity Section (independent) -->
-                <div class="nav-section" data-section="capacity">
-                    <div class="nav-item">
-                        <i class="fas fa-users"></i>
-                        <span>Capacity Planning</span>
                     </div>
                 </div>
 
@@ -371,7 +386,56 @@
                 </div>
             </div>
 
-            <!-- Capacity Page -->
+            <!-- Resource Capacity Overview Page -->
+            <div id="resource-overview-page" class="page">
+                <div class="page-header">
+                    <h2>📊 Resource Capacity Overview</h2>
+                    <div class="page-actions">
+                        <button class="btn btn-secondary" id="refresh-overview-btn">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button class="btn btn-secondary" id="export-overview-btn">
+                            <i class="fas fa-download"></i> Export Overview
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Resource overview content will be dynamically rendered here -->
+                <div id="resource-overview-content" class="capacity-overview-content">
+                    <div class="loading-message">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading resource capacity overview...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Capacity Planning Timeline Page -->
+            <div id="capacity-timeline-page" class="page">
+                <div class="page-header">
+                    <h2>📅 Capacity Planning Timeline</h2>
+                    <div class="page-actions">
+                        <button class="btn btn-primary" id="add-timeline-assignment-btn">
+                            <i class="fas fa-plus"></i> Add Assignment
+                        </button>
+                        <button class="btn btn-secondary" id="refresh-timeline-btn">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button class="btn btn-secondary" id="export-timeline-btn">
+                            <i class="fas fa-download"></i> Export Timeline
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Timeline content will be dynamically rendered here -->
+                <div id="capacity-timeline-content" class="capacity-timeline-content">
+                    <div class="loading-message">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading capacity planning timeline...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legacy Capacity Page (will be deprecated) -->
             <div id="capacity-page" class="page">
                 <div class="page-header">
                     <h2>📊 Capacity Planning</h2>

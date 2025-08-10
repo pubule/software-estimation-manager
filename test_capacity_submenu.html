@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Capacity Planning Submenu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .nav-section {
+            padding: 10px;
+            margin: 5px 0;
+            background: #e9ecef;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .nav-section.active {
+            background: #007bff;
+            color: white;
+        }
+        .nav-capacity-child {
+            padding: 8px 20px;
+            margin: 2px 0;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            border-left: 3px solid #6c757d;
+        }
+        .nav-capacity-child.active {
+            background: #28a745;
+            color: white;
+            border-left-color: #ffffff;
+        }
+        .page {
+            display: none;
+            padding: 20px;
+            background: #fff;
+            border: 2px solid #dee2e6;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .page.active {
+            display: block;
+            border-color: #007bff;
+        }
+        .capacity-children {
+            display: none;
+            margin-left: 20px;
+        }
+        .capacity-children.expanded {
+            display: block;
+        }
+        .toggle-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .toggle-btn.expanded::before {
+            content: "▼ ";
+        }
+        .toggle-btn::before {
+            content: "▶ ";
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        .btn {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #6c757d;
+            color: white;
+        }
+        .btn:hover {
+            background: #5a6268;
+        }
+        .status {
+            padding: 5px 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.info {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #b8daff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Capacity Planning Submenu Navigation</h1>
+    
+    <div class="test-section">
+        <h2>Simulazione Sidebar</h2>
+        
+        <!-- Capacity Planning Section con sottomenu -->
+        <div class="nav-section" data-section="capacity">
+            <button id="capacity-toggle" class="toggle-btn"></button>
+            Capacity Planning
+        </div>
+        
+        <!-- Sottomenu Capacity Planning -->
+        <div id="capacity-children" class="capacity-children">
+            <div class="nav-capacity-child active" data-section="resource-overview">
+                📊 Resource Capacity Overview
+            </div>
+            <div class="nav-capacity-child" data-section="capacity-timeline">
+                📋 Capacity Planning Timeline
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Pagine Simulate</h2>
+        
+        <!-- Pagine simulate -->
+        <div id="capacity-page" class="page">
+            <h3>🔄 Legacy Capacity Page</h3>
+            <p>Questa è la pagina legacy di Capacity Planning che usa il metodo <code>render()</code> originale.</p>
+            <div class="status info">Stato: Pagina legacy compatibile con il codice esistente</div>
+        </div>
+        
+        <div id="resource-overview-page" class="page active">
+            <h3>📊 Resource Capacity Overview</h3>
+            <div id="resource-overview-content">
+                <p>Contenuto della sezione Resource Capacity Overview caricato tramite <code>renderResourceOverview()</code></p>
+                <div class="status success">Stato: Nuova sezione separata attiva</div>
+            </div>
+        </div>
+        
+        <div id="capacity-timeline-page" class="page">
+            <h3>📋 Capacity Planning Timeline</h3>
+            <div id="capacity-timeline-content">
+                <p>Contenuto della sezione Capacity Planning Timeline caricato tramite <code>renderCapacityTimeline()</code></p>
+                <div class="status info">Stato: Nuova sezione separata non attiva</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Controlli Test</h2>
+        <div class="controls">
+            <button class="btn" onclick="testResourceOverview()">Test Resource Overview</button>
+            <button class="btn" onclick="testCapacityTimeline()">Test Capacity Timeline</button>
+            <button class="btn" onclick="testLegacyCapacity()">Test Legacy Capacity</button>
+            <button class="btn" onclick="toggleExpansion()">Toggle Espansione</button>
+            <button class="btn" onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <h3>🔍 Console di Test</h3>
+        <div id="test-log" class="log">
+            <div>Sistema di test inizializzato...</div>
+            <div>Capacity Planning sottomenu configurato</div>
+        </div>
+    </div>
+    
+    <script>
+        // Simulazione del sistema di navigazione
+        let currentSection = 'resource-overview';
+        let capacityExpanded = true;
+        
+        // Mock CapacityManager
+        const mockCapacityManager = {
+            async renderResourceOverview() {
+                log('📊 CapacityManager.renderResourceOverview() chiamato');
+                log('✅ Resource overview rendering completato');
+                updateContent('resource-overview-content', 
+                    '<p>✅ Contenuto Resource Overview caricato con successo!</p>' +
+                    '<div class="status success">Rendering tramite renderResourceOverview() completato</div>'
+                );
+                return Promise.resolve();
+            },
+            
+            async renderCapacityTimeline() {
+                log('📋 CapacityManager.renderCapacityTimeline() chiamato');
+                log('✅ Capacity timeline rendering completato');
+                updateContent('capacity-timeline-content',
+                    '<p>✅ Contenuto Capacity Timeline caricato con successo!</p>' +
+                    '<div class="status success">Rendering tramite renderCapacityTimeline() completato</div>'
+                );
+                return Promise.resolve();
+            },
+            
+            async render() {
+                log('🔄 CapacityManager.render() chiamato (legacy method)');
+                log('✅ Legacy capacity rendering completato');
+                updateContent('capacity-page',
+                    '<h3>🔄 Legacy Capacity Page</h3>' +
+                    '<p>✅ Contenuto legacy caricato con successo!</p>' +
+                    '<div class="status success">Rendering tramite render() legacy completato</div>'
+                );
+                return Promise.resolve();
+            }
+        };
+        
+        // Mock app con capacityManager
+        const mockApp = {
+            capacityManager: mockCapacityManager,
+            configManager: {}
+        };
+        
+        // Funzioni di test
+        function testResourceOverview() {
+            log('🧪 Test Resource Overview avviato...');
+            navigateToCapacitySubSection('resource-overview');
+        }
+        
+        function testCapacityTimeline() {
+            log('🧪 Test Capacity Timeline avviato...');
+            navigateToCapacitySubSection('capacity-timeline');
+        }
+        
+        function testLegacyCapacity() {
+            log('🧪 Test Legacy Capacity avviato...');
+            showCapacityPage();
+        }
+        
+        function toggleExpansion() {
+            capacityExpanded = !capacityExpanded;
+            updateCapacityExpansion();
+            log(`📂 Espansione capacity: ${capacityExpanded ? 'aperta' : 'chiusa'}`);
+        }
+        
+        // Simulazione NavigationManager methods
+        function navigateToCapacitySubSection(sectionName) {
+            log(`🧭 Navigating to capacity sub-section: ${sectionName}`);
+            
+            // Expand capacity section if not expanded
+            if (!capacityExpanded) {
+                capacityExpanded = true;
+                updateCapacityExpansion();
+                log('📂 Capacity section espansa automaticamente');
+            }
+            
+            navigateTo(sectionName);
+        }
+        
+        function showCapacityPage() {
+            log('🔄 Showing legacy Capacity page...');
+            hideAllPages();
+            updateActiveStates('capacity');
+            showPage('capacity-page');
+            
+            // Simulate calling legacy render method
+            setTimeout(() => {
+                mockApp.capacityManager.render();
+            }, 100);
+            
+            currentSection = 'capacity';
+            log('✅ Navigated to legacy capacity planning page');
+        }
+        
+        function showResourceOverviewPage() {
+            log('📊 Showing Resource Capacity Overview page...');
+            hideAllPages();
+            updateActiveStates('resource-overview');
+            showPage('resource-overview-page');
+            
+            // Simulate calling renderResourceOverview method
+            setTimeout(() => {
+                mockApp.capacityManager.renderResourceOverview();
+            }, 100);
+            
+            currentSection = 'resource-overview';
+            log('✅ Navigated to resource overview page');
+        }
+        
+        function showCapacityTimelinePage() {
+            log('📋 Showing Capacity Planning Timeline page...');
+            hideAllPages();
+            updateActiveStates('capacity-timeline');
+            showPage('capacity-timeline-page');
+            
+            // Simulate calling renderCapacityTimeline method
+            setTimeout(() => {
+                mockApp.capacityManager.renderCapacityTimeline();
+            }, 100);
+            
+            currentSection = 'capacity-timeline';
+            log('✅ Navigated to capacity timeline page');
+        }
+        
+        function navigateTo(sectionName) {
+            log(`🧭 NavigateTo(${sectionName}) chiamato`);
+            
+            if (sectionName === 'resource-overview') {
+                showResourceOverviewPage();
+                return;
+            }
+            
+            if (sectionName === 'capacity-timeline') {
+                showCapacityTimelinePage();
+                return;
+            }
+            
+            if (sectionName === 'capacity') {
+                showCapacityPage();
+                return;
+            }
+        }
+        
+        // Utility functions
+        function hideAllPages() {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+        }
+        
+        function showPage(pageId) {
+            const page = document.getElementById(pageId);
+            if (page) {
+                page.classList.add('active');
+            }
+        }
+        
+        function updateActiveStates(activeSectionName) {
+            // Remove all active states
+            document.querySelectorAll('.nav-section, .nav-capacity-child').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Set active state for the target section
+            const activeElement = document.querySelector(`[data-section="${activeSectionName}"]`);
+            if (activeElement) {
+                activeElement.classList.add('active');
+                
+                // If it's a capacity sub-section, also mark capacity as active
+                if (['resource-overview', 'capacity-timeline'].includes(activeSectionName)) {
+                    const capacitySection = document.querySelector('[data-section="capacity"]');
+                    if (capacitySection) {
+                        capacitySection.classList.add('active');
+                    }
+                }
+            }
+        }
+        
+        function updateCapacityExpansion() {
+            const toggle = document.getElementById('capacity-toggle');
+            const children = document.getElementById('capacity-children');
+            
+            if (toggle && children) {
+                toggle.classList.toggle('expanded', capacityExpanded);
+                children.classList.toggle('expanded', capacityExpanded);
+            }
+        }
+        
+        function updateContent(containerId, content) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = content;
+            }
+        }
+        
+        function log(message) {
+            const logDiv = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('test-log').innerHTML = '<div>Log cleared...</div>';
+        }
+        
+        // Setup event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Setup capacity toggle
+            const capacityToggle = document.getElementById('capacity-toggle');
+            if (capacityToggle) {
+                capacityToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleExpansion();
+                });
+            }
+            
+            // Setup navigation for capacity sub-sections
+            document.querySelectorAll('.nav-capacity-child[data-section]').forEach(child => {
+                child.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sectionName = child.dataset.section;
+                    navigateToCapacitySubSection(sectionName);
+                });
+            });
+            
+            // Setup main capacity navigation
+            document.querySelectorAll('.nav-section[data-section]').forEach(section => {
+                section.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sectionName = section.dataset.section;
+                    if (sectionName === 'capacity') {
+                        showCapacityPage();
+                        if (!capacityExpanded) {
+                            capacityExpanded = true;
+                            updateCapacityExpansion();
+                        }
+                    }
+                });
+            });
+            
+            // Initialize display
+            updateCapacityExpansion();
+            updateActiveStates('resource-overview');
+            
+            log('🎯 Sistema di test completamente inizializzato');
+            log('📝 Clicca sui menu o sui pulsanti di test per verificare la funzionalità');
+        });
+    </script>
+</body>
+</html>
