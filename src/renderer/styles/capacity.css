@@ -1738,8 +1738,8 @@
 }
 
 .capacity-subcell.percentage.high {
-    background: rgba(220, 53, 69, 0.3);
-    color: #ff6b6b;
+    background: rgba(40, 167, 69, 0.3);
+    color: #28a745;
 }
 
 .capacity-subcell.percentage.medium {
@@ -1748,8 +1748,8 @@
 }
 
 .capacity-subcell.percentage.low {
-    background: rgba(40, 167, 69, 0.3);
-    color: #28a745;
+    background: rgba(220, 53, 69, 0.3);
+    color: #ff6b6b;
 }
 
 .capacity-subcell.mds {
