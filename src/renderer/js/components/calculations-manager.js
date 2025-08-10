@@ -1406,7 +1406,7 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
-     * Render the capacity planning section
+     * Render the capacity planning section (legacy method)
      */
     async render() {
         const container = document.getElementById('capacity-content');
@@ -1457,6 +1457,335 @@ class CapacityManager extends BaseComponent {
             console.error('Error rendering capacity section:', error);
             container.innerHTML = this.renderErrorState(error.message);
         }
+    }
+
+    /**
+     * Render the Resource Capacity Overview section
+     */
+    async renderResourceOverview() {
+        const container = document.getElementById('resource-overview-content');
+        if (!container) {
+            console.error('Resource overview content container not found');
+            return;
+        }
+
+        try {
+            // Show loading state
+            container.innerHTML = `
+                <div class="loading-message">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading resource capacity overview...</p>
+                </div>
+            `;
+
+            // Initialize components
+            this.initializeComponents();
+
+            // Generate only the overview section
+            const overviewHTML = this.generateResourceOverviewHTML();
+            container.innerHTML = overviewHTML;
+            
+            // Initialize overview-specific event listeners
+            this.initializeOverviewEventListeners();
+            
+            // Load overview data
+            this.loadOverviewData();
+            
+            console.log('Resource capacity overview rendered successfully');
+        } catch (error) {
+            console.error('Error rendering resource overview:', error);
+            container.innerHTML = this.renderErrorState(error.message);
+        }
+    }
+
+    /**
+     * Render the Capacity Planning Timeline section
+     */
+    async renderCapacityTimeline() {
+        const container = document.getElementById('capacity-timeline-content');
+        if (!container) {
+            console.error('Capacity timeline content container not found');
+            return;
+        }
+
+        try {
+            // Show loading state
+            container.innerHTML = `
+                <div class="loading-message">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading capacity planning timeline...</p>
+                </div>
+            `;
+
+            // Initialize components
+            this.initializeComponents();
+
+            // Generate only the timeline section
+            const timelineHTML = this.generateCapacityTimelineHTML();
+            container.innerHTML = timelineHTML;
+            
+            // Initialize timeline-specific event listeners
+            this.initializeTimelineEventListeners();
+            
+            // Load timeline data
+            this.loadTimelineData();
+            
+            console.log('Capacity planning timeline rendered successfully');
+        } catch (error) {
+            console.error('Error rendering capacity timeline:', error);
+            container.innerHTML = this.renderErrorState(error.message);
+        }
+    }
+
+    /**
+     * Generate HTML for Resource Capacity Overview section
+     */
+    generateResourceOverviewHTML() {
+        return `
+            <div class="resource-overview-section">
+                <div class="stats-panel">
+                    <div class="panel-header">
+                        <h2>📊 Resource Capacity Overview</h2>
+                        <div class="overview-filters">
+                            <div class="filter-group">
+                                <label for="overview-member-filter">Member:</label>
+                                <select id="overview-member-filter" class="filter-select">
+                                    <option value="">All Members</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="overview-status-filter">Status View:</label>
+                                <select id="overview-status-filter" class="filter-select">
+                                    <option value="all">All Status (Forecast)</option>
+                                    <option value="approved">Approved Only</option>
+                                    <option value="pending">Pending Only</option>
+                                </select>
+                            </div>
+                            <div class="table-actions">
+                                <button id="refresh-capacity-btn" class="btn-secondary">
+                                    🔄 Refresh
+                                </button>
+                                <button id="export-capacity-btn" class="btn-secondary">
+                                    📊 Export
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="capacity-overview-grid" id="capacity-overview-grid">
+                        <!-- Dynamic capacity overview will be generated here -->
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Generate HTML for Capacity Planning Timeline section
+     */
+    generateCapacityTimelineHTML() {
+        return `
+            <div class="capacity-timeline-section">
+                <!-- Capacity Planning Table -->
+                <div class="capacity-table-container">
+                    <div class="capacity-table-header">
+                        <h2>📋 Capacity Planning Timeline</h2>
+                        <div class="table-actions">
+                            <button id="add-assignment-btn" class="btn-primary">
+                                ➕ Add Assignment
+                            </button>
+                            <button id="export-table-btn" class="btn-secondary">
+                                📊 Export Table
+                            </button>
+                            <button id="refresh-timeline-btn" class="btn-secondary">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Table Filters -->
+                    <div class="capacity-filters">
+                        <div class="filter-group">
+                            <label for="team-filter">Team:</label>
+                            <select id="team-filter" class="filter-select">
+                                <option value="">All Teams</option>
+                                <option value="vendor-a">Vendor A</option>
+                                <option value="internal">Internal Resources</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="projects-filter">Projects:</label>
+                            <select id="projects-filter" class="filter-select">
+                                <option value="">All Projects</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="timeline-range">Timeline:</label>
+                            <select id="timeline-range" class="filter-select">
+                                <option value="15">15 months</option>
+                                <option value="12">12 months</option>
+                                <option value="6">6 months</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="status-filter">Status:</label>
+                            <select id="status-filter" class="filter-select">
+                                <option value="all">All Statuses</option>
+                                <option value="approved">Approved</option>
+                                <option value="pending">Pending</option>
+                                <option value="draft">Draft</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="scrollable-table-wrapper">
+                        <table id="capacity-table" class="capacity-planning-table">
+                            <thead>
+                                <tr>
+                                    <!-- Fixed columns -->
+                                    <th class="fixed-col col-member">Team Member</th>
+                                    <th class="fixed-col col-project">Project</th>
+                                    <th class="fixed-col col-status">Status</th>
+                                    <!-- Scrollable month columns will be generated dynamically -->
+                                </tr>
+                            </thead>
+                            <tbody id="capacity-table-body">
+                                <!-- Table rows will be populated here -->
+                                <tr class="no-data-row">
+                                    <td colspan="18" class="no-data-message">
+                                        <div class="no-data-content">
+                                            <i class="fas fa-table"></i>
+                                            <p>No capacity assignments configured yet.</p>
+                                            <button class="btn-primary" id="create-first-row-btn">Create First Assignment</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Initialize event listeners for Resource Overview section
+     */
+    initializeOverviewEventListeners() {
+        // Overview filter listeners
+        const overviewMemberFilter = document.getElementById('overview-member-filter');
+        const overviewStatusFilter = document.getElementById('overview-status-filter');
+
+        if (overviewMemberFilter) {
+            overviewMemberFilter.addEventListener('change', () => this.updateCapacityOverview());
+        }
+
+        if (overviewStatusFilter) {
+            overviewStatusFilter.addEventListener('change', () => this.updateCapacityOverview());
+        }
+
+        // Action buttons
+        const refreshBtn = document.getElementById('refresh-capacity-btn');
+        const exportBtn = document.getElementById('export-capacity-btn');
+
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.refresh());
+        }
+
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => this.exportCapacityData());
+        }
+        
+        console.log('Resource overview event listeners initialized');
+    }
+
+    /**
+     * Initialize event listeners for Timeline section
+     */
+    initializeTimelineEventListeners() {
+        // Filter event listeners
+        const teamFilter = document.getElementById('team-filter');
+        const projectsFilter = document.getElementById('projects-filter');
+        const timelineRange = document.getElementById('timeline-range');
+        const statusFilter = document.getElementById('status-filter');
+
+        if (teamFilter) {
+            teamFilter.addEventListener('change', (e) => {
+                this.currentFilters.team = e.target.value;
+                this.applyFilters();
+            });
+        }
+
+        if (projectsFilter) {
+            projectsFilter.addEventListener('change', (e) => {
+                this.currentFilters.projects = e.target.value;
+                this.applyFilters();
+            });
+        }
+
+        if (timelineRange) {
+            timelineRange.addEventListener('change', (e) => {
+                this.currentFilters.timeline = e.target.value;
+                this.updateTimelineRange();
+                this.updateCapacityOverview();
+            });
+        }
+
+        if (statusFilter) {
+            statusFilter.addEventListener('change', (e) => {
+                this.currentFilters.status = e.target.value;
+                this.applyFilters();
+            });
+        }
+
+        // Action button listeners
+        const addAssignmentBtn = document.getElementById('add-assignment-btn');
+        const exportTableBtn = document.getElementById('export-table-btn');
+        const refreshTimelineBtn = document.getElementById('refresh-timeline-btn');
+        const createFirstRowBtn = document.getElementById('create-first-row-btn');
+
+        if (addAssignmentBtn) {
+            addAssignmentBtn.addEventListener('click', () => this.showAddAssignmentModal());
+        }
+
+        if (exportTableBtn) {
+            exportTableBtn.addEventListener('click', () => this.exportCapacityTable());
+        }
+
+        if (refreshTimelineBtn) {
+            refreshTimelineBtn.addEventListener('click', () => this.refresh());
+        }
+
+        if (createFirstRowBtn) {
+            createFirstRowBtn.addEventListener('click', () => this.showAddAssignmentModal());
+        }
+        
+        console.log('Capacity timeline event listeners initialized');
+    }
+
+    /**
+     * Load overview-specific data
+     */
+    loadOverviewData() {
+        // Populate overview filters
+        this.populateOverviewFilters();
+        
+        // Generate capacity overview
+        this.generateCapacityOverview();
+        
+        console.log('Overview data loaded');
+    }
+
+    /**
+     * Load timeline-specific data
+     */
+    loadTimelineData() {
+        // Load project options for filters
+        this.loadProjectOptions();
+        
+        // Load capacity table
+        this.loadCapacityTable();
+        
+        console.log('Timeline data loaded');
     }
 
     /**

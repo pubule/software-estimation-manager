@@ -52,6 +52,8 @@ class EnhancedNavigationManager extends NavigationManager {
     initializeNestedNavigation() {
         this.setupNestedEventListeners();
         this.updateProjectStatus();
+        this.setupCapacityToggle();
+        this.capacityExpanded = false;
     }
 
     setupNestedEventListeners() {
@@ -95,6 +97,15 @@ class EnhancedNavigationManager extends NavigationManager {
                 }
             });
         });
+        
+        // Nested capacity sections
+        document.querySelectorAll('.nav-capacity-child[data-section]').forEach(child => {
+            child.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const sectionName = child.dataset.section;
+                this.navigateToCapacitySubSection(sectionName);
+            });
+        });
     }
 
     setupProjectToggle() {
@@ -103,6 +114,16 @@ class EnhancedNavigationManager extends NavigationManager {
             projectsToggle.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleProjectsSection();
+            });
+        }
+    }
+    
+    setupCapacityToggle() {
+        const capacityToggle = document.getElementById('capacity-toggle');
+        if (capacityToggle) {
+            capacityToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleCapacitySection();
             });
         }
     }
@@ -147,6 +168,17 @@ class EnhancedNavigationManager extends NavigationManager {
         // Special handling for capacity navigation
         if (sectionName === 'capacity') {
             this.showCapacityPage();
+            return;
+        }
+        
+        // Special handling for capacity sub-sections
+        if (sectionName === 'resource-overview') {
+            this.showResourceOverviewPage();
+            return;
+        }
+        
+        if (sectionName === 'capacity-timeline') {
+            this.showCapacityTimelinePage();
             return;
         }
 
@@ -349,6 +381,120 @@ class EnhancedNavigationManager extends NavigationManager {
 
         console.log('Navigated to capacity planning page');
     }
+    
+    // Method for navigating to capacity sub-sections
+    navigateToCapacitySubSection(sectionName) {
+        console.log(`Navigating to capacity sub-section: ${sectionName}`);
+        
+        // Expand capacity section if not expanded
+        if (!this.capacityExpanded) {
+            this.capacityExpanded = true;
+            this.updateCapacityExpansion();
+        }
+        
+        this.navigateTo(sectionName);
+    }
+    
+    // Method for Resource Capacity Overview
+    showResourceOverviewPage() {
+        console.log('Showing Resource Capacity Overview page');
+        
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+        
+        // Update active states
+        this.updateActiveStates('resource-overview');
+        
+        // Show target page
+        const targetPage = document.getElementById('resource-overview-page');
+        if (targetPage) {
+            targetPage.classList.add('active');
+            
+            // Initialize capacity manager if not exists
+            if (!this.app.capacityManager) {
+                this.app.capacityManager = new CapacityManager(this.app, this.configManager);
+            }
+            
+            // Render resource overview content
+            setTimeout(() => {
+                this.app.capacityManager.renderResourceOverview();
+            }, 100);
+        }
+        
+        // Store current section
+        this.currentSection = 'resource-overview';
+        
+        // Ensure capacity is expanded
+        if (!this.capacityExpanded) {
+            this.capacityExpanded = true;
+            this.updateCapacityExpansion();
+        }
+        
+        console.log('Navigated to resource overview page');
+    }
+    
+    // Method for Capacity Planning Timeline
+    showCapacityTimelinePage() {
+        console.log('Showing Capacity Planning Timeline page');
+        
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+        
+        // Update active states
+        this.updateActiveStates('capacity-timeline');
+        
+        // Show target page
+        const targetPage = document.getElementById('capacity-timeline-page');
+        if (targetPage) {
+            targetPage.classList.add('active');
+            
+            // Initialize capacity manager if not exists
+            if (!this.app.capacityManager) {
+                this.app.capacityManager = new CapacityManager(this.app, this.configManager);
+            }
+            
+            // Render capacity timeline content
+            setTimeout(() => {
+                this.app.capacityManager.renderCapacityTimeline();
+            }, 100);
+        }
+        
+        // Store current section
+        this.currentSection = 'capacity-timeline';
+        
+        // Ensure capacity is expanded
+        if (!this.capacityExpanded) {
+            this.capacityExpanded = true;
+            this.updateCapacityExpansion();
+        }
+        
+        console.log('Navigated to capacity timeline page');
+    }
+    
+    toggleCapacitySection() {
+        this.capacityExpanded = !this.capacityExpanded;
+        this.updateCapacityExpansion();
+        
+        // If capacity section is being opened and no specific sub-section is active,
+        // navigate to main capacity page
+        if (this.capacityExpanded && !this.isCapacitySubSection(this.currentSection)) {
+            this.navigateTo('capacity');
+        }
+    }
+    
+    updateCapacityExpansion() {
+        const toggle = document.getElementById('capacity-toggle');
+        const children = document.getElementById('capacity-children');
+        
+        if (toggle && children) {
+            toggle.classList.toggle('expanded', this.capacityExpanded);
+            children.classList.toggle('expanded', this.capacityExpanded);
+        }
+    }
 
     updateActiveStates(activeSectionName) {
         // Remove all active states
@@ -368,6 +514,14 @@ class EnhancedNavigationManager extends NavigationManager {
                     projectsSection.classList.add('active');
                 }
             }
+            
+            // If it's a capacity sub-section, also mark capacity as active
+            if (this.isCapacitySubSection(activeSectionName)) {
+                const capacitySection = document.querySelector('[data-section="capacity"]');
+                if (capacitySection) {
+                    capacitySection.classList.add('active');
+                }
+            }
         }
     }
 
@@ -383,6 +537,10 @@ class EnhancedNavigationManager extends NavigationManager {
 
     isProjectSubSection(sectionName) {
         return ['features', 'phases', 'calculations', 'history'].includes(sectionName);
+    }
+    
+    isCapacitySubSection(sectionName) {
+        return ['resource-overview', 'capacity-timeline'].includes(sectionName);
     }
 
     setProjectStatus(loaded, dirty = false) {
@@ -448,7 +606,8 @@ class EnhancedNavigationManager extends NavigationManager {
             currentSection: this.currentSection,
             projectLoaded: this.projectLoaded,
             projectDirty: this.projectDirty,
-            projectsExpanded: this.projectsExpanded
+            projectsExpanded: this.projectsExpanded,
+            capacityExpanded: this.capacityExpanded
         };
     }
 
@@ -457,10 +616,12 @@ class EnhancedNavigationManager extends NavigationManager {
             this.projectLoaded = state.projectLoaded || false;
             this.projectDirty = state.projectDirty || false;
             this.projectsExpanded = state.projectsExpanded || false;
+            this.capacityExpanded = state.capacityExpanded || false;
 
             this.updateProjectStatus();
             this.updateProjectSubSections();
             this.updateProjectsExpansion();
+            this.updateCapacityExpansion();
 
             if (state.currentSection) {
                 this.navigateTo(state.currentSection);
