@@ -193,6 +193,113 @@
     transition: width 0.3s ease;
 }
 
+/* Project Allocation by Resource Styles */
+.project-allocation-section {
+    background: #2d2d30;
+    border: 1px solid #3c3c3c;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #383838;
+    border-bottom: 1px solid #3c3c3c;
+}
+
+.project-header h4 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.project-total {
+    color: #007acc;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.project-resources {
+    padding: 8px 0;
+}
+
+.resource-allocation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid #404040;
+}
+
+.resource-allocation:last-child {
+    border-bottom: none;
+}
+
+.resource-allocation:hover {
+    background: #3c3c3c;
+}
+
+.resource-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.resource-name {
+    color: #cccccc;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.resource-role {
+    color: #999999;
+    font-size: 11px;
+}
+
+.resource-days {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.days-count {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.days-count.approved {
+    color: #28a745;
+}
+
+.days-count.pending {
+    color: #ffc107;
+}
+
+.status-indicator {
+    font-size: 12px;
+}
+
+.status-indicator.approved {
+    color: #28a745;
+}
+
+.status-indicator.pending {
+    color: #ffc107;
+}
+
+.no-data {
+    text-align: center;
+    color: #999999;
+    font-style: italic;
+    padding: 20px;
+}
+
 /* Timeline Overview Chart */
 .timeline-chart {
     display: flex;

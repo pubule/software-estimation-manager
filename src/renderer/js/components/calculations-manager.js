@@ -1466,69 +1466,6 @@ class CapacityManager extends BaseComponent {
 
                 <!-- Statistics Cards Row -->
                 <div class="dashboard-stats-grid">
-                    <!-- Team Overview Card -->
-                    <div class="dashboard-card team-overview-card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-users"></i> Team Overview</h3>
-                        </div>
-                        <div class="card-content">
-                            <div class="stat-item">
-                                <span class="stat-label">Total Team Members</span>
-                                <span class="stat-value" id="total-team-members">-</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Active Resources</span>
-                                <span class="stat-value" id="active-resources">-</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Vendors</span>
-                                <span class="stat-value" id="vendor-count">-</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Capacity Utilization Card -->
-                    <div class="dashboard-card capacity-util-card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-chart-bar"></i> Capacity Utilization</h3>
-                        </div>
-                        <div class="card-content">
-                            <div class="stat-item">
-                                <span class="stat-label">Current Month</span>
-                                <span class="stat-value capacity-percentage" id="current-month-util">-</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Next Month</span>
-                                <span class="stat-value capacity-percentage" id="next-month-util">-</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Average (6 months)</span>
-                                <span class="stat-value capacity-percentage" id="avg-utilization">-</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Project Allocation Card -->
-                    <div class="dashboard-card project-allocation-card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-project-diagram"></i> Project Allocation</h3>
-                        </div>
-                        <div class="card-content">
-                            <div class="stat-item">
-                                <span class="stat-label">Active Projects</span>
-                                <span class="stat-value" id="active-projects-count">-</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Approved MDs</span>
-                                <span class="stat-value" id="approved-mds">-</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Pending MDs</span>
-                                <span class="stat-value pending-mds" id="pending-mds">-</span>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Alerts & Warnings Card -->
                     <div class="dashboard-card alerts-card">
                         <div class="card-header">
@@ -1615,13 +1552,12 @@ class CapacityManager extends BaseComponent {
     // Load Dashboard Data
     loadDashboardData() {
         // Load team overview data
-        this.loadTeamOverviewData();
+
         
         // Load capacity utilization data
         this.loadCapacityUtilizationData();
         
-        // Load project allocation data
-        this.loadProjectAllocationData();
+
         
         // Load alerts and warnings
         this.loadAlertsData();
@@ -1634,20 +1570,7 @@ class CapacityManager extends BaseComponent {
         this.loadTeamPerformanceData();
     }
 
-    // Load Team Overview Data
-    loadTeamOverviewData() {
-        const teamMembers = this.getMockTeamMembers();
-        
-        document.getElementById('total-team-members').textContent = teamMembers.length;
-        
-        const activeMembers = teamMembers.filter(member => 
-            member.status === 'available' || member.status === 'allocated'
-        );
-        document.getElementById('active-resources').textContent = activeMembers.length;
-        
-        const vendors = [...new Set(teamMembers.map(member => member.vendor))];
-        document.getElementById('vendor-count').textContent = vendors.length;
-    }
+
 
     // Load Capacity Utilization Data
     loadCapacityUtilizationData() {
@@ -1688,16 +1611,7 @@ class CapacityManager extends BaseComponent {
     }
 
     // Load Project Allocation Data
-    loadProjectAllocationData() {
-        // Mock project data
-        const projects = ['Customer Portal', 'Mobile App', 'API Gateway', 'Dashboard'];
-        const approvedMDs = Math.round(Math.random() * 200 + 150);
-        const pendingMDs = Math.round(Math.random() * 100 + 50);
 
-        document.getElementById('active-projects-count').textContent = projects.length;
-        document.getElementById('approved-mds').textContent = approvedMDs;
-        document.getElementById('pending-mds').textContent = pendingMDs;
-    }
 
     // Load Alerts Data
     loadAlertsData() {
@@ -1741,29 +1655,76 @@ class CapacityManager extends BaseComponent {
     loadAllocationChart() {
         const chartContainer = document.getElementById('allocation-chart');
         
-        // Mock allocation data
-        const allocations = [
-            { project: 'Customer Portal', percentage: 35, color: '#007acc' },
-            { project: 'Mobile App', percentage: 28, color: '#28a745' },
-            { project: 'API Gateway', percentage: 22, color: '#ffc107' },
-            { project: 'Dashboard', percentage: 15, color: '#dc3545' }
-        ];
+        // Get team members and calculate project allocations
+        const teamMembers = this.getMockTeamMembers();
+        const currentMonth = '2024-08'; // Could be dynamic based on the filter
+        
+        // Process allocations by project and resource
+        const projectAllocations = {};
+        
+        teamMembers.forEach(member => {
+            const monthAllocations = member.allocations[currentMonth];
+            if (!monthAllocations) return;
+            
+            Object.keys(monthAllocations).forEach(projectName => {
+                // Skip non-project items like FERIE, ALLINEAMENTO, etc.
+                if (['FERIE', 'ALLINEAMENTO', 'Training'].includes(projectName)) {
+                    return;
+                }
+                
+                if (!projectAllocations[projectName]) {
+                    projectAllocations[projectName] = [];
+                }
+                
+                const allocation = monthAllocations[projectName];
+                projectAllocations[projectName].push({
+                    resource: `${member.firstName} ${member.lastName}`,
+                    role: member.role,
+                    vendor: member.vendor,
+                    days: allocation.days,
+                    status: allocation.status
+                });
+            });
+        });
 
-        const chartHTML = allocations.map(allocation => `
-            <div class="allocation-bar">
-                <div class="allocation-label">
-                    <span class="project-name">${allocation.project}</span>
-                    <span class="allocation-percentage">${allocation.percentage}%</span>
-                </div>
-                <div class="allocation-progress">
-                    <div class="allocation-fill" 
-                         style="width: ${allocation.percentage}%; background-color: ${allocation.color};">
+        // Sort projects by total MDs (descending)
+        const sortedProjects = Object.entries(projectAllocations).sort((a, b) => {
+            const totalA = a[1].reduce((sum, resource) => sum + resource.days, 0);
+            const totalB = b[1].reduce((sum, resource) => sum + resource.days, 0);
+            return totalB - totalA;
+        });
+
+        // Generate HTML for each project
+        const chartHTML = sortedProjects.map(([projectName, resources]) => {
+            const totalDays = resources.reduce((sum, resource) => sum + resource.days, 0);
+            
+            const resourcesHTML = resources.map(resource => `
+                <div class="resource-allocation">
+                    <div class="resource-info">
+                        <span class="resource-name">${resource.resource}</span>
+                        <span class="resource-role">${resource.role} (${resource.vendor})</span>
+                    </div>
+                    <div class="resource-days">
+                        <span class="days-count ${resource.status === 'approved' ? 'approved' : 'pending'}">${resource.days} MDs</span>
+                        <span class="status-indicator ${resource.status === 'approved' ? 'approved' : 'pending'}">${resource.status === 'approved' ? '✓' : '⏳'}</span>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+            
+            return `
+                <div class="project-allocation-section">
+                    <div class="project-header">
+                        <h4 class="project-name">${projectName}</h4>
+                        <span class="project-total">${totalDays} MDs total</span>
+                    </div>
+                    <div class="project-resources">
+                        ${resourcesHTML}
+                    </div>
+                </div>
+            `;
+        }).join('');
 
-        chartContainer.innerHTML = chartHTML;
+        chartContainer.innerHTML = chartHTML || '<div class="no-data">No project allocations found for the selected period</div>';
     }
 
     // Load Timeline Overview Chart
