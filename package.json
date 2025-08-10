@@ -55,7 +55,7 @@
     "playwright": "^1.40.1"
   },
   "dependencies": {
-    "@anthropic-ai/claude-code": "^1.0.67",
+    "@anthropic-ai/claude-code": "^1.0.72",
     "@google/gemini-cli": "^0.1.18",
     "electron-store": "^8.1.0",
     "papaparse": "^5.4.1",
