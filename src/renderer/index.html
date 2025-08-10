@@ -54,90 +54,149 @@
 
     <!-- Main Container -->
     <div class="main-container">
-        <!-- Sidebar Navigation with Nested Structure -->
-        <nav class="sidebar">
-            <div class="sidebar-header">
-                <h3>Project Explorer</h3>
-            </div>
-
-            <div class="nav-sections">
-                <!-- Projects Section with nested children -->
-                <div class="nav-section has-children" data-section="projects">
-                    <div class="nav-item">
+        <!-- VSCode-style Sidebar with Icon Bar and Expandable Panels -->
+        <div class="vscode-sidebar-container">
+            <!-- Icon Bar (Always Visible) -->
+            <nav class="icon-sidebar">
+                <div class="icon-sections">
+                    <div class="icon-item" data-panel="projects" title="Projects">
                         <i class="fas fa-folder-open"></i>
-                        <span>Projects</span>
-                        <div class="project-status-indicator no-project" id="nav-project-status"></div>
-                        <button class="nav-toggle" id="projects-toggle">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
                     </div>
-
-                    <div class="nav-children" id="projects-children">
-                        <div class="nav-child disabled" data-section="features">
-                            <i class="fas fa-list-ul"></i>
-                            <span>Features Management</span>
-                        </div>
-
-                        <div class="nav-child disabled" data-section="phases">
-                            <i class="fas fa-project-diagram"></i>
-                            <span>Project Phases</span>
-                        </div>
-
-                        <div class="nav-child disabled" data-section="calculations">
-                            <i class="fas fa-chart-bar"></i>
-                            <span>Calculations</span>
-                        </div>
-
-                        <div class="nav-child disabled" data-section="history">
-                            <i class="fas fa-history"></i>
-                            <span>Version History</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Capacity Section with nested children -->
-                <div class="nav-section has-children" data-section="capacity">
-                    <div class="nav-item">
+                    <div class="icon-item" data-panel="capacity" title="Capacity Planning">
                         <i class="fas fa-users"></i>
-                        <span>Capacity Planning</span>
-                        <button class="nav-toggle" id="capacity-toggle">
-                            <i class="fas fa-chevron-right"></i>
+                    </div>
+                    <div class="icon-item" data-panel="configuration" title="Configuration">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Expandable Panels -->
+            <div class="expandable-panels">
+                
+                <!-- Projects Panel -->
+                <div class="sidebar-panel" id="projects-panel" data-panel="projects">
+                    <div class="panel-header">
+                        <h3>Projects</h3>
+                        <div class="panel-close" data-panel="projects">
+                            <i class="fas fa-times"></i>
+                        </div>
+                    </div>
+
+                    <div class="panel-navigation">
+                        <!-- Main Projects Section -->
+                        <div class="nav-section has-children active" data-section="projects">
+                            <div class="nav-item">
+                                <i class="fas fa-folder-open"></i>
+                                <span>Projects</span>
+                                <div class="project-status-indicator no-project" id="nav-project-status"></div>
+                                <button class="nav-toggle" id="projects-toggle">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+
+                            <div class="nav-children" id="projects-children">
+                                <div class="nav-child disabled" data-section="features">
+                                    <i class="fas fa-list-ul"></i>
+                                    <span>Features Management</span>
+                                </div>
+
+                                <div class="nav-child disabled" data-section="phases">
+                                    <i class="fas fa-project-diagram"></i>
+                                    <span>Project Phases</span>
+                                </div>
+
+                                <div class="nav-child disabled" data-section="calculations">
+                                    <i class="fas fa-chart-bar"></i>
+                                    <span>Calculations</span>
+                                </div>
+
+                                <div class="nav-child disabled" data-section="history">
+                                    <i class="fas fa-history"></i>
+                                    <span>Version History</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Projects Specific Actions -->
+                    <div class="panel-footer">
+                        <button class="btn btn-primary" id="save-btn">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button class="btn btn-secondary" id="export-btn">
+                            <i class="fas fa-download"></i> Export
                         </button>
                     </div>
+                </div>
 
-                    <div class="nav-children" id="capacity-children">
-                        <div class="nav-child active" data-section="resource-overview">
-                            <i class="fas fa-chart-pie"></i>
-                            <span>Resource Capacity Overview</span>
+                <!-- Capacity Planning Panel -->
+                <div class="sidebar-panel" id="capacity-panel" data-panel="capacity">
+                    <div class="panel-header">
+                        <h3>Capacity Planning</h3>
+                        <div class="panel-close" data-panel="capacity">
+                            <i class="fas fa-times"></i>
                         </div>
+                    </div>
 
-                        <div class="nav-child" data-section="capacity-timeline">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>Capacity Planning Timeline</span>
+                    <div class="panel-navigation">
+                        <!-- Main Capacity Section -->
+                        <div class="nav-section has-children active" data-section="capacity">
+                            <div class="nav-item">
+                                <i class="fas fa-users"></i>
+                                <span>Capacity Planning</span>
+                                <button class="nav-toggle" id="capacity-toggle">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+
+                            <div class="nav-children" id="capacity-children">
+                                <div class="nav-child" data-section="resource-overview">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <span>Resource Capacity Overview</span>
+                                </div>
+
+                                <div class="nav-child" data-section="capacity-timeline">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span>Capacity Planning Timeline</span>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+
+                    <!-- No specific actions for Capacity Planning yet -->
+                    <div class="panel-footer">
+                        <!-- Actions will be added when implemented -->
                     </div>
                 </div>
 
-                <!-- Configuration Section (independent) -->
-                <div class="nav-section" data-section="configuration">
-                    <div class="nav-item">
-                        <i class="fas fa-cog"></i>
-                        <span>Configuration</span>
+                <!-- Configuration Panel -->
+                <div class="sidebar-panel" id="configuration-panel" data-panel="configuration">
+                    <div class="panel-header">
+                        <h3>Configuration</h3>
+                        <div class="panel-close" data-panel="configuration">
+                            <i class="fas fa-times"></i>
+                        </div>
+                    </div>
+
+                    <div class="panel-navigation">
+                        <!-- Configuration has no sub-sections, just direct access -->
+                        <div class="nav-section active" data-section="configuration">
+                            <div class="nav-item">
+                                <i class="fas fa-cog"></i>
+                                <span>Configuration</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- No specific actions for Configuration -->
+                    <div class="panel-footer">
+                        <!-- No save/export actions for configuration -->
                     </div>
                 </div>
 
             </div>
-
-            <!-- Quick Actions -->
-            <div class="sidebar-footer">
-                <button class="btn btn-primary" id="save-btn">
-                    <i class="fas fa-save"></i> Save
-                </button>
-                <button class="btn btn-secondary" id="export-btn">
-                    <i class="fas fa-download"></i> Export
-                </button>
-            </div>
-        </nav>
+        </div>
 
         <!-- Main Content Area -->
         <main class="content-area">

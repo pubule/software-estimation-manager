@@ -54,6 +54,8 @@ class EnhancedNavigationManager extends NavigationManager {
         this.updateProjectStatus();
         this.setupCapacityToggle();
         this.capacityExpanded = false;
+        this.setupVSCodeSidebar();
+        this.currentActivePanel = null;
     }
 
     setupNestedEventListeners() {
@@ -126,6 +128,216 @@ class EnhancedNavigationManager extends NavigationManager {
                 this.toggleCapacitySection();
             });
         }
+    }
+
+    // Setup VSCode-style Sidebar
+    setupVSCodeSidebar() {
+        console.log('Setting up VSCode sidebar...');
+        
+        // Icon items click handlers
+        const iconItems = document.querySelectorAll('.icon-item');
+        console.log('Found icon items:', iconItems.length);
+        
+        iconItems.forEach(iconItem => {
+            iconItem.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const panelType = iconItem.dataset.panel;
+                console.log('Icon clicked:', panelType);
+                this.toggleSidebarPanel(panelType);
+            });
+        });
+
+        // Panel close button handlers
+        const closeButtons = document.querySelectorAll('.panel-close');
+        console.log('Found close buttons:', closeButtons.length);
+        
+        closeButtons.forEach(closeBtn => {
+            closeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const panelType = closeBtn.dataset.panel;
+                console.log('Close button clicked:', panelType);
+                this.closeSidebarPanel(panelType);
+            });
+        });
+
+        // Initialize with projects panel active by default
+        setTimeout(() => {
+            console.log('Initializing projects panel...');
+            
+            // Double-check elements exist
+            const projectsPanel = document.getElementById('projects-panel');
+            const projectsIcon = document.querySelector('.icon-item[data-panel="projects"]');
+            console.log('Projects panel exists:', !!projectsPanel);
+            console.log('Projects icon exists:', !!projectsIcon);
+            
+            if (projectsPanel && projectsIcon) {
+                this.openSidebarPanel('projects');
+            } else {
+                console.error('VSCode sidebar elements not found!');
+            }
+        }, 500);
+    }
+
+    // Toggle sidebar panel
+    toggleSidebarPanel(panelType) {
+        if (this.currentActivePanel === panelType) {
+            // Close current panel if clicking same icon
+            this.closeSidebarPanel(panelType);
+        } else {
+            // Open new panel (closes others automatically)
+            this.openSidebarPanel(panelType);
+        }
+    }
+
+    // Open specific sidebar panel
+    openSidebarPanel(panelType) {
+        console.log(`Attempting to open panel: ${panelType}`);
+        
+        // Close all panels first
+        this.closeAllSidebarPanels();
+        
+        // Activate the icon
+        document.querySelectorAll('.icon-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        const targetIcon = document.querySelector(`.icon-item[data-panel="${panelType}"]`);
+        console.log('Target icon found:', !!targetIcon);
+        if (targetIcon) {
+            targetIcon.classList.add('active');
+        }
+
+        // Show the panel
+        const targetPanel = document.getElementById(`${panelType}-panel`);
+        console.log('Target panel found:', !!targetPanel);
+        if (targetPanel) {
+            targetPanel.classList.add('active');
+            console.log('Panel class added, current classes:', targetPanel.className);
+        }
+
+        // Add active panel class to container
+        const panelsContainer = document.querySelector('.expandable-panels');
+        if (panelsContainer) {
+            panelsContainer.classList.add('has-active-panel');
+        }
+
+        // Update current active panel
+        this.currentActivePanel = panelType;
+
+        // Auto-navigate based on panel type
+        this.handlePanelNavigation(panelType);
+
+        console.log(`Opened sidebar panel: ${panelType}`);
+    }
+
+    // Close specific sidebar panel
+    closeSidebarPanel(panelType) {
+        // Deactivate the icon
+        const targetIcon = document.querySelector(`.icon-item[data-panel="${panelType}"]`);
+        if (targetIcon) {
+            targetIcon.classList.remove('active');
+        }
+
+        // Hide the panel
+        const targetPanel = document.getElementById(`${panelType}-panel`);
+        if (targetPanel) {
+            targetPanel.classList.remove('active');
+        }
+
+        // Update current active panel
+        if (this.currentActivePanel === panelType) {
+            this.currentActivePanel = null;
+        }
+
+        console.log(`Closed sidebar panel: ${panelType}`);
+    }
+
+    // Close all sidebar panels
+    closeAllSidebarPanels() {
+        document.querySelectorAll('.icon-item').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        document.querySelectorAll('.sidebar-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+
+        // Remove active panel class from container
+        const panelsContainer = document.querySelector('.expandable-panels');
+        if (panelsContainer) {
+            panelsContainer.classList.remove('has-active-panel');
+        }
+
+        this.currentActivePanel = null;
+    }
+
+    // Handle navigation based on panel type
+    handlePanelNavigation(panelType) {
+        switch (panelType) {
+            case 'projects':
+                // Default to projects page, but don't force navigation
+                // User can navigate within the panel
+                if (!this.isProjectSubSection(this.currentSection) && this.currentSection !== 'projects') {
+                    this.navigateTo('projects');
+                }
+                break;
+                
+            case 'capacity':
+                // Default to main capacity page
+                if (!this.isCapacitySubSection(this.currentSection) && this.currentSection !== 'capacity') {
+                    this.navigateTo('capacity');
+                }
+                break;
+                
+            case 'configuration':
+                // Navigate to configuration
+                if (this.currentSection !== 'configuration') {
+                    this.navigateTo('configuration');
+                }
+                break;
+        }
+    }
+
+    // Test method for debugging (will be removed later)
+    testSidebar() {
+        console.log('=== VSCode Sidebar Test ===');
+        
+        const vscodeSidebarContainer = document.querySelector('.vscode-sidebar-container');
+        const iconSidebar = document.querySelector('.icon-sidebar');
+        const expandablePanels = document.querySelector('.expandable-panels');
+        const projectsPanel = document.getElementById('projects-panel');
+        const projectsIcon = document.querySelector('.icon-item[data-panel="projects"]');
+        
+        console.log('VSCode sidebar container:', !!vscodeSidebarContainer);
+        console.log('Icon sidebar:', !!iconSidebar);
+        console.log('Expandable panels:', !!expandablePanels);
+        console.log('Projects panel:', !!projectsPanel);
+        console.log('Projects icon:', !!projectsIcon);
+        
+        if (expandablePanels) {
+            console.log('Expandable panels styles:', getComputedStyle(expandablePanels));
+        }
+        
+        if (projectsPanel) {
+            console.log('Projects panel styles:', getComputedStyle(projectsPanel));
+            console.log('Projects panel classes:', projectsPanel.className);
+        }
+        
+        // Force open projects panel for testing
+        if (projectsPanel && projectsIcon) {
+            console.log('Forcing projects panel to open...');
+            projectsIcon.classList.add('active');
+            projectsPanel.classList.add('active');
+            expandablePanels?.classList.add('has-active-panel');
+            this.currentActivePanel = 'projects';
+            console.log('Projects panel forced open. Check visual result.');
+        }
+        
+        console.log('=== End Test ===');
     }
 
     toggleProjectsSection() {
@@ -608,7 +820,8 @@ class EnhancedNavigationManager extends NavigationManager {
             projectLoaded: this.projectLoaded,
             projectDirty: this.projectDirty,
             projectsExpanded: this.projectsExpanded,
-            capacityExpanded: this.capacityExpanded
+            capacityExpanded: this.capacityExpanded,
+            currentActivePanel: this.currentActivePanel
         };
     }
 
@@ -618,11 +831,19 @@ class EnhancedNavigationManager extends NavigationManager {
             this.projectDirty = state.projectDirty || false;
             this.projectsExpanded = state.projectsExpanded || false;
             this.capacityExpanded = state.capacityExpanded || false;
+            this.currentActivePanel = state.currentActivePanel || null;
 
             this.updateProjectStatus();
             this.updateProjectSubSections();
             this.updateProjectsExpansion();
             this.updateCapacityExpansion();
+
+            // Restore active sidebar panel
+            if (this.currentActivePanel) {
+                setTimeout(() => {
+                    this.openSidebarPanel(this.currentActivePanel);
+                }, 50);
+            }
 
             if (state.currentSection) {
                 this.navigateTo(state.currentSection);
@@ -630,6 +851,17 @@ class EnhancedNavigationManager extends NavigationManager {
         }
     }
 
+}
+
+// Make the test method globally available for debugging
+if (typeof window !== 'undefined') {
+    window.testVSCodeSidebar = function() {
+        if (window.app && window.app.navigationManager) {
+            window.app.navigationManager.testSidebar();
+        } else {
+            console.error('Navigation manager not available');
+        }
+    };
 }
 
 // Utility functions for navigation state management

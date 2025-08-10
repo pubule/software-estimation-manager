@@ -1103,6 +1103,222 @@
 }
 
 /**
+ * VSCode-Style Sidebar with Icon Bar and Expandable Panels
+ */
+
+/* VSCode Sidebar Container */
+.vscode-sidebar-container {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    background: var(--bg-secondary);
+}
+
+/* Icon Sidebar (Always Visible) */
+.icon-sidebar {
+    width: 50px;
+    background: var(--bg-tertiary);
+    border-right: 1px solid var(--border-primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    flex-shrink: 0;
+}
+
+.icon-sections {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    align-items: center;
+}
+
+.icon-item {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    color: var(--text-secondary);
+    font-size: 18px;
+    position: relative;
+}
+
+.icon-item:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.icon-item.active {
+    background-color: var(--bg-active);
+    color: var(--text-accent);
+}
+
+.icon-item.active::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    background-color: var(--text-accent);
+    border-radius: 0 2px 2px 0;
+}
+
+/* Expandable Panels Container */
+.expandable-panels {
+    position: relative;
+    background: var(--bg-secondary);
+    overflow: hidden;
+    width: 0;
+    transition: width var(--transition-normal);
+}
+
+.expandable-panels.has-active-panel {
+    width: 250px;
+}
+
+/* Sidebar Panel */
+.sidebar-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    background: var(--bg-secondary);
+    display: none;
+    flex-direction: column;
+    width: 250px;
+    border-right: 1px solid var(--border-primary);
+    z-index: 10;
+}
+
+.sidebar-panel.active {
+    display: flex;
+}
+
+/* Panel Header */
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-primary);
+    background: var(--bg-tertiary);
+    min-height: 44px;
+}
+
+.panel-header h3 {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.panel-close {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.panel-close:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* Panel Navigation */
+.panel-navigation {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-sm) 0;
+}
+
+/* Panel Footer */
+.panel-footer {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-primary);
+    background: var(--bg-tertiary);
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.panel-footer .btn {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+/* Content Area Adjustment */
+.vscode-sidebar-container + .content-area {
+    margin-left: 0;
+}
+
+/* Responsive behavior */
+@media (max-width: 768px) {
+    .sidebar-panel {
+        width: 200px;
+    }
+    
+    .icon-sidebar {
+        width: 44px;
+    }
+    
+    .icon-item {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+    
+    .panel-footer {
+        flex-direction: column;
+    }
+    
+    .panel-footer .btn {
+        flex: none;
+    }
+}
+
+/* Animation for panel transitions */
+@keyframes slideInPanel {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.sidebar-panel.active {
+    animation: slideInPanel 0.3s ease-out;
+}
+
+/* Focus styles for accessibility */
+.icon-item:focus {
+    outline: 2px solid var(--text-accent);
+    outline-offset: 2px;
+}
+
+.panel-close:focus {
+    outline: 2px solid var(--text-accent);
+    outline-offset: 1px;
+}
+
+/**
  * Nested Navigation CSS
  * Complete styles for hierarchical navigation with project sections
  */
