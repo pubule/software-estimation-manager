@@ -3237,31 +3237,6 @@ class CapacityManager extends BaseComponent {
                 <div class="capacity-subcell mds total">0</div>
             </div>
         `;
-        } else if (statusFilterValue === 'approved') {
-            breakdownContent = `<span class="approved-mds">✓ ${approvedMDs} MDs</span>`;
-        } else if (statusFilterValue === 'pending') {
-            breakdownContent = `<span class="pending-mds">⏳ ${pendingMDs} MDs</span>`;
-        }
-        
-        // Generate cell content
-        const cellContent = totalAllocated > 0 ? `
-            <div class="capacity-cell">
-                <span class="capacity-percentage ${percentageClass}">${utilizationPercentage}%</span>
-                <div class="capacity-breakdown">
-                    ${breakdownContent}
-                </div>
-                <div class="filter-indicator">
-                    <small>${statusFilterValue === 'all' ? 'Forecast' : statusFilterValue.toUpperCase()}</small>
-                </div>
-            </div>
-        ` : `
-            <div class="capacity-cell">
-                <span class="capacity-percentage low">0%</span>
-                <div class="capacity-breakdown">
-                    <span style="color: #666;">Available</span>
-                </div>
-            </div>
-        `;
         
         // Generate comprehensive tooltip information
         const tooltipText = `${member.firstName} ${member.lastName} - ${monthKey}: 
@@ -3273,7 +3248,7 @@ Total: ${totalMDs}/${maxCapacity} MDs (${totalPercentage}%)`;
             <td class="capacity-month-cell" 
                 data-month="${monthKey}" 
                 data-member="${member.id}"
-                data-utilization="${utilizationPercentage}"
+                data-utilization="${totalPercentage}"
                 data-approved="${approvedMDs}"
                 data-pending="${pendingMDs}"
                 title="${tooltipText}">
