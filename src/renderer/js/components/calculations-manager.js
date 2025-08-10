@@ -1902,31 +1902,41 @@ class CapacityManager extends BaseComponent {
     generateResourceOverviewHTML() {
         return `
             <div class="resource-overview-section">
-                <div class="stats-panel">
-                    <div class="panel-header">
-
-                        <div class="overview-filters">
-                            <div class="filter-group">
-                                <label for="overview-member-filter">Member:</label>
-                                <select id="overview-member-filter" class="filter-select">
-                                    <option value="">All Members</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="overview-status-filter">Status View:</label>
-                                <select id="overview-status-filter" class="filter-select">
-                                    <option value="all">All Status (Forecast)</option>
-                                    <option value="approved">Approved Only</option>
-                                    <option value="pending">Pending Only</option>
-                                </select>
-                            </div>
-
-                        </div>
-                    </div>
-                    <div class="capacity-overview-grid" id="capacity-overview-grid">
-                        <!-- Dynamic capacity overview will be generated here -->
-                    </div>
+                <div class="capacity-table-container">
+            <div class="capacity-table-header">
+                <h2>📊 Resource Capacity Overview</h2>
+                <div class="table-actions">
+                    <button id="refresh-overview-btn" class="btn-secondary">
+                        🔄 Refresh
+                    </button>
+                    <button id="export-overview-btn" class="btn-secondary">
+                        📊 Export Overview
+                    </button>
                 </div>
+            </div>
+            
+            <!-- Overview Filters -->
+            <div class="capacity-filters">
+                <div class="filter-group">
+                    <label for="overview-member-filter">Member:</label>
+                    <select id="overview-member-filter" class="filter-select">
+                        <option value="">All Members</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="overview-status-filter">Status View:</label>
+                    <select id="overview-status-filter" class="filter-select">
+                        <option value="all">All Status (Forecast)</option>
+                        <option value="approved">Approved Only</option>
+                        <option value="pending">Pending Only</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="scrollable-table-wrapper" id="capacity-overview-grid">
+                <!-- Dynamic capacity overview will be generated here -->
+            </div>
+        </div>
             </div>
         `;
     }
@@ -2154,27 +2164,38 @@ class CapacityManager extends BaseComponent {
         <section id="capacity-section">
 
         <!-- Statistics and Alerts Panel -->
-        <div class="stats-panel">
-            <div class="panel-header">
+        <div class="capacity-table-container">
+            <div class="capacity-table-header">
                 <h2>📊 Resource Capacity Overview</h2>
-                <div class="overview-filters">
-                    <div class="filter-group">
-                        <label for="overview-member-filter">Member:</label>
-                        <select id="overview-member-filter" class="filter-select">
-                            <option value="">All Members</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="overview-status-filter">Status View:</label>
-                        <select id="overview-status-filter" class="filter-select">
-                            <option value="all">All Status (Forecast)</option>
-                            <option value="approved">Approved Only</option>
-                            <option value="pending">Pending Only</option>
-                        </select>
-                    </div>
+                <div class="table-actions">
+                    <button id="refresh-overview-btn" class="btn-secondary">
+                        🔄 Refresh
+                    </button>
+                    <button id="export-overview-btn" class="btn-secondary">
+                        📊 Export Overview
+                    </button>
                 </div>
             </div>
-            <div class="capacity-overview-grid" id="capacity-overview-grid">
+            
+            <!-- Overview Filters -->
+            <div class="capacity-filters">
+                <div class="filter-group">
+                    <label for="overview-member-filter">Member:</label>
+                    <select id="overview-member-filter" class="filter-select">
+                        <option value="">All Members</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="overview-status-filter">Status View:</label>
+                    <select id="overview-status-filter" class="filter-select">
+                        <option value="all">All Status (Forecast)</option>
+                        <option value="approved">Approved Only</option>
+                        <option value="pending">Pending Only</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="scrollable-table-wrapper" id="capacity-overview-grid">
                 <!-- Dynamic capacity overview will be generated here -->
             </div>
         </div>
@@ -3237,9 +3258,9 @@ class CapacityManager extends BaseComponent {
             filteredMembers = teamMembers.filter(member => member.id === selectedMemberId);
         }
         
-        // Generate month headers
+        // Generate month headers with correct classes
         const monthHeaders = months.map(monthDisplay => 
-            `<th class="month-header">${monthDisplay}</th>`
+            `<th class="month-col">${monthDisplay}</th>`
         ).join('');
         
         // Generate rows for each filtered team member
@@ -3257,7 +3278,7 @@ class CapacityManager extends BaseComponent {
             
             return `
                 <tr class="capacity-overview-row" data-member="${member.id}">
-                    <td class="resource-name">
+                    <td class="fixed-col col-member resource-name">
                         <div class="resource-info">
                             <div class="resource-name-text">${memberName}</div>
                             <div class="resource-role">${memberRole}</div>
@@ -3271,7 +3292,7 @@ class CapacityManager extends BaseComponent {
         // Show message if no members match filter
         const noDataRow = filteredMembers.length === 0 ? `
             <tr>
-                <td class="resource-name">No members match the selected filter</td>
+                <td class="fixed-col col-member resource-name">No members match the selected filter</td>
                 ${months.map(() => '<td class="capacity-month-cell"><span style="color: #666;">-</span></td>').join('')}
             </tr>
         ` : '';
@@ -3280,7 +3301,7 @@ class CapacityManager extends BaseComponent {
             <table class="capacity-overview-table">
                 <thead>
                     <tr>
-                        <th class="resource-name">Resource</th>
+                        <th class="fixed-col col-member">Resource</th>
                         ${monthHeaders}
                     </tr>
                 </thead>

@@ -1324,7 +1324,43 @@
 /* Capacity Overview Grid for Resource/Month view */
 .capacity-overview-grid {
     padding: 20px;
+    /* Remove overflow-x: auto - will be handled by wrapper */
+}
+
+/* Scrollable wrapper for capacity overview table */
+.capacity-overview-scrollable-wrapper {
     overflow-x: auto;
+    overflow-y: auto;
+    max-width: 100%;
+    max-height: 500px;
+    position: relative;
+    border: 1px solid #333333;
+    border-radius: 6px;
+}
+
+/* Custom scrollbars for capacity overview wrapper */
+.capacity-overview-scrollable-wrapper::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.capacity-overview-scrollable-wrapper::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 4px;
+}
+
+.capacity-overview-scrollable-wrapper::-webkit-scrollbar-thumb {
+    background: #555555;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.capacity-overview-scrollable-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #777777;
+}
+
+.capacity-overview-scrollable-wrapper::-webkit-scrollbar-corner {
+    background: #1e1e1e;
 }
 
 .capacity-overview-table {
@@ -1367,6 +1403,19 @@
     background: #1e1e1e;
     border-right: 2px solid #007acc;
     min-width: 150px;
+    z-index: 10;
+}
+
+/* Header for resource column - keep it fixed during horizontal scroll */
+.capacity-overview-table th.resource-name,
+.capacity-overview-table th.resource-header {
+    position: sticky;
+    left: 0;
+    background: #2d2d30 !important;
+    border-right: 2px solid #007acc;
+    min-width: 150px;
+    z-index: 20; /* Higher than TD z-index */
+    text-align: left;
 }
 
 .capacity-overview-table .month-header {
