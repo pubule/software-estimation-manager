@@ -1904,7 +1904,7 @@ class CapacityManager extends BaseComponent {
             <div class="resource-overview-section">
                 <div class="stats-panel">
                     <div class="panel-header">
-                        <h2>📊 Resource Capacity Overview</h2>
+
                         <div class="overview-filters">
                             <div class="filter-group">
                                 <label for="overview-member-filter">Member:</label>
@@ -1920,14 +1920,7 @@ class CapacityManager extends BaseComponent {
                                     <option value="pending">Pending Only</option>
                                 </select>
                             </div>
-                            <div class="table-actions">
-                                <button id="refresh-capacity-btn" class="btn-secondary">
-                                    🔄 Refresh
-                                </button>
-                                <button id="export-capacity-btn" class="btn-secondary">
-                                    📊 Export
-                                </button>
-                            </div>
+
                         </div>
                     </div>
                     <div class="capacity-overview-grid" id="capacity-overview-grid">
@@ -1946,22 +1939,7 @@ class CapacityManager extends BaseComponent {
             <div class="capacity-timeline-section">
                 <!-- Capacity Planning Table -->
                 <div class="capacity-table-container">
-                    <div class="capacity-table-header">
-                        <h2>📋 Capacity Planning Timeline</h2>
-                        <div class="table-actions">
-                            <button id="add-assignment-btn" class="btn-primary">
-                                ➕ Add Assignment
-                            </button>
-                            <button id="export-table-btn" class="btn-secondary">
-                                📊 Export Table
-                            </button>
-                            <button id="refresh-timeline-btn" class="btn-secondary">
-                                🔄 Refresh
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Table Filters -->
+<!-- Table Filters -->
                     <div class="capacity-filters">
                         <div class="filter-group">
                             <label for="team-filter">Team:</label>
