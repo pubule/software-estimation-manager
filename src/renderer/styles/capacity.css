@@ -697,7 +697,7 @@
 .member-info {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
 }
 
 .member-name {
@@ -963,7 +963,6 @@
 
 .member-info {
     display: flex;
-    align-items: center;
     gap: 12px;
 }
 
@@ -2493,6 +2492,7 @@
     left: 0px;
     min-width: 150px;
     width: 150px;
+    text-align: left;
     z-index: 13; /* Highest priority */
 }
 
@@ -2622,6 +2622,12 @@
     font-weight: 600;
     color: #ffffff;
     font-size: 12px;
+}
+
+.member-details {
+    font-size: 10px;
+    color: #9cdcfe;
+    font-weight: normal;
 }
 
 .member-role-small {
