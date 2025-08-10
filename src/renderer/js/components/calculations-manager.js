@@ -2745,7 +2745,8 @@ class CapacityManager extends BaseComponent {
                 allocations: {
                     '2024-08': { 
                         'Testing Portal': { days: 18, status: 'approved' },
-                        'Automation': { days: 2, status: 'pending' }
+                        'Automation': { days: 2, status: 'pending' },
+                        'Quality Review': { days: 2, status: 'approved' }
                     },
                     '2024-09': { 
                         'Testing Portal': { days: 10, status: 'approved' },
@@ -2778,6 +2779,117 @@ class CapacityManager extends BaseComponent {
                     '2025-03': { 
                         'Testing Data': { days: 16, status: 'approved' },
                         'E2E Testing': { days: 4, status: 'pending' }
+                    }
+                }
+            },
+            {
+                id: 'tm-005',
+                firstName: 'Marco',
+                lastName: 'Neri', 
+                role: 'G3',
+                vendor: 'Vendor A',
+                monthlyCapacity: 22,
+                allocations: {
+                    '2024-01': { 
+                        'Documentation': { days: 18, status: 'approved' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' },
+                        'Training': { days: 2, status: 'pending' }
+                    },
+                    '2024-02': { 
+                        'Documentation': { days: 16, status: 'approved' },
+                        'Code Review': { days: 4, status: 'approved' },
+                        'Training': { days: 2, status: 'pending' }
+                    },
+                    '2024-03': { 
+                        'System Design': { days: 14, status: 'approved' },
+                        'Documentation': { days: 6, status: 'approved' },
+                        'FERIE': { days: 2, status: 'approved' }
+                    },
+                    '2024-04': { 
+                        'System Design': { days: 18, status: 'approved' },
+                        'Code Review': { days: 4, status: 'pending' }
+                    },
+                    '2024-05': { 
+                        'Customer Portal': { days: 16, status: 'approved' },
+                        'Documentation': { days: 4, status: 'approved' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' }
+                    },
+                    '2024-06': { 
+                        'Customer Portal': { days: 15, status: 'approved' },
+                        'Testing Support': { days: 5, status: 'pending' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' }
+                    },
+                    '2024-07': { 
+                        'Customer Portal': { days: 12, status: 'approved' },
+                        'Mobile App': { days: 6, status: 'approved' },
+                        'FERIE': { days: 4, status: 'approved' }
+                    },
+                    '2024-08': { 
+                        'Documentation': { days: 15, status: 'approved' },
+                        'Review': { days: 5, status: 'pending' },
+                        'Training': { days: 2, status: 'approved' }
+                    },
+                    '2024-09': { 
+                        'Documentation': { days: 12, status: 'approved' },
+                        'Mobile App': { days: 8, status: 'pending' },
+                        'ALLINEAMENTO': { days: 2, status: 'approved' }
+                    },
+                    '2024-10': { 
+                        'Mobile App': { days: 18, status: 'approved' },
+                        'Performance Testing': { days: 4, status: 'pending' }
+                    }
+                }
+            },
+            {
+                id: 'tm-006',
+                firstName: 'Giulia',
+                lastName: 'Ferrari',
+                role: 'UX',
+                vendor: 'Internal',
+                monthlyCapacity: 20,
+                allocations: {
+                    '2024-01': { 
+                        'UI Design': { days: 18, status: 'approved' },
+                        'User Research': { days: 2, status: 'approved' }
+                    },
+                    '2024-02': { 
+                        'UI Design': { days: 16, status: 'approved' },
+                        'Prototyping': { days: 4, status: 'pending' }
+                    },
+                    '2024-03': { 
+                        'Customer Portal': { days: 15, status: 'approved' },
+                        'Design System': { days: 3, status: 'approved' },
+                        'FERIE': { days: 2, status: 'approved' }
+                    },
+                    '2024-04': { 
+                        'Customer Portal': { days: 17, status: 'approved' },
+                        'User Testing': { days: 3, status: 'pending' }
+                    },
+                    '2024-05': { 
+                        'Customer Portal': { days: 14, status: 'approved' },
+                        'Design System': { days: 4, status: 'approved' },
+                        'User Research': { days: 2, status: 'pending' }
+                    },
+                    '2024-06': { 
+                        'Mobile App': { days: 16, status: 'approved' },
+                        'Accessibility Review': { days: 4, status: 'pending' }
+                    },
+                    '2024-07': { 
+                        'Mobile App': { days: 14, status: 'approved' },
+                        'Design Review': { days: 4, status: 'approved' },
+                        'FERIE': { days: 2, status: 'approved' }
+                    },
+                    '2024-08': { 
+                        'Mobile App': { days: 16, status: 'approved' },
+                        'Design System': { days: 4, status: 'pending' }
+                    },
+                    '2024-09': { 
+                        'Mobile App': { days: 14, status: 'approved' },
+                        'User Research': { days: 6, status: 'pending' }
+                    },
+                    '2024-10': { 
+                        'Customer Portal': { days: 12, status: 'approved' },
+                        'Design Review': { days: 8, status: 'approved' }
                     }
                 }
             }
@@ -2999,11 +3111,16 @@ class CapacityManager extends BaseComponent {
                 
                 // Generate month cells for this member-project combination
                 const monthCells = months.map((monthDisplay, index) => {
-                    const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + index, 1);
+                    // Calculate correct month: 0-11 for current year, 0-2 for next year
+                    const currentYear = currentDate.getFullYear();
+                    const monthDate = index < 12 
+                        ? new Date(currentYear, index, 1)
+                        : new Date(currentYear + 1, index - 12, 1);
                     const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
                     
                     const monthAllocations = member.allocations[monthKey] || {};
-                    const projectDays = monthAllocations[project] || 0;
+                    const projectAllocation = monthAllocations[project];
+                    const projectDays = projectAllocation ? projectAllocation.days : 0;
                     
                     const cellContent = projectDays > 0 ? 
                         `<div class="month-allocation has-allocation" 
@@ -3314,7 +3431,11 @@ class CapacityManager extends BaseComponent {
             
             // Generate month cells for this member
             const monthCells = months.map((monthDisplay, index) => {
-                const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + index, 1);
+                // Calculate correct month: 0-11 for current year, 0-2 for next year
+                const currentYear = currentDate.getFullYear();
+                const monthDate = index < 12 
+                    ? new Date(currentYear, index, 1)
+                    : new Date(currentYear + 1, index - 12, 1);
                 const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
                 
                 return this.generateMonthCapacityCell(member, monthKey);
