@@ -104,10 +104,21 @@
 }
 
 /* Capacity Percentage Color Coding */
-.capacity-percentage.over-capacity { color: #f14c4c; }
-.capacity-percentage.high-capacity { color: #ffcc02; }
-.capacity-percentage.normal-capacity { color: #73c991; }
-.capacity-percentage.low-capacity { color: #007acc; }
+.capacity-percentage.over-capacity {
+    color: #f14c4c;
+}
+
+.capacity-percentage.high-capacity {
+    color: #ffcc02;
+}
+
+.capacity-percentage.normal-capacity {
+    color: #73c991;
+}
+
+.capacity-percentage.low-capacity {
+    color: #007acc;
+}
 
 .pending-mds {
     color: #ffcc02;
@@ -333,10 +344,21 @@
     transition: height 0.3s ease;
 }
 
-.month-fill.over-capacity { background: #f14c4c; }
-.month-fill.high-capacity { background: #ffcc02; }
-.month-fill.normal-capacity { background: #73c991; }
-.month-fill.low-capacity { background: #007acc; }
+.month-fill.over-capacity {
+    background: #f14c4c;
+}
+
+.month-fill.high-capacity {
+    background: #ffcc02;
+}
+
+.month-fill.normal-capacity {
+    background: #73c991;
+}
+
+.month-fill.low-capacity {
+    background: #007acc;
+}
 
 .month-label {
     font-size: 11px;
@@ -468,10 +490,25 @@
     text-align: center;
 }
 
-.performance-score.score-critical { background: rgba(241, 76, 76, 0.2); color: #f14c4c; }
-.performance-score.score-high { background: rgba(255, 204, 2, 0.2); color: #ffcc02; }
-.performance-score.score-good { background: rgba(115, 201, 145, 0.2); color: #73c991; }
-.performance-score.score-low { background: rgba(0, 122, 204, 0.2); color: #007acc; }
+.performance-score.score-critical {
+    background: rgba(241, 76, 76, 0.2);
+    color: #f14c4c;
+}
+
+.performance-score.score-high {
+    background: rgba(255, 204, 2, 0.2);
+    color: #ffcc02;
+}
+
+.performance-score.score-good {
+    background: rgba(115, 201, 145, 0.2);
+    color: #73c991;
+}
+
+.performance-score.score-low {
+    background: rgba(0, 122, 204, 0.2);
+    color: #007acc;
+}
 
 .performance-details {
     display: flex;
@@ -517,15 +554,15 @@
     .dashboard-stats-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .dashboard-quick-actions {
         flex-wrap: wrap;
     }
-    
+
     .timeline-chart {
         height: 100px;
     }
-    
+
     .month-bar {
         height: 60px;
     }
@@ -1032,7 +1069,6 @@
 }
 
 
-
 .allocation-block:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
@@ -1400,7 +1436,7 @@
     position: sticky;
     left: 0;
     background: #1e1e1e;
-    border-right: 2px solid #007acc;
+
     min-width: 150px;
     z-index: 10;
 }
@@ -1411,7 +1447,7 @@
     position: sticky;
     left: 0;
     background: #2d2d30 !important;
-    border-right: 2px solid #007acc;
+
     min-width: 150px;
     z-index: 20; /* Higher than TD z-index */
     text-align: left;
@@ -1890,12 +1926,12 @@
         grid-template-columns: 1fr;
         gap: 16px;
     }
-    
+
     .timeline-months,
     .timeline-allocations {
         grid-template-columns: repeat(12, 50px);
     }
-    
+
     .month-cell {
         font-size: 11px;
         padding: 6px 2px;
@@ -1906,52 +1942,52 @@
     #capacity-section {
         padding: 16px;
     }
-    
+
     .section-header {
         flex-direction: column;
         gap: 16px;
         align-items: stretch;
     }
-    
+
     .capacity-filters {
         flex-direction: column;
         gap: 12px;
     }
-    
+
     .filter-group {
         min-width: auto;
     }
-    
+
     .timeline-months,
     .timeline-allocations {
         grid-template-columns: repeat(6, 60px);
     }
-    
+
     .statistics-grid {
         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         gap: 12px;
     }
-    
+
     .assignment-header {
         flex-direction: column;
         gap: 12px;
         align-items: stretch;
     }
-    
+
     .assignment-actions {
         align-self: flex-start;
     }
-    
+
     .modal-content {
         width: 95%;
         margin: 20px;
     }
-    
+
     .form-row {
         grid-template-columns: 1fr;
         gap: 16px;
     }
-    
+
     .allocation-grid {
         grid-template-columns: 1fr;
         gap: 12px;
@@ -2122,7 +2158,6 @@
 }
 
 
-
 .table-actions {
     display: flex;
     gap: 12px;
@@ -2206,12 +2241,12 @@
     position: sticky;
     z-index: 10;
     background: #2d2d30 !important;
-    border-right: 2px solid #007acc;
+
 }
 
 .capacity-planning-table td.fixed-col {
     background: #1e1e1e !important;
-    border-right: 2px solid #007acc;
+
     position: sticky;
     z-index: 10;
 }
@@ -2243,7 +2278,7 @@
     z-index: 13;
     position: sticky;
     background: #1e1e1e !important;
-    border-right: 2px solid #007acc;
+
 }
 
 .capacity-planning-table td.col-project {
@@ -2251,7 +2286,7 @@
     z-index: 12;
     position: sticky;
     background: #1e1e1e !important;
-    border-right: 2px solid #007acc;
+
 }
 
 .capacity-planning-table td.col-status {
@@ -2259,7 +2294,7 @@
     z-index: 11;
     position: sticky;
     background: #1e1e1e !important;
-    border-right: 2px solid #007acc;
+
 }
 
 /* Header cells (TH) for fixed columns */
@@ -2268,7 +2303,7 @@
     z-index: 23; /* Higher than standard th z-index: 15 */
     position: sticky;
     background: #2d2d30 !important;
-    border-right: 2px solid #007acc;
+
 }
 
 .capacity-planning-table th.col-project {
@@ -2276,7 +2311,7 @@
     z-index: 22;
     position: sticky;
     background: #2d2d30 !important;
-    border-right: 2px solid #007acc;
+
 }
 
 .capacity-planning-table th.col-status {
@@ -2284,7 +2319,7 @@
     z-index: 21;
     position: sticky;
     background: #2d2d30 !important;
-    border-right: 2px solid #007acc;
+
 }
 
 /* Month columns */

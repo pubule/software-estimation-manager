@@ -1905,14 +1905,7 @@ class CapacityManager extends BaseComponent {
                 <div class="capacity-table-container">
             <div class="capacity-table-header">
                 <h2>📊 Resource Capacity Overview</h2>
-                <div class="table-actions">
-                    <button id="refresh-overview-btn" class="btn-secondary">
-                        🔄 Refresh
-                    </button>
-                    <button id="export-overview-btn" class="btn-secondary">
-                        📊 Export Overview
-                    </button>
-                </div>
+
             </div>
             
             <!-- Overview Filters -->
@@ -2167,14 +2160,7 @@ class CapacityManager extends BaseComponent {
         <div class="capacity-table-container">
             <div class="capacity-table-header">
                 <h2>📊 Resource Capacity Overview</h2>
-                <div class="table-actions">
-                    <button id="refresh-overview-btn" class="btn-secondary">
-                        🔄 Refresh
-                    </button>
-                    <button id="export-overview-btn" class="btn-secondary">
-                        📊 Export Overview
-                    </button>
-                </div>
+
             </div>
             
             <!-- Overview Filters -->
@@ -2204,14 +2190,7 @@ class CapacityManager extends BaseComponent {
         <div class="capacity-table-container">
             <div class="capacity-table-header">
                 <h2>📋 Capacity Planning Timeline</h2>
-                <div class="table-actions">
-                    <button id="add-assignment-btn" class="btn-primary">
-                        ➕ Add Assignment
-                    </button>
-                    <button id="export-table-btn" class="btn-secondary">
-                        📊 Export Table
-                    </button>
-                </div>
+
             </div>
             
             <!-- Table Filters -->
