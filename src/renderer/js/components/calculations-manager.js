@@ -1903,10 +1903,7 @@ class CapacityManager extends BaseComponent {
         return `
             <div class="resource-overview-section">
                 <div class="capacity-table-container">
-            <div class="capacity-table-header">
-                <h2>📊 Resource Capacity Overview</h2>
 
-            </div>
             
             <!-- Overview Filters -->
             <div class="capacity-filters">
@@ -2158,10 +2155,7 @@ class CapacityManager extends BaseComponent {
 
         <!-- Statistics and Alerts Panel -->
         <div class="capacity-table-container">
-            <div class="capacity-table-header">
-                <h2>📊 Resource Capacity Overview</h2>
 
-            </div>
             
             <!-- Overview Filters -->
             <div class="capacity-filters">
