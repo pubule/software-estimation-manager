@@ -9,6 +9,15 @@ class TeamsConfigManager {
         this.configManager = configManager;
         this.selectedTeam = null;
         this.currentScope = 'global'; // 'global' or 'project'
+        this.editingTeam = null;
+        this.editingTeamMember = null;
+        
+        // Flags to prevent double operations - same as Categories
+        this.isDeletingTeam = false;
+        this.isDeletingTeamMember = false;
+        this.isSavingTeam = false;
+        this.isSavingTeamMember = false;
+        this.isResetting = false;
 
         // Initialize with default teams if needed
         this.init();
@@ -143,21 +152,60 @@ class TeamsConfigManager {
     }
 
     /**
-     * Set up event listeners for the teams page
+     * Set up event listeners for the teams page - same pattern as Categories
      */
     setupEventListeners() {
-        const container = document.querySelector('.teams-config-container');
-        if (!container) return;
+        // Remove existing listeners first to prevent duplicates
+        if (this.boundClickHandler) {
+            document.removeEventListener('click', this.boundClickHandler);
+        }
+        if (this.boundSubmitHandler) {
+            document.removeEventListener('submit', this.boundSubmitHandler);
+        }
 
-        // Use event delegation for dynamic content
-        container.addEventListener('click', (e) => this.handleClick(e));
-        container.addEventListener('submit', (e) => this.handleSubmit(e));
+        // Create bound handlers
+        this.boundClickHandler = this.handleClick.bind(this);
+        this.boundSubmitHandler = this.handleSubmit.bind(this);
+
+        // Add single delegated event listeners
+        document.addEventListener('click', this.boundClickHandler);
+        document.addEventListener('submit', this.boundSubmitHandler);
     }
 
     /**
      * Handle click events
      */
     handleClick(e) {
+        // Handle team selection first (before preventing default)
+        const teamItem = e.target.closest('.team-item');
+        if (teamItem) {
+            const teamId = teamItem.dataset.teamId;
+            if (teamId) {
+                this.selectTeam(teamId);
+                return; // Don't process other actions if clicking on team item
+            }
+        }
+
+        // Modal close buttons - same logic as Categories
+        if (e.target.closest('.modal-close')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const modalElement = e.target.closest('.modal');
+            if (modalElement) {
+                this.closeModal(modalElement.id);
+            }
+            return;
+        }
+
+        // Handle scope tab switching
+        if (e.target.classList.contains('teams-scope-tab')) {
+            const scope = e.target.dataset.scope;
+            this.switchScope(scope);
+            e.preventDefault();
+            return;
+        }
+
+        // Handle action buttons
         const target = e.target.closest('[data-action]');
         if (!target) return;
 
@@ -193,35 +241,31 @@ class TeamsConfigManager {
                 this.resetToDefaultTeams();
                 break;
         }
-
-        // Handle team selection
-        if (target.classList.contains('team-item')) {
-            const teamId = target.dataset.teamId;
-            this.selectTeam(teamId);
-        }
-
-        // Handle modal close
-        if (target.classList.contains('modal-close')) {
-            this.closeModal();
-        }
-
-        // Handle scope tab switching
-        if (target.classList.contains('teams-scope-tab')) {
-            const scope = target.dataset.scope;
-            this.switchScope(scope);
-        }
     }
 
     /**
-     * Handle form submission
+     * Handle form submission - same pattern as Categories
      */
     handleSubmit(e) {
         e.preventDefault();
+        e.stopImmediatePropagation();
+        
+        console.log('Form submitted:', e.target.id);
         
         if (e.target.id === 'team-form') {
-            this.saveTeamForm();
+            // Additional check to prevent double execution
+            if (!this.isSavingTeam) {
+                this.saveTeamForm();
+            } else {
+                console.log('Team form submission ignored - save in progress');
+            }
         } else if (e.target.id === 'team-member-form') {
-            this.saveTeamMemberForm();
+            // Additional check to prevent double execution
+            if (!this.isSavingTeamMember) {
+                this.saveTeamMemberForm();
+            } else {
+                console.log('Team member form submission ignored - save in progress');
+            }
         }
     }
 
@@ -696,162 +740,169 @@ class TeamsConfigManager {
 
     // Modal and form handling methods
     showAddTeamModal() {
-        const modal = document.getElementById('team-modal');
-        const title = document.getElementById('team-modal-title');
-        const form = document.getElementById('team-form');
-
-        if (modal && title && form) {
-            title.textContent = 'Add Team';
-            form.reset();
-            form.dataset.mode = 'add';
-            modal.classList.add('show');
-        }
+        this.editingTeam = null;
+        document.getElementById('team-modal-title').textContent = 'Add Team';
+        document.getElementById('team-form').reset();
+        document.getElementById('team-modal').classList.add('active');
     }
 
     editTeam(teamId) {
         const teams = this.getCurrentTeams();
-        const team = teams.find(t => t.id === teamId);
-        if (!team) return;
+        this.editingTeam = teams.find(t => t.id === teamId);
+        if (!this.editingTeam) return;
 
-        const modal = document.getElementById('team-modal');
-        const title = document.getElementById('team-modal-title');
-        const form = document.getElementById('team-form');
-
-        if (modal && title && form) {
-            title.textContent = 'Edit Team';
-            
-            // Populate form
-            document.getElementById('team-name').value = team.name || '';
-            document.getElementById('team-description').value = team.description || '';
-            document.getElementById('team-status').value = team.status || 'active';
-            
-            form.dataset.mode = 'edit';
-            form.dataset.teamId = teamId;
-            modal.classList.add('show');
-        }
+        document.getElementById('team-modal-title').textContent = 'Edit Team';
+        
+        // Populate form
+        document.getElementById('team-name').value = this.editingTeam.name || '';
+        document.getElementById('team-description').value = this.editingTeam.description || '';
+        document.getElementById('team-status').value = this.editingTeam.status || 'active';
+        
+        document.getElementById('team-modal').classList.add('active');
     }
 
-    duplicateTeam(teamId) {
+    async duplicateTeam(teamId) {
         const teams = this.getCurrentTeams();
         const team = teams.find(t => t.id === teamId);
         if (!team) return;
 
-        // Create duplicate with new ID
-        const duplicate = {
-            ...team,
-            id: this.generateId(),
-            name: `${team.name} (Copy)`,
-            created: new Date().toISOString(),
-            members: team.members ? team.members.map(member => ({
-                ...member,
-                id: this.generateId()
-            })) : []
-        };
+        try {
+            // Create duplicate with new ID
+            const duplicate = {
+                ...team,
+                id: this.generateId('team-'),
+                name: `${team.name} (Copy)`,
+                created: new Date().toISOString(),
+                members: team.members ? team.members.map(member => ({
+                    ...member,
+                    id: this.generateId('member-')
+                })) : []
+            };
 
-        this.addTeamToCurrentScope(duplicate);
-        this.refreshTeamsDisplay();
-        this.showNotification('Team duplicated successfully', 'success');
+            teams.push(duplicate);
+            await this.saveCurrentConfiguration();
+            this.refreshTeamsDisplay();
+            this.showNotification('Team duplicated successfully', 'success');
+        } catch (error) {
+            console.error('Failed to duplicate team:', error);
+            this.showNotification('Failed to duplicate team', 'error');
+        }
     }
 
     async deleteTeam(teamId) {
+        // Prevent double execution - same as Categories
+        if (this.isDeletingTeam) {
+            console.log('Team delete already in progress, ignoring...');
+            return;
+        }
+        
         if (!confirm('Are you sure you want to delete this team and all its members? This action cannot be undone.')) {
             return;
         }
 
+        this.isDeletingTeam = true;
+        
         try {
-            await this.removeTeamFromCurrentScope(teamId);
+            const teams = this.getCurrentTeams();
+            const teamIndex = teams.findIndex(t => t.id === teamId);
             
-            // Clear selection if deleted team was selected
-            if (this.selectedTeam && this.selectedTeam.id === teamId) {
-                this.selectedTeam = null;
+            if (teamIndex !== -1) {
+                teams.splice(teamIndex, 1);
+                
+                // Clear selection if deleted team was selected
+                if (this.selectedTeam && this.selectedTeam.id === teamId) {
+                    this.selectedTeam = null;
+                }
+                
+                await this.saveCurrentConfiguration();
+                this.refreshTeamsDisplay();
+                this.showNotification('Team deleted successfully', 'success');
             }
-
-            this.refreshTeamsDisplay();
-            this.showNotification('Team deleted successfully', 'success');
         } catch (error) {
             console.error('Failed to delete team:', error);
             this.showNotification('Failed to delete team', 'error');
+        } finally {
+            this.isDeletingTeam = false;
         }
     }
 
     showAddTeamMemberModal() {
         if (!this.selectedTeam) return;
 
-        const modal = document.getElementById('team-member-modal');
-        const title = document.getElementById('team-member-modal-title');
-        const form = document.getElementById('team-member-form');
-
-        if (modal && title && form) {
-            title.textContent = 'Add Team Member';
-            form.reset();
-            form.dataset.mode = 'add';
-            
-            // Populate vendor dropdowns
-            this.populateVendorDropdowns();
-            
-            modal.classList.add('show');
-        }
+        this.editingTeamMember = null;
+        document.getElementById('team-member-modal-title').textContent = 'Add Team Member';
+        document.getElementById('team-member-form').reset();
+        
+        // Populate vendor dropdowns
+        this.populateVendorDropdowns();
+        
+        document.getElementById('team-member-modal').classList.add('active');
     }
 
     editTeamMember(memberId) {
         if (!this.selectedTeam) return;
 
-        const member = this.selectedTeam.members.find(m => m.id === memberId);
-        if (!member) return;
+        this.editingTeamMember = this.selectedTeam.members.find(m => m.id === memberId);
+        if (!this.editingTeamMember) return;
 
-        const modal = document.getElementById('team-member-modal');
-        const title = document.getElementById('team-member-modal-title');
-        const form = document.getElementById('team-member-form');
-
-        if (modal && title && form) {
-            title.textContent = 'Edit Team Member';
-            
-            // Populate form
-            document.getElementById('member-first-name').value = member.firstName || '';
-            document.getElementById('member-last-name').value = member.lastName || '';
-            document.getElementById('member-email').value = member.email || '';
-            document.getElementById('member-role').value = member.role || '';
-            document.getElementById('member-vendor-type').value = member.vendorType || '';
-            document.getElementById('member-monthly-capacity').value = member.monthlyCapacity || 22;
-            document.getElementById('member-status').value = member.status || 'active';
-            
-            // Populate vendor dropdowns and set selection
-            this.populateVendorDropdowns(member.vendorType);
-            document.getElementById('member-vendor').value = member.vendorId || '';
-            
-            form.dataset.mode = 'edit';
-            form.dataset.memberId = memberId;
-            modal.classList.add('show');
-        }
+        document.getElementById('team-member-modal-title').textContent = 'Edit Team Member';
+        
+        // Populate form
+        document.getElementById('member-first-name').value = this.editingTeamMember.firstName || '';
+        document.getElementById('member-last-name').value = this.editingTeamMember.lastName || '';
+        document.getElementById('member-email').value = this.editingTeamMember.email || '';
+        document.getElementById('member-role').value = this.editingTeamMember.role || '';
+        document.getElementById('member-vendor-type').value = this.editingTeamMember.vendorType || '';
+        document.getElementById('member-monthly-capacity').value = this.editingTeamMember.monthlyCapacity || 22;
+        document.getElementById('member-status').value = this.editingTeamMember.status || 'active';
+        
+        // Populate vendor dropdowns and set selection
+        this.populateVendorDropdowns(this.editingTeamMember.vendorType);
+        document.getElementById('member-vendor').value = this.editingTeamMember.vendorId || '';
+        
+        document.getElementById('team-member-modal').classList.add('active');
     }
 
-    duplicateTeamMember(memberId) {
+    async duplicateTeamMember(memberId) {
         if (!this.selectedTeam) return;
 
         const member = this.selectedTeam.members.find(m => m.id === memberId);
         if (!member) return;
 
-        // Create duplicate with new ID
-        const duplicate = {
-            ...member,
-            id: this.generateId(),
-            firstName: `${member.firstName} (Copy)`,
-            joinDate: new Date().toISOString()
-        };
+        try {
+            // Create duplicate with new ID
+            const duplicate = {
+                ...member,
+                id: this.generateId('member-'),
+                firstName: `${member.firstName} (Copy)`,
+                joinDate: new Date().toISOString()
+            };
 
-        this.selectedTeam.members.push(duplicate);
-        this.saveCurrentConfiguration();
-        this.refreshTeamsDisplay();
-        this.showNotification('Team member duplicated successfully', 'success');
+            this.selectedTeam.members.push(duplicate);
+            await this.saveCurrentConfiguration();
+            this.refreshTeamsDisplay();
+            this.showNotification('Team member duplicated successfully', 'success');
+        } catch (error) {
+            console.error('Failed to duplicate team member:', error);
+            this.showNotification('Failed to duplicate team member', 'error');
+        }
     }
 
     async deleteTeamMember(memberId) {
         if (!this.selectedTeam) return;
 
+        // Prevent double execution - same as Categories
+        if (this.isDeletingTeamMember) {
+            console.log('Team member delete already in progress, ignoring...');
+            return;
+        }
+
         if (!confirm('Are you sure you want to remove this team member? This action cannot be undone.')) {
             return;
         }
 
+        this.isDeletingTeamMember = true;
+        
         try {
             this.selectedTeam.members = this.selectedTeam.members.filter(m => m.id !== memberId);
             await this.saveCurrentConfiguration();
@@ -860,140 +911,194 @@ class TeamsConfigManager {
         } catch (error) {
             console.error('Failed to delete team member:', error);
             this.showNotification('Failed to remove team member', 'error');
+        } finally {
+            this.isDeletingTeamMember = false;
         }
     }
 
     async resetToDefaultTeams() {
+        // Prevent double execution - same as Categories
+        if (this.isResetting) {
+            console.log('Reset already in progress, ignoring...');
+            return;
+        }
+        
         if (!confirm('Are you sure you want to reset to default teams? This will remove all custom teams and cannot be undone.')) {
             return;
         }
 
+        this.isResetting = true;
+        
         try {
-            const globalConfig = this.configManager.getGlobalConfig();
-            globalConfig.teams = this.createFallbackTeams();
-            await this.configManager.saveGlobalConfig();
+            if (this.currentScope === 'global') {
+                this.configManager.globalConfig.teams = this.createFallbackTeams();
+            } else {
+                // Reset project teams
+                const currentProject = this.app?.currentProject;
+                if (currentProject) {
+                    const projectConfig = this.configManager.getProjectConfig(currentProject.config);
+                    projectConfig.projectOverrides = projectConfig.projectOverrides || {};
+                    projectConfig.projectOverrides.teams = [];
+                }
+            }
             
+            await this.saveCurrentConfiguration();
             this.selectedTeam = null;
             this.refreshTeamsDisplay();
             this.showNotification('Teams reset to default successfully', 'success');
         } catch (error) {
             console.error('Failed to reset teams:', error);
             this.showNotification('Failed to reset teams', 'error');
+        } finally {
+            this.isResetting = false;
         }
     }
 
     async saveTeamForm() {
-        const form = document.getElementById('team-form');
-        if (!form) return;
-
-        const formData = new FormData(form);
-        const mode = form.dataset.mode;
-        const teamId = form.dataset.teamId;
-
-        const teamData = {
-            name: formData.get('name').trim(),
-            description: formData.get('description').trim(),
-            status: formData.get('status')
-        };
-
-        // Validation
-        if (!teamData.name) {
-            this.showNotification('Team name is required', 'error');
+        // Prevent multiple simultaneous save operations - same as Categories
+        if (this.isSavingTeam) {
+            console.log('Team save already in progress, ignoring...');
             return;
         }
-
+        
+        this.isSavingTeam = true;
+        
+        // Disable submit button to prevent double clicks
+        const submitButton = document.querySelector('#team-modal button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
+        }
+        
         try {
-            if (mode === 'add') {
-                // Add new team
-                const newTeam = {
-                    id: this.generateId(),
-                    ...teamData,
-                    isGlobal: this.currentScope === 'global',
-                    created: new Date().toISOString(),
-                    members: []
-                };
+            const formData = {
+                name: document.getElementById('team-name').value.trim(),
+                description: document.getElementById('team-description').value.trim(),
+                status: document.getElementById('team-status').value
+            };
 
-                await this.addTeamToCurrentScope(newTeam);
-                this.showNotification('Team added successfully', 'success');
-            } else if (mode === 'edit') {
-                // Update existing team
-                await this.updateTeamInCurrentScope(teamId, teamData);
-                this.showNotification('Team updated successfully', 'success');
+            // Validation
+            if (!formData.name) {
+                this.showNotification('Team name is required', 'error');
+                return;
             }
 
-            this.closeModal();
+            console.log('Saving team:', formData.name, 'Edit mode:', !!this.editingTeam);
+
+            const teams = this.getCurrentTeams();
+
+            if (this.editingTeam) {
+                // Update existing team
+                Object.assign(this.editingTeam, formData);
+                console.log('Updated existing team');
+            } else {
+                // Create new team
+                const newTeam = {
+                    id: this.generateId('team-'),
+                    ...formData,
+                    members: [],
+                    isGlobal: this.currentScope === 'global',
+                    created: new Date().toISOString()
+                };
+                teams.push(newTeam);
+                console.log('Created new team with ID:', newTeam.id);
+            }
+
+            await this.saveCurrentConfiguration();
+            this.closeModal('team-modal');
             this.refreshTeamsDisplay();
-        } catch (error) {
-            console.error('Failed to save team:', error);
-            this.showNotification('Failed to save team', 'error');
+            
+            const action = this.editingTeam ? 'updated' : 'created';
+            this.showNotification(`Team "${formData.name}" ${action} successfully`, 'success');
+        } finally {
+            // Always reset the flag and re-enable button
+            this.isSavingTeam = false;
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Save Team';
+            }
         }
     }
 
     async saveTeamMemberForm() {
-        const form = document.getElementById('team-member-form');
-        if (!form || !this.selectedTeam) return;
-
-        const formData = new FormData(form);
-        const mode = form.dataset.mode;
-        const memberId = form.dataset.memberId;
-
-        const memberData = {
-            firstName: formData.get('firstName').trim(),
-            lastName: formData.get('lastName').trim(),
-            email: formData.get('email').trim(),
-            role: formData.get('role').trim(),
-            vendorType: formData.get('vendorType'),
-            vendorId: formData.get('vendorId'),
-            monthlyCapacity: parseInt(formData.get('monthlyCapacity')) || 22,
-            status: formData.get('status')
-        };
-
-        // Validation
-        if (!memberData.firstName || !memberData.lastName) {
-            this.showNotification('First name and last name are required', 'error');
+        // Prevent multiple simultaneous save operations - same as Categories
+        if (this.isSavingTeamMember) {
+            console.log('Team member save already in progress, ignoring...');
             return;
         }
-
-        if (!memberData.role) {
-            this.showNotification('Role is required', 'error');
-            return;
+        
+        this.isSavingTeamMember = true;
+        
+        // Disable submit button to prevent double clicks
+        const submitButton = document.querySelector('#team-member-modal button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
         }
-
-        if (!memberData.vendorType || !memberData.vendorId) {
-            this.showNotification('Vendor selection is required', 'error');
-            return;
-        }
-
+        
         try {
-            if (mode === 'add') {
+            if (!this.selectedTeam) return;
+
+            const formData = {
+                firstName: document.getElementById('member-first-name').value.trim(),
+                lastName: document.getElementById('member-last-name').value.trim(),
+                email: document.getElementById('member-email').value.trim(),
+                role: document.getElementById('member-role').value.trim(),
+                vendorType: document.getElementById('member-vendor-type').value,
+                vendorId: document.getElementById('member-vendor').value,
+                monthlyCapacity: parseInt(document.getElementById('member-monthly-capacity').value) || 22,
+                status: document.getElementById('member-status').value
+            };
+
+            // Validation
+            if (!formData.firstName || !formData.lastName) {
+                this.showNotification('First name and last name are required', 'error');
+                return;
+            }
+
+            if (!formData.role) {
+                this.showNotification('Role is required', 'error');
+                return;
+            }
+
+            if (!formData.vendorType || !formData.vendorId) {
+                this.showNotification('Vendor selection is required', 'error');
+                return;
+            }
+
+            console.log('Saving team member:', `${formData.firstName} ${formData.lastName}`, 'Edit mode:', !!this.editingTeamMember);
+
+            if (this.editingTeamMember) {
+                // Update existing team member
+                Object.assign(this.editingTeamMember, formData);
+                console.log('Updated existing team member');
+            } else {
                 // Add new team member
                 const newMember = {
-                    id: this.generateId(),
-                    ...memberData,
+                    id: this.generateId('member-'),
+                    ...formData,
                     joinDate: new Date().toISOString()
                 };
 
                 this.selectedTeam.members = this.selectedTeam.members || [];
                 this.selectedTeam.members.push(newMember);
-                this.showNotification('Team member added successfully', 'success');
-            } else if (mode === 'edit') {
-                // Update existing team member
-                const memberIndex = this.selectedTeam.members.findIndex(m => m.id === memberId);
-                if (memberIndex !== -1) {
-                    this.selectedTeam.members[memberIndex] = {
-                        ...this.selectedTeam.members[memberIndex],
-                        ...memberData
-                    };
-                    this.showNotification('Team member updated successfully', 'success');
-                }
+                console.log('Created new team member with ID:', newMember.id);
             }
 
             await this.saveCurrentConfiguration();
-            this.closeModal();
-            this.refreshTeamsDisplay();
-        } catch (error) {
-            console.error('Failed to save team member:', error);
-            this.showNotification('Failed to save team member', 'error');
+            this.closeModal('team-member-modal');
+            this.renderTeamDetails(); // Only refresh team details
+            this.refreshTeamsDisplay(); // Update counts
+            
+            const action = this.editingTeamMember ? 'updated' : 'added';
+            this.showNotification(`Team member "${formData.firstName} ${formData.lastName}" ${action} successfully`, 'success');
+        } finally {
+            // Always reset the flag and re-enable button
+            this.isSavingTeamMember = false;
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Save Team Member';
+            }
         }
     }
 
@@ -1051,81 +1156,33 @@ class TeamsConfigManager {
         }
     }
 
-    /**
-     * Add team to current scope
-     */
-    async addTeamToCurrentScope(team) {
-        if (this.currentScope === 'global') {
-            const globalConfig = this.configManager.getGlobalConfig();
-            globalConfig.teams = globalConfig.teams || [];
-            globalConfig.teams.push(team);
-            await this.configManager.saveGlobalConfig();
-        } else {
-            const projectConfig = this.configManager.getProjectConfig();
-            projectConfig.projectOverrides = projectConfig.projectOverrides || {};
-            projectConfig.projectOverrides.teams = projectConfig.projectOverrides.teams || [];
-            projectConfig.projectOverrides.teams.push(team);
-            await this.saveCurrentConfiguration();
-        }
-    }
+    // Removed addTeamToCurrentScope method - not needed with Categories pattern
+
+    // Removed updateTeamInCurrentScope method - not needed with Categories pattern
+
+    // Removed removeTeamFromCurrentScope method - not needed with Categories pattern
 
     /**
-     * Update team in current scope
-     */
-    async updateTeamInCurrentScope(teamId, updates) {
-        const teams = this.getCurrentTeams();
-        const teamIndex = teams.findIndex(t => t.id === teamId);
-        
-        if (teamIndex !== -1) {
-            teams[teamIndex] = { ...teams[teamIndex], ...updates };
-            
-            // Update selected team if it's the one being edited
-            if (this.selectedTeam && this.selectedTeam.id === teamId) {
-                this.selectedTeam = teams[teamIndex];
-            }
-            
-            await this.saveCurrentConfiguration();
-        }
-    }
-
-    /**
-     * Remove team from current scope
-     */
-    async removeTeamFromCurrentScope(teamId) {
-        if (this.currentScope === 'global') {
-            const globalConfig = this.configManager.getGlobalConfig();
-            globalConfig.teams = (globalConfig.teams || []).filter(t => t.id !== teamId);
-            await this.configManager.saveGlobalConfig();
-        } else {
-            const projectConfig = this.configManager.getProjectConfig();
-            projectConfig.projectOverrides = projectConfig.projectOverrides || {};
-            projectConfig.projectOverrides.teams = (projectConfig.projectOverrides.teams || []).filter(t => t.id !== teamId);
-            await this.saveCurrentConfiguration();
-        }
-    }
-
-    /**
-     * Save current configuration
+     * Save current configuration - same pattern as Categories
      */
     async saveCurrentConfiguration() {
-        try {
-            if (this.currentScope === 'global') {
-                await this.configManager.saveGlobalConfig();
-            } else {
-                // For project scope, we need to save through the app
-                this.app.markDirty();
+        if (!this.configManager) return;
+
+        if (this.currentScope === 'global') {
+            await this.configManager.saveGlobalConfig();
+        } else {
+            const currentProject = this.app?.currentProject;
+            if (currentProject) {
+                await this.configManager.saveProjectConfig(currentProject.config);
             }
-        } catch (error) {
-            console.error('Failed to save configuration:', error);
-            throw error;
         }
     }
 
     /**
-     * Generate unique ID
+     * Generate unique ID - same pattern as Categories
      */
-    generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    generateId(prefix = 'id-') {
+        return prefix + Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 
     /**
@@ -1139,12 +1196,10 @@ class TeamsConfigManager {
     }
 
     /**
-     * Close modal
+     * Close modal - same as Categories
      */
-    closeModal() {
-        document.querySelectorAll('.modal.show').forEach(modal => {
-            modal.classList.remove('show');
-        });
+    closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
     }
 
     /**

@@ -97,14 +97,13 @@
     border: 1px solid var(--border-primary);
     border-radius: var(--border-radius);
     overflow: hidden;
-    height: calc(100vh - 380px);
-    min-height: 500px;
 }
 
 .teams-master-detail-layout {
     display: grid;
     grid-template-columns: 350px 1fr;
-    height: 100%;
+    min-height: 500px;
+    max-height: 600px; /* Match Categories behavior for proper scrolling */
 }
 
 /* Master Panel - Teams List */
@@ -135,6 +134,7 @@
     flex: 1;
     overflow-y: auto;
     padding: var(--spacing-sm);
+    max-height: 450px; /* Set maximum height to enable scrolling */
 }
 
 /* Team Item */
@@ -239,6 +239,7 @@
     flex: 1;
     overflow-y: auto;
     padding: var(--spacing-lg);
+    max-height: 450px; /* Set maximum height to enable scrolling */
 }
 
 .no-selection-message {
