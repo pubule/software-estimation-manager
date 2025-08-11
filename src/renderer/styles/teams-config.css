@@ -4,7 +4,7 @@
 .teams-config-container {
     padding: var(--spacing-lg);
     max-height: calc(100vh - 200px);
-    overflow-y: auto;
+    overflow-y: hidden; /* Temporarily disable container scroll to test */
     background: var(--bg-primary);
 }
 
@@ -96,28 +96,28 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     border-radius: var(--border-radius);
-    overflow: hidden;
+    /* overflow: hidden; Temporarily removed to test autoscroll */
 }
 
 .teams-master-detail-layout {
     display: grid;
-    grid-template-columns: 350px 1fr;
-    min-height: 520px;
-    max-height: 620px; /* Increased slightly for better scrolling */
+    grid-template-columns: 300px 1fr;
+    min-height: 500px;
+    max-height: 600px;
 }
 
 /* Master Panel - Teams List */
 .teams-master-panel {
-    border-right: 1px solid var(--border-primary);
-    background: var(--bg-tertiary);
+    border-right: 1px solid var(--border-color);
+    background: var(--bg-secondary);
     display: flex;
     flex-direction: column;
 }
 
 .teams-master-panel .panel-header {
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-primary);
     padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -133,19 +133,22 @@
 .teams-list {
     flex: 1;
     overflow-y: auto;
-    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-lg) var(--spacing-sm); /* Extra bottom padding for last items */
-    max-height: 480px;
+    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-lg) var(--spacing-sm);
+    max-height: 450px; /* Set maximum height to enable scrolling - same as Categories */
 }
 
 /* Team Item */
 .team-item {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--border-radius-sm);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
     margin-bottom: var(--spacing-sm);
     cursor: pointer;
     transition: all 0.2s ease;
+    overflow: hidden;
 }
+
+/* Remove extra styling for last child - let Categories approach handle it naturally */
 
 .team-item:hover {
     border-color: var(--border-hover);
@@ -209,23 +212,7 @@
     gap: var(--spacing-xs);
 }
 
-.team-status {
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.team-status.status-active {
-    background: rgba(34, 197, 94, 0.2);
-    color: var(--success-color);
-}
-
-.team-status.status-inactive {
-    background: rgba(156, 163, 175, 0.2);
-    color: var(--text-secondary);
-}
+/* Team status styles removed - status field no longer used */
 
 /* Detail Panel - Team Details */
 .teams-detail-panel {
@@ -384,25 +371,7 @@
     font-size: var(--font-size-sm);
 }
 
-/* Status Badge */
-.status-badge {
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    display: inline-block;
-}
-
-.status-badge.status-active {
-    background: rgba(34, 197, 94, 0.2);
-    color: var(--success-color);
-}
-
-.status-badge.status-inactive {
-    background: rgba(156, 163, 175, 0.2);
-    color: var(--text-secondary);
-}
+/* Status badge styles removed - status field no longer used */
 
 /* Actions */
 .member-actions {
