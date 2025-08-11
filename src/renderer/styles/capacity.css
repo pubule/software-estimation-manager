@@ -2500,7 +2500,7 @@
     overflow-x: auto;
     overflow-y: auto;
     max-width: 100%;
-    max-height: calc(100vh - 230px);
+    max-height: calc(100vh - 240px);
     position: relative;
     border: 1px solid #333333;
     border-radius: 6px;
