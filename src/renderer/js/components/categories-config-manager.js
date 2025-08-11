@@ -100,7 +100,8 @@ class CategoriesConfigManager {
         this.boundClickHandler = this.handleClick.bind(this);
         this.boundSubmitHandler = this.handleSubmit.bind(this);
 
-        // Add single delegated event listeners
+        // Add global event listener for modals (since they are position:fixed)
+        // Container-specific listeners will be added when container is rendered
         document.addEventListener('click', this.boundClickHandler);
         document.addEventListener('submit', this.boundSubmitHandler);
     }
@@ -137,11 +138,25 @@ class CategoriesConfigManager {
             return;
         }
 
-        // Only handle clicks within categories config container
-        if (!e.target.closest('.categories-config-wrapper')) return;
+        // Modal close buttons - global handler for categories modals only
+        if (e.target.closest('.modal-close')) {
+            const modalElement = e.target.closest('.modal');
+            // Only handle categories modals
+            if (modalElement && (modalElement.id === 'category-modal' || modalElement.id === 'feature-type-modal')) {
+                console.log('Categories modal close button clicked:', modalElement.id);
+                e.preventDefault();
+                e.stopPropagation();
+                this.closeModal(modalElement.id);
+                return;
+            }
+        }
+
+        // Only handle clicks within categories config container for non-modal events
+        if (!e.target.closest('.categories-config-container')) return;
         
         // Action buttons - check both target and closest button for action
         const actionButton = e.target.closest('[data-action]');
+        console.log('Categories action button found:', !!actionButton, actionButton?.dataset?.action);
         if (!actionButton) return;
         
         const action = actionButton.dataset.action;
@@ -152,7 +167,7 @@ class CategoriesConfigManager {
         e.stopPropagation();
         e.stopImmediatePropagation();
         
-        console.log(`Action triggered: ${action}`);
+        console.log(`CATEGORIES Action triggered: ${action}`);
 
         switch (action) {
             case 'add-category':
@@ -191,12 +206,11 @@ class CategoriesConfigManager {
      * Handle all form submissions
      */
     handleSubmit(e) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        
-        console.log('Form submitted:', e.target.id);
+        console.log('Categories form submitted:', e.target.id);
         
         if (e.target.id === 'category-form') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
             // Additional check to prevent double execution
             if (!this.isSavingCategory) {
                 this.saveCategoryForm();
@@ -204,6 +218,8 @@ class CategoriesConfigManager {
                 console.log('Category form submission ignored - save in progress');
             }
         } else if (e.target.id === 'feature-type-form') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
             // Additional check to prevent double execution
             if (!this.isSavingFeatureType) {
                 this.saveFeatureTypeForm();
@@ -349,6 +365,14 @@ class CategoriesConfigManager {
                 </div>
             </div>
         `;
+
+        // Add event listeners to the categories container
+        const categoriesContainer = container.querySelector('.categories-config-container');
+        if (categoriesContainer) {
+            categoriesContainer.addEventListener('click', this.boundClickHandler);
+            categoriesContainer.addEventListener('submit', this.boundSubmitHandler);
+            console.log('Categories event listeners attached to container');
+        }
 
         this.refreshCategoriesDisplay();
     }

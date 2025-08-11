@@ -167,7 +167,8 @@ class TeamsConfigManager {
         this.boundClickHandler = this.handleClick.bind(this);
         this.boundSubmitHandler = this.handleSubmit.bind(this);
 
-        // Add single delegated event listeners
+        // Add global event listener for modals (since they are position:fixed)
+        // Container-specific listeners will be added when container is rendered
         document.addEventListener('click', this.boundClickHandler);
         document.addEventListener('submit', this.boundSubmitHandler);
     }
@@ -176,16 +177,23 @@ class TeamsConfigManager {
      * Handle click events
      */
     handleClick(e) {
-        // Modal close buttons - same logic as Categories
+        console.log('Teams handleClick triggered:', e.target);
+        
+        // Modal close buttons - global handler for teams modals only
         if (e.target.closest('.modal-close')) {
-            e.preventDefault();
-            e.stopPropagation();
             const modalElement = e.target.closest('.modal');
-            if (modalElement) {
+            // Only handle teams modals
+            if (modalElement && (modalElement.id === 'team-modal' || modalElement.id === 'team-member-modal')) {
+                console.log('Teams modal close button clicked:', modalElement.id);
+                e.preventDefault();
+                e.stopPropagation();
                 this.closeModal(modalElement.id);
+                return;
             }
-            return;
         }
+
+        // Only handle clicks within teams config container for non-modal events
+        if (!e.target.closest('.teams-config-container')) return;
 
         // Handle scope tab switching
         if (e.target.classList.contains('teams-scope-tab')) {
@@ -203,9 +211,10 @@ class TeamsConfigManager {
             this.selectTeam(teamId);
             return;
         }
-
+        
         // Action buttons - check both target and closest button for action - same as Categories
         const actionButton = e.target.closest('[data-action]');
+        console.log('Action button found:', !!actionButton, actionButton?.dataset?.action);
         if (!actionButton) return;
         
         const action = actionButton.dataset.action;
@@ -216,7 +225,7 @@ class TeamsConfigManager {
         e.stopPropagation();
         e.stopImmediatePropagation();
         
-        console.log(`Action triggered: ${action}`);
+        console.log(`TEAMS Action triggered: ${action}`);
 
         switch (action) {
             case 'add-team':
@@ -255,12 +264,11 @@ class TeamsConfigManager {
      * Handle form submission - same pattern as Categories
      */
     handleSubmit(e) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        
-        console.log('Form submitted:', e.target.id);
+        console.log('Teams form submitted:', e.target.id);
         
         if (e.target.id === 'team-form') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
             // Additional check to prevent double execution
             if (!this.isSavingTeam) {
                 this.saveTeamForm();
@@ -268,6 +276,8 @@ class TeamsConfigManager {
                 console.log('Team form submission ignored - save in progress');
             }
         } else if (e.target.id === 'team-member-form') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
             // Additional check to prevent double execution
             if (!this.isSavingTeamMember) {
                 this.saveTeamMemberForm();
@@ -436,6 +446,14 @@ class TeamsConfigManager {
 
         // Setup event listeners
         this.setupEventListeners();
+        
+        // Add event listeners to the teams container
+        const teamsContainer = container.querySelector('.teams-config-container');
+        if (teamsContainer) {
+            teamsContainer.addEventListener('click', this.boundClickHandler);
+            teamsContainer.addEventListener('submit', this.boundSubmitHandler);
+            console.log('Teams event listeners attached to container');
+        }
         
         // Initial display
         this.refreshTeamsDisplay();
