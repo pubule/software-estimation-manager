@@ -660,7 +660,6 @@ class TeamsConfigManager {
                                             <td class="member-name">
                                                 <div class="member-info">
                                                     <strong>${this.escapeHtml(member.firstName)} ${this.escapeHtml(member.lastName)}</strong>
-                                                    ${member.email ? `<br><small>${this.escapeHtml(member.email)}</small>` : ''}
                                                 </div>
                                             </td>
                                             <td class="member-role">${this.escapeHtml(member.role)}</td>
