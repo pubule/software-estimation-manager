@@ -84,6 +84,7 @@ class ConfigurationManager extends BaseComponent {
                 suppliers: defaultSuppliers || this.createFallbackSuppliers(),
                 internalResources: defaultInternalResources || this.createFallbackInternalResources(),
                 categories: this.normalizeCategoriesWithMultiplier(defaultCategories) || this.createFallbackCategories(),
+                teams: [], // Initialize empty teams array - will be populated by TeamsConfigManager
                 calculationParams: this.createDefaultCalculationParams()
             };
         } catch (error) {
@@ -92,6 +93,7 @@ class ConfigurationManager extends BaseComponent {
                 suppliers: this.createFallbackSuppliers(),
                 internalResources: this.createFallbackInternalResources(),
                 categories: this.createFallbackCategories(),
+                teams: [], // Initialize empty teams array - will be populated by TeamsConfigManager
                 calculationParams: this.createDefaultCalculationParams()
             };
         }

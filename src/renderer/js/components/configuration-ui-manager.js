@@ -30,6 +30,7 @@ class ConfigurationUIManager {
                         <button class="tab-button" data-tab="global">Global Config</button>
                         <button class="tab-button" data-tab="suppliers">Suppliers</button>
                         <button class="tab-button" data-tab="resources">Internal Resources</button>
+                        <button class="tab-button" data-tab="teams">Teams</button>
                         <button class="tab-button" data-tab="categories">Categories</button>
                         <button class="tab-button" data-tab="parameters">Parameters</button>
                     </div>
@@ -51,6 +52,7 @@ class ConfigurationUIManager {
             { id: 'global', title: 'Global Default Configuration', description: 'These settings apply to all new projects by default. Projects can override these settings individually.' },
             { id: 'suppliers', title: 'Suppliers Configuration', description: 'Manage external suppliers and their rates. These will be available for all new projects by default.' },
             { id: 'resources', title: 'Internal Resources Configuration', description: 'Manage internal team resources like developers, analysts, and project managers.' },
+            { id: 'teams', title: 'Teams & Team Members Configuration', description: 'Manage teams and their members. Each team member must be associated with a vendor (supplier or internal resource).' },
             { id: 'categories', title: 'Feature Categories Configuration', description: 'Manage feature categories and their complexity multipliers.' },
             { id: 'parameters', title: 'Calculation Parameters', description: 'Configure global calculation parameters like working days, currency, and margins.' }
         ];
@@ -123,6 +125,9 @@ class ConfigurationUIManager {
                 case 'resources':
                     await this.loadResourcesConfig(contentDiv);
                     break;
+                case 'teams':
+                    await this.loadTeamsConfig(contentDiv);
+                    break;
                 case 'categories':
                     await this.loadCategoriesConfig(contentDiv);
                     break;
@@ -180,6 +185,20 @@ class ConfigurationUIManager {
 
         const resourcesManager = this.subManagers.get('resources');
         await resourcesManager.loadResourcesConfig();
+    }
+
+    async loadTeamsConfig(contentDiv) {
+        console.log('ConfigurationUIManager: loadTeamsConfig called');
+        console.log('contentDiv:', contentDiv);
+        
+        if (!this.subManagers.has('teams')) {
+            console.log('Creating new TeamsConfigManager');
+            this.subManagers.set('teams', new TeamsConfigManager(this.app, this.configManager));
+        }
+
+        const teamsManager = this.subManagers.get('teams');
+        console.log('Calling renderTeamsPage');
+        teamsManager.renderTeamsPage(contentDiv);
     }
 
     /**
