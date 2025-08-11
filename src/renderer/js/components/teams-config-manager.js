@@ -176,16 +176,6 @@ class TeamsConfigManager {
      * Handle click events
      */
     handleClick(e) {
-        // Handle team selection first (before preventing default)
-        const teamItem = e.target.closest('.team-item');
-        if (teamItem) {
-            const teamId = teamItem.dataset.teamId;
-            if (teamId) {
-                this.selectTeam(teamId);
-                return; // Don't process other actions if clicking on team item
-            }
-        }
-
         // Modal close buttons - same logic as Categories
         if (e.target.closest('.modal-close')) {
             e.preventDefault();
@@ -205,37 +195,55 @@ class TeamsConfigManager {
             return;
         }
 
-        // Handle action buttons
-        const target = e.target.closest('[data-action]');
-        if (!target) return;
+        // Team selection (but not if clicking on action buttons) - same as Categories
+        if (e.target.closest('.team-item') && !e.target.closest('.team-actions')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const teamId = e.target.closest('.team-item').dataset.teamId;
+            this.selectTeam(teamId);
+            return;
+        }
 
-        const action = target.dataset.action;
+        // Action buttons - check both target and closest button for action - same as Categories
+        const actionButton = e.target.closest('[data-action]');
+        if (!actionButton) return;
+        
+        const action = actionButton.dataset.action;
+        if (!action) return;
+
+        // Prevent double execution - same as Categories
         e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        console.log(`Action triggered: ${action}`);
 
         switch (action) {
             case 'add-team':
                 this.showAddTeamModal();
                 break;
             case 'edit-team':
-                this.editTeam(target.dataset.teamId);
+                this.editTeam(actionButton.dataset.teamId);
                 break;
             case 'duplicate-team':
-                this.duplicateTeam(target.dataset.teamId);
+                this.duplicateTeam(actionButton.dataset.teamId);
                 break;
             case 'delete-team':
-                this.deleteTeam(target.dataset.teamId);
+                console.log(`Delete team called for: ${actionButton.dataset.teamId}`);
+                this.deleteTeam(actionButton.dataset.teamId);
                 break;
             case 'add-team-member':
                 this.showAddTeamMemberModal();
                 break;
             case 'edit-team-member':
-                this.editTeamMember(target.dataset.teamMemberId);
+                this.editTeamMember(actionButton.dataset.teamMemberId);
                 break;
             case 'duplicate-team-member':
-                this.duplicateTeamMember(target.dataset.teamMemberId);
+                this.duplicateTeamMember(actionButton.dataset.teamMemberId);
                 break;
             case 'delete-team-member':
-                this.deleteTeamMember(target.dataset.teamMemberId);
+                console.log(`Delete team member called for: ${actionButton.dataset.teamMemberId}`);
+                this.deleteTeamMember(actionButton.dataset.teamMemberId);
                 break;
             case 'reset-to-default':
                 this.resetToDefaultTeams();
@@ -357,13 +365,6 @@ class TeamsConfigManager {
                                 <label for="team-description">Description</label>
                                 <textarea id="team-description" name="description" rows="3" maxlength="500"></textarea>
                             </div>
-                            <div class="form-group">
-                                <label for="team-status">Status</label>
-                                <select id="team-status" name="status">
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
-                            </div>
                         </form>
                     </div>
                     <div class="modal-footer">
@@ -422,13 +423,6 @@ class TeamsConfigManager {
                                 <input type="number" id="member-monthly-capacity" name="monthlyCapacity" 
                                        min="1" max="31" class="validation-tooltip required" required value="22">
                                 <small class="form-help">Working days available per month</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="member-status">Status</label>
-                                <select id="member-status" name="status">
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
                             </div>
                         </form>
                     </div>
@@ -585,9 +579,6 @@ class TeamsConfigManager {
                             <span class="team-member-count">
                                 <i class="fas fa-user"></i> ${memberCount} member${memberCount !== 1 ? 's' : ''}
                             </span>
-                            <span class="team-status status-${team.status}">
-                                ${team.status}
-                            </span>
                         </div>
                     </div>
                 </div>
@@ -658,7 +649,6 @@ class TeamsConfigManager {
                                     <th>Role</th>
                                     <th>Vendor</th>
                                     <th>Capacity</th>
-                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -681,9 +671,6 @@ class TeamsConfigManager {
                                             </td>
                                             <td class="member-capacity">
                                                 <span class="capacity-value">${member.monthlyCapacity} days/month</span>
-                                            </td>
-                                            <td class="member-status">
-                                                <span class="status-badge status-${member.status}">${member.status}</span>
                                             </td>
                                             <td class="member-actions">
                                                 <button class="btn btn-small btn-secondary" 
@@ -756,7 +743,6 @@ class TeamsConfigManager {
         // Populate form
         document.getElementById('team-name').value = this.editingTeam.name || '';
         document.getElementById('team-description').value = this.editingTeam.description || '';
-        document.getElementById('team-status').value = this.editingTeam.status || 'active';
         
         document.getElementById('team-modal').classList.add('active');
     }
@@ -854,7 +840,6 @@ class TeamsConfigManager {
         document.getElementById('member-role').value = this.editingTeamMember.role || '';
         document.getElementById('member-vendor-type').value = this.editingTeamMember.vendorType || '';
         document.getElementById('member-monthly-capacity').value = this.editingTeamMember.monthlyCapacity || 22;
-        document.getElementById('member-status').value = this.editingTeamMember.status || 'active';
         
         // Populate vendor dropdowns and set selection
         this.populateVendorDropdowns(this.editingTeamMember.vendorType);
@@ -974,7 +959,7 @@ class TeamsConfigManager {
             const formData = {
                 name: document.getElementById('team-name').value.trim(),
                 description: document.getElementById('team-description').value.trim(),
-                status: document.getElementById('team-status').value
+                status: 'active' // Default status since field is removed
             };
 
             // Validation
@@ -1047,7 +1032,7 @@ class TeamsConfigManager {
                 vendorType: document.getElementById('member-vendor-type').value,
                 vendorId: document.getElementById('member-vendor').value,
                 monthlyCapacity: parseInt(document.getElementById('member-monthly-capacity').value) || 22,
-                status: document.getElementById('member-status').value
+                status: 'active' // Default status since field is removed
             };
 
             // Validation
