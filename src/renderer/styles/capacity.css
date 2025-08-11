@@ -2033,22 +2033,23 @@
 }
 
 .modal-close {
-    background: transparent;
-    color: #cccccc;
+    background: none;
     border: none;
-    font-size: 24px;
+    font-size: 18px;
+    color: #a0a0a0;
     cursor: pointer;
-    padding: 0;
-    height: 32px;
-    display: flex;
+    padding: 4px;
+    border-radius: 2px;
+    transition: all 0.15s ease;
+    height: auto;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
 }
 
 .modal-close:hover {
-    background: #f44747;
-    color: #ffffff;
+    background: #2a2d2e;
+    color: #cccccc;
 }
 
 .modal-body {
