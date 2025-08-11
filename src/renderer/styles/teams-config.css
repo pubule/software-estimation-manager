@@ -102,8 +102,8 @@
 .teams-master-detail-layout {
     display: grid;
     grid-template-columns: 350px 1fr;
-    min-height: 500px;
-    max-height: 600px; /* Match Categories behavior for proper scrolling */
+    min-height: 520px;
+    max-height: 620px; /* Increased slightly for better scrolling */
 }
 
 /* Master Panel - Teams List */
@@ -133,8 +133,8 @@
 .teams-list {
     flex: 1;
     overflow-y: auto;
-    padding: var(--spacing-sm);
-    max-height: 450px; /* Set maximum height to enable scrolling */
+    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-lg) var(--spacing-sm); /* Extra bottom padding for last items */
+    max-height: 480px;
 }
 
 /* Team Item */
@@ -238,8 +238,8 @@
 .team-details-section {
     flex: 1;
     overflow-y: auto;
-    padding: var(--spacing-lg);
-    max-height: 450px; /* Set maximum height to enable scrolling */
+    padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-xl) var(--spacing-lg); /* Extra bottom padding for last items */
+    max-height: 480px;
 }
 
 .no-selection-message {
@@ -303,7 +303,9 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     border-radius: var(--border-radius);
-    overflow: hidden;
+    overflow-y: auto; /* Enable vertical scrolling for table */
+    max-height: 300px; /* Limit table height to enable its own scrolling */
+    margin-bottom: var(--spacing-lg); /* Extra margin below table for better visibility of last row */
 }
 
 .team-members-table .data-table {
@@ -332,6 +334,7 @@
 
 .team-members-table .data-table tr:last-child td {
     border-bottom: none;
+    padding-bottom: var(--spacing-lg); /* Extra padding for last row visibility */
 }
 
 .team-members-table .data-table tr:hover {
