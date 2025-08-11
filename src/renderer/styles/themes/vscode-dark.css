@@ -1286,7 +1286,6 @@
         border-radius: var(--radius-lg);
         box-shadow: var(--shadow-lg);
         min-width: 500px;
-        max-width: 90vw;
         max-height: 90vh;
         overflow: hidden;
         animation: modalSlideIn 0.2s ease-out;
