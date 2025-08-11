@@ -317,7 +317,7 @@
 }
 
 .team-members-table .data-table tr:last-child td {
-    border-bottom: none;
+    border-bottom: 1px solid var(--border-primary);
     padding-bottom: var(--spacing-lg); /* Extra padding for last row visibility */
 }
 
@@ -370,16 +370,14 @@
 
 /* Status badge styles removed - status field no longer used */
 
-/* Actions */
-.member-actions {
-    display: flex;
-    gap: var(--spacing-xs);
-    opacity: 0;
-    transition: opacity 0.2s ease;
+/* Specific styling for member actions in team table */
+.team-members-table .member-actions {
+    text-align: center;
+    white-space: nowrap;
 }
 
-.team-members-table tr:hover .member-actions {
-    opacity: 1;
+.team-members-table .member-actions .btn {
+    margin: 0 2px;
 }
 
 /* Empty State */

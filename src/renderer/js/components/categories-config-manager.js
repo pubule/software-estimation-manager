@@ -137,6 +137,9 @@ class CategoriesConfigManager {
             return;
         }
 
+        // Only handle clicks within categories config container
+        if (!e.target.closest('.categories-config-wrapper')) return;
+        
         // Action buttons - check both target and closest button for action
         const actionButton = e.target.closest('[data-action]');
         if (!actionButton) return;
