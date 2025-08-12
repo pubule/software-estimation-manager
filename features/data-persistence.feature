@@ -6,6 +6,8 @@ Feature: Data Persistence
   Background:
     Given the Data Manager is initialized
     And the system supports both Electron API and localStorage storage methods
+    And the VSCode-style interface integrates with data persistence
+    And capacity planning data is included in persistence operations
 
   Scenario: Validate project data structure before operations
     Given I have a complete project with all required properties
@@ -58,11 +60,14 @@ Feature: Data Persistence
     And the project data should be saved to localStorage with key "software-estimation-project-test"
     And the save operation should return success: true with method "localStorage"
 
-  Scenario: Update lastModified timestamp automatically during save
+  Scenario: Update lastModified timestamp automatically during save with UI integration
     Given I have project data with original timestamp "2024-01-01T12:00:00Z"
-    When I save the project
+    And the project status indicator shows unsaved changes (●)
+    When I save the project through the VSCode Projects panel
     Then the lastModified timestamp should be updated to current time
     And the updated timestamp should be included in the saved data
+    And the project status indicator should change to saved state (○)
+    And the title bar should reflect the updated project state
 
   Scenario: Load project from Electron file system
     Given a project file exists in the file system
@@ -89,12 +94,14 @@ Feature: Data Persistence
     And newlines should be preserved within quoted fields
     And all CSV formatting rules should be followed
 
-  Scenario: List available projects from storage
+  Scenario: List available projects for VSCode project management interface
     Given multiple projects exist in the storage system
-    When I request a list of available projects
-    Then all project files should be returned
-    And each project entry should include metadata like name and last modified date
-    And the list should be sorted appropriately
+    When I access the Projects panel in the VSCode sidebar
+    Then all project files should be available for loading
+    And the project manager interface should display project metadata
+    And recent projects should be accessible through the UI
+    And saved projects should be listed with appropriate sorting
+    And project selection should integrate with the VSCode navigation system
 
   Scenario: Delete project from storage
     Given a project exists in storage
@@ -103,13 +110,16 @@ Feature: Data Persistence
     And the operation should return confirmation of deletion
     And subsequent attempts to load the project should fail
 
-  Scenario: Manage application settings independently
+  Scenario: Manage application settings including VSCode interface preferences
     Given the application has configuration settings
     When I save application settings
     Then settings should be stored separately from project data
-    And settings should persist across application sessions
+    And VSCode sidebar state preferences should be included
+    And theme and UI preferences should persist
+    And navigation state should be preserved across sessions
     When I load application settings
     Then previously saved settings should be retrieved correctly
+    And the VSCode interface should restore to the previous state
 
   Scenario: Handle storage errors gracefully
     Given a storage operation encounters an error
@@ -117,6 +127,32 @@ Feature: Data Persistence
     Then the error should be logged appropriately
     And the user should receive meaningful error feedback
     And the application should remain stable
+
+  # Capacity Planning Data Integration
+
+  Scenario: Persist capacity planning data with project data
+    Given I have capacity planning data including team assignments and resource allocations
+    When I save the project
+    Then capacity data should be included in the project persistence
+    And team member assignments should be preserved
+    And resource allocation timelines should be stored
+    And capacity planning state should be restored on project load
+
+  Scenario: Separate persistence for capacity planning configuration
+    Given capacity planning has its own configuration and settings
+    When capacity settings are modified
+    Then capacity configuration should be persisted independently
+    And capacity settings should not interfere with project data
+    And capacity preferences should persist across application sessions
+
+  # VSCode Interface State Persistence
+
+  Scenario: Persist VSCode sidebar state and navigation preferences
+    Given I have the Capacity Planning panel open and specific sections active
+    When I close and reopen the application
+    Then the Capacity Planning panel should remain open
+    And the previously active capacity section should be restored
+    And VSCode sidebar state should be consistent across sessions
 
   # Error Scenarios - Documenting Known Issues
 
@@ -126,6 +162,7 @@ Feature: Data Persistence
     Then a browser download should be initiated instead of saving to file system
     And this behavior differs from the expected file system save operation
     And this represents a limitation in the current implementation
+    And the VSCode save functionality should be clearly distinguished from browser downloads
 
   Scenario: Version management methods reference undefined versionsKey
     Given version management functionality is available
@@ -133,6 +170,7 @@ Feature: Data Persistence
     Then methods exist for version operations
     But the versionsKey property is undefined
     And this could cause version operations to fail
+    And version persistence might not integrate properly with data manager
 
   Scenario: CSV resolution methods assume config structure without validation
     Given CSV export processes supplier and category data
@@ -140,6 +178,14 @@ Feature: Data Persistence
     Then the methods assume configuration objects have expected structure
     But no validation ensures the required properties exist
     And missing configuration properties could cause resolution failures
+    And this affects both project and capacity data exports
+
+  Scenario: Capacity data persistence lacks validation
+    Given capacity planning data is being persisted
+    When capacity data is saved with project data
+    Then capacity data structure may not be validated thoroughly
+    And invalid capacity allocations might be stored
+    And data integrity issues could affect capacity planning functionality
 
   Scenario: File operations lack comprehensive error handling
     Given various file system errors could occur during operations
@@ -147,10 +193,12 @@ Feature: Data Persistence
     Then some error conditions may not be handled gracefully
     And users might not receive clear feedback about what went wrong
     And recovery options may not be presented
+    And VSCode interface state might become inconsistent after errors
 
-  Scenario: Data validation is thorough but not comprehensive
+  Scenario: Data validation gaps in complex nested structures
     Given project data validation covers main structure requirements
-    When complex nested objects are validated
+    When complex nested objects including capacity data are validated
     Then some edge cases in deep object structures may not be caught
     And certain data type validations might be incomplete
     And this could allow some invalid data to pass validation
+    And capacity planning data validation might have similar gaps

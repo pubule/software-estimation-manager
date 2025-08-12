@@ -5,15 +5,27 @@ Feature: Export Functionality
 
   Background:
     Given the Software Estimation Manager application is running
+    And the VSCode-style sidebar navigation is functional
     And I have a project with features and phase data loaded
-    And the export functionality is available
+    And the export functionality is available through the Projects panel
 
-  Scenario: Display export menu with proper positioning
-    Given I am viewing a project
-    When I click the export button
+  Scenario: Access export functionality through VSCode sidebar
+    Given I have the Projects panel open in the VSCode sidebar
+    When I examine the panel footer
+    Then I should see Save and Export buttons
+    And the Export button should have proper VSCode-style styling
+    When I click the Export button
     Then a context menu should appear
-    And the menu should be positioned fixed at top 50px, right 20px
+    And the menu should be positioned appropriately relative to the button
     And the menu should contain options for CSV, JSON, and Excel export
+
+  Scenario: Export menu positioning within VSCode layout
+    Given the export context menu is triggered from the Projects panel
+    When the export menu appears
+    Then the menu positioning should work within the VSCode sidebar layout
+    And the menu should not be obscured by other UI elements
+    And the menu should be positioned to remain within viewport bounds
+    And the menu styling should be consistent with VSCode theme
 
   Scenario: Export project data to JSON format
     Given I have a project with features and configuration data
@@ -90,29 +102,34 @@ Feature: Export Functionality
     And no errors should occur due to missing data
     And the exported file should still contain project metadata
 
-  Scenario: Export respects current project state
+  Scenario: Export respects current project state with VSCode integration
     Given I have made changes to project data
     And the changes have not been saved to file yet
-    When I export the project
+    And the project status indicator shows unsaved changes (●)
+    When I export the project through the Projects panel Export button
     Then the exported data should include all unsaved changes
     And the export should reflect the current state in memory
     And not just the last saved version of the project
+    And the export should work regardless of the VSCode panel state
 
-  Scenario: Large project export performance
+  Scenario: Large project export performance in VSCode layout
     Given I have a project with many features (100+ features)
-    When I export to any format
+    When I export to any format through the VSCode Projects panel
     Then the export should complete in reasonable time
-    And the system should remain responsive during export
+    And the VSCode sidebar should remain responsive during export
+    And other VSCode panels should continue to function normally
     And memory usage should not spike excessively
     And progress indication should be provided for large exports
+    And the export operation should not interfere with VSCode navigation
 
-  # Export Context Menu Behavior
+  # Export Context Menu Behavior in VSCode Layout
 
   Scenario: Export menu closes when clicking outside
-    Given the export context menu is open
-    When I click outside the menu area
+    Given the export context menu is open from the Projects panel
+    When I click outside the menu area (including other sidebar areas)
     Then the context menu should close
     And no export operation should be initiated
+    And the Projects panel should remain open and functional
 
   Scenario: Export menu handles keyboard navigation
     Given the export context menu is open
@@ -120,6 +137,14 @@ Feature: Export Functionality
     Then the context menu should close
     When the menu is open and I use arrow keys
     Then I should be able to navigate between export options
+    And keyboard navigation should work within the VSCode layout context
+
+  Scenario: Export menu interaction with VSCode sidebar
+    Given the export menu is open from the Projects panel
+    When I click on other VSCode sidebar icons
+    Then the export menu should close automatically
+    And the sidebar panel switching should work normally
+    And no export operation should be accidentally triggered
 
   # Error Scenarios and Edge Cases
 
