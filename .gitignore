@@ -4,4 +4,4 @@
 /.idea/*
 /config/defaults.json
 /reports/screenshots/*.serena/cache/
-/.serena/cache/typescript/document_symbols_cache_v23-06-25.pkl
+/.serena/cache/*
