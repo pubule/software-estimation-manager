@@ -3,6 +3,6 @@
 /.angular/*
 /.idea/*
 /config/defaults.json
-/reports/screenshots/
+/reports/screenshots/*
 .serena/
 .DS_Store
