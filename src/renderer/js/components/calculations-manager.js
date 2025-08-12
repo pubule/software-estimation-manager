@@ -2866,21 +2866,39 @@ class CapacityManager extends BaseComponent {
      */
     async getRealTeamMembers() {
         try {
-            // Get teams from configuration
-            const configManager = this.app?.managers?.configuration;
+            console.log('getRealTeamMembers: Starting...');
+            
+            // Try multiple ways to get teams from configuration
+            let configManager = this.app?.managers?.configuration || this.configManager;
+            console.log('Configuration manager available:', !!configManager);
+            console.log('Global config available:', !!configManager?.globalConfig);
+            
             if (!configManager || !configManager.globalConfig) {
-                console.warn('Configuration manager not available, returning empty team members array');
-                return [];
+                console.warn('Configuration manager not available, trying direct access...');
+                
+                // Try to get the global config directly from window or app
+                const globalConfig = window.globalConfig || 
+                                  this.app?.globalConfig || 
+                                  (window.app && window.app.managers && window.app.managers.configuration && window.app.managers.configuration.globalConfig);
+                
+                if (globalConfig) {
+                    console.log('Found global config through alternative path');
+                    configManager = { globalConfig: globalConfig };
+                } else {
+                    console.warn('No configuration available, returning empty team members array');
+                    return [];
+                }
             }
 
             let teams = configManager.globalConfig.teams || [];
+            console.log(`Found ${teams.length} teams in configuration:`, teams.map(t => t.name));
             
             // If no teams exist, try to initialize from TeamsConfigManager
             if (teams.length === 0) {
                 console.log('No teams configured, attempting to initialize from TeamsConfigManager...');
                 
                 // Try to get TeamsConfigManager to load default teams
-                const teamsManager = this.app?.managers?.teams;
+                const teamsManager = this.app?.managers?.teams || window.teamsManager;
                 if (teamsManager && typeof teamsManager.ensureDefaultTeams === 'function') {
                     try {
                         await teamsManager.ensureDefaultTeams();
@@ -2891,6 +2909,26 @@ class CapacityManager extends BaseComponent {
                     }
                 }
                 
+                // If still no teams, try alternative approach - direct load from DefaultConfigManager
+                if (teams.length === 0) {
+                    console.log('Trying direct load from DefaultConfigManager...');
+                    const defaultConfigManager = this.app?.managers?.defaultConfig || window.defaultConfigManager;
+                    if (defaultConfigManager && typeof defaultConfigManager.getDefaultTeams === 'function') {
+                        try {
+                            const defaultTeams = await defaultConfigManager.getDefaultTeams();
+                            if (defaultTeams && defaultTeams.length > 0) {
+                                teams = defaultTeams;
+                                // Save to global config
+                                configManager.globalConfig.teams = teams;
+                                await configManager.saveGlobalConfig();
+                                console.log(`Loaded ${teams.length} teams from defaults.json`);
+                            }
+                        } catch (error) {
+                            console.warn('Failed to load default teams from defaults.json:', error);
+                        }
+                    }
+                }
+                
                 if (teams.length === 0) {
                     console.warn('No teams available - returning empty team members array');
                     return [];
@@ -2898,7 +2936,7 @@ class CapacityManager extends BaseComponent {
             }
 
             // Load real projects
-            const dataManager = this.app?.managers?.data;
+            const dataManager = this.app?.managers?.data || window.dataManager;
             if (!dataManager) {
                 console.warn('Data manager not available, using empty projects list');
                 // Still continue with empty projects array instead of falling back to mock
@@ -2907,7 +2945,7 @@ class CapacityManager extends BaseComponent {
             let projects = [];
             try {
                 if (dataManager) {
-                    projects = await dataManager.loadAllProjects() || [];
+                    projects = await dataManager.listProjects() || [];
                 }
             } catch (error) {
                 console.warn('Error loading projects:', error);
@@ -4177,11 +4215,30 @@ class CapacityManager extends BaseComponent {
         // Populate projects
         if (projectSelect) {
             projectSelect.innerHTML = '<option value="">Select Project</option>';
-            const projects = this.getAvailableProjects();
-            projects.forEach(project => {
+            
+            // getAvailableProjects is now async
+            this.getAvailableProjects().then(projects => {
+                console.log('Populating project dropdown with:', projects);
+                if (Array.isArray(projects) && projects.length > 0) {
+                    projects.forEach(project => {
+                        const option = document.createElement('option');
+                        option.value = project.id || project.code;
+                        option.textContent = project.name || project.code;
+                        projectSelect.appendChild(option);
+                    });
+                } else {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No projects available';
+                    option.disabled = true;
+                    projectSelect.appendChild(option);
+                }
+            }).catch(error => {
+                console.error('Error loading projects:', error);
                 const option = document.createElement('option');
-                option.value = project.id;
-                option.textContent = project.name;
+                option.value = '';
+                option.textContent = 'Error loading projects';
+                option.disabled = true;
                 projectSelect.appendChild(option);
             });
         }
@@ -4221,12 +4278,43 @@ class CapacityManager extends BaseComponent {
     /**
      * Get available projects for assignment
      */
-    getAvailableProjects() {
+    async getAvailableProjects() {
         try {
-            const projects = this.app?.projectManager?.projects || [];
-            return projects.filter(project => {
-                return project.status === 'approved' && project.startDate;
+            console.log('Loading available projects...');
+            
+            // Try to get projects from DataManager
+            const dataManager = this.app?.managers?.data || window.dataManager;
+            if (!dataManager) {
+                console.warn('DataManager not available');
+                return [];
+            }
+            
+            const projects = await dataManager.listProjects() || [];
+            console.log(`Found ${projects.length} projects:`, projects.map(p => p.name || p.code));
+            
+            const availableProjects = projects.filter(project => {
+                // More flexible filtering - just need name/code
+                return project && (project.name || project.code);
             });
+            
+            console.log(`Filtered to ${availableProjects.length} available projects`);
+            
+            // If no projects exist, create a demo project for assignment testing
+            if (availableProjects.length === 0) {
+                console.log('No projects found, creating demo project for assignments...');
+                const demoProject = {
+                    id: 'demo-project-001',
+                    code: 'DEMO-001',
+                    name: 'Demo Project for Capacity Planning',
+                    description: 'Temporary project for testing capacity assignments',
+                    status: 'active',
+                    startDate: new Date().toISOString(),
+                    isDemo: true
+                };
+                return [demoProject];
+            }
+            
+            return availableProjects;
         } catch (error) {
             console.error('Error getting available projects:', error);
             return [];

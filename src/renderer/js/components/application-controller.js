@@ -179,6 +179,18 @@ class ApplicationController extends BaseComponent {
         // Version manager
         this.managers.version = new VersionManager(this);
         
+        // Default config manager for loading defaults.json
+        if (window.DefaultConfigManager) {
+            this.managers.defaultConfig = new DefaultConfigManager();
+            await this.managers.defaultConfig.loadConfiguration();
+        }
+        
+        // Teams config manager for team management
+        if (window.TeamsConfigManager) {
+            this.managers.teams = new TeamsConfigManager(this, this.managers.config, this.managers.defaultConfig);
+            await this.managers.teams.init();
+        }
+        
         console.log('Feature managers initialized');
         
         // Set up additional backward compatibility aliases
@@ -187,6 +199,8 @@ class ApplicationController extends BaseComponent {
         this.projectManager = this.managers.project;
         this.projectPhasesManager = this.managers.projectPhases;
         this.versionManager = this.managers.version;
+        this.defaultConfigManager = this.managers.defaultConfig;
+        this.teamsManager = this.managers.teams;
         
         console.log('Additional backward compatibility aliases set up');
     }

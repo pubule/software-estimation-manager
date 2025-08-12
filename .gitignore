@@ -6,3 +6,4 @@
 /reports/screenshots/*
 .serena/
 .DS_Store
+/.serena/cache/
