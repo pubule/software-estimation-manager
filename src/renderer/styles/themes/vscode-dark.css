@@ -1045,12 +1045,14 @@
         font-weight: 600;
         position: sticky;
         top: 0;
+        z-index: 10;
         cursor: pointer;
         user-select: none;
     }
 
     .data-table th:hover {
         background-color: var(--bg-hover);
+        z-index: 11;
     }
 
     .data-table th i {

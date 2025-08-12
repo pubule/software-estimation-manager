@@ -19,6 +19,12 @@ class TeamsConfigManager {
         this.isSavingTeamMember = false;
         this.isResetting = false;
 
+        // Default configuration manager for loading teams from defaults.json
+        this.defaultConfigManager = new DefaultConfigManager();
+        
+        // Default teams will be loaded from configuration
+        this.defaultTeams = [];
+
         // Initialize with default teams if needed
         this.init();
     }
@@ -27,8 +33,10 @@ class TeamsConfigManager {
      * Initialize the manager
      */
     init() {
-        this.ensureDefaultTeams();
-        this.loadDefaults();
+        // Delay initialization to ensure ConfigurationManager is ready
+        setTimeout(() => {
+            this.ensureDefaultTeams();
+        }, 100);
     }
 
     /**
@@ -36,17 +44,18 @@ class TeamsConfigManager {
      */
     async loadDefaults() {
         try {
-            // Load any default settings if needed
-            console.log('TeamsConfigManager defaults loaded');
+            this.defaultTeams = await this.defaultConfigManager.getDefaultTeams();
+            console.log('Default teams loaded:', this.defaultTeams.length);
         } catch (error) {
-            console.error('Failed to load teams defaults:', error);
+            console.warn('Failed to load default teams, using empty array:', error);
+            this.defaultTeams = [];
         }
     }
 
     /**
      * Ensure default teams exist
      */
-    ensureDefaultTeams() {
+    async ensureDefaultTeams() {
         try {
             if (!this.configManager || !this.configManager.globalConfig) {
                 console.log('ConfigManager or globalConfig not available');
@@ -56,9 +65,19 @@ class TeamsConfigManager {
             const globalConfig = this.configManager.globalConfig;
             
             if (!globalConfig.teams || globalConfig.teams.length === 0) {
-                console.log('No teams found, creating default teams');
-                globalConfig.teams = this.createFallbackTeams();
+                console.log('No teams found, loading default teams from configuration');
+                // Load default teams from configuration file
+                await this.loadDefaults();
+                if (this.defaultTeams.length > 0) {
+                    globalConfig.teams = JSON.parse(JSON.stringify(this.defaultTeams)); // Deep copy
+                } else {
+                    // Fallback to hardcoded teams if no default teams available
+                    globalConfig.teams = this.createFallbackTeams();
+                }
                 this.configManager.saveGlobalConfig();
+                console.log('Default teams initialized successfully');
+            } else {
+                console.log('Teams already exist, skipping initialization');
             }
         } catch (error) {
             console.error('Failed to ensure default teams:', error);
@@ -933,7 +952,14 @@ class TeamsConfigManager {
         
         try {
             if (this.currentScope === 'global') {
-                this.configManager.globalConfig.teams = this.createFallbackTeams();
+                // Load default teams from configuration file
+                await this.loadDefaults();
+                if (this.defaultTeams.length > 0) {
+                    this.configManager.globalConfig.teams = JSON.parse(JSON.stringify(this.defaultTeams)); // Deep copy
+                } else {
+                    // Fallback to hardcoded teams if no default teams available
+                    this.configManager.globalConfig.teams = this.createFallbackTeams();
+                }
             } else {
                 // Reset project teams
                 const currentProject = this.app?.currentProject;

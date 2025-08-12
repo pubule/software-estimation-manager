@@ -106,6 +106,14 @@ class DefaultConfigManager {
     }
 
     /**
+     * Get default teams
+     */
+    async getDefaultTeams() {
+        await this.loadConfiguration();
+        return this.config.defaultTeams || [];
+    }
+
+    /**
      * Fallback configuration when external file is not available
      */
     getFallbackConfiguration() {
@@ -239,6 +247,54 @@ class DefaultConfigManager {
                     "realRate": 580,
                     "officialRate": 580,
                     "isGlobal": true
+                }
+            ],
+            "defaultTeams": [
+                {
+                    "id": "team-frontend",
+                    "name": "Frontend Team",
+                    "description": "Frontend development team specializing in UI/UX implementation",
+                    "isGlobal": true,
+                    "members": [
+                        {
+                            "id": "member-frontend-1",
+                            "firstName": "Mario",
+                            "lastName": "Rossi",
+                            "email": "mario.rossi@company.com",
+                            "role": "Senior Frontend Developer",
+                            "vendorId": "internal-analyst-it",
+                            "vendorType": "internal",
+                            "monthlyCapacity": 22
+                        },
+                        {
+                            "id": "member-frontend-2",
+                            "firstName": "Lucia",
+                            "lastName": "Verdi",
+                            "email": "lucia.verdi@company.com",
+                            "role": "Frontend Developer",
+                            "vendorId": "example-g1-it",
+                            "vendorType": "supplier",
+                            "monthlyCapacity": 22
+                        }
+                    ]
+                },
+                {
+                    "id": "team-backend",
+                    "name": "Backend Team",
+                    "description": "Backend development team handling server-side logic and APIs",
+                    "isGlobal": true,
+                    "members": [
+                        {
+                            "id": "member-backend-1",
+                            "firstName": "Anna",
+                            "lastName": "Bianchi",
+                            "email": "anna.bianchi@company.com",
+                            "role": "Senior Backend Developer",
+                            "vendorId": "internal-developer-it",
+                            "vendorType": "internal",
+                            "monthlyCapacity": 22
+                        }
+                    ]
                 }
             ],
             "defaultCategories": [
