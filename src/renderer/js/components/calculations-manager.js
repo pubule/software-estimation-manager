@@ -1660,11 +1660,11 @@ class CapacityManager extends BaseComponent {
     }
 
     // Load Allocation Chart
-    loadAllocationChart() {
+    async loadAllocationChart() {
         const chartContainer = document.getElementById('allocation-chart');
         
-        // Get team members and calculate project allocations
-        const teamMembers = this.getMockTeamMembers();
+        // Get real team members and calculate project allocations
+        const teamMembers = await this.getRealTeamMembers();
         const currentMonth = '2025-08'; // Could be dynamic based on the filter
         
         // Process allocations by project and resource
@@ -1690,7 +1690,9 @@ class CapacityManager extends BaseComponent {
                     role: member.role,
                     vendor: member.vendor,
                     days: allocation.days,
-                    status: allocation.status
+                    status: allocation.status,
+                    hasOverflow: allocation.hasOverflow || false,
+                    phases: allocation.phases || []
                 });
             });
         });
@@ -1710,22 +1712,24 @@ class CapacityManager extends BaseComponent {
             const approvedCount = resources.filter(r => r.status === 'approved').length;
             const pendingCount = resources.length - approvedCount;
             const resourceCount = resources.length;
+            const hasAnyOverflow = resources.some(r => r.hasOverflow);
             
             resources.forEach((resource, index) => {
                 const isFirstRow = index === 0;
                 
                 tableRows += `
-                    <tr class="allocation-chart-row ${isFirstRow ? 'project-first-row' : ''}">
+                    <tr class="allocation-chart-row ${isFirstRow ? 'project-first-row' : ''} ${resource.hasOverflow ? 'overflow-row' : ''}">
                         ${isFirstRow ? `
                             <td class="allocation-cell-project" rowspan="${resourceCount}">
                                 <div class="allocation-project-info">
                                     <span class="allocation-project-name">${projectName}</span>
                                     <div class="allocation-project-summary">
-                                        <span class="allocation-project-total">${totalDays} MDs</span>
+                                        <span class="allocation-project-total ${hasAnyOverflow ? 'overflow' : ''}">${totalDays} MDs</span>
                                         <span class="allocation-project-resources">${resources.length} resources</span>
                                         <div class="allocation-project-status">
                                             ${approvedCount > 0 ? `<span class="approved-count">${approvedCount} ✓</span>` : ''}
                                             ${pendingCount > 0 ? `<span class="pending-count">${pendingCount} ⏳</span>` : ''}
+                                            ${hasAnyOverflow ? `<span class="overflow-indicator">⚠️ Overflow</span>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -1735,12 +1739,17 @@ class CapacityManager extends BaseComponent {
                         <td class="allocation-cell-role">${resource.role}</td>
                         <td class="allocation-cell-vendor">${resource.vendor}</td>
                         <td class="allocation-cell-days">
-                            <span class="allocation-days-value ${resource.status}">${resource.days}</span>
+                            <span class="allocation-days-value ${resource.status} ${resource.hasOverflow ? 'overflow' : ''}">${resource.days}</span>
+                            ${resource.phases && resource.phases.length > 0 ? 
+                                `<div class="allocation-phases">${resource.phases.map(p => p.phaseName).join(', ')}</div>` : 
+                                ''
+                            }
                         </td>
                         <td class="allocation-cell-status">
                             <span class="allocation-status-badge ${resource.status}">
                                 ${resource.status === 'approved' ? '✓' : '✗'}
                             </span>
+                            ${resource.hasOverflow ? '<span class="overflow-badge">⚠️</span>' : ''}
                         </td>
                     </tr>
                 `;
@@ -1842,9 +1851,9 @@ class CapacityManager extends BaseComponent {
     }
 
     // Load Team Performance Data
-    loadTeamPerformanceData() {
+    async loadTeamPerformanceData() {
         const container = document.getElementById('team-performance-grid');
-        const teamMembers = this.getMockTeamMembers();
+        const teamMembers = await this.getRealTeamMembers();
         
         const performanceHTML = teamMembers.slice(0, 4).map(member => `
             <div class="team-performance-card">
@@ -1860,11 +1869,15 @@ class CapacityManager extends BaseComponent {
                 <div class="performance-details">
                     <div class="performance-item">
                         <span class="performance-label">Current Projects</span>
-                        <span class="performance-value">${Object.keys(member.allocations?.['2025-12'] || {}).length || 1}</span>
+                        <span class="performance-value">${Object.keys(member.allocations?.['2025-12'] || {}).length || 0}</span>
                     </div>
                     <div class="performance-item">
-                        <span class="performance-label">Next Month</span>
-                        <span class="performance-value">${Math.round(member.currentUtilization * 0.9)}%</span>
+                        <span class="performance-label">Max Capacity</span>
+                        <span class="performance-value">${member.maxCapacity} MD/month</span>
+                    </div>
+                    <div class="performance-item">
+                        <span class="performance-label">Available Days</span>
+                        <span class="performance-value">${member._debugInfo?.availableDays || 0} MDs</span>
                     </div>
                 </div>
             </div>
@@ -2726,6 +2739,561 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
+     * REAL TEAM INTEGRATION SYSTEM
+     * Replaces mock data with real Teams configuration and project calculations
+     */
+
+    /**
+     * Calculate working days in a month excluding weekends and holidays
+     */
+    calculateWorkingDaysInMonth(year, month, country = 'IT') {
+        const holidays = this.getHolidays(year, country);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        let workingDays = 0;
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, month - 1, day);
+            const dayOfWeek = date.getDay();
+            const dateString = date.toISOString().split('T')[0];
+            
+            // Skip weekends (0=Sunday, 6=Saturday)
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                // Skip holidays
+                if (!holidays.includes(dateString)) {
+                    workingDays++;
+                }
+            }
+        }
+        
+        return workingDays;
+    }
+
+    /**
+     * Get holiday dates for a specific year and country
+     */
+    getHolidays(year, country = 'IT') {
+        const holidays = {
+            'IT': {
+                2024: [
+                    '2024-01-01', '2024-01-06', '2024-04-01', '2024-04-25',
+                    '2024-05-01', '2024-06-02', '2024-08-15', '2024-11-01',
+                    '2024-12-08', '2024-12-25', '2024-12-26'
+                ],
+                2025: [
+                    '2025-01-01', '2025-01-06', '2025-04-21', '2025-04-25',
+                    '2025-05-01', '2025-06-02', '2025-08-15', '2025-11-01',
+                    '2025-12-08', '2025-12-25', '2025-12-26'
+                ]
+            }
+        };
+        
+        return holidays[country]?.[year] || [];
+    }
+
+    /**
+     * Calculate working days between two dates
+     */
+    calculateWorkingDaysBetween(startDate, endDate, country = 'IT') {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const holidays = this.getHolidays(start.getFullYear(), country);
+        let workingDays = 0;
+        
+        const current = new Date(start);
+        while (current <= end) {
+            const dayOfWeek = current.getDay();
+            const dateString = current.toISOString().split('T')[0];
+            
+            // Skip weekends and holidays
+            if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidays.includes(dateString)) {
+                workingDays++;
+            }
+            
+            current.setDate(current.getDate() + 1);
+        }
+        
+        return workingDays;
+    }
+
+    /**
+     * Add working days to a date (excluding weekends and holidays)
+     */
+    addWorkingDays(startDate, daysToAdd, country = 'IT') {
+        const holidays = this.getHolidays(startDate.getFullYear(), country);
+        const result = new Date(startDate);
+        let addedDays = 0;
+        
+        while (addedDays < daysToAdd) {
+            result.setDate(result.getDate() + 1);
+            const dayOfWeek = result.getDay();
+            const dateString = result.toISOString().split('T')[0];
+            
+            // Count only working days
+            if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidays.includes(dateString)) {
+                addedDays++;
+            }
+        }
+        
+        return result;
+    }
+
+    /**
+     * Get months between two dates in YYYY-MM format
+     */
+    getMonthsInDateRange(startDate, endDate) {
+        const months = [];
+        const current = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+        const end = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+        
+        while (current <= end) {
+            const year = current.getFullYear();
+            const month = String(current.getMonth() + 1).padStart(2, '0');
+            months.push(`${year}-${month}`);
+            current.setMonth(current.getMonth() + 1);
+        }
+        
+        return months;
+    }
+
+    /**
+     * Get working days in a month that belong to a specific phase
+     */
+    getWorkingDaysInMonthForPhase(monthString, phaseStartDate, phaseEndDate) {
+        const [year, month] = monthString.split('-').map(Number);
+        const monthStart = new Date(year, month - 1, 1);
+        const monthEnd = new Date(year, month, 0); // Last day of month
+        
+        // Find intersection between month and phase
+        const intersectionStart = new Date(Math.max(monthStart, phaseStartDate));
+        const intersectionEnd = new Date(Math.min(monthEnd, phaseEndDate));
+        
+        if (intersectionStart > intersectionEnd) {
+            return 0; // No intersection
+        }
+        
+        return this.calculateWorkingDaysBetween(intersectionStart, intersectionEnd);
+    }
+
+    /**
+     * Generate mock project data for missing fields (startDate, status)
+     */
+    generateMockProjectData(project) {
+        const mockStartDates = [
+            '2025-01-15', '2025-02-01', '2025-03-10', 
+            '2025-04-01', '2025-05-15', '2025-06-01'
+        ];
+        const mockStatuses = ['approved', 'pending'];
+        
+        return {
+            ...project,
+            startDate: project.startDate || mockStartDates[Math.floor(Math.random() * mockStartDates.length)],
+            status: project.status || mockStatuses[Math.floor(Math.random() * mockStatuses.length)]
+        };
+    }
+
+    /**
+     * SEQUENTIAL PHASE ALLOCATION SYSTEM
+     */
+
+    /**
+     * Calculate sequential timeline for project phases
+     */
+    calculateProjectPhaseTimeline(project, startDate) {
+        if (!project.phases || project.phases.length === 0) {
+            return [];
+        }
+
+        const phases = [...project.phases].sort((a, b) => (a.order || 0) - (b.order || 0));
+        const timeline = [];
+        let currentDate = new Date(startDate);
+        
+        phases.forEach(phase => {
+            const phaseTotalMDs = phase.manDays || 0;
+            
+            if (phaseTotalMDs > 0) {
+                const phaseEndDate = this.addWorkingDays(currentDate, phaseTotalMDs);
+                
+                timeline.push({
+                    phaseId: phase.id,
+                    phaseName: phase.name,
+                    totalMDs: phaseTotalMDs,
+                    startDate: new Date(currentDate),
+                    endDate: phaseEndDate,
+                    effort: phase.effort || {}, // { G1: 100, G2: 0, TA: 20, PM: 50 }
+                    months: this.getMonthsInDateRange(currentDate, phaseEndDate)
+                });
+                
+                // Next phase starts the next working day
+                currentDate = new Date(phaseEndDate);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        });
+        
+        return timeline;
+    }
+
+    /**
+     * Get member role from vendor configuration
+     */
+    getMemberRole(member) {
+        if (!member.vendorId || !this.app?.managers?.configuration) {
+            return 'G2'; // Default role
+        }
+
+        const configManager = this.app.managers.configuration;
+        
+        if (member.vendorType === 'internal') {
+            const internal = configManager.globalConfig?.internalResources?.find(r => r.id === member.vendorId);
+            return internal?.role || 'G2';
+        } else {
+            const supplier = configManager.globalConfig?.suppliers?.find(s => s.id === member.vendorId);
+            return supplier?.role || 'G2';
+        }
+    }
+
+    /**
+     * Resolve vendor name from configuration
+     */
+    resolveVendorName(member) {
+        if (!member.vendorId || !this.app?.managers?.configuration) {
+            return member.vendorType === 'internal' ? 'Internal' : 'External';
+        }
+
+        const configManager = this.app.managers.configuration;
+        
+        if (member.vendorType === 'internal') {
+            const internal = configManager.globalConfig?.internalResources?.find(r => r.id === member.vendorId);
+            return internal?.name || 'Internal';
+        } else {
+            const supplier = configManager.globalConfig?.suppliers?.find(s => s.id === member.vendorId);
+            return supplier?.name || 'External';
+        }
+    }
+
+    /**
+     * Determine role participation in a phase
+     */
+    getRoleParticipationInPhase(phase, memberRole) {
+        const roleEffortPercent = phase.effort?.[memberRole] || 0;
+        
+        return {
+            participates: roleEffortPercent > 0,
+            effortPercent: roleEffortPercent,
+            roleMDs: Math.round((phase.totalMDs * roleEffortPercent) / 100)
+        };
+    }
+
+    /**
+     * Distribute phase MDs across months with real working days calculation
+     */
+    distributePhaseAcrossMonths(phaseMDs, phaseStartDate, phaseEndDate, phaseMonths) {
+        const distribution = {};
+        let remainingMDs = phaseMDs;
+        
+        // Calculate total working days in the phase
+        const totalWorkingDaysInPhase = this.calculateWorkingDaysBetween(phaseStartDate, phaseEndDate);
+        
+        if (totalWorkingDaysInPhase === 0) {
+            return distribution;
+        }
+        
+        phaseMonths.forEach((month, index) => {
+            const isLastMonth = index === phaseMonths.length - 1;
+            
+            // Calculate real working days in month that belong to this phase
+            const workingDaysInMonth = this.getWorkingDaysInMonthForPhase(
+                month, 
+                phaseStartDate, 
+                phaseEndDate
+            );
+            
+            if (workingDaysInMonth > 0) {
+                // Distribute proportionally to real working days
+                const monthMDs = isLastMonth ? 
+                    remainingMDs : 
+                    Math.round((workingDaysInMonth / totalWorkingDaysInPhase) * phaseMDs);
+                
+                if (monthMDs > 0) {
+                    distribution[month] = {
+                        days: monthMDs,
+                        workingDaysInMonth: workingDaysInMonth,
+                        phaseStartDate: phaseStartDate,
+                        phaseEndDate: phaseEndDate
+                    };
+                    
+                    remainingMDs -= monthMDs;
+                }
+            }
+        });
+        
+        return distribution;
+    }
+
+    /**
+     * Generate sequential allocations based on project phases
+     */
+    generateSequentialAllocations(member, memberRole, projects) {
+        const allocations = {};
+        
+        projects.forEach(project => {
+            const mockProject = this.generateMockProjectData(project);
+            const phaseTimeline = this.calculateProjectPhaseTimeline(project, mockProject.startDate);
+            
+            phaseTimeline.forEach(phase => {
+                const participation = this.getRoleParticipationInPhase(phase, memberRole);
+                
+                if (participation.participates && participation.roleMDs > 0) {
+                    // Distribute phase MDs across months
+                    const phaseDistribution = this.distributePhaseAcrossMonths(
+                        participation.roleMDs,
+                        phase.startDate,
+                        phase.endDate,
+                        phase.months
+                    );
+                    
+                    Object.entries(phaseDistribution).forEach(([month, dayData]) => {
+                        if (!allocations[month]) allocations[month] = {};
+                        
+                        // Combine allocations if project already exists in the month
+                        if (allocations[month][project.name]) {
+                            allocations[month][project.name].days += dayData.days;
+                            allocations[month][project.name].phases.push({
+                                phaseName: phase.phaseName,
+                                phaseDays: dayData.days
+                            });
+                        } else {
+                            allocations[month][project.name] = {
+                                days: dayData.days,
+                                status: mockProject.status,
+                                hasOverflow: false,
+                                overflowAmount: 0,
+                                phases: [{
+                                    phaseName: phase.phaseName,
+                                    phaseDays: dayData.days
+                                }]
+                            };
+                        }
+                    });
+                }
+            });
+        });
+        
+        return allocations;
+    }
+
+    /**
+     * Calculate current utilization based on real allocations
+     */
+    calculateCurrentUtilization(allocations, memberRole) {
+        const currentMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+        const currentAllocations = allocations[currentMonth] || {};
+        
+        // Calculate real working days in current month
+        const currentDate = new Date();
+        const realWorkingDaysInMonth = this.calculateWorkingDaysInMonth(
+            currentDate.getFullYear(), 
+            currentDate.getMonth() + 1
+        );
+        
+        // Sum all allocated days in current month
+        const totalAllocatedDays = Object.values(currentAllocations)
+            .reduce((sum, allocation) => sum + allocation.days, 0);
+        
+        // Calculate utilization percentage based on real working days
+        const utilizationPercentage = realWorkingDaysInMonth > 0 ? 
+            Math.round((totalAllocatedDays / realWorkingDaysInMonth) * 100) : 0;
+        
+        return {
+            utilizationPercentage,
+            allocatedDays: totalAllocatedDays,
+            availableDays: realWorkingDaysInMonth - totalAllocatedDays,
+            realWorkingDaysInMonth
+        };
+    }
+
+    /**
+     * OVERFLOW MANAGEMENT SYSTEM
+     */
+
+    /**
+     * Get available capacity for a month considering existing allocations
+     */
+    getAvailableCapacityForMonth(month, memberMaxCapacity, existingAllocations) {
+        const monthAllocations = existingAllocations[month] || {};
+        
+        // Sum all days already allocated for the month
+        const totalAllocatedDays = Object.values(monthAllocations)
+            .reduce((sum, allocation) => {
+                return sum + (allocation.days || 0);
+            }, 0);
+        
+        // Available capacity = max capacity - already allocated days
+        const availableCapacity = memberMaxCapacity - totalAllocatedDays;
+        
+        return Math.max(0, availableCapacity); // Cannot be negative
+    }
+
+    /**
+     * Check and flag overflow in allocations
+     */
+    checkAndFlagOverflow(allocations, memberMaxCapacity) {
+        const processedAllocations = {};
+        let cumulativeAllocations = {};
+        
+        // Process allocations month by month to track overflow
+        Object.keys(allocations).sort().forEach(month => {
+            processedAllocations[month] = {};
+            
+            const [year, monthNum] = month.split('-').map(Number);
+            const realWorkingDaysInMonth = this.calculateWorkingDaysInMonth(year, monthNum);
+            
+            Object.entries(allocations[month]).forEach(([projectName, allocation]) => {
+                const availableCapacity = this.getAvailableCapacityForMonth(
+                    month, 
+                    realWorkingDaysInMonth, 
+                    cumulativeAllocations
+                );
+                
+                const hasOverflow = allocation.days > availableCapacity;
+                const overflowAmount = Math.max(0, allocation.days - availableCapacity);
+                
+                processedAllocations[month][projectName] = {
+                    ...allocation,
+                    hasOverflow,
+                    overflowAmount,
+                    availableCapacity,
+                    realCapacityInMonth: realWorkingDaysInMonth
+                };
+                
+                // Update cumulative allocations for next iteration
+                if (!cumulativeAllocations[month]) cumulativeAllocations[month] = {};
+                cumulativeAllocations[month][projectName] = { days: allocation.days };
+            });
+        });
+        
+        return processedAllocations;
+    }
+
+    /**
+     * Generate overflow alerts for UI display
+     */
+    generateOverflowAlerts(teamMembers) {
+        const alerts = [];
+        
+        teamMembers.forEach(member => {
+            Object.entries(member.allocations || {}).forEach(([month, projects]) => {
+                Object.entries(projects).forEach(([projectName, allocation]) => {
+                    if (allocation.hasOverflow) {
+                        alerts.push({
+                            type: 'overflow',
+                            severity: 'error',
+                            memberId: member.id,
+                            memberName: `${member.firstName} ${member.lastName}`,
+                            month: month,
+                            projectName: projectName,
+                            overflowAmount: allocation.overflowAmount,
+                            message: `${member.firstName} ${member.lastName}: ${this.formatMonth(month)} overallocated by ${allocation.overflowAmount} MDs on project "${projectName}"`
+                        });
+                    }
+                });
+            });
+        });
+        
+        return alerts;
+    }
+
+    /**
+     * Format month string for display
+     */
+    formatMonth(monthString) {
+        const [year, month] = monthString.split('-');
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        return `${monthNames[parseInt(month) - 1]} ${year}`;
+    }
+
+    /**
+     * MAIN METHOD: Get real team members from Teams configuration
+     */
+    async getRealTeamMembers() {
+        try {
+            // Get teams from configuration
+            const configManager = this.app?.managers?.configuration;
+            if (!configManager || !configManager.globalConfig) {
+                console.warn('Configuration manager not available, falling back to mock data');
+                return this.getMockTeamMembers();
+            }
+
+            const teams = configManager.globalConfig.teams || [];
+            if (teams.length === 0) {
+                console.warn('No teams configured, falling back to mock data');
+                return this.getMockTeamMembers();
+            }
+
+            // Load real projects
+            const dataManager = this.app?.managers?.data;
+            if (!dataManager) {
+                console.warn('Data manager not available, using empty projects list');
+                return this.getMockTeamMembers();
+            }
+
+            let projects = [];
+            try {
+                projects = await dataManager.loadAllProjects() || [];
+            } catch (error) {
+                console.warn('Error loading projects:', error);
+                projects = [];
+            }
+
+            // Generate real team members
+            const realTeamMembers = teams.flatMap(team => 
+                (team.members || []).map(member => {
+                    const memberRole = this.getMemberRole(member);
+                    const vendor = this.resolveVendorName(member);
+                    
+                    // Generate sequential allocations based on project phases
+                    const allocations = this.generateSequentialAllocations(member, memberRole, projects);
+                    
+                    // Check and flag overflow
+                    const processedAllocations = this.checkAndFlagOverflow(
+                        allocations, 
+                        member.monthlyCapacity || 22
+                    );
+                    
+                    // Calculate current utilization
+                    const utilizationData = this.calculateCurrentUtilization(processedAllocations, memberRole);
+                    
+                    return {
+                        id: member.id,
+                        firstName: member.firstName,
+                        lastName: member.lastName,
+                        role: memberRole, // From vendor configuration (G1/G2/TA/PM)
+                        vendor: vendor,
+                        maxCapacity: utilizationData.realWorkingDaysInMonth, // Real working days
+                        currentUtilization: utilizationData.utilizationPercentage,
+                        allocations: processedAllocations,
+                        _debugInfo: {
+                            allocatedDays: utilizationData.allocatedDays,
+                            availableDays: utilizationData.availableDays,
+                            originalMonthlyCapacity: member.monthlyCapacity || 22
+                        }
+                    };
+                })
+            );
+
+            console.log(`Generated ${realTeamMembers.length} real team members from ${teams.length} teams and ${projects.length} projects`);
+            return realTeamMembers;
+
+        } catch (error) {
+            console.error('Error generating real team members:', error);
+            console.warn('Falling back to mock data');
+            return this.getMockTeamMembers();
+        }
+    }
+
+    /**
      * Data Service Layer - Abstract all data access
      * These methods can be replaced with real API calls in the future
      */
@@ -2735,9 +3303,8 @@ class CapacityManager extends BaseComponent {
      * Get all team members - abstraction layer for future API integration
      */
     async getTeamMembers() {
-        // TODO: Replace with actual API call
-        // return await this.api.getTeamMembers();
-        return this.getMockTeamMembers();
+        // Return real team members from Teams configuration
+        return await this.getRealTeamMembers();
     }
     
     /**
