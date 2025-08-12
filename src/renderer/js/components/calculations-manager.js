@@ -4299,19 +4299,10 @@ class CapacityManager extends BaseComponent {
             
             console.log(`Filtered to ${availableProjects.length} available projects`);
             
-            // If no projects exist, create a demo project for assignment testing
+            // Return only real projects, no mock fallback
             if (availableProjects.length === 0) {
-                console.log('No projects found, creating demo project for assignments...');
-                const demoProject = {
-                    id: 'demo-project-001',
-                    code: 'DEMO-001',
-                    name: 'Demo Project for Capacity Planning',
-                    description: 'Temporary project for testing capacity assignments',
-                    status: 'active',
-                    startDate: new Date().toISOString(),
-                    isDemo: true
-                };
-                return [demoProject];
+                console.log('No projects found in configured directory - returning empty list');
+                return [];
             }
             
             return availableProjects;
