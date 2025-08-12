@@ -56,7 +56,9 @@
       "mcp__serena__insert_after_symbol",
       "mcp__serena__replace_symbol_body",
       "mcp__serena__insert_before_symbol",
-      "mcp__serena__find_referencing_symbols"
+      "mcp__serena__find_referencing_symbols",
+      "Bash(git rm:*)",
+      "Bash(true)"
     ],
     "deny": []
   }
