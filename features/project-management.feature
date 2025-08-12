@@ -5,7 +5,9 @@ Feature: Project Management
 
   Background:
     Given the Software Estimation Manager application is initialized
+    And the VSCode-style sidebar navigation is functional
     And all required components are loaded
+    And capacity planning integration is available
 
   Scenario: Create a new project with default structure
     Given I am working on any existing project
@@ -88,11 +90,21 @@ Feature: Project Management
     And the system should continue operating normally
     And no error should be thrown to the user
 
-  Scenario: Navigate to projects section with delayed activation
+  Scenario: Navigate to projects section through VSCode sidebar
     Given the application is fully initialized
-    When the navigation system starts
-    Then there should be a 200ms delay before navigation activation
-    And the projects section should be activated after the delay
+    When the VSCode navigation system starts
+    Then there should be a 500ms delay before default Projects panel activation
+    And the Projects icon should become active after the delay
+    And the Projects panel should open automatically
+    And project navigation options should be available
+
+  Scenario: Project management integration with capacity planning
+    Given I have a project loaded with features and resource requirements
+    When I access capacity planning through the VSCode sidebar
+    Then capacity planning should have access to current project data
+    And project features should be available for resource allocation
+    And project timelines should integrate with capacity timeline views
+    And resource assignments should be linkable to project phases
 
   Scenario: Migrate old project format to hierarchical configuration
     Given I have a project in the old flat configuration format
@@ -109,6 +121,32 @@ Feature: Project Management
     Then the project should remain unchanged
     And no migration should be performed
 
+  # Cross-System Integration
+
+  Scenario: Project data integration with capacity planning
+    Given I have a project with defined features and phases
+    When I switch to capacity planning via VSCode sidebar
+    Then project data should be available for capacity calculations
+    And feature effort estimates should inform resource allocation
+    And project phases should be available for timeline planning
+    And capacity constraints should be considererd during project planning
+
+  Scenario: Project status indicators across VSCode interface
+    Given I have a project with unsaved changes
+    When I navigate between different VSCode panels
+    Then the project status indicator (●) should remain visible in the title bar
+    And the status should be consistent across all panels
+    And saving from any panel should update the global project state
+    And the nav-project-status indicator should reflect current state
+
+  Scenario: Project hierarchical navigation state management
+    Given I have a project loaded
+    When I expand the Projects section in the VSCode sidebar
+    Then Features Management, Project Phases, Calculations, and Version History should be enabled
+    And the nav-child items should lose their "disabled" class
+    And navigation between project sections should work properly
+    And the currentSection should be tracked correctly
+
   # Error Scenarios - Documenting Known Bugs
 
   Scenario: Handle multiple timeout delays during project creation
@@ -118,6 +156,7 @@ Feature: Project Management
     And a 100ms timeout should be set for phase reset
     And a 600ms timeout should be set for version creation
     And the timeouts could potentially overlap causing timing issues
+    And this represents a potential race condition in project initialization
 
   Scenario: Auto-save disabled but dirty state still triggers updates
     Given auto-save functionality is disabled
@@ -126,3 +165,12 @@ Feature: Project Management
     Then the phase manager should still receive update notifications
     And development phase calculations should still be triggered
     And this occurs despite auto-save being disabled
+    And dirty state notifications should respect auto-save settings
+
+  Scenario: VSCode sidebar navigation conflicts with project state
+    Given I am in the middle of project operations
+    When I rapidly switch between VSCode sidebar panels
+    Then project state should remain consistent
+    But rapid panel switching might interfere with ongoing operations
+    And timing conflicts could occur between navigation and project updates
+    And the system should handle concurrent navigation and project operations

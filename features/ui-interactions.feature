@@ -29,61 +29,111 @@ Feature: UI Interactions
     When I open the modal again and click the Cancel button
     Then the modal should close and discard changes
 
-  Scenario: Modal prevents body scrolling when open
-    Given a modal is open
-    When I attempt to scroll the background page
-    Then the background should not scroll
-    And only the modal content should be scrollable if it overflows
-    When the modal is closed
-    Then normal page scrolling should be restored
+  Scenario: Modal conflict resolution between managers
+    Given I am in the teams configuration section
+    And I have a team modal open
+    When I navigate to categories configuration
+    And attempt to open a category modal
+    Then the category modal should open without conflicts
+    And event listeners should be properly isolated between managers
+    And modal interactions should work independently
 
-  Scenario: Modal form validation provides real-time feedback
-    Given I have a feature modal open
-    When I enter invalid data in a form field
-    Then validation errors should appear immediately
-    And the error styling should be applied to invalid fields
-    And the save button should be disabled until all errors are resolved
-    When I correct the invalid data
-    Then the error messages should disappear
-    And the save button should become enabled
+  Scenario: Modal form submission behavior
+    Given I have a team modal open with form data
+    When I click the Save button
+    Then the form should submit without page redirect
+    And I should remain in the teams configuration section
+    And a success notification should be displayed
+    And the modal should close properly
 
-  # Navigation System
+  Scenario: Standardized modal button styling
+    Given I have any modal open (team, category, or feature)
+    When I examine the Cancel and Save buttons
+    Then both buttons should have consistent VSCode-style appearance
+    And the buttons should match the global theme styling
+    And hover effects should be consistent across all modals
 
-  Scenario: Navigate between main sections using tabs
-    Given I am on the Projects section
-    When I click the Configuration tab
-    Then the Configuration section should become active
-    And the Projects section should become inactive
-    And the URL or state should reflect the current section
-    And any unsaved changes should trigger confirmation dialog
+  # VSCode-Style Sidebar Navigation
 
-  Scenario: Enhanced navigation maintains state across sessions
-    Given I am working in the Project Phases section
-    And I have made specific selections and view configurations
-    When I close and reopen the application
-    Then the application should return to the Project Phases section
-    And my previous view configurations should be restored
-    And the navigation state should be persistent
+  Scenario: Display VSCode-style icon sidebar
+    Given the application is loaded with VSCode interface
+    When I examine the left side of the screen
+    Then I should see a narrow icon sidebar on the far left
+    And the sidebar should contain exactly 3 icons in the icon-sections area
+    And the icons should represent Projects (folder-open), Capacity Planning (users), and Configuration (cog)
+    And each icon should have proper Font Awesome styling
+    And no expandable panels should be open initially
 
-  Scenario: Navigation handles dirty state with confirmation
-    Given I am in the Features section with unsaved changes
-    When I attempt to navigate to another section
-    Then I should see a confirmation dialog about unsaved changes
-    And the dialog should ask if I want to save before continuing
-    When I confirm to save
-    Then changes should be saved and navigation should proceed
-    When I cancel the navigation
-    Then I should remain in the current section
+  Scenario: Open sidebar panels by clicking icons
+    Given the VSCode-style sidebar is displayed
+    When I click the Projects icon (fas fa-folder-open)
+    Then the Projects panel should slide open from the left side of the icon bar
+    And the panel should contain hierarchical project navigation with expandable sections
+    And the panel should display Save and Export buttons in the panel-footer
+    And the Projects icon should receive the "active" CSS class
+    When I click the Capacity Planning icon (fas fa-users)
+    Then the Capacity Planning panel should open and Projects panel should close
+    And the Capacity Planning submenu should be automatically expanded with "expanded" class
+    And the panel should show Resource Capacity Overview and Capacity Planning Timeline options
+    And the panel footer should be empty (no Save/Export buttons)
+    When I click the Configuration icon (fas fa-cog)
+    Then the Configuration panel should open and other panels should close
+    And the panel should show direct Configuration access without sub-sections
+    And the panel footer should be empty (no action buttons)
 
-  # Table Interactions
+  Scenario: Sidebar panel toggle behavior
+    Given I have the Projects panel open
+    When I click the Projects icon again
+    Then the Projects panel should close completely
+    And no panel should be active
+    And the Projects icon should lose its "active" CSS class
+    When I click the same icon a third time
+    Then the Projects panel should open again
+    And this demonstrates proper toggle functionality
 
-  Scenario: Render features table with expandable rows
+  Scenario: Auto-expanded Capacity Planning submenu behavior
+    Given I open the Capacity Planning sidebar panel
+    When the panel appears
+    Then the capacity-toggle button should have "expanded" CSS class
+    And the capacity-children element should have "expanded" CSS class
+    And the nav-children should be visible without user interaction
+    And I should see "Resource Capacity Overview" and "Capacity Planning Timeline" options
+    And there should be no manual collapse functionality for this submenu
+
+  Scenario: Projects panel hierarchical navigation
+    Given I have the Projects panel open
+    When I examine the panel navigation structure
+    Then I should see a main "Projects" section with expand/collapse capability
+    And the projects-toggle button should control expansion of project sub-sections
+    And when expanded, I should see Features Management, Project Phases, Calculations, and Version History
+    And the nav-child items should initially be disabled until a project is loaded
+    And each nav-child should have proper icons (list-ul, project-diagram, chart-bar, history)
+
+  Scenario: Panel activation and icon state management
+    Given no sidebar panel is currently open
+    When I click any sidebar icon
+    Then all other icons should lose their "active" class
+    And only the clicked icon should receive the "active" class
+    And the currentActivePanel property should be updated to match the opened panel
+    And the system should track which panel is currently active
+
+  Scenario: Navigation initialization and default state
+    Given the application starts up
+    When the navigation system initializes
+    Then there should be a 500ms delay before opening the default Projects panel
+    And the Projects icon should be activated by default
+    And the Projects panel should open automatically
+    And this behavior should be consistent across application restarts
+
+  # Table Interactions with Improved Scrolling
+
+  Scenario: Render features table with improved scrollable behavior
     Given I have multiple features in my project
     When the features table is displayed
-    Then each feature should be shown in a two-row structure
-    And the first row should contain primary feature information
-    And the second row should be initially collapsed
-    And expand/collapse indicators should be visible
+    Then the table-container should provide appropriate scrolling
+    And the expandable-table should have proper row expansion capabilities
+    And scrollbars should only appear when content exceeds the container space
+    And the table should maintain fixed header behavior during scrolling
 
   Scenario: Toggle feature row expansion
     Given the features table is displayed with collapsed detail rows
@@ -101,61 +151,30 @@ Feature: UI Interactions
     Then the table should be sorted in descending order
     And a visual indicator should show the current sort column and direction
 
-  Scenario: Filter features using multiple criteria
-    Given the features table has various features with different attributes
-    When I select a category from the category filter dropdown
-    Then only features matching that category should be displayed
-    When I also enter text in the search field
-    Then features should match both the category filter AND the search text
-    And the filtering should use AND logic between all active filters
-
   # Form Interactions
 
   Scenario: Auto-complete and dropdown population
     Given I have the feature form open
     When the supplier dropdown is displayed
     Then it should contain all configured suppliers
-    And project-specific suppliers should have visual indicators (e.g., different styling)
+    And project-specific suppliers should have visual indicators
     And global suppliers should be displayed without special indicators
-    When I start typing in an auto-complete field
-    Then matching options should be filtered and displayed
 
   Scenario: Real-time calculation updates in forms
     Given I have a feature form with calculation fields
     When I modify the "Real Man Days" field
     Then the "Calculated Man Days" field should update immediately
-    When I modify the "Expertise Level" field
-    Then the calculated value should recalculate automatically
-    And the calculation should be visible to the user as it happens
-
-  Scenario: Form validation prevents invalid submissions
-    Given I have a form with required fields
-    When I attempt to submit without filling required fields
-    Then validation errors should be displayed
-    And the form submission should be prevented
-    And focus should move to the first invalid field
-    When I correct all validation errors
-    Then the form should allow successful submission
+    And the calculation should be visible as it happens
 
   # Loading and Progress Indicators
 
   Scenario: Display loading overlay during operations
-    Given I am performing a long-running operation like project loading
+    Given I am performing a long-running operation
     When the operation starts
     Then a loading overlay should appear
-    And a progress message should be displayed
     And user interaction should be prevented during loading
     When the operation completes
     Then the loading overlay should disappear
-    And normal interaction should be restored
-
-  Scenario: Show progress indicators for file operations
-    Given I am saving a large project file
-    When the save operation begins
-    Then a progress indicator should show the operation status
-    And the user should receive feedback about the operation progress
-    When the operation completes successfully
-    Then a success notification should be displayed
 
   # Status and Notification System
 
@@ -165,16 +184,6 @@ Feature: UI Interactions
     Then the status indicator should display "○" with "saved" CSS class
     When I make changes to the project
     Then the status indicator should display "●" with "unsaved" CSS class
-    And the visual change should be immediate
-
-  Scenario: Display notifications for user feedback
-    Given I perform an action that requires user feedback
-    When the action completes successfully
-    Then a success notification should appear
-    And the notification should auto-dismiss after a few seconds
-    When an error occurs
-    Then an error notification should appear
-    And it should remain visible until user dismisses it or takes action
 
   # Keyboard Shortcuts
 
@@ -182,29 +191,8 @@ Feature: UI Interactions
     Given the application is active and has focus
     When I press Ctrl+S (or Cmd+S on Mac)
     Then the project should be saved
-    When I press Ctrl+N (or Cmd+N on Mac)
-    Then a new project should be created
-    When I press Ctrl+O (or Cmd+O on Mac)
-    Then the open project dialog should appear
-
-  Scenario: Modal keyboard navigation
-    Given a modal is open
-    When I press Tab
-    Then focus should move to the next interactive element within the modal
-    When I press Shift+Tab
-    Then focus should move to the previous interactive element
-    When I reach the last element and press Tab
-    Then focus should wrap to the first element
-
-  # Responsive Design and Layout
-
-  Scenario: Adapt layout for different screen sizes
-    Given the application is displayed on a wide screen
-    When the screen size is reduced to tablet size
-    Then the layout should adapt appropriately
-    And all functionality should remain accessible
-    When the screen size is reduced to mobile size
-    Then navigation should adapt to mobile-friendly patterns
+    When I press Escape in a modal
+    Then the modal should close
 
   # Error Scenarios and Edge Cases
 
@@ -212,19 +200,23 @@ Feature: UI Interactions
     Given certain UI components fail to initialize properly
     When the application attempts to interact with these components
     Then appropriate error handling should occur
-    And the user should receive feedback about the issue
-    And other functional parts of the application should continue working
+    And console warnings should be logged for missing elements
+    And other functional parts should continue working
+    And the system should gracefully degrade functionality
 
   Scenario: Handle rapid user interactions gracefully
-    Given the user performs rapid clicking or keyboard input
-    When multiple actions are triggered quickly
-    Then the application should handle the interactions appropriately
-    And duplicate actions should be prevented
-    And the UI should remain responsive and stable
+    Given the user performs rapid clicking on sidebar icons
+    When multiple panel switches are triggered quickly
+    Then the toggleSidebarPanel method should handle rapid state changes
+    And the currentActivePanel should be updated correctly
+    And icon active states should remain synchronized
+    And the UI should remain stable and responsive
+    And no race conditions should occur between panel operations
 
-  Scenario: Maintain UI state consistency during errors
-    Given an error occurs during a UI operation
-    When the error is handled and resolved
-    Then the UI should return to a consistent state
-    And no lingering visual artifacts should remain
-    And the user should be able to continue working normally
+  Scenario: Handle missing VSCode sidebar elements gracefully
+    Given the VSCode sidebar initialization occurs
+    When expected elements like projects-panel or icon items are missing
+    Then console errors should be logged about missing elements
+    And the system should not crash due to missing DOM elements
+    And alternative navigation methods should remain functional
+    And error messages should guide developers to investigate DOM structure

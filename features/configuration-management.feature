@@ -130,12 +130,50 @@ Feature: Configuration Management
     And it should contain empty object for calculation parameters
     And the migration should be transparent to the user
 
+  # Teams Configuration Integration
+
+  Scenario: Teams configuration modal functionality
+    Given I am in the Configuration section
+    When I access teams configuration (teams-config-manager.js)
+    Then team-related modals should open with proper modal isolation
+    And teams configuration should integrate with the overall configuration hierarchy
+    And changes to teams should be reflected in capacity planning data
+    And teams modal styling should match VSCode theme
+
+  Scenario: Categories configuration with enhanced management
+    Given I access categories configuration
+    When I use the categories-config-manager component
+    Then category modals should function independently
+    And categories should support hierarchical organization
+    And category changes should be reflected across the application
+    And modal conflicts should be prevented through proper event isolation
+
+  # Configuration UI Integration
+
+  Scenario: Configuration scrollable interface
+    Given configuration sections contain extensive data
+    When I view configuration options
+    Then configuration-scrollable.css should provide proper scrolling behavior
+    And hierarchical-config.css should style nested configuration properly
+    And the interface should be responsive and accessible
+    And scrolling should work smoothly within the VSCode layout
+
+  Scenario: Storage configuration management
+    Given storage configuration options are available
+    When I access storage configuration (storage-config-manager.js)
+    Then storage settings should be manageable through dedicated interface
+    And storage configuration should integrate with data persistence layer
+    And changes should be applied immediately and persist across sessions
+
+  # Known Issues and System Behaviors
+
   Scenario: Reset functionality with array reference handling
     Given a configuration with array-type properties
     When configuration reset is performed
     Then array references should be properly handled
     And no lingering references to old arrays should remain
     But current implementation may not handle array references correctly
+    And this represents a known limitation in configuration management
 
   Scenario: Cache key generation with potential hash collisions
     Given configurations with similar but different content
@@ -143,6 +181,15 @@ Feature: Configuration Management
     Then each configuration should have a unique cache key
     But the simple hash algorithm could potentially produce collisions
     And this represents a low-probability but possible issue
+    And more robust hashing might be needed for production use
+
+  Scenario: Configuration modal event listener conflicts
+    Given multiple configuration managers are active
+    When configuration modals are opened and closed repeatedly
+    Then event listeners should be properly cleaned up
+    But improper listener management could cause conflicts
+    And memory leaks might occur from accumulated listeners
+    And modal interactions might become unreliable over time
 
   Scenario: Delete items assuming global existence without validation
     Given a request to delete a configuration item
@@ -150,6 +197,7 @@ Feature: Configuration Management
     Then the system assumes the item exists globally
     But no validation is performed to confirm existence
     And this could lead to errors if assumptions are incorrect
+    And deletion operations should include existence verification
 
   Scenario: Migration method exists but isn't automatically called
     Given old format configuration data
@@ -157,3 +205,4 @@ Feature: Configuration Management
     Then migration methods exist to upgrade the format
     But the migration is not automatically invoked
     And manual migration may be required in some scenarios
+    And this represents a gap in automatic data format handling
