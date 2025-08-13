@@ -2877,3 +2877,245 @@
     background: rgba(255, 206, 84, 0.1);
     color: #ffce54;
 }
+
+/* ========================================
+   Assignment Modal Enhanced Styles
+   ======================================== */
+
+.assignment-modal-content {
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.budget-section {
+    background: #2d3748;
+    border: 1px solid #4a5568;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.budget-section h4 {
+    color: #e2e8f0;
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.budget-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.budget-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: #1a202c;
+    border-radius: 4px;
+}
+
+.budget-item label {
+    color: #a0aec0;
+    font-weight: 500;
+    margin: 0;
+}
+
+.budget-value {
+    color: #e2e8f0;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.budget-balance.positive {
+    color: #68d391;
+}
+
+.budget-balance.negative {
+    color: #fc8181;
+}
+
+.balance-item {
+    border: 2px solid #4a5568;
+    font-weight: 600;
+}
+
+.phases-section {
+    background: #2d3748;
+    border: 1px solid #4a5568;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.phases-section h4 {
+    color: #e2e8f0;
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.phase-item {
+    background: #1a202c;
+    border: 1px solid #4a5568;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: border-color 0.2s;
+}
+
+.phase-item:hover {
+    border-color: #6b7280;
+}
+
+.phase-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.phase-header h5 {
+    color: #e2e8f0;
+    margin: 0;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.phase-mds {
+    color: #90cdf4;
+    font-weight: 600;
+    background: #2d3748;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #4a5568;
+}
+
+.phase-dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+.phase-dates .form-group {
+    margin: 0;
+}
+
+.phase-dates .form-group label {
+    color: #a0aec0;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.phase-dates input[type="date"] {
+    background: #4a5568;
+    border: 1px solid #6b7280;
+    color: #e2e8f0;
+    padding: 0.5rem;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.phase-dates input[type="date"]:focus {
+    outline: none;
+    border-color: #90cdf4;
+    box-shadow: 0 0 0 2px rgba(144, 205, 244, 0.2);
+}
+
+.phase-stats {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    background: #2d3748;
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #4a5568;
+    min-width: 120px;
+}
+
+.stat-item label {
+    color: #a0aec0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+.available-mds {
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+.available-mds.error {
+    color: #fc8181;
+}
+
+.overflow-indicator {
+    border-color: #f56565;
+    background: rgba(245, 101, 101, 0.1);
+}
+
+.overflow-warning .overflow-amount {
+    color: #fc8181;
+    font-weight: 600;
+}
+
+.no-phases-message,
+.error-message {
+    text-align: center;
+    padding: 2rem;
+    color: #a0aec0;
+    background: #1a202c;
+    border-radius: 6px;
+    border: 1px dashed #4a5568;
+}
+
+.error-message {
+    color: #fc8181;
+    border-color: #f56565;
+}
+
+.field-info {
+    color: #90cdf4;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .assignment-modal-content {
+        width: 95%;
+        margin: 1rem;
+    }
+    
+    .phase-dates {
+        grid-template-columns: 1fr;
+    }
+    
+    .budget-summary {
+        gap: 0.5rem;
+    }
+    
+    .phase-stats {
+        flex-direction: column;
+    }
+}

@@ -1745,6 +1745,10 @@ class CapacityManager extends BaseComponent {
                 if (overallocationAlert) {
                     alerts.push(overallocationAlert);
                 }
+                
+                // Check for assignment overflows
+                const overflowAlerts = this.checkMemberAssignmentOverflows(member);
+                alerts.push(...overflowAlerts);
             });
 
             // Check for projects without assignments
@@ -1769,6 +1773,63 @@ class CapacityManager extends BaseComponent {
 
         } catch (error) {
             console.error('Error generating alerts:', error);
+        }
+        
+        return alerts;
+    }
+    
+    /**
+     * Check for assignment overflow alerts for a team member
+     */
+    checkMemberAssignmentOverflows(member) {
+        const alerts = [];
+        
+        if (!this.manualAssignments || this.manualAssignments.length === 0) {
+            return alerts;
+        }
+        
+        // Find assignments for this member
+        const memberAssignments = this.manualAssignments.filter(assignment => 
+            assignment.teamMemberId === member.id
+        );
+        
+        if (memberAssignments.length === 0) {
+            return alerts;
+        }
+        
+        // Check each assignment for overflows
+        const overflowProjects = [];
+        
+        memberAssignments.forEach(assignment => {
+            if (assignment.phaseSchedule) {
+                const overflowPhases = assignment.phaseSchedule.filter(phase => phase.overflow > 0);
+                
+                if (overflowPhases.length > 0) {
+                    // Get project name
+                    const projectName = this.getProjectNameById(assignment.projectId) || 'Unknown Project';
+                    
+                    overflowPhases.forEach(phase => {
+                        overflowProjects.push({
+                            projectName,
+                            phaseName: phase.phaseName,
+                            overflow: phase.overflow
+                        });
+                    });
+                }
+            }
+        });
+        
+        if (overflowProjects.length > 0) {
+            // Group overflows by member as requested
+            const overflowSummary = overflowProjects.map(overflow => 
+                `${overflow.projectName}: ${overflow.phaseName} +${overflow.overflow.toFixed(1)} MDs`
+            ).join(', ');
+            
+            alerts.push({
+                type: 'overflow',
+                severity: 'warning',
+                message: `${member.firstName} ${member.lastName} (${this.getMemberRole(member)} - ${this.getVendorName(member)}): ${overflowSummary}`
+            });
         }
         
         return alerts;
@@ -1798,6 +1859,10 @@ class CapacityManager extends BaseComponent {
             case 'error': return 'exclamation-circle';
             case 'warning': return 'exclamation-triangle';
             case 'info': return 'info-circle';
+            case 'overallocation': return 'exclamation-triangle';
+            case 'unassigned': return 'user-clock';
+            case 'deadline': return 'calendar-times';
+            case 'overflow': return 'tachometer-alt';
             default: return 'bell';
         }
     }
@@ -2655,13 +2720,40 @@ class CapacityManager extends BaseComponent {
      */
     getMemberRole(member) {
         console.log(`getMemberRole for member:`, member);
+        console.log(`Member vendorId: '${member.vendorId}'`);
+        console.log(`Member vendorType: '${member.vendorType}'`);
         
-        if (!member.vendorId || !this.app?.managers?.configuration) {
-            console.log(`Missing vendorId (${member.vendorId}) or configuration manager, defaulting to G2`);
-            return 'G2'; // Default role
+        if (!member.vendorId) {
+            console.log(`Missing vendorId (${member.vendorId}), defaulting to G2`);
+            return 'G2';
         }
-
-        const configManager = this.app.managers.configuration;
+        
+        if (!this.app?.managers?.configuration) {
+            console.log(`Configuration manager not available, checking alternative sources...`);
+            
+            // Try alternative access paths
+            const altConfigManager = this.app?.managers?.config || 
+                                   window.app?.managers?.configuration ||
+                                   window.configManager;
+            
+            console.log('Alternative config manager found:', !!altConfigManager);
+            
+            if (!altConfigManager) {
+                console.log(`No configuration manager available, defaulting to G2`);
+                return 'G2';
+            }
+            
+            // Use alternative config manager
+            const configManager = altConfigManager;
+        } else {
+            const configManager = this.app.managers.configuration;
+        }
+        
+        // Get config manager (either from this.app or alternative)
+        const configManager = this.app?.managers?.configuration || 
+                              this.app?.managers?.config || 
+                              window.app?.managers?.configuration ||
+                              window.configManager;
         console.log(`Available internal resources:`, configManager.globalConfig?.internalResources?.length || 0);
         console.log(`Available suppliers:`, configManager.globalConfig?.suppliers?.length || 0);
         
@@ -3007,6 +3099,54 @@ class CapacityManager extends BaseComponent {
             let teams = configManager.globalConfig.teams || [];
             console.log(`Found ${teams.length} teams in configuration:`, teams.map(t => t.name));
             
+            // DEBUG: Log raw team data to see vendorId values
+            teams.forEach(team => {
+                console.log(`Team ${team.name} members:`);
+                (team.members || []).forEach(member => {
+                    console.log(`  - ${member.firstName} ${member.lastName}: vendorId='${member.vendorId}', vendorType='${member.vendorType}'`);
+                });
+            });
+            
+            // CRITICAL FIX: Check for vendorId truncation and reload from defaults if needed
+            const hasInvalidVendorIds = teams.some(team => 
+                (team.members || []).some(member => 
+                    member.vendorType === 'internal' && 
+                    member.firstName === 'Ioana-Simina' && 
+                    member.vendorId === 'developer-g2'
+                )
+            );
+            
+            if (hasInvalidVendorIds) {
+                console.log('DETECTED VENDORID TRUNCATION - Reloading teams from defaults.json...');
+                
+                try {
+                    // Force reload from defaults
+                    const defaultConfigManager = this.app?.managers?.defaultConfig || window.defaultConfigManager;
+                    if (defaultConfigManager && typeof defaultConfigManager.getDefaultTeams === 'function') {
+                        const defaultTeams = await defaultConfigManager.getDefaultTeams();
+                        if (defaultTeams && defaultTeams.length > 0) {
+                            console.log('Successfully reloaded teams from defaults.json');
+                            teams = defaultTeams;
+                            
+                            // Update global config with correct data
+                            configManager.globalConfig.teams = teams;
+                            await configManager.saveGlobalConfig();
+                            console.log('Updated global config with corrected team data');
+                            
+                            // Re-log corrected team data
+                            teams.forEach(team => {
+                                console.log(`CORRECTED Team ${team.name} members:`);
+                                (team.members || []).forEach(member => {
+                                    console.log(`  - ${member.firstName} ${member.lastName}: vendorId='${member.vendorId}', vendorType='${member.vendorType}'`);
+                                });
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to reload teams from defaults:', error);
+                }
+            }
+            
             // If no teams exist, try to initialize from TeamsConfigManager
             if (teams.length === 0) {
                 console.log('No teams configured, attempting to initialize from TeamsConfigManager...');
@@ -3108,8 +3248,12 @@ class CapacityManager extends BaseComponent {
             }
 
             // Generate real team members
+            console.log('DEBUG: Raw teams data before processing:', teams);
             const realTeamMembers = teams.flatMap(team => 
                 (team.members || []).map(member => {
+                    console.log('DEBUG: Processing raw team member:', member);
+                    console.log('DEBUG: Raw member vendorId:', member.vendorId);
+                    
                     const memberRole = this.getMemberRole(member);
                     const vendor = this.resolveVendorName(member);
                     
@@ -3141,9 +3285,7 @@ class CapacityManager extends BaseComponent {
                     const utilizationData = this.calculateCurrentUtilization(processedAllocations, memberRole);
                     
                     return {
-                        id: member.id,
-                        firstName: member.firstName,
-                        lastName: member.lastName,
+                        ...member, // Include ALL original member fields (including vendorId!)
                         role: memberRole, // From vendor configuration (G1/G2/TA/PM)
                         vendor: vendor,
                         maxCapacity: utilizationData.realWorkingDaysInMonth, // Real working days
@@ -4374,7 +4516,7 @@ class CapacityManager extends BaseComponent {
             modal.id = 'assignment-modal';
             modal.className = 'modal';
             modal.innerHTML = `
-                <div class="modal-content">
+                <div class="modal-content assignment-modal-content">
                     <div class="modal-header">
                         <h3>Add Team Member Assignment</h3>
                         <button class="modal-close">&times;</button>
@@ -4386,6 +4528,7 @@ class CapacityManager extends BaseComponent {
                                 <select id="assignment-team-member" name="teamMember" required>
                                     <option value="">Select Team Member</option>
                                 </select>
+                                <small class="field-info" id="member-role-info"></small>
                             </div>
                             <div class="form-group">
                                 <label for="assignment-project">Project *</label>
@@ -4393,14 +4536,33 @@ class CapacityManager extends BaseComponent {
                                     <option value="">Select Project</option>
                                 </select>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="assignment-start-date">Start Date *</label>
-                                    <input type="date" id="assignment-start-date" name="startDate" required>
+                            
+                            <!-- Budget Tracking Section -->
+                            <div class="budget-section" id="budget-section" style="display: none;">
+                                <h4><i class="fas fa-chart-line"></i> Budget Overview</h4>
+                                <div class="budget-summary">
+                                    <div class="budget-item">
+                                        <label>Total Final MDs:</label>
+                                        <span id="total-final-mds" class="budget-value">-</span>
+                                        <small id="budget-context"></small>
+                                    </div>
+                                    <div class="budget-item">
+                                        <label>Total Allocated MDs:</label>
+                                        <span id="total-allocated-mds" class="budget-value">0.0</span>
+                                        <small>Sum of MDs allocated in phases below</small>
+                                    </div>
+                                    <div class="budget-item balance-item">
+                                        <label>Balance:</label>
+                                        <span id="budget-balance" class="budget-balance">-</span>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="assignment-end-date">End Date *</label>
-                                    <input type="date" id="assignment-end-date" name="endDate" required>
+                            </div>
+                            
+                            <!-- Phase Scheduling Section -->
+                            <div class="phases-section" id="phases-section" style="display: none;">
+                                <h4><i class="fas fa-calendar-alt"></i> Phase Scheduling</h4>
+                                <div id="phases-list">
+                                    <!-- Dynamic phase items will be inserted here -->
                                 </div>
                             </div>
 
@@ -4412,7 +4574,7 @@ class CapacityManager extends BaseComponent {
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary modal-close">Cancel</button>
-                        <button type="submit" class="btn btn-primary" form="assignment-form">Add Assignment</button>
+                        <button type="submit" class="btn btn-primary" form="assignment-form" id="submit-assignment">Add Assignment</button>
                     </div>
                 </div>
             `;
@@ -4421,6 +4583,9 @@ class CapacityManager extends BaseComponent {
 
         // Populate dropdowns
         await this.populateAssignmentModalDropdowns();
+        
+        // Setup event listeners for dynamic content
+        this.setupAssignmentModalEventListeners();
 
         // Show modal
         modal.classList.add('active');
@@ -4435,11 +4600,168 @@ class CapacityManager extends BaseComponent {
         // Setup modal close handlers
         modal.querySelectorAll('.modal-close').forEach(btn => {
             btn.addEventListener('click', () => {
+                this.resetAssignmentModal();
                 modal.classList.remove('active');
             });
         });
     }
 
+    /**
+     * Setup assignment modal event listeners
+     */
+    setupAssignmentModalEventListeners() {
+        const teamMemberSelect = document.getElementById('assignment-team-member');
+        const projectSelect = document.getElementById('assignment-project');
+        
+        // Team member selection change
+        teamMemberSelect.addEventListener('change', () => {
+            this.handleTeamMemberSelectionChange();
+        });
+        
+        // Project selection change  
+        projectSelect.addEventListener('change', () => {
+            this.handleProjectSelectionChange();
+        });
+    }
+    
+    /**
+     * Reset assignment modal to initial state
+     */
+    resetAssignmentModal() {
+        // Hide dynamic sections
+        document.getElementById('budget-section').style.display = 'none';
+        document.getElementById('phases-section').style.display = 'none';
+        
+        // Clear dynamic content
+        document.getElementById('member-role-info').textContent = '';
+        document.getElementById('total-final-mds').textContent = '-';
+        document.getElementById('total-allocated-mds').textContent = '0.0';
+        document.getElementById('budget-balance').textContent = '-';
+        document.getElementById('budget-context').textContent = '';
+        document.getElementById('phases-list').innerHTML = '';
+        
+        // Reset form
+        document.getElementById('assignment-form').reset();
+    }
+    
+    /**
+     * Handle team member selection change
+     */
+    async handleTeamMemberSelectionChange() {
+        const teamMemberSelect = document.getElementById('assignment-team-member');
+        const memberRoleInfo = document.getElementById('member-role-info');
+        
+        if (!teamMemberSelect.value) {
+            memberRoleInfo.textContent = '';
+            this.updateBudgetSection();
+            return;
+        }
+        
+        console.log('DEBUG: Selected member ID from dropdown:', teamMemberSelect.value);
+        
+        // Get selected member data
+        const teamMembers = await this.getRealTeamMembers();
+        console.log('DEBUG: All team members from getRealTeamMembers:', teamMembers);
+        
+        const selectedMember = teamMembers.find(m => m.id === teamMemberSelect.value);
+        console.log('DEBUG: Found selected member:', selectedMember);
+        
+        if (selectedMember) {
+            console.log('DEBUG: Selected member vendorId:', selectedMember.vendorId);
+            console.log('DEBUG: Selected member vendorType:', selectedMember.vendorType);
+            
+            const memberRole = this.getMemberRole(selectedMember);
+            const vendorName = this.getVendorName(selectedMember);
+            memberRoleInfo.textContent = `Role: ${memberRole}, Vendor: ${vendorName}`;
+        } else {
+            console.error('DEBUG: No member found with ID:', teamMemberSelect.value);
+            console.log('DEBUG: Available member IDs:', teamMembers.map(m => m.id));
+        }
+        
+        this.updateBudgetSection();
+    }
+    
+    /**
+     * Handle project selection change
+     */
+    async handleProjectSelectionChange() {
+        const projectSelect = document.getElementById('assignment-project');
+        
+        if (!projectSelect.value) {
+            document.getElementById('budget-section').style.display = 'none';
+            document.getElementById('phases-section').style.display = 'none';
+            return;
+        }
+        
+        await this.loadProjectForAssignment(projectSelect.value);
+    }
+    
+    /**
+     * Load project data and populate phase scheduling
+     */
+    async loadProjectForAssignment(projectId) {
+        try {
+            // Get project data
+            const projects = await this.getAvailableProjects();
+            const project = projects.find(p => p.id === projectId);
+            
+            if (!project || !project.filePath) {
+                throw new Error('Project data not found');
+            }
+            
+            // Load complete project data
+            const dataManager = this.app?.managers?.data || window.dataManager;
+            const completeProject = await dataManager.loadProject(project.filePath);
+            
+            // Show dynamic sections
+            document.getElementById('budget-section').style.display = 'block';
+            document.getElementById('phases-section').style.display = 'block';
+            
+            // Update budget section and phases
+            await this.updateBudgetSection(completeProject);
+            await this.updatePhasesSection(completeProject);
+            
+        } catch (error) {
+            console.error('Error loading project for assignment:', error);
+            // Hide sections on error
+            document.getElementById('budget-section').style.display = 'none';
+            document.getElementById('phases-section').style.display = 'none';
+        }
+    }
+    
+    /**
+     * Get vendor name for team member
+     */
+    getVendorName(teamMember) {
+        if (!teamMember.vendorId) {
+            return 'Unknown';
+        }
+        
+        if (!this.app?.managers?.configuration) {
+            return 'Unknown';
+        }
+        
+        const configManager = this.app.managers.configuration;
+        
+        // Check internal resources first
+        const internalResource = configManager.globalConfig?.internalResources?.find(
+            r => r.id === teamMember.vendorId
+        );
+        if (internalResource) {
+            return internalResource.name;
+        }
+        
+        // Check suppliers
+        const supplier = configManager.globalConfig?.suppliers?.find(
+            s => s.id === teamMember.vendorId
+        );
+        if (supplier) {
+            return supplier.name;
+        }
+        
+        return 'Unknown';
+    }
+    
     /**
      * Populate assignment modal dropdowns
      */
@@ -4508,6 +4830,296 @@ class CapacityManager extends BaseComponent {
             });
         }
     }
+    
+    /**
+     * Update budget tracking section
+     */
+    async updateBudgetSection(completeProject = null) {
+        const teamMemberSelect = document.getElementById('assignment-team-member');
+        const projectSelect = document.getElementById('assignment-project');
+        
+        if (!teamMemberSelect.value || !projectSelect.value || !completeProject) {
+            document.getElementById('total-final-mds').textContent = '-';
+            document.getElementById('budget-context').textContent = '';
+            this.updateBudgetBalance();
+            return;
+        }
+        
+        try {
+            // Get team member role and vendor
+            const teamMembers = await this.getRealTeamMembers();
+            const selectedMember = teamMembers.find(m => m.id === teamMemberSelect.value);
+            const memberRole = this.getMemberRole(selectedMember);
+            const vendorName = this.getVendorName(selectedMember);
+            
+            // Find matching vendor cost in project calculation data
+            let finalMDs = 0;
+            if (completeProject.calculationData?.vendorCosts) {
+                const vendorCost = completeProject.calculationData.vendorCosts.find(cost => 
+                    cost.vendorId === selectedMember.vendorId && cost.role === memberRole
+                );
+                if (vendorCost) {
+                    finalMDs = vendorCost.finalMDs || 0;
+                }
+            }
+            
+            document.getElementById('total-final-mds').textContent = `${finalMDs.toFixed(1)} MDs`;
+            document.getElementById('budget-context').textContent = `Budget for ${vendorName} - ${memberRole} in this project`;
+            
+            this.updateBudgetBalance();
+            
+        } catch (error) {
+            console.error('Error updating budget section:', error);
+            document.getElementById('total-final-mds').textContent = 'Error';
+            document.getElementById('budget-context').textContent = 'Unable to load budget data';
+        }
+    }
+    
+    /**
+     * Update phases scheduling section
+     */
+    async updatePhasesSection(completeProject) {
+        const teamMemberSelect = document.getElementById('assignment-team-member');
+        const phasesListContainer = document.getElementById('phases-list');
+        
+        if (!teamMemberSelect.value) {
+            phasesListContainer.innerHTML = '';
+            return;
+        }
+        
+        try {
+            // Get team member role
+            const teamMembers = await this.getRealTeamMembers();
+            const selectedMember = teamMembers.find(m => m.id === teamMemberSelect.value);
+            const memberRole = this.getMemberRole(selectedMember);
+            
+            // Get active phases (phases with manDays > 0 and effort for member role > 0)
+            const phases = completeProject.phases || {};
+            const activePhases = Object.entries(phases)
+                .filter(([key, phase]) => {
+                    if (key === 'selectedSuppliers') return false;
+                    return (phase.manDays || 0) > 0 && (phase.effort?.[memberRole] || 0) > 0;
+                })
+                .map(([key, phase]) => ({
+                    id: key,
+                    name: this.getPhaseDisplayName(key),
+                    ...phase
+                }));
+            
+            if (activePhases.length === 0) {
+                phasesListContainer.innerHTML = `
+                    <div class="no-phases-message">
+                        <i class="fas fa-info-circle"></i>
+                        <span>No phases available for ${memberRole} role in this project</span>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Generate phase items HTML
+            const phaseItemsHTML = activePhases.map(phase => {
+                const phaseMDs = this.calculatePhaseMDsForRole(phase, memberRole);
+                return `
+                    <div class="phase-item" data-phase-id="${phase.id}">
+                        <div class="phase-header">
+                            <h5><i class="fas fa-tasks"></i> ${phase.name}</h5>
+                            <span class="phase-mds">${phaseMDs.toFixed(1)} MDs</span>
+                        </div>
+                        <div class="phase-dates">
+                            <div class="form-group">
+                                <label>Start Date *</label>
+                                <input type="date" class="phase-start-date" data-phase-id="${phase.id}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>End Date *</label>
+                                <input type="date" class="phase-end-date" data-phase-id="${phase.id}" required>
+                            </div>
+                            <div class="phase-stats">
+                                <div class="stat-item">
+                                    <label>Available MDs:</label>
+                                    <span class="available-mds" data-phase-id="${phase.id}">-</span>
+                                </div>
+                                <div class="stat-item overflow-indicator" data-phase-id="${phase.id}" style="display: none;">
+                                    <label>Overflow:</label>
+                                    <span class="overflow-amount">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            phasesListContainer.innerHTML = phaseItemsHTML;
+            
+            // Setup event listeners for phase date changes
+            this.setupPhaseEventListeners();
+            
+        } catch (error) {
+            console.error('Error updating phases section:', error);
+            phasesListContainer.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Error loading project phases</span>
+                </div>
+            `;
+        }
+    }
+    
+    /**
+     * Calculate MDs for specific role in a phase
+     */
+    calculatePhaseMDsForRole(phase, memberRole) {
+        const totalMDs = phase.manDays || 0;
+        const effortPercentage = phase.effort?.[memberRole] || 0;
+        return (totalMDs * effortPercentage) / 100;
+    }
+    
+    /**
+     * Get display name for phase
+     */
+    getPhaseDisplayName(phaseKey) {
+        const phaseNames = {
+            functionalAnalysis: 'Functional Analysis',
+            technicalAnalysis: 'Technical Analysis', 
+            development: 'Development',
+            integrationTests: 'Integration Tests',
+            uatTests: 'UAT Tests',
+            consolidation: 'Consolidation',
+            vapt: 'VAPT',
+            postGoLive: 'Post Go-Live'
+        };
+        return phaseNames[phaseKey] || phaseKey;
+    }
+    
+    /**
+     * Setup event listeners for phase date inputs
+     */
+    setupPhaseEventListeners() {
+        const phaseStartDates = document.querySelectorAll('.phase-start-date');
+        const phaseEndDates = document.querySelectorAll('.phase-end-date');
+        
+        [...phaseStartDates, ...phaseEndDates].forEach(input => {
+            input.addEventListener('change', (e) => {
+                this.handlePhaseDateChange(e.target);
+            });
+        });
+    }
+    
+    /**
+     * Handle phase date change
+     */
+    handlePhaseDateChange(input) {
+        const phaseId = input.dataset.phaseId;
+        this.calculatePhaseAvailability(phaseId);
+        this.updateBudgetBalance();
+    }
+    
+    /**
+     * Calculate available MDs and overflow for a phase
+     */
+    calculatePhaseAvailability(phaseId) {
+        const startDateInput = document.querySelector(`[data-phase-id="${phaseId}"].phase-start-date`);
+        const endDateInput = document.querySelector(`[data-phase-id="${phaseId}"].phase-end-date`);
+        const availableMDsSpan = document.querySelector(`.available-mds[data-phase-id="${phaseId}"]`);
+        const overflowIndicator = document.querySelector(`.overflow-indicator[data-phase-id="${phaseId}"]`);
+        
+        if (!startDateInput.value || !endDateInput.value) {
+            availableMDsSpan.textContent = '-';
+            overflowIndicator.style.display = 'none';
+            return;
+        }
+        
+        const startDate = new Date(startDateInput.value);
+        const endDate = new Date(endDateInput.value);
+        
+        if (endDate <= startDate) {
+            availableMDsSpan.textContent = 'Invalid dates';
+            availableMDsSpan.className = 'available-mds error';
+            overflowIndicator.style.display = 'none';
+            return;
+        }
+        
+        // Calculate working days between dates
+        const workingDays = this.calculateWorkingDaysBetween(startDate, endDate);
+        availableMDsSpan.textContent = `${workingDays} MDs`;
+        availableMDsSpan.className = 'available-mds';
+        
+        // Get estimated MDs for this phase
+        const phaseItem = document.querySelector(`[data-phase-id="${phaseId}"]`);
+        const estimatedMDsText = phaseItem.querySelector('.phase-mds').textContent;
+        const estimatedMDs = parseFloat(estimatedMDsText);
+        
+        // Check for overflow
+        const overflow = estimatedMDs - workingDays;
+        if (overflow > 0) {
+            overflowIndicator.style.display = 'block';
+            overflowIndicator.querySelector('.overflow-amount').textContent = `+${overflow.toFixed(1)} MDs overflow`;
+            overflowIndicator.className = 'stat-item overflow-indicator overflow-warning';
+        } else {
+            overflowIndicator.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Calculate working days between two dates
+     */
+    calculateWorkingDaysBetween(startDate, endDate) {
+        let workingDays = 0;
+        const currentDate = new Date(startDate);
+        
+        while (currentDate < endDate) {
+            const dayOfWeek = currentDate.getDay();
+            // Count Monday-Friday (1-5) as working days
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                workingDays++;
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        return workingDays;
+    }
+    
+    /**
+     * Update budget balance display
+     */
+    updateBudgetBalance() {
+        const totalFinalMDsText = document.getElementById('total-final-mds').textContent;
+        const balanceElement = document.getElementById('budget-balance');
+        
+        if (totalFinalMDsText === '-' || totalFinalMDsText === 'Error') {
+            balanceElement.textContent = '-';
+            balanceElement.className = 'budget-balance';
+            return;
+        }
+        
+        const totalFinalMDs = parseFloat(totalFinalMDsText);
+        
+        // Calculate total allocated MDs from all phases
+        let totalAllocatedMDs = 0;
+        document.querySelectorAll('.phase-item').forEach(phaseItem => {
+            const phaseMDsText = phaseItem.querySelector('.phase-mds').textContent;
+            const startDate = phaseItem.querySelector('.phase-start-date').value;
+            const endDate = phaseItem.querySelector('.phase-end-date').value;
+            
+            // Only count phases with valid dates
+            if (startDate && endDate) {
+                const phaseMDs = parseFloat(phaseMDsText);
+                totalAllocatedMDs += phaseMDs;
+            }
+        });
+        
+        document.getElementById('total-allocated-mds').textContent = `${totalAllocatedMDs.toFixed(1)} MDs`;
+        
+        const balance = totalFinalMDs - totalAllocatedMDs;
+        
+        if (balance >= 0) {
+            balanceElement.textContent = `+${balance.toFixed(1)} MDs remaining`;
+            balanceElement.className = 'budget-balance positive';
+        } else {
+            balanceElement.textContent = `${balance.toFixed(1)} MDs over budget`;
+            balanceElement.className = 'budget-balance negative';
+        }
+    }
 
     /**
      * Handle add assignment form submission
@@ -4519,82 +5131,170 @@ class CapacityManager extends BaseComponent {
             
             const teamMemberId = formData.get('teamMember');
             const projectId = formData.get('project');
-            const startDate = formData.get('startDate');
-            const endDate = formData.get('endDate');
             const notes = formData.get('notes');
             
-            // Get team member and project data for calculation
+            // Validate selections
+            if (!teamMemberId || !projectId) {
+                NotificationManager.error('Please select both team member and project');
+                return;
+            }
+            
+            // Collect phase schedule data
+            const phaseSchedule = this.collectPhaseScheduleData();
+            if (phaseSchedule.length === 0) {
+                NotificationManager.error('Please set dates for at least one phase');
+                return;
+            }
+            
+            // Validate phase dates
+            const validation = this.validatePhaseSchedule(phaseSchedule);
+            if (!validation.isValid) {
+                NotificationManager.error(`Phase validation error: ${validation.error}`);
+                return;
+            }
+            
+            // Get team member and project data
             const teamMembers = await this.getRealTeamMembers();
             const projects = await this.getAvailableProjects();
             
             const teamMember = teamMembers.find(m => m.id === teamMemberId);
             const project = projects.find(p => p.id === projectId);
             
-            console.log('Selected team member:', teamMember);
-            console.log('Selected project:', project);
-            console.log('Project file path:', project?.filePath);
-            
             if (!teamMember || !project) {
                 NotificationManager.error('Invalid team member or project selection');
                 return;
             }
             
-            // Load complete project data for calculation (includes phases)
-            console.log('Loading complete project data for calculation...');
+            // Load complete project data
             const dataManager = this.app?.managers?.data || window.dataManager;
-            
             if (!project.filePath) {
                 throw new Error(`Project file path not available for project ${project.name || project.id}`);
             }
-            
             const completeProject = await dataManager.loadProject(project.filePath);
             
-            // Calculate allocation automatically using complete project data
-            console.log('About to calculate allocation for assignment...');
-            const calculatedAllocation = await this.calculateAssignmentAllocation(teamMember, completeProject, startDate, endDate);
-            console.log('Calculated allocation result:', calculatedAllocation);
+            // Get budget info
+            const budgetInfo = this.getBudgetInfo();
             
+            // Calculate phase-based allocation
+            const calculatedAllocation = await this.calculatePhaseBasedAllocation(teamMember, completeProject, phaseSchedule);
+            
+            // Create assignment with new structure
             const assignment = {
                 id: this.generateId('assignment-'),
                 teamMemberId: teamMemberId,
                 projectId: projectId,
-                startDate: startDate,
-                endDate: endDate,
                 status: 'approved',
+                phaseSchedule: phaseSchedule,
+                budgetInfo: budgetInfo,
                 calculatedAllocation: calculatedAllocation,
                 notes: notes,
                 created: new Date().toISOString()
             };
 
-            console.log('Creating new assignment:', assignment);
+            console.log('Creating new phase-based assignment:', assignment);
             
             // Initialize manual assignments array if it doesn't exist
             if (!this.manualAssignments) {
                 this.manualAssignments = [];
             }
             
-            // Save assignment to manual assignments structure
+            // Save assignment
             this.manualAssignments.push(assignment);
             
-            console.log('=== ASSIGNMENT SAVED ===');
-            console.log('Assignment created:', assignment);
-            console.log('Total manual assignments:', this.manualAssignments.length);
-            console.log('All manual assignments:', this.manualAssignments);
+            // Check for overflows and show alerts
+            const overflows = this.detectOverflows(phaseSchedule);
+            if (overflows.length > 0) {
+                const overflowMessages = overflows.map(o => `${o.phaseName}: +${o.overflow.toFixed(1)} MDs`);
+                NotificationManager.warning(`Assignment created with overflows: ${overflowMessages.join(', ')}`);
+            } else {
+                NotificationManager.success('Assignment created successfully');
+            }
             
-            // Close modal
+            // Close modal and refresh
+            this.resetAssignmentModal();
             document.getElementById('assignment-modal').classList.remove('active');
             
-            // Refresh ALL capacity sections with new assignment data
-            console.log('=== STARTING CAPACITY REFRESH ===');
             await this.refreshAllCapacitySections();
-            console.log('=== CAPACITY REFRESH COMPLETED ===');
-            
-            NotificationManager.success('Assignment created successfully with complete project calculation');
             
         } catch (error) {
             console.error('Error creating assignment:', error);
             NotificationManager.error(`Failed to create assignment: ${error.message}`);
         }
+    }
+    
+    /**
+     * Collect phase schedule data from modal
+     */
+    collectPhaseScheduleData() {
+        const phaseSchedule = [];
+        
+        document.querySelectorAll('.phase-item').forEach(phaseItem => {
+            const phaseId = phaseItem.dataset.phaseId;
+            const phaseName = phaseItem.querySelector('h5').textContent.replace(/.*\s/, '');
+            const startDate = phaseItem.querySelector('.phase-start-date').value;
+            const endDate = phaseItem.querySelector('.phase-end-date').value;
+            const estimatedMDsText = phaseItem.querySelector('.phase-mds').textContent;
+            const estimatedMDs = parseFloat(estimatedMDsText);
+            
+            if (startDate && endDate) {
+                const availableMDs = this.calculateWorkingDaysBetween(new Date(startDate), new Date(endDate));
+                const overflow = Math.max(0, estimatedMDs - availableMDs);
+                
+                phaseSchedule.push({
+                    phaseId,
+                    phaseName,
+                    startDate,
+                    endDate,
+                    estimatedMDs,
+                    availableMDs,
+                    overflow
+                });
+            }
+        });
+        
+        return phaseSchedule;
+    }
+    
+    /**
+     * Validate phase schedule data
+     */
+    validatePhaseSchedule(phaseSchedule) {
+        for (const phase of phaseSchedule) {
+            const start = new Date(phase.startDate);
+            const end = new Date(phase.endDate);
+            
+            if (end <= start) {
+                return {
+                    isValid: false,
+                    error: `Invalid dates for ${phase.phaseName}: end date must be after start date`
+                };
+            }
+        }
+        
+        return { isValid: true };
+    }
+    
+    /**
+     * Get budget information
+     */
+    getBudgetInfo() {
+        const totalFinalMDsText = document.getElementById('total-final-mds').textContent;
+        const totalAllocatedMDsText = document.getElementById('total-allocated-mds').textContent;
+        const budgetBalanceText = document.getElementById('budget-balance').textContent;
+        
+        return {
+            totalFinalMDs: totalFinalMDsText === '-' ? 0 : parseFloat(totalFinalMDsText),
+            totalAllocatedMDs: parseFloat(totalAllocatedMDsText) || 0,
+            balance: budgetBalanceText === '-' ? 0 : parseFloat(budgetBalanceText),
+            isOverBudget: budgetBalanceText.includes('over budget')
+        };
+    }
+    
+    /**
+     * Detect overflow phases
+     */
+    detectOverflows(phaseSchedule) {
+        return phaseSchedule.filter(phase => phase.overflow > 0);
     }
 
     /**
@@ -4701,7 +5401,85 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
-     * Calculate allocation for a manual assignment
+     * Calculate phase-based allocation for assignment
+     */
+    async calculatePhaseBasedAllocation(teamMember, completeProject, phaseSchedule) {
+        try {
+            console.log('=== CALCULATING PHASE-BASED ALLOCATION ===');
+            console.log('TeamMember:', teamMember.id, teamMember.firstName, teamMember.lastName);
+            console.log('Project:', completeProject.project.name);
+            console.log('Phase Schedule:', phaseSchedule);
+            
+            const memberRole = this.getMemberRole(teamMember);
+            console.log('Member role:', memberRole);
+            
+            const allocations = {};
+            
+            // Process each phase in the schedule
+            phaseSchedule.forEach(phaseScheduleItem => {
+                console.log(`Processing phase: ${phaseScheduleItem.phaseName}`);
+                
+                // Distribute the estimated MDs across the phase period
+                const phaseDistribution = this.distributePhaseAcrossMonths(
+                    phaseScheduleItem.estimatedMDs,
+                    new Date(phaseScheduleItem.startDate),
+                    new Date(phaseScheduleItem.endDate),
+                    this.getMonthsInDateRange(new Date(phaseScheduleItem.startDate), new Date(phaseScheduleItem.endDate))
+                );
+                
+                console.log(`Phase ${phaseScheduleItem.phaseName} distribution:`, Object.keys(phaseDistribution));
+                
+                Object.entries(phaseDistribution).forEach(([month, dayData]) => {
+                    if (!allocations[month]) allocations[month] = {};
+                    
+                    // Add overflow information to the allocation
+                    const hasOverflow = phaseScheduleItem.overflow > 0;
+                    const overflowAmount = phaseScheduleItem.overflow;
+                    
+                    if (allocations[month][completeProject.project.name]) {
+                        allocations[month][completeProject.project.name].days += dayData.days;
+                        allocations[month][completeProject.project.name].phases.push({
+                            phaseName: phaseScheduleItem.phaseName,
+                            phaseDays: dayData.days,
+                            hasOverflow,
+                            overflowAmount: hasOverflow ? overflowAmount : 0
+                        });
+                        
+                        // Update overall overflow for the month
+                        if (hasOverflow) {
+                            allocations[month][completeProject.project.name].hasOverflow = true;
+                            allocations[month][completeProject.project.name].overflowAmount += overflowAmount;
+                        }
+                    } else {
+                        allocations[month][completeProject.project.name] = {
+                            days: dayData.days,
+                            status: completeProject.project.status || 'approved',
+                            hasOverflow,
+                            overflowAmount: hasOverflow ? overflowAmount : 0,
+                            phases: [{
+                                phaseName: phaseScheduleItem.phaseName,
+                                phaseDays: dayData.days,
+                                hasOverflow,
+                                overflowAmount: hasOverflow ? overflowAmount : 0
+                            }]
+                        };
+                    }
+                });
+            });
+            
+            console.log('Final phase-based allocations:', allocations);
+            console.log('Number of months with allocation:', Object.keys(allocations).length);
+            
+            return allocations;
+            
+        } catch (error) {
+            console.error('Error calculating phase-based allocation:', error);
+            throw new Error(`Cannot create assignment: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Calculate allocation for a manual assignment (LEGACY - keeping for compatibility)
      */
     async calculateAssignmentAllocation(teamMember, project, startDate, endDate) {
         try {
