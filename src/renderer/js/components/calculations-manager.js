@@ -3072,7 +3072,7 @@ class CapacityManager extends BaseComponent {
                                 fileName: projectItem.fileName,
                                 // Add default phases structure if missing (will be empty array since we don't load full data here)
                                 phases: [],  // Will be loaded later if needed by individual functions
-                                status: projectItem.project.status || 'active',  // Ensure status exists
+                                status: projectItem.project.status || 'approved',  // Ensure status exists
                                 startDate: projectItem.project.startDate || null,
                                 endDate: projectItem.project.endDate || null
                             };
@@ -3118,6 +3118,18 @@ class CapacityManager extends BaseComponent {
                     
                     // Merge with manual assignments
                     const allocations = this.mergeManualAssignments(member, automaticAllocations);
+                    
+                    // Debug: show allocation structure
+                    console.log(`Final allocations for ${member.id}:`, Object.keys(allocations).length, 'months');
+                    Object.entries(allocations).forEach(([monthKey, monthData]) => {
+                        const projects = Object.keys(monthData);
+                        if (projects.length > 0) {
+                            console.log(`  Month ${monthKey}: projects = [${projects.join(', ')}]`);
+                        }
+                    });
+                    
+                    // Assign merged allocations to member for visualization
+                    member.allocations = allocations;
                     
                     // Check and flag overflow
                     const processedAllocations = this.checkAndFlagOverflow(
@@ -3219,11 +3231,11 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
-     * Generate project status from real data
+     * Generate project status from real data with interactive dropdown
      */
     generateProjectStatusFromRealData(member, project) {
         if (project === 'No Projects') {
-            return '<span class="status-badge inactive">No Projects</span>';
+            return '<span class="status-badge pending">No Projects</span>';
         }
 
         // Find if project has allocations in any month
@@ -3240,12 +3252,91 @@ class CapacityManager extends BaseComponent {
             }
         });
 
-        const badges = [];
-        if (hasApproved) badges.push('<span class="status-badge approved">✓</span>');
-        if (hasPending) badges.push('<span class="status-badge pending">⏳</span>');
-        if (hasOverflow) badges.push('<span class="status-badge overflow">⚠️</span>');
+        // Determine predominant status for dropdown default
+        let predominantStatus = 'pending';
+        if (hasApproved && !hasPending) {
+            predominantStatus = 'approved';
+        } else if (hasApproved && hasPending) {
+            predominantStatus = 'approved'; // Default to approved when mixed
+        }
 
-        return badges.join(' ') || '<span class="status-badge inactive">-</span>';
+        // Generate interactive dropdown for status change
+        const overflowBadge = hasOverflow ? ' <span class="status-badge overflow">⚠️</span>' : '';
+        
+        return `
+            <select class="status-dropdown" 
+                    data-member-id="${member.id}" 
+                    data-project="${project}"
+                    onchange="window.capacityManager?.handleProjectStatusChange(this)">
+                <option value="approved" ${predominantStatus === 'approved' ? 'selected' : ''}>✓ Approved</option>
+                <option value="pending" ${predominantStatus === 'pending' ? 'selected' : ''}>⏳ Pending</option>
+            </select>${overflowBadge}
+        `;
+    }
+
+    /**
+     * Handle project status change from timeline dropdown
+     */
+    async handleProjectStatusChange(selectElement) {
+        try {
+            const memberId = selectElement.dataset.memberId;
+            const project = selectElement.dataset.project;
+            const newStatus = selectElement.value;
+            
+            console.log(`Changing status for ${project} (member ${memberId}) to: ${newStatus}`);
+            
+            // Update status in all allocations for this member-project combination
+            await this.updateProjectStatusInAllocations(memberId, project, newStatus);
+            
+            // Refresh all capacity sections to reflect the change
+            console.log('Refreshing all sections after status change...');
+            await this.refreshAllCapacitySections();
+            
+            // Show success notification
+            NotificationManager.success(`Project ${project} status changed to ${newStatus}`);
+            
+        } catch (error) {
+            console.error('Error changing project status:', error);
+            NotificationManager.error(`Failed to change project status: ${error.message}`);
+        }
+    }
+
+    /**
+     * Update project status in member allocations
+     */
+    async updateProjectStatusInAllocations(memberId, projectName, newStatus) {
+        // Find the team member
+        const teamMembers = await this.getRealTeamMembers();
+        const member = teamMembers.find(m => m.id === memberId);
+        
+        if (!member) {
+            throw new Error(`Team member with ID ${memberId} not found`);
+        }
+        
+        // Update status in all monthly allocations for this project
+        let updatesCount = 0;
+        Object.keys(member.allocations).forEach(monthKey => {
+            if (member.allocations[monthKey][projectName]) {
+                member.allocations[monthKey][projectName].status = newStatus;
+                updatesCount++;
+            }
+        });
+        
+        // Also update status in manual assignments if they exist
+        if (this.manualAssignments) {
+            this.manualAssignments.forEach(assignment => {
+                if (assignment.teamMemberId === memberId) {
+                    // Find project in calculatedAllocation
+                    Object.keys(assignment.calculatedAllocation || {}).forEach(monthKey => {
+                        if (assignment.calculatedAllocation[monthKey][projectName]) {
+                            assignment.calculatedAllocation[monthKey][projectName].status = newStatus;
+                        }
+                    });
+                }
+            });
+        }
+        
+        console.log(`Updated ${updatesCount} monthly allocations for ${projectName} to status: ${newStatus}`);
     }
 
     /**
@@ -3553,6 +3644,12 @@ class CapacityManager extends BaseComponent {
                 const monthCells = this.getTimelineMonths().map(monthKey => {
                     const monthData = member.allocations[monthKey];
                     const projectData = monthData && monthData[project];
+                    
+                    // Debug timeline cell rendering
+                    console.log(`Timeline cell debug: month=${monthKey}, project=${project}, hasMonthData=${!!monthData}, hasProjectData=${!!projectData}`);
+                    if (monthData) {
+                        console.log(`  Month ${monthKey} projects:`, Object.keys(monthData));
+                    }
                     
                     if (projectData) {
                         const statusIcon = projectData.status === 'approved' ? '✅' : '🟡';
@@ -4431,16 +4528,30 @@ class CapacityManager extends BaseComponent {
             const projects = await this.getAvailableProjects();
             
             const teamMember = teamMembers.find(m => m.id === teamMemberId);
-            const project = projects.find(p => p.project?.id === projectId || p.id === projectId);
+            const project = projects.find(p => p.id === projectId);
+            
+            console.log('Selected team member:', teamMember);
+            console.log('Selected project:', project);
+            console.log('Project file path:', project?.filePath);
             
             if (!teamMember || !project) {
                 NotificationManager.error('Invalid team member or project selection');
                 return;
             }
             
+            // Load complete project data for calculation (includes phases)
+            console.log('Loading complete project data for calculation...');
+            const dataManager = this.app?.managers?.data || window.dataManager;
+            
+            if (!project.filePath) {
+                throw new Error(`Project file path not available for project ${project.name || project.id}`);
+            }
+            
+            const completeProject = await dataManager.loadProject(project.filePath);
+            
             // Calculate allocation automatically using complete project data
             console.log('About to calculate allocation for assignment...');
-            const calculatedAllocation = await this.calculateAssignmentAllocation(teamMember, project, startDate, endDate);
+            const calculatedAllocation = await this.calculateAssignmentAllocation(teamMember, completeProject, startDate, endDate);
             console.log('Calculated allocation result:', calculatedAllocation);
             
             const assignment = {
@@ -4449,6 +4560,7 @@ class CapacityManager extends BaseComponent {
                 projectId: projectId,
                 startDate: startDate,
                 endDate: endDate,
+                status: 'approved',
                 calculatedAllocation: calculatedAllocation,
                 notes: notes,
                 created: new Date().toISOString()
@@ -4602,25 +4714,10 @@ class CapacityManager extends BaseComponent {
             const memberRole = this.getMemberRole(teamMember);
             console.log('Member role:', memberRole);
             
-            // Load complete project JSON from file instead of using simplified version
-            const dataManager = this.app?.managers?.data || window.dataManager;
-            if (!dataManager) {
-                throw new Error('DataManager not available for loading project data');
-            }
-            
-            if (!project.filePath) {
-                throw new Error('Project file path not available for loading complete project data');
-            }
-            
-            console.log('Loading complete project from:', project.filePath);
-            const completeProjectData = await dataManager.loadProject(project.filePath);
-            
-            if (!completeProjectData || !completeProjectData.project) {
-                throw new Error('Failed to load complete project data');
-            }
-            
-            const completeProject = completeProjectData.project;
-            console.log('Loaded complete project:', completeProject.name);
+            // Use the complete project data that was already loaded and passed in
+            const completeProjectData = project; // project is already the complete loaded data
+            const completeProject = project.project;
+            console.log('Using complete project data:', completeProject.name);
             
             // Convert phases object to array if needed (phases are stored as object in JSON at root level)
             let phasesArray = [];
@@ -4685,7 +4782,7 @@ class CapacityManager extends BaseComponent {
                 name: completeProject.name || 'Unnamed Project',
                 startDate: startDate,
                 endDate: endDate,
-                status: (completeProject.status && completeProject.status.trim()) ? completeProject.status.trim() : 'active',
+                status: (completeProject.status && completeProject.status.trim()) ? completeProject.status.trim() : 'approved',
                 phases: phasesArray  // Use converted phases array
             };
             
@@ -4753,7 +4850,7 @@ class CapacityManager extends BaseComponent {
             
             allocations[monthKey] = {
                 days: defaultDaysPerMonth,
-                status: 'active',
+                status: 'approved',
                 hasOverflow: false,
                 overflowAmount: 0,
                 phases: [{
@@ -4794,6 +4891,7 @@ class CapacityManager extends BaseComponent {
         
         memberAssignments.forEach(assignment => {
             console.log(`Processing assignment ${assignment.id} for member ${member.id}`);
+            console.log(`Assignment projectId: ${assignment.projectId}`);
             const calculatedAllocation = assignment.calculatedAllocation;
             console.log('Assignment calculated allocation:', calculatedAllocation);
             
@@ -4805,6 +4903,7 @@ class CapacityManager extends BaseComponent {
                 
                 // Get project name
                 const projectName = this.getProjectNameById(assignment.projectId);
+                console.log(`Project name resolved: "${assignment.projectId}" -> "${projectName}"`);
                 
                 // Add or merge project allocation for this month
                 if (mergedAllocations[monthKey][projectName]) {
@@ -4830,17 +4929,18 @@ class CapacityManager extends BaseComponent {
      * Get project name by ID
      */
     getProjectNameById(projectId) {
-        // Try to find in loaded projects
+        // Try to find in loaded projects (now using transformed structure)
         if (this.cachedProjects) {
-            const project = this.cachedProjects.find(p => 
-                (p.project?.id === projectId) || (p.id === projectId)
-            );
+            const project = this.cachedProjects.find(p => p.id === projectId);
             if (project) {
-                return project.project?.name || project.name;
+                const projectName = project.name || project.code;
+                console.log(`getProjectNameById: ${projectId} -> ${projectName}`);
+                return projectName;
             }
         }
         
         // Fallback to generic name
+        console.log(`getProjectNameById: ${projectId} -> Project ${projectId} (fallback)`);
         return `Project ${projectId}`;
     }
 
@@ -4877,8 +4977,8 @@ class CapacityManager extends BaseComponent {
             
             console.log(`Filtered to ${availableProjects.length} available projects`);
             
-            // Cache projects for lookup in manual assignments
-            this.cachedProjects = projects;
+            // Cache projects for lookup in manual assignments (use transformed structure for consistency)
+            this.cachedProjects = availableProjects;
             
             // Return only real projects, no mock fallback
             if (availableProjects.length === 0) {

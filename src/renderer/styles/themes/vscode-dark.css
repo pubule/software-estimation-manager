@@ -1017,7 +1017,7 @@
     .table-container {
         flex: 1;
         overflow: auto;
-        padding: var(--spacing-md) var(--spacing-lg);
+        /*padding: var(--spacing-md) var(--spacing-lg);*/
     }
 
     .data-table {

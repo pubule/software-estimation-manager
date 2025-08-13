@@ -2825,3 +2825,55 @@
     background: rgba(220, 53, 69, 0.3) !important;
     color: #dc3545 !important;
 }
+
+/* =====================================================
+   STATUS DROPDOWN STYLES
+   ===================================================== */
+
+.status-dropdown {
+    background: #2d2d30;
+    border: 1px solid #404040;
+    border-radius: 4px;
+    color: #cccccc;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 100px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-dropdown:hover {
+    border-color: #007acc;
+    background: #094771;
+}
+
+.status-dropdown:focus {
+    outline: none;
+    border-color: #007acc;
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.status-dropdown option {
+    background: #2d2d30;
+    color: #cccccc;
+    padding: 4px 8px;
+}
+
+.status-dropdown option:checked {
+    background: #007acc;
+    color: #ffffff;
+}
+
+/* Status dropdown states */
+.status-dropdown[value="approved"] {
+    border-color: #6a9955;
+    background: rgba(106, 153, 85, 0.1);
+    color: #b5cea8;
+}
+
+.status-dropdown[value="pending"] {
+    border-color: #ffce54;
+    background: rgba(255, 206, 84, 0.1);
+    color: #ffce54;
+}
