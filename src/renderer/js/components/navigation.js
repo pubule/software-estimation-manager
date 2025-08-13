@@ -617,8 +617,8 @@ class EnhancedNavigationManager extends NavigationManager {
             }
             
             // Render resource overview content
-            setTimeout(() => {
-                this.app.capacityManager.renderResourceOverview();
+            setTimeout(async () => {
+                await this.app.capacityManager.renderResourceOverview();
             }, 100);
         }
         

@@ -1376,6 +1376,9 @@ class CapacityManager extends BaseComponent {
         }
 
         console.log('CapacityManager initialized');
+        
+        // Auto-load capacity data on initialization
+        this.autoLoadCapacityData();
     }
 
     /**
@@ -1396,6 +1399,9 @@ class CapacityManager extends BaseComponent {
         if (!this.autoDistribution && typeof AutoDistribution !== 'undefined') {
             this.autoDistribution = new AutoDistribution(this.workingDaysCalculator, this.teamManager);
         }
+
+        // Initialize capacity panel event listeners
+        this.initializeCapacityPanelEventListeners();
 
         console.log('Capacity planning components initialized');
         console.log('Available components:', {
@@ -1436,7 +1442,7 @@ class CapacityManager extends BaseComponent {
             this.initializeDashboardEventListeners();
             
             // Load and display dashboard data
-            this.loadDashboardData();
+            await this.loadDashboardData();
             
             console.log('Capacity planning dashboard rendered successfully');
             
@@ -1547,7 +1553,7 @@ class CapacityManager extends BaseComponent {
         // Refresh button
         const refreshBtn = document.getElementById('refresh-dashboard-btn');
         if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => this.loadDashboardData());
+            refreshBtn.addEventListener('click', async () => await this.loadDashboardData());
         }
 
         // Allocation timeframe filter
@@ -1558,21 +1564,27 @@ class CapacityManager extends BaseComponent {
     }
 
     // Load Dashboard Data
-    loadDashboardData() {
+    async loadDashboardData() {
+        // Try to load saved capacity data first
+        const savedData = await this.loadCapacityData();
+        if (savedData) {
+            console.log('Loaded saved capacity data successfully');
+        }
+        
         // Load team overview data
 
         
         // Load capacity utilization data
-        this.loadCapacityUtilizationData();
+        await this.loadCapacityUtilizationData();
         
 
         
         // Load alerts and warnings
-        this.loadAlertsData();
+        await this.loadAlertsData();
         
         // Load analytics charts
         this.loadAllocationChart();
-        this.loadTimelineOverviewChart();
+        await this.loadTimelineOverviewChart();
         
         // Load team performance data
         this.loadTeamPerformanceData();
@@ -1581,7 +1593,7 @@ class CapacityManager extends BaseComponent {
 
 
     // Load Capacity Utilization Data
-    loadCapacityUtilizationData() {
+    async loadCapacityUtilizationData() {
         // Calculate real capacity utilization data
         const currentDate = new Date();
         const currentMonth = currentDate.toISOString().slice(0, 7);
@@ -1589,7 +1601,7 @@ class CapacityManager extends BaseComponent {
             .toISOString().slice(0, 7);
         
         try {
-            const teamMembers = this.getRealTeamMembers();
+            const teamMembers = await this.getRealTeamMembers();
             
             // Calculate current month utilization
             const currentUtil = this.calculateMonthUtilization(teamMembers, currentMonth);
@@ -1632,15 +1644,67 @@ class CapacityManager extends BaseComponent {
         }
     }
 
+    /**
+     * Calculate month utilization percentage for team members
+     */
+    calculateMonthUtilization(teamMembers, monthKey) {
+        if (!Array.isArray(teamMembers) || teamMembers.length === 0) {
+            return 0;
+        }
+        
+        let totalCapacity = 0;
+        let totalAllocated = 0;
+        
+        teamMembers.forEach(member => {
+            // Get member capacity for the month
+            const memberCapacity = member.monthlyCapacity || 22; // Default working days
+            totalCapacity += memberCapacity;
+            
+            // Get member allocations for this month
+            if (member.allocations && member.allocations[monthKey]) {
+                const monthAllocations = member.allocations[monthKey];
+                const memberAllocated = Object.values(monthAllocations).reduce((sum, project) => {
+                    return sum + (project.days || 0);
+                }, 0);
+                totalAllocated += memberAllocated;
+            }
+        });
+        
+        return totalCapacity > 0 ? Math.round((totalAllocated / totalCapacity) * 100) : 0;
+    }
+
+    /**
+     * Calculate average utilization over last 3 months
+     */
+    calculateAverageUtilization(teamMembers) {
+        if (!Array.isArray(teamMembers) || teamMembers.length === 0) {
+            return 0;
+        }
+        
+        const currentDate = new Date();
+        const utilizations = [];
+        
+        // Calculate utilization for last 3 months
+        for (let i = 0; i < 3; i++) {
+            const month = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+            const monthKey = month.toISOString().slice(0, 7);
+            const monthUtil = this.calculateMonthUtilization(teamMembers, monthKey);
+            utilizations.push(monthUtil);
+        }
+        
+        return utilizations.length > 0 ? 
+            Math.round(utilizations.reduce((sum, util) => sum + util, 0) / utilizations.length) : 0;
+    }
+
     // Load Project Allocation Data
 
 
     // Load Alerts Data
-    loadAlertsData() {
+    async loadAlertsData() {
         const alertsContainer = document.getElementById('alerts-content');
         
         // Generate real alerts based on capacity data
-        const alerts = this.generateRealAlerts();
+        const alerts = await this.generateRealAlerts();
 
         if (alerts.length === 0) {
             alertsContainer.innerHTML = `
@@ -1662,12 +1726,18 @@ class CapacityManager extends BaseComponent {
     /**
      * Generate real alerts based on system data
      */
-    generateRealAlerts() {
+    async generateRealAlerts() {
         const alerts = [];
         
         try {
-            const teamMembers = this.getRealTeamMembers();
+            const teamMembers = await this.getRealTeamMembers();
             const currentDate = new Date();
+            
+            // Ensure teamMembers is an array
+            if (!Array.isArray(teamMembers)) {
+                console.warn('getRealTeamMembers returned non-array:', typeof teamMembers);
+                return alerts;
+            }
             
             teamMembers.forEach(member => {
                 // Check for over-allocation
@@ -1678,17 +1748,23 @@ class CapacityManager extends BaseComponent {
             });
 
             // Check for projects without assignments
-            const projects = this.getAvailableProjects();
-            const unassignedProjects = projects.filter(project => {
+            const projects = await this.getAvailableProjects();
+            
+            // Ensure projects is an array
+            if (!Array.isArray(projects)) {
+                console.warn('getAvailableProjects returned non-array:', typeof projects);
+            } else {
+                const unassignedProjects = projects.filter(project => {
                 return !this.hasProjectAssignments(project.id);
-            });
-
-            if (unassignedProjects.length > 0) {
-                alerts.push({
-                    type: 'warning',
-                    message: `${unassignedProjects.length} project(s) have no team member assignments`,
-                    severity: 'medium'
                 });
+
+                if (unassignedProjects.length > 0) {
+                    alerts.push({
+                        type: 'warning',
+                        message: `${unassignedProjects.length} project(s) have no team member assignments`,
+                        severity: 'medium'
+                    });
+                }
             }
 
         } catch (error) {
@@ -1845,11 +1921,12 @@ class CapacityManager extends BaseComponent {
     }
 
     // Load Timeline Overview Chart
-    loadTimelineOverviewChart() {
+    async loadTimelineOverviewChart() {
         const chartContainer = document.getElementById('timeline-overview-chart');
+        if (!chartContainer) return;
         
         // Generate real utilization data based on team member allocations
-        const months = this.calculateRealUtilizationData();
+        const months = await this.calculateRealUtilizationData();
 
         const chartHTML = `
             <div class="timeline-chart">
@@ -1874,12 +1951,18 @@ class CapacityManager extends BaseComponent {
     /**
      * Calculate real utilization data for chart
      */
-    calculateRealUtilizationData() {
+    async calculateRealUtilizationData() {
         const months = [];
         const currentYear = new Date().getFullYear();
         
         try {
-            const teamMembers = this.getRealTeamMembers();
+            const teamMembers = await this.getRealTeamMembers();
+            
+            // Ensure teamMembers is an array
+            if (!Array.isArray(teamMembers)) {
+                console.warn('getRealTeamMembers returned non-array:', typeof teamMembers);
+                return months;
+            }
             
             for (let i = 0; i < 15; i++) {
                 const month = new Date(currentYear, i, 1);
@@ -2711,7 +2794,7 @@ class CapacityManager extends BaseComponent {
                         } else {
                             allocations[month][project.name] = {
                                 days: dayData.days,
-                                status: mockProject.status,
+                                status: project.status,
                                 hasOverflow: false,
                                 overflowAmount: 0,
                                 phases: [{
@@ -4290,12 +4373,21 @@ class CapacityManager extends BaseComponent {
             }
             
             const projects = await dataManager.listProjects() || [];
-            console.log(`Found ${projects.length} projects:`, projects.map(p => p.name || p.code));
+            console.log(`Found ${projects.length} projects:`, projects.map(p => p.project?.name || p.project?.code));
             
-            const availableProjects = projects.filter(project => {
-                // More flexible filtering - just need name/code
+            const availableProjects = projects.filter(projectItem => {
+                // Extract the actual project object from listProjects() structure
+                const project = projectItem.project;
                 return project && (project.name || project.code);
-            });
+            }).map(projectItem => ({
+                id: projectItem.project.id,
+                code: projectItem.project.code,
+                name: projectItem.project.name,
+                description: projectItem.project.description,
+                version: projectItem.project.version,
+                filePath: projectItem.filePath,
+                fileName: projectItem.fileName
+            }));
             
             console.log(`Filtered to ${availableProjects.length} available projects`);
             
@@ -4394,21 +4486,277 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
-     * Export capacity data
+     * Initialize capacity panel event listeners
      */
-    exportCapacityData() {
-        console.log('Export capacity data');
-        // This would export current capacity data to Excel/CSV
-        NotificationManager.info('Export Capacity Data: Feature in development');
+    initializeCapacityPanelEventListeners() {
+        // Prevent multiple event listener attachments
+        if (this.capacityEventListenersInitialized) {
+            console.log('Capacity panel event listeners already initialized');
+            return;
+        }
+        
+        // Save button with debounce
+        let saveInProgress = false;
+        const saveBtn = document.getElementById('capacity-save-btn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', async () => {
+                if (saveInProgress) return;
+                saveInProgress = true;
+                try {
+                    await this.saveCapacityData();
+                } finally {
+                    saveInProgress = false;
+                }
+            });
+        }
+
+        // Export button with debounce
+        let exportInProgress = false;
+        const exportBtn = document.getElementById('capacity-export-btn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', async () => {
+                if (exportInProgress) return;
+                exportInProgress = true;
+                try {
+                    await this.exportCapacityData();
+                } finally {
+                    exportInProgress = false;
+                }
+            });
+        }
+        
+        // Mark as initialized
+        this.capacityEventListenersInitialized = true;
+        console.log('Capacity panel event listeners initialized');
     }
 
     /**
-     * Export capacity table data
+     * Collect all capacity data for saving/export
      */
-    exportCapacityTable() {
-        console.log('Export capacity table');
-        // This would export the table data to Excel/CSV
-        NotificationManager.info('Export Capacity Table: Feature in development');
+    async collectCapacityData() {
+        try {
+            console.log('Collecting capacity data...');
+
+            // Get current data
+            const teamMembers = await this.getRealTeamMembers();
+            const projects = await this.getAvailableProjects();
+            const timelineData = this.getTimelineMonths();
+            // Get utilization and alerts data with proper error handling
+            let utilizationData = {};
+            let alerts = [];
+            
+            try {
+                utilizationData = await this.calculateRealUtilizationData() || {};
+            } catch (error) {
+                console.warn('Error calculating utilization data:', error);
+                utilizationData = {};
+            }
+            
+            try {
+                alerts = await this.generateRealAlerts() || [];
+                // Ensure alerts is always an array
+                if (!Array.isArray(alerts)) alerts = [];
+            } catch (error) {
+                console.warn('Error generating alerts:', error);
+                alerts = [];
+            }
+
+            const capacityData = {
+                metadata: {
+                    timestamp: new Date().toISOString(),
+                    version: '1.0.0',
+                    projectId: this.app?.currentProject?.project?.id || null,
+                    projectName: this.app?.currentProject?.project?.name || null
+                },
+                teamMembers: teamMembers || [],
+                projects: projects || [],
+                timeline: timelineData || {},
+                utilization: utilizationData || {},
+                alerts: alerts || [],
+                filters: this.currentFilters || {}
+            };
+
+            console.log(`Collected capacity data: ${teamMembers?.length || 0} team members, ${projects?.length || 0} projects`);
+            return capacityData;
+
+        } catch (error) {
+            console.error('Error collecting capacity data:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Save capacity data to fixed file
+     */
+    async saveCapacityData() {
+        try {
+            console.log('Saving capacity data...');
+            
+            // Show loading state
+            const saveBtn = document.getElementById('capacity-save-btn');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            }
+
+            // Collect data
+            const capacityData = await this.collectCapacityData();
+
+            // Save capacity data using browser download (since Electron saveFileToPath is not available)
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
+            const filename = `capacity-planning-${timestamp}.json`;
+            
+            // Create and trigger download
+            const blob = new Blob([JSON.stringify(capacityData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            console.log('Capacity data saved successfully:', filename);
+            NotificationManager.success(`Capacity data saved as ${filename}`);
+
+        } catch (error) {
+            console.error('Failed to save capacity data:', error);
+            NotificationManager.error(`Failed to save capacity data: ${error.message}`);
+        } finally {
+            // Reset button state
+            const saveBtn = document.getElementById('capacity-save-btn');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+            }
+        }
+    }
+
+    /**
+     * Load saved capacity data (placeholder - users should load manually via file input)
+     */
+    async loadCapacityData() {
+        try {
+            console.log('Loading capacity data...');
+            // Since we save as downloads, there's no fixed location to auto-load from
+            console.log('No existing capacity data file found - this is normal for first use');
+            return null;
+        } catch (error) {
+            console.warn('Failed to load capacity data:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Load capacity data from fixed file
+     */
+    async loadCapacityData() {
+        try {
+            console.log('Loading capacity data...');
+
+            // Get projects path
+            const dataManager = this.app?.managers?.data || window.dataManager;
+            if (!dataManager) {
+                console.warn('Data manager not available for loading capacity data');
+                return null;
+            }
+
+            const projectsPath = await dataManager.getProjectsPath();
+            const capacityFilePath = `${projectsPath}/capacity/capacity-planning.json`;
+
+            // Try to load from file using DataManager
+            const result = await dataManager.persistenceStrategy.loadProject(capacityFilePath);
+
+            if (result.success && result.data) {
+                const capacityData = JSON.parse(result.data);
+                console.log('Capacity data loaded successfully:', {
+                    timestamp: capacityData.metadata?.timestamp,
+                    teamMembers: capacityData.teamMembers?.length || 0,
+                    projects: capacityData.projects?.length || 0
+                });
+
+                // Apply loaded filters if available
+                if (capacityData.filters) {
+                    this.currentFilters = { ...this.currentFilters, ...capacityData.filters };
+                }
+
+                NotificationManager.success('Capacity data loaded successfully');
+                return capacityData;
+
+            } else {
+                console.log('No existing capacity data file found - this is normal for first use');
+                return null;
+            }
+
+        } catch (error) {
+            console.warn('Could not load capacity data (this is normal for first use):', error.message);
+            return null;
+        }
+    }
+
+    /**
+     * Export capacity data as download
+     */
+    async exportCapacityData() {
+        try {
+            console.log('Exporting capacity data...');
+            
+            // Show loading state
+            const exportBtn = document.getElementById('capacity-export-btn');
+            if (exportBtn) {
+                exportBtn.disabled = true;
+                exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+            }
+
+            // Collect data
+            const capacityData = await this.collectCapacityData();
+
+            // Create filename with timestamp
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
+            const filename = `capacity-planning-export-${timestamp}.json`;
+
+            // Trigger download
+            const blob = new Blob([JSON.stringify(capacityData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            console.log('Capacity data exported successfully:', filename);
+            NotificationManager.success(`Capacity data exported as ${filename}`);
+
+        } catch (error) {
+            console.error('Failed to export capacity data:', error);
+            NotificationManager.error(`Failed to export capacity data: ${error.message}`);
+        } finally {
+            // Reset button state
+            const exportBtn = document.getElementById('capacity-export-btn');
+            if (exportBtn) {
+                exportBtn.disabled = false;
+                exportBtn.innerHTML = '<i class="fas fa-download"></i> Export';
+            }
+        }
+    }
+
+    /**
+     * Auto-load capacity data on initialization (non-blocking)
+     */
+    autoLoadCapacityData() {
+        // Use setTimeout to avoid blocking initialization
+        setTimeout(async () => {
+            try {
+                await this.loadCapacityData();
+            } catch (error) {
+                console.log('Auto-load capacity data completed (no existing data or error):', error.message);
+            }
+        }, 1000); // Delay to ensure other components are initialized
     }
 
     /**
@@ -4417,7 +4765,13 @@ class CapacityManager extends BaseComponent {
     refresh() {
         console.log('Refreshing capacity data...');
         NotificationManager.info('Refreshing capacity planning data...');
-        this.loadInitialData();
+        
+        // Refresh the capacity dashboard
+        try {
+            this.render();
+        } catch (error) {
+            console.error('Error refreshing capacity data:', error);
+        }
     }
 
     /**
