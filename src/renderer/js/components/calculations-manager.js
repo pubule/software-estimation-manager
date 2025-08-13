@@ -2758,19 +2758,47 @@ class CapacityManager extends BaseComponent {
      * Generate sequential allocations based on project phases
      */
     generateSequentialAllocations(member, memberRole, projects) {
+        console.log('=== GENERATE SEQUENTIAL ALLOCATIONS ===');
+        console.log('Member:', member.id);
+        console.log('Role:', memberRole);  
+        console.log('Projects to process:', projects.length);
+        
         const allocations = {};
         
-        projects.forEach(project => {
-            // Skip projects without required data - no mock data
-            if (!project.startDate || !project.status) {
-                console.warn(`Skipping project ${project.name} - missing startDate or status`);
+        projects.forEach((project, index) => {
+            console.log(`Processing project ${index}:`, project);
+            console.log(`Project details:`, {
+                name: project.name,
+                startDate: project.startDate,
+                endDate: project.endDate,
+                status: project.status,
+                phasesCount: project.phases?.length || 0
+            });
+            
+            // Skip projects without required data - more robust check
+            if (!project.startDate || !project.status || !project.name) {
+                console.warn(`Skipping project ${project.name || 'UNNAMED'} - missing required data:`);
+                console.warn('Missing data:', { 
+                    name: project.name, 
+                    startDate: project.startDate, 
+                    status: project.status 
+                });
                 return;
             }
             
+            // Additional check for phases
+            if (!project.phases || project.phases.length === 0) {
+                console.warn(`Project ${project.name} has no phases - skipping allocation`);
+                return;
+            }
+            
+            console.log(`Processing project ${project.name} with ${project.phases.length} phases`);
             const phaseTimeline = this.calculateProjectPhaseTimeline(project, project.startDate);
+            console.log(`Generated ${phaseTimeline.length} timeline phases for project ${project.name}`);
             
             phaseTimeline.forEach(phase => {
                 const participation = this.getRoleParticipationInPhase(phase, memberRole);
+                console.log(`Phase ${phase.phaseName}: participates=${participation.participates}, roleMDs=${participation.roleMDs}`);
                 
                 if (participation.participates && participation.roleMDs > 0) {
                     // Distribute phase MDs across months
@@ -2780,6 +2808,8 @@ class CapacityManager extends BaseComponent {
                         phase.endDate,
                         phase.months
                     );
+                    
+                    console.log(`Phase ${phase.phaseName} distribution:`, Object.keys(phaseDistribution));
                     
                     Object.entries(phaseDistribution).forEach(([month, dayData]) => {
                         if (!allocations[month]) allocations[month] = {};
@@ -2808,6 +2838,7 @@ class CapacityManager extends BaseComponent {
             });
         });
         
+        console.log(`Final allocations for ${member.id}:`, Object.keys(allocations).length, 'months');
         return allocations;
     }
 
@@ -3042,7 +3073,10 @@ class CapacityManager extends BaseComponent {
                     const vendor = this.resolveVendorName(member);
                     
                     // Generate sequential allocations based on project phases
-                    const allocations = this.generateSequentialAllocations(member, memberRole, projects);
+                    const automaticAllocations = this.generateSequentialAllocations(member, memberRole, projects);
+                    
+                    // Merge with manual assignments
+                    const allocations = this.mergeManualAssignments(member, automaticAllocations);
                     
                     // Check and flag overflow
                     const processedAllocations = this.checkAndFlagOverflow(
@@ -3464,9 +3498,9 @@ class CapacityManager extends BaseComponent {
             
             const projects = Array.from(allProjects);
             
-            // If no projects, create a placeholder row
+            // Skip members with no project assignments
             if (projects.length === 0) {
-                projects.push('No Projects');
+                return;
             }
             
             projects.forEach((project, index) => {
@@ -3479,7 +3513,7 @@ class CapacityManager extends BaseComponent {
                     const monthData = member.allocations[monthKey];
                     const projectData = monthData && monthData[project];
                     
-                    if (projectData && project !== 'No Projects') {
+                    if (projectData) {
                         const statusIcon = projectData.status === 'approved' ? '✅' : '🟡';
                         const statusClass = projectData.status;
                         const overflowClass = projectData.hasOverflow ? 'overflow' : '';
@@ -3538,12 +3572,27 @@ class CapacityManager extends BaseComponent {
             });
         });
         
-        tableBody.innerHTML = tableHTML;
+        // If no assignments exist, show empty table with message
+        if (tableHTML.trim() === '') {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="100%" class="empty-capacity-message">
+                        <div class="no-assignments">
+                            <i class="fas fa-calendar-times"></i>
+                            <p>No project assignments found</p>
+                            <small>Add team members to projects to see capacity planning data</small>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        } else {
+            tableBody.innerHTML = tableHTML;
+            // Initialize event listeners for editable cells only if we have data
+            this.initializeCapacityCellEventListeners();
+        }
         
-        // Initialize event listeners for editable cells
-        this.initializeCapacityCellEventListeners();
-        
-        console.log(`Capacity table loaded with ${teamMembers.length} real team members and ${overflowAlerts.length} overflow alerts`);
+        const assignmentCount = tableHTML.trim() === '' ? 0 : tableBody.querySelectorAll('tr').length;
+        console.log(`Capacity table loaded with ${teamMembers.length} team members and ${assignmentCount} project assignments`);
     }
 
     /**
@@ -4216,12 +4265,7 @@ class CapacityManager extends BaseComponent {
                                     <input type="date" id="assignment-end-date" name="endDate" required>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label for="assignment-allocation">Monthly Allocation (Days) *</label>
-                                <input type="number" id="assignment-allocation" name="allocation" 
-                                       min="1" max="22" required value="5">
-                                <small class="form-help">Days per month to allocate to this project</small>
-                            </div>
+
                             <div class="form-group">
                                 <label for="assignment-notes">Notes</label>
                                 <textarea id="assignment-notes" name="notes" rows="3" maxlength="500"></textarea>
@@ -4330,32 +4374,402 @@ class CapacityManager extends BaseComponent {
     /**
      * Handle add assignment form submission
      */
-    handleAddAssignment() {
-        const form = document.getElementById('assignment-form');
-        const formData = new FormData(form);
-        
-        const assignment = {
-            id: this.generateId('assignment-'),
-            teamMemberId: formData.get('teamMember'),
-            projectId: formData.get('project'),
-            startDate: formData.get('startDate'),
-            endDate: formData.get('endDate'),
-            allocation: parseInt(formData.get('allocation')),
-            notes: formData.get('notes'),
-            created: new Date().toISOString()
-        };
+    async handleAddAssignment() {
+        try {
+            const form = document.getElementById('assignment-form');
+            const formData = new FormData(form);
+            
+            const teamMemberId = formData.get('teamMember');
+            const projectId = formData.get('project');
+            const startDate = formData.get('startDate');
+            const endDate = formData.get('endDate');
+            const notes = formData.get('notes');
+            
+            // Get team member and project data for calculation
+            const teamMembers = await this.getRealTeamMembers();
+            const projects = await this.getAvailableProjects();
+            
+            const teamMember = teamMembers.find(m => m.id === teamMemberId);
+            const project = projects.find(p => p.project?.id === projectId || p.id === projectId);
+            
+            if (!teamMember || !project) {
+                NotificationManager.error('Invalid team member or project selection');
+                return;
+            }
+            
+            // Calculate allocation automatically using complete project data
+            console.log('About to calculate allocation for assignment...');
+            const calculatedAllocation = await this.calculateAssignmentAllocation(teamMember, project, startDate, endDate);
+            console.log('Calculated allocation result:', calculatedAllocation);
+            
+            const assignment = {
+                id: this.generateId('assignment-'),
+                teamMemberId: teamMemberId,
+                projectId: projectId,
+                startDate: startDate,
+                endDate: endDate,
+                calculatedAllocation: calculatedAllocation,
+                notes: notes,
+                created: new Date().toISOString()
+            };
 
-        console.log('Creating new assignment:', assignment);
+            console.log('Creating new assignment:', assignment);
+            
+            // Initialize manual assignments array if it doesn't exist
+            if (!this.manualAssignments) {
+                this.manualAssignments = [];
+            }
+            
+            // Save assignment to manual assignments structure
+            this.manualAssignments.push(assignment);
+            
+            console.log('=== ASSIGNMENT SAVED ===');
+            console.log('Assignment created:', assignment);
+            console.log('Total manual assignments:', this.manualAssignments.length);
+            console.log('All manual assignments:', this.manualAssignments);
+            
+            // Close modal
+            document.getElementById('assignment-modal').classList.remove('active');
+            
+            // Refresh ALL capacity sections with new assignment data
+            console.log('=== STARTING CAPACITY REFRESH ===');
+            await this.refreshAllCapacitySections();
+            console.log('=== CAPACITY REFRESH COMPLETED ===');
+            
+            NotificationManager.success('Assignment created successfully with complete project calculation');
+            
+        } catch (error) {
+            console.error('Error creating assignment:', error);
+            NotificationManager.error(`Failed to create assignment: ${error.message}`);
+        }
+    }
+
+    /**
+     * Refresh all capacity sections after assignment changes
+     */
+    async refreshAllCapacitySections() {
+        try {
+            console.log('Refreshing all capacity sections after assignment change...');
+            
+            // Show loading state
+            this.showCapacityLoadingState();
+            
+            // Refresh all major sections in parallel for better performance
+            const refreshPromises = [];
+            
+            // Always refresh capacity table
+            refreshPromises.push(this.loadCapacityTable());
+            
+            // Always refresh dashboard data (utilization, alerts, charts)
+            refreshPromises.push(this.loadDashboardData());
+            
+            // Conditionally refresh overview if it exists and is visible
+            if (document.getElementById('resource-overview-content')) {
+                refreshPromises.push(this.loadOverviewData());
+            }
+            
+            // Conditionally refresh timeline if it exists and is visible  
+            if (document.getElementById('capacity-timeline-content')) {
+                refreshPromises.push(this.renderCapacityTimeline());
+            }
+            
+            // Wait for all refreshes to complete
+            await Promise.all(refreshPromises);
+            
+            console.log('All capacity sections refreshed successfully');
+            NotificationManager.success('Capacity views updated with new assignment');
+            
+        } catch (error) {
+            console.error('Error refreshing capacity sections:', error);
+            NotificationManager.error('Error updating capacity views');
+        } finally {
+            this.hideCapacityLoadingState();
+        }
+    }
+
+    /**
+     * Show loading state in capacity sections
+     */
+    showCapacityLoadingState() {
+        const sections = [
+            'capacity-content',
+            'resource-overview-content', 
+            'capacity-timeline-content',
+            'capacity-table-body'
+        ];
         
-        // For now, just show success message
-        // TODO: Save assignment to data structure
-        NotificationManager.success('Assignment created successfully');
+        sections.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                // Add loading class
+                element.classList.add('loading');
+                
+                // Add visual loading indicator if not already present
+                if (!element.querySelector('.loading-indicator')) {
+                    const loadingDiv = document.createElement('div');
+                    loadingDiv.className = 'loading-indicator';
+                    loadingDiv.innerHTML = `
+                        <div class="spinner-overlay">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Updating capacity data...</span>
+                        </div>
+                    `;
+                    element.style.position = 'relative';
+                    element.appendChild(loadingDiv);
+                }
+            }
+        });
+    }
+    
+    /**
+     * Hide loading state from capacity sections
+     */
+    hideCapacityLoadingState() {
+        const sections = [
+            'capacity-content',
+            'resource-overview-content',
+            'capacity-timeline-content', 
+            'capacity-table-body'
+        ];
         
-        // Close modal
-        document.getElementById('assignment-modal').classList.remove('active');
+        sections.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                // Remove loading class
+                element.classList.remove('loading');
+                
+                // Remove loading indicator
+                const loadingIndicator = element.querySelector('.loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
+            }
+        });
+    }
+
+    /**
+     * Calculate allocation for a manual assignment
+     */
+    async calculateAssignmentAllocation(teamMember, project, startDate, endDate) {
+        try {
+            console.log('=== CALCULATING ASSIGNMENT ALLOCATION ===');
+            console.log('TeamMember:', teamMember.id, teamMember.firstName, teamMember.lastName);
+            console.log('Project raw:', project);
+            console.log('Assignment Dates:', { startDate, endDate });
+            
+            // Get member role for phase participation calculation
+            const memberRole = this.getMemberRole(teamMember);
+            console.log('Member role:', memberRole);
+            
+            // Load complete project JSON from file instead of using simplified version
+            const dataManager = this.app?.managers?.data || window.dataManager;
+            if (!dataManager) {
+                throw new Error('DataManager not available for loading project data');
+            }
+            
+            if (!project.filePath) {
+                throw new Error('Project file path not available for loading complete project data');
+            }
+            
+            console.log('Loading complete project from:', project.filePath);
+            const completeProjectData = await dataManager.loadProject(project.filePath);
+            
+            if (!completeProjectData || !completeProjectData.project) {
+                throw new Error('Failed to load complete project data');
+            }
+            
+            const completeProject = completeProjectData.project;
+            console.log('Loaded complete project:', completeProject.name);
+            
+            // Convert phases object to array if needed (phases are stored as object in JSON)
+            let phasesArray = [];
+            if (completeProject.phases && typeof completeProject.phases === 'object' && !Array.isArray(completeProject.phases)) {
+                const phaseKeys = Object.keys(completeProject.phases).filter(key => 
+                    key !== 'selectedSuppliers'
+                );
+                
+                phasesArray = phaseKeys.map(phaseKey => {
+                    const phaseData = completeProject.phases[phaseKey];
+                    if (phaseData && typeof phaseData === 'object' && phaseData.manDays !== undefined) {
+                        return {
+                            id: phaseKey,
+                            name: phaseKey,
+                            ...phaseData
+                        };
+                    }
+                    return null;
+                }).filter(phase => phase !== null);
+                
+                console.log(`Converted phases object to array: ${phasesArray.length} phases`);
+            } else if (Array.isArray(completeProject.phases)) {
+                phasesArray = completeProject.phases;
+                console.log(`Project already has phases as array: ${phasesArray.length} phases`);
+            } else {
+                console.warn('Project has no valid phases structure');
+            }
+            
+            console.log('Complete project structure:', {
+                name: completeProject.name,
+                code: completeProject.code,
+                originalStartDate: completeProject.startDate,
+                originalEndDate: completeProject.endDate,
+                status: completeProject.status,
+                phases: phasesArray.length,
+                features: completeProject.features?.length || 0
+            });
+            
+            // Create project with assignment dates but preserve all other properties
+            const projectForCalculation = {
+                ...completeProject,
+                name: completeProject.name,
+                startDate: startDate,
+                endDate: endDate,
+                status: completeProject.status || 'active',
+                phases: phasesArray  // Use converted phases array
+            };
+            
+            console.log('Project for calculation:', {
+                name: projectForCalculation.name,
+                startDate: projectForCalculation.startDate,
+                endDate: projectForCalculation.endDate,
+                status: projectForCalculation.status,
+                phases: projectForCalculation.phases?.length || 0,
+                features: projectForCalculation.features?.length || 0
+            });
+            
+            // Use existing sequential allocation logic with complete project data
+            const allocations = this.generateSequentialAllocations(teamMember, memberRole, [projectForCalculation]);
+            
+            console.log('Calculated allocations for assignment:', allocations);
+            console.log('Number of months with allocation:', Object.keys(allocations).length);
+            
+            if (Object.keys(allocations).length === 0) {
+                console.warn('No allocations generated - debugging project phases...');
+                if (projectForCalculation.phases && projectForCalculation.phases.length > 0) {
+                    console.log('Project has phases:', projectForCalculation.phases.map(p => ({
+                        name: p.name,
+                        manDays: p.manDays,
+                        effort: p.effort
+                    })));
+                } else {
+                    console.error('Project has no phases - this will result in empty allocations');
+                }
+            }
+            
+            return allocations;
+            
+        } catch (error) {
+            console.error('Error calculating assignment allocation:', error);
+            // No fallback - if we can't calculate properly, the operation should fail
+            throw new Error(`Cannot create assignment: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Generate simple month-by-month allocation as fallback
+     */
+    generateSimpleAllocation(startDate, endDate) {
+        const allocations = {};
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const defaultDaysPerMonth = 5; // Default allocation
         
-        // Refresh capacity table
-        this.loadCapacityTable();
+        let current = new Date(start.getFullYear(), start.getMonth(), 1);
+        
+        while (current <= end) {
+            const monthKey = current.toISOString().slice(0, 7);
+            
+            allocations[monthKey] = {
+                days: defaultDaysPerMonth,
+                status: 'active',
+                hasOverflow: false,
+                overflowAmount: 0,
+                phases: [{
+                    phaseName: 'Manual Assignment',
+                    phaseDays: defaultDaysPerMonth
+                }]
+            };
+            
+            current.setMonth(current.getMonth() + 1);
+        }
+        
+        return allocations;
+    }
+
+    /**
+     * Merge manual assignments with automatic allocations
+     */
+    mergeManualAssignments(member, automaticAllocations) {
+        const mergedAllocations = { ...automaticAllocations };
+        
+        // Debug logging
+        console.log(`Merging assignments for member ${member.id} (${member.firstName} ${member.lastName})`);
+        console.log('Manual assignments available:', this.manualAssignments?.length || 0);
+        console.log('Automatic allocations:', Object.keys(automaticAllocations).length);
+        
+        // If no manual assignments exist, return automatic allocations
+        if (!this.manualAssignments || this.manualAssignments.length === 0) {
+            console.log('No manual assignments found, returning automatic allocations only');
+            return mergedAllocations;
+        }
+        
+        // Find manual assignments for this member
+        const memberAssignments = this.manualAssignments.filter(assignment => 
+            assignment.teamMemberId === member.id
+        );
+        
+        console.log(`Found ${memberAssignments.length} manual assignments for member ${member.id}`);
+        
+        memberAssignments.forEach(assignment => {
+            console.log(`Processing assignment ${assignment.id} for member ${member.id}`);
+            const calculatedAllocation = assignment.calculatedAllocation;
+            console.log('Assignment calculated allocation:', calculatedAllocation);
+            
+            // Merge each month's allocation
+            Object.entries(calculatedAllocation).forEach(([monthKey, allocationData]) => {
+                if (!mergedAllocations[monthKey]) {
+                    mergedAllocations[monthKey] = {};
+                }
+                
+                // Get project name
+                const projectName = this.getProjectNameById(assignment.projectId);
+                
+                // Add or merge project allocation for this month
+                if (mergedAllocations[monthKey][projectName]) {
+                    // If project already exists, add to existing allocation
+                    mergedAllocations[monthKey][projectName].days += allocationData.days;
+                    mergedAllocations[monthKey][projectName].phases.push(...allocationData.phases);
+                } else {
+                    // Create new allocation entry
+                    mergedAllocations[monthKey][projectName] = {
+                        ...allocationData,
+                        isManual: true // Flag to identify manual assignments
+                    };
+                }
+            });
+        });
+        
+        console.log(`Merged allocations result:`, Object.keys(mergedAllocations).length, 'months with allocations');
+        
+        return mergedAllocations;
+    }
+    
+    /**
+     * Get project name by ID
+     */
+    getProjectNameById(projectId) {
+        // Try to find in loaded projects
+        if (this.cachedProjects) {
+            const project = this.cachedProjects.find(p => 
+                (p.project?.id === projectId) || (p.id === projectId)
+            );
+            if (project) {
+                return project.project?.name || project.name;
+            }
+        }
+        
+        // Fallback to generic name
+        return `Project ${projectId}`;
     }
 
     /**
@@ -4390,6 +4804,9 @@ class CapacityManager extends BaseComponent {
             }));
             
             console.log(`Filtered to ${availableProjects.length} available projects`);
+            
+            // Cache projects for lookup in manual assignments
+            this.cachedProjects = projects;
             
             // Return only real projects, no mock fallback
             if (availableProjects.length === 0) {
@@ -4510,17 +4927,20 @@ class CapacityManager extends BaseComponent {
             });
         }
 
-        // Export button with debounce
-        let exportInProgress = false;
-        const exportBtn = document.getElementById('capacity-export-btn');
-        if (exportBtn) {
-            exportBtn.addEventListener('click', async () => {
-                if (exportInProgress) return;
-                exportInProgress = true;
-                try {
-                    await this.exportCapacityData();
-                } finally {
-                    exportInProgress = false;
+        // Load button
+        const loadBtn = document.getElementById('capacity-load-btn');
+        const fileInput = document.getElementById('capacity-file-input');
+        if (loadBtn && fileInput) {
+            loadBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    await this.loadCapacityDataFromFile(file);
+                    // Reset file input
+                    event.target.value = '';
                 }
             });
         }
@@ -4528,6 +4948,33 @@ class CapacityManager extends BaseComponent {
         // Mark as initialized
         this.capacityEventListenersInitialized = true;
         console.log('Capacity panel event listeners initialized');
+    }
+
+    /**
+     * Generate unique capacity ID for this planning session
+     */
+    generateCapacityId() {
+        if (!this.capacityId) {
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '').replace('T', '-');
+            this.capacityId = `capacity-${timestamp}`;
+        }
+        return this.capacityId;
+    }
+
+    /**
+     * Get or create capacity name and description
+     */
+    getCapacityMetadata() {
+        const capacityId = this.generateCapacityId();
+        const now = new Date();
+        const defaultName = `Capacity Planning - ${now.toLocaleDateString()}`;
+        const defaultDescription = `Capacity planning session created on ${now.toLocaleString()}`;
+
+        return {
+            capacityId,
+            capacityName: this.capacityName || defaultName,
+            capacityDescription: this.capacityDescription || defaultDescription
+        };
     }
 
     /**
@@ -4561,19 +5008,23 @@ class CapacityManager extends BaseComponent {
                 alerts = [];
             }
 
+            const capacityMetadata = this.getCapacityMetadata();
+            
             const capacityData = {
                 metadata: {
                     timestamp: new Date().toISOString(),
                     version: '1.0.0',
-                    projectId: this.app?.currentProject?.project?.id || null,
-                    projectName: this.app?.currentProject?.project?.name || null
+                    capacityId: capacityMetadata.capacityId,
+                    capacityName: capacityMetadata.capacityName,
+                    capacityDescription: capacityMetadata.capacityDescription
                 },
                 teamMembers: teamMembers || [],
                 projects: projects || [],
                 timeline: timelineData || {},
                 utilization: utilizationData || {},
                 alerts: alerts || [],
-                filters: this.currentFilters || {}
+                filters: this.currentFilters || {},
+                manualAssignments: this.manualAssignments || []
             };
 
             console.log(`Collected capacity data: ${teamMembers?.length || 0} team members, ${projects?.length || 0} projects`);
@@ -4602,24 +5053,50 @@ class CapacityManager extends BaseComponent {
             // Collect data
             const capacityData = await this.collectCapacityData();
 
-            // Save capacity data using browser download (since Electron saveFileToPath is not available)
-            const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
-            const filename = `capacity-planning-${timestamp}.json`;
+            // Try to save in /capacity folder, fallback to download
+            const capacityMetadata = this.getCapacityMetadata();
+            const filename = `${capacityMetadata.capacityId}.json`;
             
-            // Create and trigger download
+            // Try to save directly to /capacity folder using DataManager
+            try {
+                const dataManager = this.app?.managers?.data || window.dataManager;
+                if (dataManager) {
+                    const projectsPath = await dataManager.getProjectsPath();
+                    const capacityDir = `${projectsPath}/capacity`;
+                    const filePath = `${capacityDir}/${filename}`;
+                    
+                    // Create directory if it doesn't exist
+                    if (window.electronAPI && window.electronAPI.ensureDirectory) {
+                        await window.electronAPI.ensureDirectory(capacityDir);
+                    }
+                    
+                    // Try to save file directly
+                    if (window.electronAPI && window.electronAPI.saveFile) {
+                        await window.electronAPI.saveFile(filePath, JSON.stringify(capacityData, null, 2));
+                        console.log('Capacity data saved successfully to:', filePath);
+                        NotificationManager.success(`Capacity data saved to /capacity/${filename}`);
+                        return; // Success, exit early
+                    }
+                }
+            } catch (error) {
+                console.warn('Could not save to /capacity folder, falling back to download:', error);
+            }
+            
+            // Fallback: browser download with instructive filename
+            const downloadFilename = `SAVE-TO-CAPACITY-FOLDER-${filename}`;
             const blob = new Blob([JSON.stringify(capacityData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = filename;
+            a.download = downloadFilename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            console.log('Capacity data saved successfully:', filename);
-            NotificationManager.success(`Capacity data saved as ${filename}`);
+            console.log('Capacity data downloaded as:', downloadFilename);
+            NotificationManager.info(`Capacity data downloaded as ${downloadFilename}. Please save it in your projects/capacity folder.`);
 
         } catch (error) {
             console.error('Failed to save capacity data:', error);
@@ -4741,6 +5218,62 @@ class CapacityManager extends BaseComponent {
             if (exportBtn) {
                 exportBtn.disabled = false;
                 exportBtn.innerHTML = '<i class="fas fa-download"></i> Export';
+            }
+        }
+    }
+
+    /**
+     * Load capacity data from selected file
+     */
+    async loadCapacityDataFromFile(file) {
+        try {
+            console.log('Loading capacity data from file:', file.name);
+            
+            // Show loading state
+            const loadBtn = document.getElementById('capacity-load-btn');
+            if (loadBtn) {
+                loadBtn.disabled = true;
+                loadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            }
+
+            // Read file content
+            const text = await file.text();
+            const capacityData = JSON.parse(text);
+
+            // Validate the loaded data has expected structure
+            if (!capacityData.metadata || !capacityData.teamMembers || !capacityData.projects) {
+                throw new Error('Invalid capacity data file format');
+            }
+            
+            // Validate capacity-specific metadata
+            if (!capacityData.metadata.capacityId) {
+                throw new Error('Invalid capacity data: missing capacityId');
+            }
+
+            // Apply the loaded data to current session
+            console.log(`Loaded capacity data: ${capacityData.teamMembers?.length || 0} team members, ${capacityData.projects?.length || 0} projects`);
+            
+            // Store loaded data and adopt its identity for this session
+            this.loadedCapacityData = capacityData;
+            this.capacityId = capacityData.metadata.capacityId;
+            this.capacityName = capacityData.metadata.capacityName;
+            this.capacityDescription = capacityData.metadata.capacityDescription;
+            this.manualAssignments = capacityData.manualAssignments || [];
+            
+            NotificationManager.success(`Capacity data loaded from ${file.name}`);
+            
+            // Refresh the dashboard to show loaded data
+            await this.loadDashboardData();
+
+        } catch (error) {
+            console.error('Failed to load capacity data from file:', error);
+            NotificationManager.error(`Failed to load capacity data: ${error.message}`);
+        } finally {
+            // Reset button state
+            const loadBtn = document.getElementById('capacity-load-btn');
+            if (loadBtn) {
+                loadBtn.disabled = false;
+                loadBtn.innerHTML = '<i class="fas fa-upload"></i> Load';
             }
         }
     }
