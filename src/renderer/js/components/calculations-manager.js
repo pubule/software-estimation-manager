@@ -3059,7 +3059,48 @@ class CapacityManager extends BaseComponent {
             let projects = [];
             try {
                 if (dataManager) {
-                    projects = await dataManager.listProjects() || [];
+                    const projectsList = await dataManager.listProjects() || [];
+                    console.log(`Loaded ${projectsList.length} project metadata files`);
+                    
+                    // Transform project list to extract project data properly
+                    projects = projectsList.map(projectItem => {
+                        if (projectItem && projectItem.project) {
+                            // Extract project data from nested structure
+                            return {
+                                ...projectItem.project,  // Include all project metadata (id, name, code, etc.)
+                                filePath: projectItem.filePath,
+                                fileName: projectItem.fileName,
+                                // Add default phases structure if missing (will be empty array since we don't load full data here)
+                                phases: [],  // Will be loaded later if needed by individual functions
+                                status: projectItem.project.status || 'active',  // Ensure status exists
+                                startDate: projectItem.project.startDate || null,
+                                endDate: projectItem.project.endDate || null
+                            };
+                        } else {
+                            console.warn('Invalid project item structure:', projectItem);
+                            return null;
+                        }
+                    }).filter(project => project !== null);
+                    
+                    console.log(`Processed ${projects.length} valid projects for capacity calculation`);
+                    console.log('Projects:', projects.map(p => ({
+                        name: p.name,
+                        id: p.id,
+                        status: p.status,
+                        startDate: p.startDate,
+                        phasesCount: p.phases?.length || 0
+                    })));
+                    
+                    // Filter out projects without required dates for automatic allocation
+                    // Only projects with proper dates can be used for automatic allocation
+                    const projectsForAutoAllocation = projects.filter(project => {
+                        return project.startDate && project.endDate && project.status;
+                    });
+                    
+                    console.log(`Filtered to ${projectsForAutoAllocation.length} projects with dates for automatic allocation`);
+                    
+                    // Use filtered projects for automatic allocations, original projects list for manual assignments
+                    projects = projectsForAutoAllocation;
                 }
             } catch (error) {
                 console.warn('Error loading projects:', error);
@@ -4581,31 +4622,51 @@ class CapacityManager extends BaseComponent {
             const completeProject = completeProjectData.project;
             console.log('Loaded complete project:', completeProject.name);
             
-            // Convert phases object to array if needed (phases are stored as object in JSON)
+            // Convert phases object to array if needed (phases are stored as object in JSON at root level)
             let phasesArray = [];
-            if (completeProject.phases && typeof completeProject.phases === 'object' && !Array.isArray(completeProject.phases)) {
-                const phaseKeys = Object.keys(completeProject.phases).filter(key => 
-                    key !== 'selectedSuppliers'
-                );
+            
+            console.log('=== PHASES CONVERSION DEBUG ===');
+            console.log('completeProjectData.phases:', completeProjectData.phases);
+            console.log('completeProject.phases:', completeProject.phases);
+            console.log('phases type:', typeof completeProjectData.phases);
+            console.log('phases is array:', Array.isArray(completeProjectData.phases));
+            console.log('phases exists:', !!completeProjectData.phases);
+            
+            if (completeProjectData.phases && typeof completeProjectData.phases === 'object' && !Array.isArray(completeProjectData.phases)) {
+                console.log('Converting phases object to array...');
+                const phaseKeys = Object.keys(completeProjectData.phases);
+                console.log('All phase keys:', phaseKeys);
                 
-                phasesArray = phaseKeys.map(phaseKey => {
-                    const phaseData = completeProject.phases[phaseKey];
+                const filteredKeys = phaseKeys.filter(key => key !== 'selectedSuppliers');
+                console.log('Filtered phase keys (excluding selectedSuppliers):', filteredKeys);
+                
+                phasesArray = filteredKeys.map(phaseKey => {
+                    const phaseData = completeProjectData.phases[phaseKey];
+                    console.log(`Processing phase ${phaseKey}:`, phaseData);
+                    console.log(`Phase ${phaseKey} has manDays:`, phaseData && phaseData.manDays);
+                    
                     if (phaseData && typeof phaseData === 'object' && phaseData.manDays !== undefined) {
-                        return {
+                        const convertedPhase = {
                             id: phaseKey,
                             name: phaseKey,
                             ...phaseData
                         };
+                        console.log(`Converted phase ${phaseKey}:`, convertedPhase);
+                        return convertedPhase;
                     }
+                    console.log(`Skipping phase ${phaseKey} - invalid data`);
                     return null;
                 }).filter(phase => phase !== null);
                 
                 console.log(`Converted phases object to array: ${phasesArray.length} phases`);
-            } else if (Array.isArray(completeProject.phases)) {
-                phasesArray = completeProject.phases;
+                console.log('Final phases array:', phasesArray);
+            } else if (Array.isArray(completeProjectData.phases)) {
+                phasesArray = completeProjectData.phases;
                 console.log(`Project already has phases as array: ${phasesArray.length} phases`);
             } else {
                 console.warn('Project has no valid phases structure');
+                console.warn('completeProjectData.phases value:', completeProjectData.phases);
+                console.warn('Type:', typeof completeProjectData.phases);
             }
             
             console.log('Complete project structure:', {
@@ -4621,12 +4682,23 @@ class CapacityManager extends BaseComponent {
             // Create project with assignment dates but preserve all other properties
             const projectForCalculation = {
                 ...completeProject,
-                name: completeProject.name,
+                name: completeProject.name || 'Unnamed Project',
                 startDate: startDate,
                 endDate: endDate,
-                status: completeProject.status || 'active',
+                status: (completeProject.status && completeProject.status.trim()) ? completeProject.status.trim() : 'active',
                 phases: phasesArray  // Use converted phases array
             };
+            
+            console.log('=== PROJECT VALIDATION ===');
+            console.log('Complete project status:', completeProject.status);
+            console.log('Final project status:', projectForCalculation.status);
+            console.log('Final project name:', projectForCalculation.name);
+            console.log('Final project startDate:', projectForCalculation.startDate);
+            console.log('Validation checks:');
+            console.log('  - hasName:', !!projectForCalculation.name);
+            console.log('  - hasStartDate:', !!projectForCalculation.startDate);  
+            console.log('  - hasStatus:', !!projectForCalculation.status);
+            console.log('  - phasesLength:', projectForCalculation.phases.length);
             
             console.log('Project for calculation:', {
                 name: projectForCalculation.name,
@@ -5238,11 +5310,37 @@ class CapacityManager extends BaseComponent {
 
             // Read file content
             const text = await file.text();
-            const capacityData = JSON.parse(text);
+            console.log('Raw file content (first 500 chars):', text.substring(0, 500));
+            console.log('File content has \\n characters:', text.includes('\\n'));
+            console.log('File content has newlines:', text.includes('\n'));
+            
+            let capacityData;
+            try {
+                capacityData = JSON.parse(text);
+                
+                // Handle double-stringified JSON (common issue)
+                if (typeof capacityData === 'string') {
+                    console.log('Detected double-stringified JSON, parsing again...');
+                    capacityData = JSON.parse(capacityData);
+                }
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                console.log('Failed to parse content:', text.substring(0, 200));
+                throw new Error(`Invalid JSON format: ${parseError.message}`);
+            }
+
+            console.log('Parsed capacity data structure:', {
+                hasMetadata: !!capacityData.metadata,
+                hasTeamMembers: !!capacityData.teamMembers,
+                hasProjects: !!capacityData.projects,
+                metadataKeys: capacityData.metadata ? Object.keys(capacityData.metadata) : [],
+                teamMembersLength: capacityData.teamMembers?.length,
+                projectsLength: capacityData.projects?.length
+            });
 
             // Validate the loaded data has expected structure
             if (!capacityData.metadata || !capacityData.teamMembers || !capacityData.projects) {
-                throw new Error('Invalid capacity data file format');
+                throw new Error('Invalid capacity data file format - missing required fields');
             }
             
             // Validate capacity-specific metadata
@@ -5262,8 +5360,10 @@ class CapacityManager extends BaseComponent {
             
             NotificationManager.success(`Capacity data loaded from ${file.name}`);
             
-            // Refresh the dashboard to show loaded data
-            await this.loadDashboardData();
+            // Refresh all capacity sections to show loaded data immediately
+            console.log('Refreshing all capacity sections after file load...');
+            await this.refreshAllCapacitySections();
+            console.log('All capacity sections refreshed successfully');
 
         } catch (error) {
             console.error('Failed to load capacity data from file:', error);
