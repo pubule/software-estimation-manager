@@ -4733,32 +4733,61 @@ class CapacityManager extends BaseComponent {
      * Get vendor name for team member
      */
     getVendorName(teamMember) {
+        console.log('getVendorName for member:', teamMember);
+        console.log('Member vendorId:', teamMember.vendorId);
+        console.log('Member vendorType:', teamMember.vendorType);
+        
         if (!teamMember.vendorId) {
+            console.log('Missing vendorId, returning Unknown');
             return 'Unknown';
         }
         
-        if (!this.app?.managers?.configuration) {
-            return 'Unknown';
+        // Use same alternative access paths as getMemberRole()
+        let configManager = this.app?.managers?.configuration;
+        
+        if (!configManager) {
+            console.log('Configuration manager not available, checking alternative sources...');
+            
+            // Try alternative access paths
+            configManager = this.app?.managers?.config || 
+                           window.app?.managers?.configuration ||
+                           window.configManager;
+            
+            console.log('Alternative config manager found:', !!configManager);
+            
+            if (!configManager) {
+                console.log('No configuration manager available, returning Unknown');
+                return 'Unknown';
+            }
         }
         
-        const configManager = this.app.managers.configuration;
+        console.log('Available internal resources:', configManager.globalConfig?.internalResources?.length || 0);
+        console.log('Available suppliers:', configManager.globalConfig?.suppliers?.length || 0);
         
         // Check internal resources first
-        const internalResource = configManager.globalConfig?.internalResources?.find(
-            r => r.id === teamMember.vendorId
-        );
-        if (internalResource) {
-            return internalResource.name;
+        if (teamMember.vendorType === 'internal') {
+            console.log(`Looking for internal resource with ID ${teamMember.vendorId}`);
+            const internalResource = configManager.globalConfig?.internalResources?.find(
+                r => r.id === teamMember.vendorId
+            );
+            console.log('Found internal resource:', internalResource);
+            if (internalResource) {
+                console.log(`Returning internal resource name: ${internalResource.name}`);
+                return internalResource.name;
+            }
+        } else {
+            console.log(`Looking for supplier with ID ${teamMember.vendorId}`);
+            const supplier = configManager.globalConfig?.suppliers?.find(
+                s => s.id === teamMember.vendorId
+            );
+            console.log('Found supplier:', supplier);
+            if (supplier) {
+                console.log(`Returning supplier name: ${supplier.name}`);
+                return supplier.name;
+            }
         }
         
-        // Check suppliers
-        const supplier = configManager.globalConfig?.suppliers?.find(
-            s => s.id === teamMember.vendorId
-        );
-        if (supplier) {
-            return supplier.name;
-        }
-        
+        console.log('No matching vendor found, returning Unknown');
         return 'Unknown';
     }
     
@@ -4766,15 +4795,25 @@ class CapacityManager extends BaseComponent {
      * Populate assignment modal dropdowns
      */
     async populateAssignmentModalDropdowns() {
-        // Populate team members
-        const teamMemberSelect = document.getElementById('assignment-team-member');
-        const projectSelect = document.getElementById('assignment-project');
+        // Prevent multiple simultaneous calls
+        if (this._populatingDropdowns) {
+            console.log('Dropdown population already in progress, skipping...');
+            return;
+        }
         
-        if (teamMemberSelect) {
-            teamMemberSelect.innerHTML = '<option value="">Select Team Member</option>';
+        this._populatingDropdowns = true;
+        console.log('Starting dropdown population...');
+        
+        try {
+            // Populate team members
+            const teamMemberSelect = document.getElementById('assignment-team-member');
+            const projectSelect = document.getElementById('assignment-project');
             
-            // getRealTeamMembers is async, so we need to handle it properly
-            this.getRealTeamMembers().then(teamMembers => {
+            if (teamMemberSelect) {
+                teamMemberSelect.innerHTML = '<option value="">Select Team Member</option>';
+                
+                // Use await instead of .then() to avoid race conditions
+                const teamMembers = await this.getRealTeamMembers();
                 if (Array.isArray(teamMembers) && teamMembers.length > 0) {
                     teamMembers.forEach(member => {
                         const option = document.createElement('option');
@@ -4789,22 +4828,14 @@ class CapacityManager extends BaseComponent {
                     option.disabled = true;
                     teamMemberSelect.appendChild(option);
                 }
-            }).catch(error => {
-                console.error('Error loading team members:', error);
-                const option = document.createElement('option');
-                option.value = '';
-                option.textContent = 'Error loading team members';
-                option.disabled = true;
-                teamMemberSelect.appendChild(option);
-            });
-        }
+            }
 
-        // Populate projects
-        if (projectSelect) {
-            projectSelect.innerHTML = '<option value="">Select Project</option>';
-            
-            // getAvailableProjects is now async
-            this.getAvailableProjects().then(projects => {
+            // Populate projects
+            if (projectSelect) {
+                projectSelect.innerHTML = '<option value="">Select Project</option>';
+                
+                // Use await instead of .then() to avoid race conditions
+                const projects = await this.getAvailableProjects();
                 console.log('Populating project dropdown with:', projects);
                 if (Array.isArray(projects) && projects.length > 0) {
                     projects.forEach(project => {
@@ -4820,14 +4851,25 @@ class CapacityManager extends BaseComponent {
                     option.disabled = true;
                     projectSelect.appendChild(option);
                 }
-            }).catch(error => {
-                console.error('Error loading projects:', error);
-                const option = document.createElement('option');
-                option.value = '';
-                option.textContent = 'Error loading projects';
-                option.disabled = true;
-                projectSelect.appendChild(option);
-            });
+            }
+            
+        } catch (error) {
+            console.error('Error populating dropdowns:', error);
+            
+            // Reset dropdowns to error state
+            const teamMemberSelect = document.getElementById('assignment-team-member');
+            const projectSelect = document.getElementById('assignment-project');
+            
+            if (teamMemberSelect) {
+                teamMemberSelect.innerHTML = '<option value="">Error loading team members</option>';
+            }
+            if (projectSelect) {
+                projectSelect.innerHTML = '<option value="">Error loading projects</option>';
+            }
+        } finally {
+            // Always reset the flag when done
+            this._populatingDropdowns = false;
+            console.log('Dropdown population completed');
         }
     }
     
