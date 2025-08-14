@@ -3666,7 +3666,154 @@ class CapacityManager extends BaseComponent {
         
         return months;
     }
-    
+
+    /**
+     * Converts ISO month format (e.g., "2025-08") to abbreviated format (e.g., "Aug") 
+     * used by timeline display
+     */
+    convertISOToTimelineMonth(isoMonth) {
+        const [year, month] = isoMonth.split('-');
+        const monthIndex = parseInt(month, 10) - 1; // Convert to 0-based index
+        const date = new Date(parseInt(year), monthIndex, 1);
+        const monthName = date.toLocaleDateString('en', { month: 'short' });
+        const currentYear = new Date().getFullYear();
+        const displayYear = parseInt(year) !== currentYear ? year.slice(-2) : '';
+        return monthName + displayYear;
+    }
+
+    /**
+     * Converts timeline month format (e.g., "Aug") to ISO format (e.g., "2025-08")
+     * for data lookup
+     */
+    convertTimelineToISOMonth(timelineMonth) {
+        const currentYear = new Date().getFullYear();
+        
+        // Extract month name and year suffix
+        const yearMatch = timelineMonth.match(/(\d{2})$/);
+        const yearSuffix = yearMatch ? yearMatch[1] : '';
+        const monthName = yearSuffix ? timelineMonth.replace(yearSuffix, '') : timelineMonth;
+        
+        // Determine full year
+        let fullYear;
+        if (yearSuffix) {
+            // If year suffix exists, it's next year (25 = 2025)
+            fullYear = parseInt('20' + yearSuffix);
+        } else {
+            // No year suffix means current year
+            fullYear = currentYear;
+        }
+        
+        // Convert month name to number
+        const monthMap = {
+            'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+            'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+            'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+        };
+        
+        const monthNumber = monthMap[monthName];
+        return monthNumber ? `${fullYear}-${monthNumber}` : null;
+    }
+
+    /**
+     * Consolidate duplicate team members by person, merging their allocations
+     * This fixes the issue where the same person appears in multiple teams
+     */
+    consolidateTeamMembersByPerson(teamMembers) {
+        const consolidated = new Map();
+        
+        teamMembers.forEach(member => {
+            // Use firstName + lastName as the consolidation key
+            const personKey = `${member.firstName}_${member.lastName}`;
+            
+            if (consolidated.has(personKey)) {
+                // Merge allocations with existing entry
+                const existingMember = consolidated.get(personKey);
+                
+                // Track all IDs this person has across teams
+                existingMember.teamIds.push(member.teamId);
+                existingMember.consolidatedFrom.push(member.id);
+                
+                // Merge allocations from all teams this person belongs to
+                Object.entries(member.allocations || {}).forEach(([monthKey, monthData]) => {
+                    if (!existingMember.allocations[monthKey]) {
+                        existingMember.allocations[monthKey] = {};
+                    }
+                    
+                    // Merge project allocations for this month
+                    Object.entries(monthData).forEach(([projectName, projectData]) => {
+                        if (existingMember.allocations[monthKey][projectName]) {
+                            // Add days if project already exists - ensure we have valid numbers
+                            const existingDays = parseFloat(existingMember.allocations[monthKey][projectName].days) || 0;
+                            const newDays = parseFloat(projectData.days) || 0;
+                            existingMember.allocations[monthKey][projectName].days = existingDays + newDays;
+                            
+                            // Merge phases if they exist
+                            if (projectData.phases && existingMember.allocations[monthKey][projectName].phases) {
+                                existingMember.allocations[monthKey][projectName].phases.push(...projectData.phases);
+                            }
+                            
+                            // Preserve status and other metadata
+                            if (!existingMember.allocations[monthKey][projectName].status && projectData.status) {
+                                existingMember.allocations[monthKey][projectName].status = projectData.status;
+                            }
+                        } else {
+                            // Copy project allocation with validated days value
+                            existingMember.allocations[monthKey][projectName] = {
+                                ...projectData,
+                                days: parseFloat(projectData.days) || 0
+                            };
+                        }
+                    });
+                });
+                
+                // Update other aggregated properties
+                existingMember.maxCapacity = Math.max(existingMember.maxCapacity || 0, member.maxCapacity || 0);
+                
+                console.log(`Consolidated member ${member.firstName} ${member.lastName}: merged allocations from team ${member.teamId}`);
+            } else {
+                // First occurrence of this person 
+                // IMPORTANT: Keep the original allocations that already include manual assignments
+                const consolidatedMember = {
+                    ...member,
+                    id: member.originalId || member.id, // Use original ID to avoid team prefix
+                    teamIds: [member.teamId], // Track which teams this person belongs to
+                    consolidatedFrom: [member.id], // Track original unique IDs
+                    // Keep the original allocations which already have manual assignments merged
+                    allocations: member.allocations || {}
+                };
+                
+                // Just ensure days values are valid numbers
+                Object.entries(consolidatedMember.allocations).forEach(([monthKey, monthData]) => {
+                    Object.entries(monthData).forEach(([projectName, projectData]) => {
+                        if (projectData && typeof projectData.days !== 'undefined') {
+                            projectData.days = parseFloat(projectData.days) || 0;
+                        }
+                    });
+                });
+                
+                consolidated.set(personKey, consolidatedMember);
+                console.log(`Added new consolidated member ${member.firstName} ${member.lastName} (ID: ${consolidatedMember.id}, from: ${member.id})`);
+                console.log(`  Allocations months: ${Object.keys(consolidatedMember.allocations).join(', ')}`);
+            }
+        });
+        
+        const result = Array.from(consolidated.values());
+        console.log(`Consolidated ${teamMembers.length} team member entries into ${result.length} unique persons`);
+        
+        // Debug: log sample allocation data
+        if (result.length > 0) {
+            const sample = result[0];
+            console.log(`Sample consolidated member ${sample.firstName} ${sample.lastName}:`, {
+                id: sample.id,
+                consolidatedFrom: sample.consolidatedFrom,
+                allocationsMonths: Object.keys(sample.allocations),
+                sampleMonth: Object.keys(sample.allocations)[0] ? sample.allocations[Object.keys(sample.allocations)[0]] : 'No allocations'
+            });
+        }
+        
+        return result;
+    }
+
     /**
      * Get month keys for data access
      */
@@ -3755,7 +3902,8 @@ class CapacityManager extends BaseComponent {
      * Load and populate the capacity planning table
      */
     async loadCapacityTable() {
-        const teamMembers = await this.getRealTeamMembers();
+        const rawTeamMembers = await this.getRealTeamMembers();
+        const teamMembers = this.consolidateTeamMembersByPerson(rawTeamMembers);
         const tableBody = document.getElementById('capacity-table-body');
         
         if (!tableBody) {
@@ -3791,11 +3939,13 @@ class CapacityManager extends BaseComponent {
                 
                 // Generate month cells for this project allocation
                 const monthCells = this.getTimelineMonths().map(monthKey => {
-                    const monthData = member.allocations[monthKey];
+                    // Convert abbreviated month format (e.g., "Aug") to ISO format (e.g., "2025-08")
+                    const isoMonthKey = this.convertTimelineToISOMonth(monthKey);
+                    const monthData = member.allocations[isoMonthKey];
                     const projectData = monthData && monthData[project];
                     
                     // Debug timeline cell rendering
-                    console.log(`Timeline cell debug: month=${monthKey}, project=${project}, hasMonthData=${!!monthData}, hasProjectData=${!!projectData}`);
+                    console.log(`Timeline cell debug: month=${monthKey} (ISO: ${isoMonthKey}), project=${project}, hasMonthData=${!!monthData}, hasProjectData=${!!projectData}`);
                     if (monthData) {
                         console.log(`  Month ${monthKey} projects:`, Object.keys(monthData));
                     }
@@ -3815,14 +3965,14 @@ class CapacityManager extends BaseComponent {
                                        step="1" 
                                        data-member-id="${member.id}"
                                        data-project="${project}"
-                                       data-month="${monthKey}"
+                                       data-month="${isoMonthKey}"
                                        data-original-value="${projectData.days}"
                                        ${projectData.hasOverflow ? 'style="background-color: #fee; border-color: #f56565; color: #c53030;"' : ''}>
                                 <button type="button" class="reset-capacity-mds-btn" 
                                         title="Reset to original value" 
                                         data-member-id="${member.id}"
                                         data-project="${project}"
-                                        data-month="${monthKey}">
+                                        data-month="${isoMonthKey}">
                                     <i class="fas fa-undo"></i>
                                 </button>
                                 ${projectData.hasOverflow ? '<i class="fas fa-exclamation-triangle overflow-warning" style="color: #f56565; margin-left: 4px;"></i>' : ''}
@@ -5306,7 +5456,7 @@ class CapacityManager extends BaseComponent {
         // Check for overflow
         const overflow = estimatedMDs - workingDays;
         if (overflow > 0) {
-            overflowIndicator.style.display = 'block';
+            overflowIndicator.style.display = 'flex';
             overflowIndicator.querySelector('.overflow-amount').textContent = `+${Math.round(overflow)} MDs`;
             overflowIndicator.className = 'stat-item overflow-indicator overflow-warning';
         } else {
@@ -5454,6 +5604,8 @@ class CapacityManager extends BaseComponent {
             
             // Save assignment
             this.manualAssignments.push(assignment);
+            console.log('Assignment added to manualAssignments. Total assignments:', this.manualAssignments.length);
+            console.log('manualAssignments:', this.manualAssignments.map(a => ({ id: a.id, teamMemberId: a.teamMemberId, projectId: a.projectId })));
             
             // Check for overflows and show alerts
             const overflows = this.detectOverflows(phaseSchedule);
@@ -5906,6 +6058,7 @@ class CapacityManager extends BaseComponent {
         // Debug logging
         console.log(`Merging assignments for member ${member.id} (${member.firstName} ${member.lastName})`);
         console.log('Manual assignments available:', this.manualAssignments?.length || 0);
+        console.log('All manualAssignments:', this.manualAssignments?.map(a => ({ id: a.id, teamMemberId: a.teamMemberId, projectId: a.projectId })));
         console.log('Automatic allocations:', Object.keys(automaticAllocations).length);
         
         // If no manual assignments exist, return automatic allocations
@@ -5915,9 +6068,25 @@ class CapacityManager extends BaseComponent {
         }
         
         // Find manual assignments for this member
-        const memberAssignments = this.manualAssignments.filter(assignment => 
-            assignment.teamMemberId === member.id
-        );
+        // Handle both full unique IDs (team-xxx:member-yyy) and member IDs (member.id)
+        const memberAssignments = this.manualAssignments.filter(assignment => {
+            // Direct match with full unique ID
+            if (assignment.teamMemberId === member.id) {
+                return true;
+            }
+            
+            // Extract member ID from teamMemberId format "team-xxx:member-yyy"
+            const memberIdFromTeamId = assignment.teamMemberId.includes(':') 
+                ? assignment.teamMemberId.split(':')[1]
+                : assignment.teamMemberId;
+                
+            // Extract member ID from member.id format (in case it's also prefixed)
+            const baseMemberId = member.id.includes(':') 
+                ? member.id.split(':')[1] 
+                : member.id.replace(/^team-[^:]+:/, ''); // Remove team prefix if present
+                
+            return memberIdFromTeamId === baseMemberId;
+        });
         
         console.log(`Found ${memberAssignments.length} manual assignments for member ${member.id}`);
         
@@ -5928,7 +6097,7 @@ class CapacityManager extends BaseComponent {
             console.log('Assignment calculated allocation:', calculatedAllocation);
             
             // Merge each month's allocation
-            Object.entries(calculatedAllocation).forEach(([monthKey, allocationData]) => {
+            Object.entries(calculatedAllocation).forEach(([monthKey, monthAllocationData]) => {
                 if (!mergedAllocations[monthKey]) {
                     mergedAllocations[monthKey] = {};
                 }
@@ -5936,18 +6105,43 @@ class CapacityManager extends BaseComponent {
                 // Get project name
                 const projectName = this.getProjectNameById(assignment.projectId);
                 console.log(`Project name resolved: "${assignment.projectId}" -> "${projectName}"`);
+                console.log(`Month ${monthKey} allocation data structure:`, Object.keys(monthAllocationData));
                 
-                // Add or merge project allocation for this month
-                if (mergedAllocations[monthKey][projectName]) {
-                    // If project already exists, add to existing allocation
-                    mergedAllocations[monthKey][projectName].days += allocationData.days;
-                    mergedAllocations[monthKey][projectName].phases.push(...allocationData.phases);
+                // Check if monthAllocationData already has the project as a key (nested structure)
+                // This happens when calculatedAllocation already has the structure: month -> project -> data
+                if (monthAllocationData[projectName]) {
+                    // The allocation data is already nested with project name
+                    const projectData = monthAllocationData[projectName];
+                    
+                    if (mergedAllocations[monthKey][projectName]) {
+                        // If project already exists, add to existing allocation
+                        mergedAllocations[monthKey][projectName].days += projectData.days;
+                        if (projectData.phases) {
+                            mergedAllocations[monthKey][projectName].phases.push(...projectData.phases);
+                        }
+                    } else {
+                        // Create new allocation entry
+                        mergedAllocations[monthKey][projectName] = {
+                            ...projectData,
+                            isManual: true // Flag to identify manual assignments
+                        };
+                    }
                 } else {
-                    // Create new allocation entry
-                    mergedAllocations[monthKey][projectName] = {
-                        ...allocationData,
-                        isManual: true // Flag to identify manual assignments
-                    };
+                    // The allocation data is flat (directly contains days, status, etc.)
+                    // This is the expected structure from phase-based calculations
+                    if (mergedAllocations[monthKey][projectName]) {
+                        // If project already exists, add to existing allocation
+                        mergedAllocations[monthKey][projectName].days += (monthAllocationData.days || 0);
+                        if (monthAllocationData.phases) {
+                            mergedAllocations[monthKey][projectName].phases.push(...monthAllocationData.phases);
+                        }
+                    } else {
+                        // Create new allocation entry
+                        mergedAllocations[monthKey][projectName] = {
+                            ...monthAllocationData,
+                            isManual: true // Flag to identify manual assignments
+                        };
+                    }
                 }
             });
         });
@@ -6276,7 +6470,7 @@ class CapacityManager extends BaseComponent {
                     
                     // Try to save file directly
                     if (window.electronAPI && window.electronAPI.saveFile) {
-                        await window.electronAPI.saveFile(filePath, JSON.stringify(capacityData, null, 2));
+                        await window.electronAPI.saveFile(filePath, JSON.stringify(capacityData));
                         console.log('Capacity data saved successfully to:', filePath);
                         NotificationManager.success(`Capacity data saved to /capacity/${filename}`);
                         return; // Success, exit early
@@ -6288,7 +6482,7 @@ class CapacityManager extends BaseComponent {
             
             // Fallback: browser download with instructive filename
             const downloadFilename = `SAVE-TO-CAPACITY-FOLDER-${filename}`;
-            const blob = new Blob([JSON.stringify(capacityData, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(capacityData)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             
             const a = document.createElement('a');
@@ -6399,7 +6593,7 @@ class CapacityManager extends BaseComponent {
             const filename = `capacity-planning-export-${timestamp}.json`;
 
             // Trigger download
-            const blob = new Blob([JSON.stringify(capacityData, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(capacityData)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             
             const a = document.createElement('a');
