@@ -1154,7 +1154,8 @@ class TeamsConfigManager {
                     internalResources.forEach(resource => {
                         const option = document.createElement('option');
                         option.value = resource.id;
-                        option.textContent = `${resource.name} (${resource.role})`;
+                        // Format: "RO - [G2] Developer (€352/day)"
+                        option.textContent = `${resource.department} - [${resource.role}] ${resource.name} (€${resource.realRate}/day)`;
                         vendorSelect.appendChild(option);
                     });
                 } else if (vendorType === 'supplier') {
@@ -1162,7 +1163,8 @@ class TeamsConfigManager {
                     suppliers.forEach(supplier => {
                         const option = document.createElement('option');
                         option.value = supplier.id;
-                        option.textContent = `${supplier.name} (${supplier.role})`;
+                        // Format: "IT - [G2] Reply (€323.3/day)"
+                        option.textContent = `${supplier.department} - [${supplier.role}] ${supplier.name} (€${supplier.realRate}/day)`;
                         vendorSelect.appendChild(option);
                     });
                 }

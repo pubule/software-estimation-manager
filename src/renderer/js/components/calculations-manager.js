@@ -4792,6 +4792,72 @@ class CapacityManager extends BaseComponent {
     }
     
     /**
+     * Get vendor details (department, role, name, rate) for team member
+     */
+    getVendorDetails(teamMember) {
+        if (!teamMember.vendorId) {
+            return {
+                department: 'Unknown',
+                role: 'Unknown',
+                name: 'Unknown',
+                rate: 0
+            };
+        }
+        
+        // Use same alternative access paths as getVendorName()
+        let configManager = this.app?.managers?.configuration;
+        
+        if (!configManager) {
+            configManager = this.app?.managers?.config || 
+                           window.app?.managers?.configuration ||
+                           window.configManager;
+            
+            if (!configManager) {
+                return {
+                    department: 'Unknown',
+                    role: 'Unknown', 
+                    name: 'Unknown',
+                    rate: 0
+                };
+            }
+        }
+        
+        // Check internal resources first
+        if (teamMember.vendorType === 'internal') {
+            const internalResource = configManager.globalConfig?.internalResources?.find(
+                r => r.id === teamMember.vendorId
+            );
+            if (internalResource) {
+                return {
+                    department: internalResource.department || 'Unknown',
+                    role: internalResource.role || 'Unknown',
+                    name: internalResource.name || 'Unknown',
+                    rate: internalResource.realRate || 0
+                };
+            }
+        } else {
+            const supplier = configManager.globalConfig?.suppliers?.find(
+                s => s.id === teamMember.vendorId
+            );
+            if (supplier) {
+                return {
+                    department: supplier.department || 'Unknown',
+                    role: supplier.role || 'Unknown',
+                    name: supplier.name || 'Unknown',
+                    rate: supplier.realRate || 0
+                };
+            }
+        }
+        
+        return {
+            department: 'Unknown',
+            role: 'Unknown',
+            name: 'Unknown',
+            rate: 0
+        };
+    }
+    
+    /**
      * Populate assignment modal dropdowns
      */
     async populateAssignmentModalDropdowns() {
@@ -4818,7 +4884,12 @@ class CapacityManager extends BaseComponent {
                     teamMembers.forEach(member => {
                         const option = document.createElement('option');
                         option.value = member.id;
-                        option.textContent = `${member.firstName} ${member.lastName} (${member.role})`;
+                        
+                        // Get vendor details for enhanced display
+                        const vendorDetails = this.getVendorDetails(member);
+                        
+                        // Format: "Ioana-Simina Stoica - RO [G2] Developer (€352/day)"
+                        option.textContent = `${member.firstName} ${member.lastName} - ${vendorDetails.department} [${vendorDetails.role}] ${vendorDetails.name} (€${vendorDetails.rate}/day)`;
                         teamMemberSelect.appendChild(option);
                     });
                 } else {
