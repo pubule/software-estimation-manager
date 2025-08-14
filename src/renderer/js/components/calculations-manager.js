@@ -4,9 +4,6 @@
  */
 class CalculationsManager {
     constructor(app, configManager) {
-        console.log('=== CALCULATIONS MANAGER CONSTRUCTOR ===');
-        console.log('App:', app);
-        console.log('Config Manager:', configManager);
         
         this.app = app;
         this.configManager = configManager;
@@ -29,7 +26,6 @@ class CalculationsManager {
         };
         
         this.initializeEventListeners();
-        console.log('CalculationsManager initialized successfully');
     }
 
     initializeEventListeners() {
@@ -65,45 +61,34 @@ class CalculationsManager {
      * Calculate vendor costs aggregating from phases and features
      */
     calculateVendorCosts() {
-        console.log('=== CALCULATE VENDOR COSTS START ===');
         
         const currentProject = this.app?.currentProject;
         if (!currentProject || !this.configManager) {
-            console.log('No current project or config manager');
             this.vendorCosts = [];
             return;
         }
 
-        console.log('Current project:', currentProject);
-        console.log('Project phases:', currentProject.phases);
-        console.log('Project features:', currentProject.features);
-
         const projectConfig = this.configManager.getProjectConfig(currentProject.config);
         const allSuppliers = [...projectConfig.suppliers, ...projectConfig.internalResources];
-        
-        console.log('All suppliers:', allSuppliers);
-        console.log('External suppliers:', projectConfig.suppliers);
-        console.log('Internal resources:', projectConfig.internalResources);
-        
+
         // Debug: Show which suppliers have internal vs external rates
-        console.log('=== SUPPLIER ANALYSIS ===');
+
         projectConfig.internalResources.forEach(supplier => {
             const hasInternal = supplier.internalRate !== undefined && supplier.internalRate !== null;
             const hasExternal = supplier.officialRate !== undefined && supplier.officialRate !== null;
-            console.log(`INTERNAL: ${supplier.name} (${supplier.id}): internalRate=${supplier.internalRate}, officialRate=${supplier.officialRate}`);
+
         });
         
         projectConfig.suppliers.forEach(supplier => {
             const hasInternal = supplier.internalRate !== undefined && supplier.internalRate !== null;
             const hasExternal = supplier.officialRate !== undefined && supplier.officialRate !== null;
-            console.log(`EXTERNAL: ${supplier.name} (${supplier.id}): internalRate=${supplier.internalRate}, officialRate=${supplier.officialRate}`);
+
         });
 
         // Debug selected suppliers
-        console.log('=== SELECTED SUPPLIERS ANALYSIS ===');
+
         let selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
-        console.log('Selected suppliers object:', selectedSuppliers);
-        
+
         if (Object.keys(selectedSuppliers).length === 0) {
             console.log('WARNING: No selected suppliers found. This will cause empty calculations.');
             console.log('Trying to initialize phases if phases manager is available...');
@@ -111,11 +96,11 @@ class CalculationsManager {
             // Try to initialize phases data if phases manager is available
             if (this.app.phasesManager || this.app.projectPhasesManager) {
                 const phasesManager = this.app.phasesManager || this.app.projectPhasesManager;
-                console.log('Found phases manager, attempting to sync phases...');
+
                 phasesManager.synchronizeWithProject();
                 // Re-check after sync and update the local variable
                 selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
-                console.log('Selected suppliers after sync:', selectedSuppliers);
+
             }
         }
         
@@ -124,8 +109,7 @@ class CalculationsManager {
             if (supplier) {
                 const isFromInternalList = projectConfig.internalResources.some(ir => ir.id === supplierId);
                 const isFromExternalList = projectConfig.suppliers.some(s => s.id === supplierId);
-                console.log(`${role}: ${supplier.name} (${supplierId}) - fromInternal:${isFromInternalList}, fromExternal:${isFromExternalList}`);
-                console.log(`  rates: internal=${supplier.internalRate}, official=${supplier.officialRate}`);
+
             }
         });
         
@@ -138,8 +122,6 @@ class CalculationsManager {
         // Process features data  
         this.processFeaturesCosts(vendorCostsMap, allSuppliers, currentProject);
 
-        console.log('Vendor costs map after processing:', vendorCostsMap);
-
         // Convert map to array
         this.vendorCosts = Array.from(vendorCostsMap.values()).sort((a, b) => {
             if (a.vendor !== b.vendor) return a.vendor.localeCompare(b.vendor);
@@ -149,19 +131,15 @@ class CalculationsManager {
         // Restore any manually set finalMDs values from project data
         this.restoreFinalMDsFromProject();
 
-        console.log('Final vendor costs:', this.vendorCosts);
-        console.log('=== CALCULATE VENDOR COSTS END ===');
     }
 
     /**
      * Process costs from project phases
      */
     processPhasesCosts(vendorCostsMap, allSuppliers, currentProject) {
-        console.log('=== PROCESS PHASES COSTS START ===');
-        
+
         const phases = currentProject.phases;
-        console.log('Project phases object:', phases);
-        
+
         if (!phases || !phases.selectedSuppliers) {
             console.log('Missing phases data:', {
                 phases: !!phases,
@@ -187,12 +165,8 @@ class CalculationsManager {
                 });
             }
         });
-        
-        console.log('Converted phases data to array (including development phase):', phasesData);
-        console.log('Note: Development phase G2 MDs will be calculated from features in processFeaturesCosts()');
 
-        console.log('Selected suppliers:', selectedSuppliers);
-        console.log('Phases data:', phasesData);
+        console.log('Note: Development phase G2 MDs will be calculated from features in processFeaturesCosts()');
 
         // Map resource types to roles
         const resourceRoleMap = {
@@ -203,24 +177,21 @@ class CalculationsManager {
         };
 
         Object.entries(selectedSuppliers).forEach(([resourceType, supplierId]) => {
-            console.log(`Processing resource type: ${resourceType}, supplier ID: ${supplierId}`);
-            
+
             if (!supplierId) {
-                console.log(`No supplier ID for ${resourceType}`);
+
                 return;
             }
 
             const supplier = allSuppliers.find(s => s.id === supplierId);
             if (!supplier) {
-                console.log(`Supplier not found for ID: ${supplierId}`);
+
                 return;
             }
 
-            console.log(`Found supplier: ${supplier.name} for ${resourceType}`);
-
             const role = resourceRoleMap[resourceType];
             if (!role) {
-                console.log(`No role mapping for resource type: ${resourceType}`);
+
                 return;
             }
 
@@ -230,7 +201,7 @@ class CalculationsManager {
             phasesData.forEach(phase => {
                 // Skip G2 calculation for development phase only
                 if (phase.id === 'development' && resourceType === 'G2') {
-                    console.log(`Phase ${phase.id}: Skipping G2 calculation (handled by features)`);
+
                     return;
                 }
                 
@@ -238,11 +209,8 @@ class CalculationsManager {
                 const effortPercent = (phase.effort && phase.effort[resourceType]) || 0;
                 const phaseMDs = (phaseManDays * effortPercent) / 100;
                 totalManDays += phaseMDs;
-                
-                console.log(`Phase ${phase.id}: ${phaseManDays} MDs x ${effortPercent}% = ${phaseMDs} MDs`);
-            });
 
-            console.log(`Total MDs for ${resourceType}: ${totalManDays}`);
+            });
 
             if (totalManDays > 0) {
                 const department = supplier.department || 'Unknown';
@@ -251,8 +219,6 @@ class CalculationsManager {
                 const officialRate = supplier.officialRate || 0; // Official rate for display
                 const cost = totalManDays * realRate;
 
-                console.log(`Adding to map - Key: ${key}, Real Rate: €${realRate}, Official Rate: €${officialRate}, Cost: €${cost}`);
-
                 if (vendorCostsMap.has(key)) {
                     const existing = vendorCostsMap.get(key);
                     existing.manDays += totalManDays;
@@ -260,7 +226,7 @@ class CalculationsManager {
                     // Update finalMDs to reflect new total
                     const officialTotalMDs = existing.officialRate > 0 ? existing.cost / existing.officialRate : 0;
                     existing.finalMDs = Math.round(officialTotalMDs);
-                    console.log(`Updated existing entry for ${key}, total MDs: ${existing.manDays}, total cost: €${existing.cost}`);
+
                 } else {
                     const officialTotalMDs = officialRate > 0 ? cost / officialRate : 0;
                     vendorCostsMap.set(key, {
@@ -275,26 +241,21 @@ class CalculationsManager {
                         finalMDs: Math.round(officialTotalMDs), // Initialize with rounded official MDs
                         isInternal: this.isInternalResource(supplier)
                     });
-                    console.log(`Created new entry for ${key}`);
+
                 }
             }
         });
-        
-        console.log('=== PROCESS PHASES COSTS END ===');
+
     }
 
     /**
      * Process costs from features (Development phase G2 resources)
      */
     processFeaturesCosts(vendorCostsMap, allSuppliers, currentProject) {
-        console.log('=== PROCESS FEATURES COSTS START ===');
-        
+
         const features = currentProject.features || [];
         const phases = currentProject.phases;
-        
-        console.log('Features:', features);
-        console.log('Features count:', features.length);
-        
+
         if (!phases) {
             console.log('No phases data for features processing');
             return;
@@ -302,16 +263,14 @@ class CalculationsManager {
 
         // Find development phase and G2 effort percentage - access directly from phases object
         const developmentPhase = phases.development;
-        console.log('Development phase:', developmentPhase);
-        
+
         if (!developmentPhase) {
             console.log('No development phase found');
             return;
         }
 
         const g2EffortPercent = (developmentPhase.effort && developmentPhase.effort.G2) || 0;
-        console.log('G2 effort percent from development phase:', g2EffortPercent);
-        
+
         if (g2EffortPercent === 0) {
             console.log('G2 effort percent is 0, skipping features processing');
             return;
@@ -322,22 +281,18 @@ class CalculationsManager {
             
             const supplierId = feature.supplier;
             if (!supplierId) {
-                console.log(`Feature ${feature.id} has no supplier`);
+
                 return;
             }
 
             const supplier = allSuppliers.find(s => s.id === supplierId);
             if (!supplier) {
-                console.log(`Supplier not found for ID: ${supplierId} in feature ${feature.id}`);
+
                 return;
             }
 
-            console.log(`Found supplier: ${supplier.name} for feature ${feature.id}`);
-
             const featureManDays = parseFloat(feature.manDays) || 0;
             const g2ManDays = (featureManDays * g2EffortPercent) / 100;
-
-            console.log(`Feature ${feature.id}: ${featureManDays} MDs x ${g2EffortPercent}% = ${g2ManDays} G2 MDs`);
 
             if (g2ManDays > 0) {
                 const department = supplier.department || 'Unknown';
@@ -346,8 +301,6 @@ class CalculationsManager {
                 const officialRate = supplier.officialRate || 0; // Official rate for display
                 const cost = g2ManDays * realRate;
 
-                console.log(`Adding feature cost - Key: ${key}, Real Rate: €${realRate}, Official Rate: €${officialRate}, Cost: €${cost}`);
-
                 if (vendorCostsMap.has(key)) {
                     const existing = vendorCostsMap.get(key);
                     existing.manDays += g2ManDays;
@@ -355,7 +308,7 @@ class CalculationsManager {
                     // Update finalMDs to reflect new total
                     const officialTotalMDs = existing.officialRate > 0 ? existing.cost / existing.officialRate : 0;
                     existing.finalMDs = Math.round(officialTotalMDs);
-                    console.log(`Updated existing G2 entry for ${supplier.name}, total MDs: ${existing.manDays}, total cost: €${existing.cost}`);
+
                 } else {
                     const officialTotalMDs = officialRate > 0 ? cost / officialRate : 0;
                     vendorCostsMap.set(key, {
@@ -370,7 +323,7 @@ class CalculationsManager {
                         finalMDs: Math.round(officialTotalMDs), // Initialize with rounded official MDs
                         isInternal: this.isInternalResource(supplier)
                     });
-                    console.log(`Created new G2 entry for ${supplier.name}`);
+
                 }
             }
         });
@@ -378,8 +331,7 @@ class CalculationsManager {
         // Process coverage MDs as additional G2 development costs
         const coverageMDs = parseFloat(currentProject.coverage) || 0;
         if (coverageMDs > 0 && g2EffortPercent > 0) {
-            console.log(`Processing coverage MDs: ${coverageMDs}`);
-            
+
             // For coverage, we need to determine which supplier to use
             // We'll use the selected G2 supplier from phases configuration
             const selectedSuppliers = phases.selectedSuppliers;
@@ -395,8 +347,6 @@ class CalculationsManager {
                     const officialRate = g2Supplier.officialRate || 0;
                     const coverageCost = coverageG2ManDays * realRate;
 
-                    console.log(`Adding coverage cost - Key: ${key}, Coverage G2 MDs: ${coverageG2ManDays}, Cost: €${coverageCost}`);
-
                     if (vendorCostsMap.has(key)) {
                         const existing = vendorCostsMap.get(key);
                         existing.manDays += coverageG2ManDays;
@@ -404,7 +354,7 @@ class CalculationsManager {
                         // Update finalMDs to reflect new total
                         const officialTotalMDs = existing.officialRate > 0 ? existing.cost / existing.officialRate : 0;
                         existing.finalMDs = Math.round(officialTotalMDs);
-                        console.log(`Updated existing G2 entry for ${g2Supplier.name} with coverage, total MDs: ${existing.manDays}, total cost: €${existing.cost}`);
+
                     } else {
                         const officialTotalMDs = officialRate > 0 ? coverageCost / officialRate : 0;
                         vendorCostsMap.set(key, {
@@ -419,17 +369,16 @@ class CalculationsManager {
                             finalMDs: Math.round(officialTotalMDs), // Initialize with rounded official MDs
                             isInternal: this.isInternalResource(g2Supplier)
                         });
-                        console.log(`Created new G2 entry for ${g2Supplier.name} with coverage`);
+
                     }
                 } else {
-                    console.log(`G2 supplier not found for coverage calculation: ${g2SupplierId}`);
+
                 }
             } else {
                 console.log('No G2 supplier selected for coverage calculation');
             }
         }
-        
-        console.log('=== PROCESS FEATURES COSTS END ===');
+
     }
 
     /**
@@ -495,8 +444,7 @@ class CalculationsManager {
         } else {
             rate = supplier.officialRate || 0;
         }
-        
-        console.log(`Getting rate for ${supplier.name} (${isInternal ? 'internal' : 'external'}): €${rate}/day (using ${supplier.realRate !== undefined ? 'realRate' : 'fallback'})`);
+
         return rate;
     }
 
@@ -519,12 +467,7 @@ class CalculationsManager {
         // Primary check: is it from internal resources list?
         // Secondary check: has internal rate but no official rate
         const isInternal = isFromInternalList || (hasInternalRate && !hasOfficialRate);
-        
-        console.log(`Checking if ${supplier.name} is internal: ${isInternal}`);
-        console.log(`  - fromInternalList: ${isFromInternalList}`);
-        console.log(`  - internalRate: ${supplier.internalRate} (has: ${hasInternalRate})`);
-        console.log(`  - officialRate: ${supplier.officialRate} (has: ${hasOfficialRate})`);
-        
+
         return isInternal;
     }
 
@@ -952,8 +895,7 @@ class CalculationsManager {
      * Handle Final MDs reset button click
      */
     handleFinalMDsReset(button) {
-        console.log('=== RESET BUTTON CLICKED ===');
-        
+
         // Validate button element
         if (!button || !button.dataset) {
             console.error('Invalid button element:', button);
@@ -963,8 +905,6 @@ class CalculationsManager {
         const vendorId = button.dataset.vendorId;
         const role = button.dataset.role;
         const department = button.dataset.department;
-
-        console.log(`Reset for: ${vendorId}, ${role}, ${department}`);
 
         // Validate required data attributes
         if (!vendorId || !role || !department) {
@@ -1005,9 +945,7 @@ class CalculationsManager {
         }
 
         const currentInputValue = parseInt(input.value) || 0;
-        
-        console.log(`Current input value: ${currentInputValue}, Calculated value: ${calculatedValue}, costEntry.finalMDs: ${costEntry.finalMDs}`);
-        
+
         // Always reset to calculated value regardless of current state
         // This ensures the reset works even if there are synchronization issues
         costEntry.finalMDs = calculatedValue;
@@ -1021,8 +959,6 @@ class CalculationsManager {
         setTimeout(() => {
             input.classList.remove('value-updated');
         }, 300);
-        
-        console.log(`Updated input value to: ${calculatedValue}`);
 
         // Update the Final Tot Cost cell
         const finalCostCell = row.querySelector('.final-cost');
@@ -1033,7 +969,7 @@ class CalculationsManager {
             setTimeout(() => {
                 finalCostCell.classList.remove('value-updated');
             }, 300);
-            console.log(`Updated final cost to: €${finalCost.toLocaleString()}`);
+
         }
 
         // Update footer totals
@@ -1041,9 +977,7 @@ class CalculationsManager {
         
         // Update KPI cards with new Final Tot Cost values
         this.updateKPICards();
-        
-        console.log(`Reset completed for ${costEntry.vendor} ${role} to ${calculatedValue}`);
-        console.log('=== RESET BUTTON END ===');
+
     }
 
     /**
@@ -1116,7 +1050,7 @@ class CalculationsManager {
             const key = `${cost.vendorId}_${cost.role}_${cost.department}`;
             if (currentProject.finalMDsOverrides[key] !== undefined) {
                 cost.finalMDs = currentProject.finalMDsOverrides[key];
-                console.log(`Restored finalMDs for ${cost.vendor} ${cost.role}: ${cost.finalMDs}`);
+
             }
         });
     }
@@ -1137,8 +1071,7 @@ class CalculationsManager {
 
         const key = `${vendorId}_${role}_${department}`;
         currentProject.finalMDsOverrides[key] = finalMDs;
-        
-        console.log(`Saved finalMDs override for ${key}: ${finalMDs}`);
+
     }
 
     /**
@@ -1152,8 +1085,7 @@ class CalculationsManager {
 
         const key = `${vendorId}_${role}_${department}`;
         delete currentProject.finalMDsOverrides[key];
-        
-        console.log(`Removed finalMDs override for ${key}`);
+
     }
 
     /**
@@ -1176,7 +1108,7 @@ class CalculationsManager {
                 console.log('DOM updated, reattaching event listeners...');
                 this.attachTableEventListeners();
                 this.updateFilterChipCounts();
-                console.log('Table update completed');
+
             });
         }
     }
@@ -1205,7 +1137,6 @@ class CalculationsManager {
         if (gtoChip) gtoChip.textContent = `(${baseCosts.filter(c => ['G2', 'TA'].includes(c.role)).length})`;
         if (gdsChip) gdsChip.textContent = `(${baseCosts.filter(c => ['PM', 'G1'].includes(c.role)).length})`;
     }
-
 
     /**
      * Share project estimation via email
@@ -1375,8 +1306,6 @@ class CapacityManager extends BaseComponent {
             window.capacityManager = this;
         }
 
-        console.log('CapacityManager initialized');
-        
         // Auto-load capacity data on initialization
         this.autoLoadCapacityData();
     }
@@ -1403,7 +1332,6 @@ class CapacityManager extends BaseComponent {
         // Initialize capacity panel event listeners
         this.initializeCapacityPanelEventListeners();
 
-        console.log('Capacity planning components initialized');
         console.log('Available components:', {
             teamManager: !!this.teamManager,
             workingDaysCalculator: !!this.workingDaysCalculator,
@@ -1443,9 +1371,7 @@ class CapacityManager extends BaseComponent {
             
             // Load and display dashboard data
             await this.loadDashboardData();
-            
-            console.log('Capacity planning dashboard rendered successfully');
-            
+
         } catch (error) {
             console.error('Error rendering capacity dashboard:', error);
             container.innerHTML = this.renderErrorState(error.message);
@@ -1568,17 +1494,14 @@ class CapacityManager extends BaseComponent {
         // Try to load saved capacity data first
         const savedData = await this.loadCapacityData();
         if (savedData) {
-            console.log('Loaded saved capacity data successfully');
+
         }
         
         // Load team overview data
 
-        
         // Load capacity utilization data
         await this.loadCapacityUtilizationData();
-        
 
-        
         // Load alerts and warnings
         await this.loadAlertsData();
         
@@ -1589,8 +1512,6 @@ class CapacityManager extends BaseComponent {
         // Load team performance data
         this.loadTeamPerformanceData();
     }
-
-
 
     // Load Capacity Utilization Data
     async loadCapacityUtilizationData() {
@@ -1697,7 +1618,6 @@ class CapacityManager extends BaseComponent {
     }
 
     // Load Project Allocation Data
-
 
     // Load Alerts Data
     async loadAlertsData() {
@@ -2187,8 +2107,7 @@ class CapacityManager extends BaseComponent {
             
             // Load overview data
             await this.loadOverviewData();
-            
-            console.log('Resource capacity overview rendered successfully');
+
         } catch (error) {
             console.error('Error rendering resource overview:', error);
             container.innerHTML = this.renderErrorState(error.message);
@@ -2226,8 +2145,7 @@ class CapacityManager extends BaseComponent {
             
             // Load timeline data
             this.loadTimelineData();
-            
-            console.log('Capacity planning timeline rendered successfully');
+
         } catch (error) {
             console.error('Error rendering capacity timeline:', error);
             container.innerHTML = this.renderErrorState(error.message);
@@ -2242,7 +2160,6 @@ class CapacityManager extends BaseComponent {
             <div class="resource-overview-section">
                 <div class="capacity-table-container">
 
-            
             <!-- Overview Filters -->
             <div class="capacity-filters">
                 <div class="filter-group">
@@ -2384,14 +2301,14 @@ class CapacityManager extends BaseComponent {
 
         if (overviewMemberFilter) {
             overviewMemberFilter.addEventListener('change', async (e) => {
-                console.log('Member filter changed to:', e.target.value);
+
                 await this.updateCapacityOverview();
             });
         }
 
         if (overviewStatusFilter) {
             overviewStatusFilter.addEventListener('change', async (e) => {
-                console.log('Status filter changed to:', e.target.value);
+
                 await this.updateCapacityOverview();
             });
         }
@@ -2407,8 +2324,7 @@ class CapacityManager extends BaseComponent {
         if (exportBtn) {
             exportBtn.addEventListener('click', () => this.exportCapacityData());
         }
-        
-        console.log('Resource overview event listeners initialized');
+
     }
 
     /**
@@ -2475,8 +2391,7 @@ class CapacityManager extends BaseComponent {
         if (createFirstRowBtn) {
             createFirstRowBtn.addEventListener('click', () => this.showAddAssignmentModal());
         }
-        
-        console.log('Capacity timeline event listeners initialized');
+
     }
 
     /**
@@ -2706,7 +2621,6 @@ class CapacityManager extends BaseComponent {
         return this.calculateWorkingDaysBetween(intersectionStart, intersectionEnd);
     }
 
-
     /**
      * SEQUENTIAL PHASE ALLOCATION SYSTEM
      */
@@ -2753,26 +2667,21 @@ class CapacityManager extends BaseComponent {
      */
     getMemberRole(member) {
         console.log(`getMemberRole for member:`, member);
-        console.log(`Member vendorId: '${member.vendorId}'`);
-        console.log(`Member vendorType: '${member.vendorType}'`);
-        
+
         if (!member.vendorId) {
-            console.log(`Missing vendorId (${member.vendorId}), defaulting to G2`);
+
             return 'G2';
         }
         
         if (!this.app?.managers?.configuration) {
-            console.log(`Configuration manager not available, checking alternative sources...`);
-            
+
             // Try alternative access paths
             const altConfigManager = this.app?.managers?.config || 
                                    window.app?.managers?.configuration ||
                                    window.configManager;
-            
-            console.log('Alternative config manager found:', !!altConfigManager);
-            
+
             if (!altConfigManager) {
-                console.log(`No configuration manager available, defaulting to G2`);
+
                 return 'G2';
             }
             
@@ -2883,11 +2792,7 @@ class CapacityManager extends BaseComponent {
      * Generate sequential allocations based on project phases
      */
     generateSequentialAllocations(member, memberRole, projects) {
-        console.log('=== GENERATE SEQUENTIAL ALLOCATIONS ===');
-        console.log('Member:', member.id);
-        console.log('Role:', memberRole);  
-        console.log('Projects to process:', projects.length);
-        
+
         const allocations = {};
         
         projects.forEach((project, index) => {
@@ -2916,15 +2821,12 @@ class CapacityManager extends BaseComponent {
                 console.warn(`Project ${project.name} has no phases - skipping allocation`);
                 return;
             }
-            
-            console.log(`Processing project ${project.name} with ${project.phases.length} phases`);
+
             const phaseTimeline = this.calculateProjectPhaseTimeline(project, project.startDate);
-            console.log(`Generated ${phaseTimeline.length} timeline phases for project ${project.name}`);
-            
+
             phaseTimeline.forEach(phase => {
                 const participation = this.getRoleParticipationInPhase(phase, memberRole);
-                console.log(`Phase ${phase.phaseName}: participates=${participation.participates}, roleMDs=${participation.roleMDs}`);
-                
+
                 if (participation.participates && participation.roleMDs > 0) {
                     // Distribute phase MDs across months
                     const phaseDistribution = this.distributePhaseAcrossMonths(
@@ -3060,7 +2962,6 @@ class CapacityManager extends BaseComponent {
         return processedAllocations;
     }
 
-
     /**
      * Format month string for display
      */
@@ -3082,9 +2983,7 @@ class CapacityManager extends BaseComponent {
             
             // Try multiple ways to get teams from configuration
             let configManager = this.app?.managers?.configuration || this.configManager;
-            console.log('Configuration manager available:', !!configManager);
-            console.log('Global config available:', !!configManager?.globalConfig);
-            
+
             if (!configManager || !configManager.globalConfig) {
                 console.warn('Configuration manager not available, trying direct access...');
                 
@@ -3094,7 +2993,7 @@ class CapacityManager extends BaseComponent {
                                   (window.app && window.app.managers && window.app.managers.configuration && window.app.managers.configuration.globalConfig);
                 
                 if (globalConfig) {
-                    console.log('Found global config through alternative path');
+
                     configManager = { globalConfig: globalConfig };
                 } else {
                     console.warn('No configuration available, returning empty team members array');
@@ -3107,9 +3006,9 @@ class CapacityManager extends BaseComponent {
             
             // DEBUG: Log raw team data to see vendorId values
             teams.forEach(team => {
-                console.log(`Team ${team.name} members:`);
+
                 (team.members || []).forEach(member => {
-                    console.log(`  - ${member.firstName} ${member.lastName}: vendorId='${member.vendorId}', vendorType='${member.vendorType}'`);
+
                 });
             });
             
@@ -3137,13 +3036,12 @@ class CapacityManager extends BaseComponent {
                             // Update global config with correct data
                             configManager.globalConfig.teams = teams;
                             await configManager.saveGlobalConfig();
-                            console.log('Updated global config with corrected team data');
-                            
+
                             // Re-log corrected team data
                             teams.forEach(team => {
-                                console.log(`CORRECTED Team ${team.name} members:`);
+
                                 (team.members || []).forEach(member => {
-                                    console.log(`  - ${member.firstName} ${member.lastName}: vendorId='${member.vendorId}', vendorType='${member.vendorType}'`);
+
                                 });
                             });
                         }
@@ -3163,7 +3061,7 @@ class CapacityManager extends BaseComponent {
                     try {
                         await teamsManager.ensureDefaultTeams();
                         teams = configManager.globalConfig.teams || [];
-                        console.log(`Initialized ${teams.length} default teams from configuration`);
+
                     } catch (error) {
                         console.warn('Failed to initialize default teams:', error);
                     }
@@ -3181,7 +3079,7 @@ class CapacityManager extends BaseComponent {
                                 // Save to global config
                                 configManager.globalConfig.teams = teams;
                                 await configManager.saveGlobalConfig();
-                                console.log(`Loaded ${teams.length} teams from defaults.json`);
+
                             }
                         } catch (error) {
                             console.warn('Failed to load default teams from defaults.json:', error);
@@ -3206,8 +3104,7 @@ class CapacityManager extends BaseComponent {
             try {
                 if (dataManager) {
                     const projectsList = await dataManager.listProjects() || [];
-                    console.log(`Loaded ${projectsList.length} project metadata files`);
-                    
+
                     // Transform project list to extract project data properly
                     projects = projectsList.map(projectItem => {
                         if (projectItem && projectItem.project) {
@@ -3227,8 +3124,7 @@ class CapacityManager extends BaseComponent {
                             return null;
                         }
                     }).filter(project => project !== null);
-                    
-                    console.log(`Processed ${projects.length} valid projects for capacity calculation`);
+
                     console.log('Projects:', projects.map(p => ({
                         name: p.name,
                         id: p.id,
@@ -3242,9 +3138,7 @@ class CapacityManager extends BaseComponent {
                     const projectsForAutoAllocation = projects.filter(project => {
                         return project.startDate && project.endDate && project.status;
                     });
-                    
-                    console.log(`Filtered to ${projectsForAutoAllocation.length} projects with dates for automatic allocation`);
-                    
+
                     // Use filtered projects for automatic allocations, original projects list for manual assignments
                     projects = projectsForAutoAllocation;
                 }
@@ -3254,12 +3148,10 @@ class CapacityManager extends BaseComponent {
             }
 
             // Generate real team members
-            console.log('DEBUG: Raw teams data before processing:', teams);
+
             const realTeamMembers = teams.flatMap(team => 
                 (team.members || []).map(member => {
-                    console.log('DEBUG: Processing raw team member:', member);
-                    console.log('DEBUG: Raw member vendorId:', member.vendorId);
-                    
+
                     const memberRole = this.getMemberRole(member);
                     const vendor = this.resolveVendorName(member);
                     
@@ -3268,8 +3160,7 @@ class CapacityManager extends BaseComponent {
                     
                     // CRITICAL FIX: Create unique composite ID BEFORE merging manual assignments
                     const uniqueId = `${team.id}:${member.id}`;
-                    console.log(`DEBUG: Creating unique ID: ${member.id} -> ${uniqueId} (vendorId: ${member.vendorId})`);
-                    
+
                     // Create member with unique ID for manual assignment matching
                     const memberWithUniqueId = {
                         ...member,
@@ -3286,7 +3177,7 @@ class CapacityManager extends BaseComponent {
                     Object.entries(allocations).forEach(([monthKey, monthData]) => {
                         const projects = Object.keys(monthData);
                         if (projects.length > 0) {
-                            console.log(`  Month ${monthKey}: projects = [${projects.join(', ')}]`);
+
                         }
                     });
                     
@@ -3318,7 +3209,6 @@ class CapacityManager extends BaseComponent {
                 })
             );
 
-            console.log(`Generated ${realTeamMembers.length} real team members from ${teams.length} teams and ${projects.length} projects`);
             return realTeamMembers;
 
         } catch (error) {
@@ -3331,8 +3221,6 @@ class CapacityManager extends BaseComponent {
     /**
      * AUXILIARY METHODS FOR UI INTEGRATION
      */
-
-
 
     /**
      * Generate project status from real data with interactive dropdown
@@ -3386,9 +3274,7 @@ class CapacityManager extends BaseComponent {
             const memberId = selectElement.dataset.memberId;
             const project = selectElement.dataset.project;
             const newStatus = selectElement.value;
-            
-            console.log(`Changing status for ${project} (member ${memberId}) to: ${newStatus}`);
-            
+
             // Update status in all allocations for this member-project combination
             await this.updateProjectStatusInAllocations(memberId, project, newStatus);
             
@@ -3469,8 +3355,7 @@ class CapacityManager extends BaseComponent {
                 }
             });
         }
-        
-        console.log(`Updated ${updatesCount} monthly allocations for ${projectName} to status: ${newStatus}`);
+
     }
 
     /**
@@ -3542,8 +3427,7 @@ class CapacityManager extends BaseComponent {
         }
         return member.allocations[monthKey];
     }
-    
-    
+
     /**
      * Update capacity allocation - abstraction for future API
      */
@@ -3560,7 +3444,6 @@ class CapacityManager extends BaseComponent {
         return false;
     }
 
-    
     // === CALCULATION SERVICES ===
     /**
      * Calculate capacity metrics for a member in a specific month
@@ -3753,8 +3636,7 @@ class CapacityManager extends BaseComponent {
                 
                 // Update other aggregated properties
                 existingMember.maxCapacity = Math.max(existingMember.maxCapacity || 0, member.maxCapacity || 0);
-                
-                console.log(`Consolidated member ${member.firstName} ${member.lastName}: merged allocations from team ${member.teamId}`);
+
             } else {
                 // First occurrence of this person 
                 // IMPORTANT: Keep the original allocations that already include manual assignments
@@ -3777,14 +3659,12 @@ class CapacityManager extends BaseComponent {
                 });
                 
                 consolidated.set(personKey, consolidatedMember);
-                console.log(`Added new consolidated member ${member.firstName} ${member.lastName} (ID: ${consolidatedMember.id}, from: ${member.id})`);
-                console.log(`  Allocations months: ${Object.keys(consolidatedMember.allocations).join(', ')}`);
+
             }
         });
         
         const result = Array.from(consolidated.values());
-        console.log(`Consolidated ${teamMembers.length} team member entries into ${result.length} unique persons`);
-        
+
         // Debug: log sample allocation data
         if (result.length > 0) {
             const sample = result[0];
@@ -4360,7 +4240,7 @@ class CapacityManager extends BaseComponent {
                     projectId: projectData.assignment?.projectId,
                     allocations: memberData.allocations,
                     assignment: assignment,
-                    assignmentId: projectData.assignment?.id
+                    assignmentId: assignment?.id
                 });
             });
         });
@@ -4674,7 +4554,6 @@ class CapacityManager extends BaseComponent {
             }
         });
 
-        console.log('Capacity cell event listeners initialized');
     }
 
     /**
@@ -4686,8 +4565,6 @@ class CapacityManager extends BaseComponent {
         const month = input.dataset.month;
         const newValue = parseInt(input.value) || 0;
 
-        console.log(`Capacity changed: ${memberId} - ${project} - ${month}: ${newValue} MDs`);
-        
         // Here you would typically save the change to your data structure
         // and potentially trigger recalculations
         this.updateCapacityValue(memberId, project, month, newValue);
@@ -4722,9 +4599,7 @@ class CapacityManager extends BaseComponent {
             const originalValue = parseInt(input.dataset.originalValue) || 0;
             input.value = originalValue;
             input.classList.remove('modified');
-            
-            console.log(`Capacity reset: ${memberId} - ${project} - ${month}: back to ${originalValue} MDs`);
-            
+
             // Update data structure
             this.updateCapacityValue(memberId, project, month, originalValue);
             
@@ -4745,8 +4620,7 @@ class CapacityManager extends BaseComponent {
     async updateCapacityValue(memberId, project, month, newValue) {
         // This is a placeholder for updating the actual data structure
         // In a real implementation, you would update your data model here
-        console.log(`Updating data: ${memberId} - ${project} - ${month} = ${newValue} MDs`);
-        
+
         // You might want to:
         // 1. Update the real team members data structure
         // 2. Trigger recalculations for overflow detection
@@ -5040,9 +4914,7 @@ class CapacityManager extends BaseComponent {
         // Get current overview status filter
         const overviewStatusFilter = document.getElementById('overview-status-filter');
         const statusFilterValue = overviewStatusFilter ? overviewStatusFilter.value : 'all';
-        
-        console.log(`Generating capacity cell for ${member.firstName} ${member.lastName} - ${monthKey} with filter: ${statusFilterValue}`);
-        
+
         // Use data service to get capacity metrics
         const metrics = await this.calculateCapacityMetrics(member.id, monthKey, member.monthlyCapacity || 22);
         
@@ -5106,7 +4978,7 @@ class CapacityManager extends BaseComponent {
         });
         
         teamFilter.innerHTML = options;
-        console.log('Real team member options loaded for filters:', teamMembers.length);
+
     }
 
     /**
@@ -5129,7 +5001,7 @@ class CapacityManager extends BaseComponent {
         });
         
         vendorFilter.innerHTML = options;
-        console.log('Real vendor options loaded for filters:', vendors.length);
+
     }
 
     /**
@@ -5188,8 +5060,7 @@ class CapacityManager extends BaseComponent {
      * Apply current filters
      */
     async applyFilters() {
-        console.log('Applying filters:', this.currentFilters);
-        
+
         // Get real team members for filtering
         const teamMembers = await this.getRealTeamMembers();
         
@@ -5239,8 +5110,7 @@ class CapacityManager extends BaseComponent {
             // Show/hide row
             row.style.display = shouldShow ? '' : 'none';
         });
-        
-        console.log('Filters applied successfully with real team members');
+
     }
 
     /**
@@ -5257,15 +5127,14 @@ class CapacityManager extends BaseComponent {
         if (timelineMonths) {
             timelineMonths.innerHTML = this.generateTimelineMonths();
         }
-        
-        console.log('Timeline range updated:', this.currentFilters.timeline, 'months');
+
     }
 
     /**
      * Navigate timeline (previous/next)
      */
     navigateTimeline(direction) {
-        console.log(`Navigate timeline: ${direction > 0 ? 'next' : 'previous'}`);
+
         // This would shift the timeline view
         // For now, just log the action
         NotificationManager.info(`Timeline navigation: ${direction > 0 ? 'Next' : 'Previous'} period`);
@@ -5448,26 +5317,20 @@ class CapacityManager extends BaseComponent {
             this.updateBudgetSection();
             return;
         }
-        
-        console.log('DEBUG: Selected member ID from dropdown:', teamMemberSelect.value);
-        
+
         // Get selected member data
         const teamMembers = await this.getRealTeamMembers();
-        console.log('DEBUG: All team members from getRealTeamMembers:', teamMembers);
-        
+
         const selectedMember = teamMembers.find(m => m.id === teamMemberSelect.value);
-        console.log('DEBUG: Found selected member:', selectedMember);
-        
+
         if (selectedMember) {
-            console.log('DEBUG: Selected member vendorId:', selectedMember.vendorId);
-            console.log('DEBUG: Selected member vendorType:', selectedMember.vendorType);
-            
+
             const memberRole = this.getMemberRole(selectedMember);
             const vendorName = this.getVendorName(selectedMember);
             memberRoleInfo.textContent = `Role: ${memberRole}, Vendor: ${vendorName}`;
         } else {
             console.error('DEBUG: No member found with ID:', teamMemberSelect.value);
-            console.log('DEBUG: Available member IDs:', teamMembers.map(m => m.id));
+
         }
         
         this.updateBudgetSection();
@@ -5504,19 +5367,10 @@ class CapacityManager extends BaseComponent {
             // Load complete project data
             const dataManager = this.app?.managers?.data || window.dataManager;
             const completeProjectData = await dataManager.loadProject(project.filePath);
-            
-            console.log('=== DEBUG loadProjectForAssignment ===');
-            console.log('  - Project ID:', projectId);
-            console.log('  - Project metadata:', project);
-            console.log('  - Complete project data loaded:', !!completeProjectData);
-            console.log('  - Complete project keys:', Object.keys(completeProjectData || {}));
-            console.log('  - Project.project available:', !!completeProjectData?.project);
-            console.log('  - Project.project.name:', completeProjectData?.project?.name);
-            
+
             // NUOVO: Recupera calculationData dalla versione più recente se disponibile
             if (completeProjectData.versions && completeProjectData.versions.length > 0) {
-                console.log('  - Project has versions:', completeProjectData.versions.length);
-                
+
                 // Ordina le versioni per ID e prendi la più recente
                 const sortedVersions = completeProjectData.versions.sort((a, b) => {
                     // Confronta gli ID delle versioni (es. "v1.0.0" vs "v1.1.0")
@@ -5524,12 +5378,11 @@ class CapacityManager extends BaseComponent {
                 });
                 
                 const latestVersion = sortedVersions[0];
-                console.log('  - Latest version ID:', latestVersion.id);
-                
+
                 // Usa i calculationData dalla versione più recente se disponibili
                 if (latestVersion.projectSnapshot?.calculationData) {
                     completeProjectData.calculationData = latestVersion.projectSnapshot.calculationData;
-                    console.log('  - Using calculationData from latest version:', latestVersion.id);
+
                     console.log('  - Version calculationData.vendorCosts length:', 
                         latestVersion.projectSnapshot.calculationData.vendorCosts?.length || 0);
                 } else {
@@ -5538,15 +5391,11 @@ class CapacityManager extends BaseComponent {
             } else {
                 console.log('  - Project has no versions, will use direct calculationData or generate dynamically');
             }
-            
-            console.log('  - calculationData available:', !!completeProjectData?.calculationData);
-            console.log('  - vendorCosts available:', !!completeProjectData?.calculationData?.vendorCosts);
-            console.log('  - vendorCosts length:', completeProjectData?.calculationData?.vendorCosts?.length || 0);
-            
+
             if (completeProjectData?.calculationData?.vendorCosts) {
                 console.log('  - Available vendor costs in loaded project:');
                 completeProjectData.calculationData.vendorCosts.forEach((cost, index) => {
-                    console.log(`    ${index}: vendorId='${cost.vendorId}', role='${cost.role}', finalMDs=${cost.finalMDs}`);
+
                 });
             } else {
                 console.log('  - CRITICAL: calculationData missing, generating dynamically...');
@@ -5569,7 +5418,7 @@ class CapacityManager extends BaseComponent {
                         console.log('  - Successfully generated calculationData with', completeProjectData.calculationData.vendorCosts.length, 'vendor costs');
                         console.log('  - Generated vendor costs:');
                         completeProjectData.calculationData.vendorCosts.forEach((cost, index) => {
-                            console.log(`    ${index}: vendorId='${cost.vendorId}', role='${cost.role}', finalMDs=${cost.finalMDs}`);
+
                         });
                     } else {
                         console.warn('  - Failed to generate vendor costs - array is empty');
@@ -5602,10 +5451,7 @@ class CapacityManager extends BaseComponent {
      * Get vendor name for team member
      */
     getVendorName(teamMember) {
-        console.log('getVendorName for member:', teamMember);
-        console.log('Member vendorId:', teamMember.vendorId);
-        console.log('Member vendorType:', teamMember.vendorType);
-        
+
         if (!teamMember.vendorId) {
             console.log('Missing vendorId, returning Unknown');
             return 'Unknown';
@@ -5621,37 +5467,32 @@ class CapacityManager extends BaseComponent {
             configManager = this.app?.managers?.config || 
                            window.app?.managers?.configuration ||
                            window.configManager;
-            
-            console.log('Alternative config manager found:', !!configManager);
-            
+
             if (!configManager) {
                 console.log('No configuration manager available, returning Unknown');
                 return 'Unknown';
             }
         }
-        
-        console.log('Available internal resources:', configManager.globalConfig?.internalResources?.length || 0);
-        console.log('Available suppliers:', configManager.globalConfig?.suppliers?.length || 0);
-        
+
         // Check internal resources first
         if (teamMember.vendorType === 'internal') {
-            console.log(`Looking for internal resource with ID ${teamMember.vendorId}`);
+
             const internalResource = configManager.globalConfig?.internalResources?.find(
                 r => r.id === teamMember.vendorId
             );
-            console.log('Found internal resource:', internalResource);
+
             if (internalResource) {
-                console.log(`Returning internal resource name: ${internalResource.name}`);
+
                 return internalResource.name;
             }
         } else {
-            console.log(`Looking for supplier with ID ${teamMember.vendorId}`);
+
             const supplier = configManager.globalConfig?.suppliers?.find(
                 s => s.id === teamMember.vendorId
             );
-            console.log('Found supplier:', supplier);
+
             if (supplier) {
-                console.log(`Returning supplier name: ${supplier.name}`);
+
                 return supplier.name;
             }
         }
@@ -5776,7 +5617,7 @@ class CapacityManager extends BaseComponent {
                 
                 // Use await instead of .then() to avoid race conditions
                 const projects = await this.getAvailableProjects();
-                console.log('Populating project dropdown with:', projects);
+
                 if (Array.isArray(projects) && projects.length > 0) {
                     projects.forEach(project => {
                         const option = document.createElement('option');
@@ -5809,7 +5650,7 @@ class CapacityManager extends BaseComponent {
         } finally {
             // Always reset the flag when done
             this._populatingDropdowns = false;
-            console.log('Dropdown population completed');
+
         }
     }
     
@@ -5830,12 +5671,7 @@ class CapacityManager extends BaseComponent {
         try {
             // Get team member role and vendor
             const teamMembers = await this.getRealTeamMembers();
-            
-            console.log('=== DEBUG updateBudgetSection START ===');
-            console.log('  - Dropdown selected value:', teamMemberSelect.value);
-            console.log('  - Available team members count:', teamMembers.length);
-            console.log('  - Team members IDs:', teamMembers.map(m => `${m.id} (vendorId: ${m.vendorId})`));
-            
+
             const selectedMember = teamMembers.find(m => m.id === teamMemberSelect.value);
             
             if (!selectedMember) {
@@ -5844,55 +5680,37 @@ class CapacityManager extends BaseComponent {
                 document.getElementById('total-final-mds').textContent = 'Error: Member not found';
                 return;
             }
-            
-            console.log('  - Selected member found:', selectedMember.firstName, selectedMember.lastName);
-            console.log('  - Selected member originalId:', selectedMember.originalId);
-            console.log('  - Selected member teamId:', selectedMember.teamId);
-            console.log('  - Selected member vendorId:', selectedMember.vendorId);
-            console.log('  - Selected member vendorType:', selectedMember.vendorType);
-            
+
             const memberRole = this.getMemberRole(selectedMember);
             const vendorName = this.getVendorName(selectedMember);
-            
-            console.log('  - Calculated member role:', memberRole);
-            console.log('  - Calculated vendor name:', vendorName);
-            
+
             // Find matching vendor cost in project calculation data
             let finalMDs = 0;
-            console.log('  - Project name:', completeProject?.project?.name || completeProject?.name);
-            console.log('  - Project structure keys:', Object.keys(completeProject || {}));
-            console.log('  - Project.project available:', !!completeProject?.project);
-            console.log('  - Project calculationData available:', !!completeProject.calculationData);
-            console.log('  - VendorCosts available:', !!completeProject.calculationData?.vendorCosts);
-            console.log('  - VendorCosts length:', completeProject.calculationData?.vendorCosts?.length || 0);
-            
+
             if (completeProject.calculationData?.vendorCosts) {
                 console.log('  - Available vendor costs in project:');
                 completeProject.calculationData.vendorCosts.forEach((cost, index) => {
-                    console.log(`    ${index}: vendorId='${cost.vendorId}', role='${cost.role}', finalMDs=${cost.finalMDs}, vendor='${cost.vendor}'`);
+
                 });
                 
                 console.log('  - Searching for match with:');
-                console.log(`    vendorId: '${selectedMember.vendorId}' (type: ${typeof selectedMember.vendorId})`);
-                console.log(`    role: '${memberRole}' (type: ${typeof memberRole})`);
-                
+
                 const vendorCost = completeProject.calculationData.vendorCosts.find(cost => {
                     const vendorIdMatch = cost.vendorId === selectedMember.vendorId;
                     const roleMatch = cost.role === memberRole;
-                    console.log(`  - Checking cost: vendorId='${cost.vendorId}' (match: ${vendorIdMatch}), role='${cost.role}' (match: ${roleMatch})`);
+
                     return vendorIdMatch && roleMatch;
                 });
-                
-                console.log('  - Found matching vendor cost:', vendorCost);
+
                 if (vendorCost) {
                     finalMDs = vendorCost.finalMDs || 0;
-                    console.log('  - Using finalMDs:', finalMDs);
+
                 } else {
                     console.log('  - ISSUE: No matching vendor cost found!');
-                    console.log('  - Expected match:', `vendorId='${selectedMember.vendorId}' AND role='${memberRole}'`);
+
                     console.log('  - Available combinations:');
                     completeProject.calculationData.vendorCosts.forEach((cost, index) => {
-                        console.log(`    Option ${index}: '${cost.vendorId}' + '${cost.role}' -> ${cost.finalMDs} MDs`);
+
                     });
                 }
             } else {
@@ -5900,8 +5718,7 @@ class CapacityManager extends BaseComponent {
             }
             
             console.log('  - Final result: finalMDs =', finalMDs);
-            console.log('=== DEBUG updateBudgetSection END ===');
-            
+
             document.getElementById('total-final-mds').textContent = `${finalMDs.toFixed(1)} MDs`;
             document.getElementById('budget-context').textContent = `Budget for ${vendorName} - ${memberRole} in this project`;
             
@@ -6104,6 +5921,17 @@ class CapacityManager extends BaseComponent {
         const endDateInput = document.querySelector(`[data-phase-id="${phaseId}"] .phase-end-date`);
         const availableMDsSpan = document.querySelector(`.available-mds[data-phase-id="${phaseId}"]`);
         const overflowIndicator = document.querySelector(`.overflow-indicator[data-phase-id="${phaseId}"]`);
+        
+        // Check if DOM elements exist before accessing their properties
+        if (!startDateInput || !endDateInput || !availableMDsSpan || !overflowIndicator) {
+            console.warn(`Missing DOM elements for phase ${phaseId}:`, {
+                startDateInput: !!startDateInput,
+                endDateInput: !!endDateInput,
+                availableMDsSpan: !!availableMDsSpan,
+                overflowIndicator: !!overflowIndicator
+            });
+            return;
+        }
         
         if (!startDateInput.value || !endDateInput.value) {
             availableMDsSpan.textContent = '-';
@@ -6491,8 +6319,7 @@ class CapacityManager extends BaseComponent {
                 };
                 
                 this.manualAssignments[existingIndex] = updatedAssignment;
-                console.log('Assignment updated:', updatedAssignment.id);
-                
+
                 // Check for overflows and show alerts
                 const overflows = this.detectOverflows(phaseSchedule);
                 if (overflows.length > 0) {
@@ -6516,13 +6343,9 @@ class CapacityManager extends BaseComponent {
                     created: new Date().toISOString()
                 };
 
-                console.log('Creating new phase-based assignment:', assignment);
-                
                 // Save assignment
                 this.manualAssignments.push(assignment);
-                console.log('Assignment added to manualAssignments. Total assignments:', this.manualAssignments.length);
-                console.log('manualAssignments:', this.manualAssignments.map(a => ({ id: a.id, teamMemberId: a.teamMemberId, projectId: a.projectId })));
-                
+
                 // Check for overflows and show alerts
                 const overflows = this.detectOverflows(phaseSchedule);
                 if (overflows.length > 0) {
@@ -6658,8 +6481,7 @@ class CapacityManager extends BaseComponent {
             
             // Wait for all refreshes to complete
             await Promise.all(refreshPromises);
-            
-            console.log('All capacity sections refreshed successfully');
+
             NotificationManager.success('Capacity views updated with new assignment');
             
         } catch (error) {
@@ -6735,20 +6557,14 @@ class CapacityManager extends BaseComponent {
      */
     async calculatePhaseBasedAllocation(teamMember, completeProject, phaseSchedule) {
         try {
-            console.log('=== CALCULATING PHASE-BASED ALLOCATION ===');
-            console.log('TeamMember:', teamMember.id, teamMember.firstName, teamMember.lastName);
-            console.log('Project:', completeProject.project.name);
-            console.log('Phase Schedule:', phaseSchedule);
-            
+
             const memberRole = this.getMemberRole(teamMember);
-            console.log('Member role:', memberRole);
-            
+
             const allocations = {};
             
             // Process each phase in the schedule
             phaseSchedule.forEach(phaseScheduleItem => {
-                console.log(`Processing phase: ${phaseScheduleItem.phaseName}`);
-                
+
                 // Distribute the estimated MDs across the phase period
                 const phaseDistribution = this.distributePhaseAcrossMonths(
                     phaseScheduleItem.estimatedMDs,
@@ -6796,10 +6612,7 @@ class CapacityManager extends BaseComponent {
                     }
                 });
             });
-            
-            console.log('Final phase-based allocations:', allocations);
-            console.log('Number of months with allocation:', Object.keys(allocations).length);
-            
+
             return allocations;
             
         } catch (error) {
@@ -6813,38 +6626,23 @@ class CapacityManager extends BaseComponent {
      */
     async calculateAssignmentAllocation(teamMember, project, startDate, endDate) {
         try {
-            console.log('=== CALCULATING ASSIGNMENT ALLOCATION ===');
-            console.log('TeamMember:', teamMember.id, teamMember.firstName, teamMember.lastName);
-            console.log('Project raw:', project);
-            console.log('Assignment Dates:', { startDate, endDate });
-            
+
             // Get member role for phase participation calculation
             const memberRole = this.getMemberRole(teamMember);
-            console.log('Member role:', memberRole);
-            
+
             // Use the complete project data that was already loaded and passed in
             const completeProjectData = project; // project is already the complete loaded data
             const completeProject = project.project;
-            console.log('Using complete project data:', completeProject.name);
-            
+
             // Convert phases object to array if needed (phases are stored as object in JSON at root level)
             let phasesArray = [];
-            
-            console.log('=== PHASES CONVERSION DEBUG ===');
-            console.log('completeProjectData.phases:', completeProjectData.phases);
-            console.log('completeProject.phases:', completeProject.phases);
-            console.log('phases type:', typeof completeProjectData.phases);
-            console.log('phases is array:', Array.isArray(completeProjectData.phases));
-            console.log('phases exists:', !!completeProjectData.phases);
-            
+
             if (completeProjectData.phases && typeof completeProjectData.phases === 'object' && !Array.isArray(completeProjectData.phases)) {
                 console.log('Converting phases object to array...');
                 const phaseKeys = Object.keys(completeProjectData.phases);
-                console.log('All phase keys:', phaseKeys);
-                
+
                 const filteredKeys = phaseKeys.filter(key => key !== 'selectedSuppliers');
-                console.log('Filtered phase keys (excluding selectedSuppliers):', filteredKeys);
-                
+
                 phasesArray = filteredKeys.map(phaseKey => {
                     const phaseData = completeProjectData.phases[phaseKey];
                     console.log(`Processing phase ${phaseKey}:`, phaseData);
@@ -6859,15 +6657,13 @@ class CapacityManager extends BaseComponent {
                         console.log(`Converted phase ${phaseKey}:`, convertedPhase);
                         return convertedPhase;
                     }
-                    console.log(`Skipping phase ${phaseKey} - invalid data`);
+
                     return null;
                 }).filter(phase => phase !== null);
-                
-                console.log(`Converted phases object to array: ${phasesArray.length} phases`);
-                console.log('Final phases array:', phasesArray);
+
             } else if (Array.isArray(completeProjectData.phases)) {
                 phasesArray = completeProjectData.phases;
-                console.log(`Project already has phases as array: ${phasesArray.length} phases`);
+
             } else {
                 console.warn('Project has no valid phases structure');
                 console.warn('completeProjectData.phases value:', completeProjectData.phases);
@@ -6893,18 +6689,9 @@ class CapacityManager extends BaseComponent {
                 status: (completeProject.status && completeProject.status.trim()) ? completeProject.status.trim() : 'approved',
                 phases: phasesArray  // Use converted phases array
             };
-            
-            console.log('=== PROJECT VALIDATION ===');
-            console.log('Complete project status:', completeProject.status);
-            console.log('Final project status:', projectForCalculation.status);
-            console.log('Final project name:', projectForCalculation.name);
-            console.log('Final project startDate:', projectForCalculation.startDate);
+
             console.log('Validation checks:');
-            console.log('  - hasName:', !!projectForCalculation.name);
-            console.log('  - hasStartDate:', !!projectForCalculation.startDate);  
-            console.log('  - hasStatus:', !!projectForCalculation.status);
-            console.log('  - phasesLength:', projectForCalculation.phases.length);
-            
+
             console.log('Project for calculation:', {
                 name: projectForCalculation.name,
                 startDate: projectForCalculation.startDate,
@@ -6916,10 +6703,7 @@ class CapacityManager extends BaseComponent {
             
             // Use existing sequential allocation logic with complete project data
             const allocations = this.generateSequentialAllocations(teamMember, memberRole, [projectForCalculation]);
-            
-            console.log('Calculated allocations for assignment:', allocations);
-            console.log('Number of months with allocation:', Object.keys(allocations).length);
-            
+
             if (Object.keys(allocations).length === 0) {
                 console.warn('No allocations generated - debugging project phases...');
                 if (projectForCalculation.phases && projectForCalculation.phases.length > 0) {
@@ -6980,11 +6764,7 @@ class CapacityManager extends BaseComponent {
         const mergedAllocations = { ...automaticAllocations };
         
         // Debug logging
-        console.log(`Merging assignments for member ${member.id} (${member.firstName} ${member.lastName})`);
-        console.log('Manual assignments available:', this.manualAssignments?.length || 0);
-        console.log('All manualAssignments:', this.manualAssignments?.map(a => ({ id: a.id, teamMemberId: a.teamMemberId, projectId: a.projectId })));
-        console.log('Automatic allocations:', Object.keys(automaticAllocations).length);
-        
+
         // If no manual assignments exist, return automatic allocations
         if (!this.manualAssignments || this.manualAssignments.length === 0) {
             console.log('No manual assignments found, returning automatic allocations only');
@@ -6996,7 +6776,7 @@ class CapacityManager extends BaseComponent {
         const memberAssignments = this.manualAssignments.filter(assignment => {
             // Direct match with full unique ID - this is the primary matching mechanism
             if (assignment.teamMemberId === member.id) {
-                console.log(`Direct match: assignment ${assignment.id} matches member ${member.id}`);
+
                 return true;
             }
             
@@ -7007,7 +6787,7 @@ class CapacityManager extends BaseComponent {
                     assignment.teamMemberId === originalId
                 );
                 if (matchesConsolidatedId) {
-                    console.log(`Consolidated match: assignment ${assignment.id} (${assignment.teamMemberId}) matches consolidated member ${member.id}`);
+
                     return true;
                 }
             }
@@ -7019,22 +6799,18 @@ class CapacityManager extends BaseComponent {
                     : member.id;
                     
                 if (assignment.teamMemberId === baseMemberId) {
-                    console.log(`Legacy match: assignment ${assignment.id} matches member ${member.id}`);
+
                     return true;
                 }
             }
             
             return false;
         });
-        
-        console.log(`Found ${memberAssignments.length} manual assignments for member ${member.id}`);
-        
+
         memberAssignments.forEach(assignment => {
-            console.log(`Processing assignment ${assignment.id} for member ${member.id}`);
-            console.log(`Assignment projectId: ${assignment.projectId}`);
+
             const calculatedAllocation = assignment.calculatedAllocation;
-            console.log('Assignment calculated allocation:', calculatedAllocation);
-            
+
             // Merge each month's allocation
             Object.entries(calculatedAllocation).forEach(([monthKey, monthAllocationData]) => {
                 if (!mergedAllocations[monthKey]) {
@@ -7043,7 +6819,7 @@ class CapacityManager extends BaseComponent {
                 
                 // Get project name
                 const projectName = this.getProjectNameById(assignment.projectId);
-                console.log(`Project name resolved: "${assignment.projectId}" -> "${projectName}"`);
+
                 console.log(`Month ${monthKey} allocation data structure:`, Object.keys(monthAllocationData));
                 
                 // Check if monthAllocationData already has the project as a key (nested structure)
@@ -7099,13 +6875,13 @@ class CapacityManager extends BaseComponent {
             const project = this.cachedProjects.find(p => p.id === projectId);
             if (project) {
                 const projectName = project.name || project.code;
-                console.log(`getProjectNameById: ${projectId} -> ${projectName}`);
+
                 return projectName;
             }
         }
         
         // Fallback to generic name
-        console.log(`getProjectNameById: ${projectId} -> Project ${projectId} (fallback)`);
+
         return `Project ${projectId}`;
     }
 
@@ -7139,9 +6915,7 @@ class CapacityManager extends BaseComponent {
                 filePath: projectItem.filePath,
                 fileName: projectItem.fileName
             }));
-            
-            console.log(`Filtered to ${availableProjects.length} available projects`);
-            
+
             // Cache projects for lookup in manual assignments (use transformed structure for consistency)
             this.cachedProjects = availableProjects;
             
@@ -7215,8 +6989,7 @@ class CapacityManager extends BaseComponent {
      * Show edit assignment modal with pre-filled data
      */
     async showEditAssignmentModal(assignmentId) {
-        console.log('Show edit assignment modal for:', assignmentId);
-        
+
         // Find the assignment to edit
         const assignment = this.manualAssignments.find(a => a.id === assignmentId);
         if (!assignment) {
@@ -7303,8 +7076,7 @@ class CapacityManager extends BaseComponent {
      * Duplicate assignment
      */
     async duplicateAssignment(assignmentId) {
-        console.log('Duplicate assignment:', assignmentId);
-        
+
         const assignment = this.manualAssignments.find(a => a.id === assignmentId);
         if (!assignment) {
             NotificationManager.error('Assignment not found');
@@ -7325,8 +7097,7 @@ class CapacityManager extends BaseComponent {
                 this.manualAssignments = [];
             }
             this.manualAssignments.push(duplicatedAssignment);
-            
-            console.log('Assignment duplicated successfully:', duplicatedAssignment.id);
+
             NotificationManager.success('Assignment duplicated successfully');
             
             // Refresh the table
@@ -7342,36 +7113,55 @@ class CapacityManager extends BaseComponent {
      * Delete assignment
      */
     async deleteAssignment(assignmentId) {
-        console.log('Delete assignment:', assignmentId);
+        // Reset stuck flag after 5 seconds (failsafe)
+        if (this.deletingAssignment && this.deleteStartTime && (Date.now() - this.deleteStartTime > 5000)) {
+            console.log(`Resetting stuck delete flag for assignment: ${this.deletingAssignment}`);
+            this.deletingAssignment = null;
+            this.deleteStartTime = null;
+        }
         
-        const assignment = this.manualAssignments.find(a => a.id === assignmentId);
-        if (!assignment) {
-            NotificationManager.error('Assignment not found');
+        // Prevent duplicate calls by checking if deletion is already in progress
+        if (this.deletingAssignment === assignmentId) {
+            console.log(`Delete operation already in progress for assignment: ${assignmentId}`);
             return;
         }
         
-        // Show confirmation dialog
-        const confirmed = confirm(`Are you sure you want to delete this assignment?\n\nTeam Member: ${assignment.teamMemberId}\nProject: ${assignment.projectId}`);
-        if (!confirmed) {
-            return;
-        }
+        // Set flag to prevent duplicate calls
+        this.deletingAssignment = assignmentId;
+        this.deleteStartTime = Date.now();
         
         try {
+            const assignment = this.manualAssignments?.find(a => a.id === assignmentId);
+            if (!assignment) {
+                NotificationManager.error('Assignment not found');
+                return;
+            }
+        
+            // Show confirmation dialog
+            const confirmed = confirm(`Are you sure you want to delete this assignment?\n\nTeam Member: ${assignment.teamMemberId}\nProject: ${assignment.projectId}`);
+            if (!confirmed) {
+                return;
+            }
+            
             // Remove from manual assignments array
             const index = this.manualAssignments.findIndex(a => a.id === assignmentId);
             if (index > -1) {
                 this.manualAssignments.splice(index, 1);
+                NotificationManager.success('Assignment deleted successfully');
+                
+                // Refresh the table
+                await this.refreshAllCapacitySections();
+            } else {
+                NotificationManager.error('Assignment not found in array');
             }
-            
-            console.log('Assignment deleted successfully:', assignmentId);
-            NotificationManager.success('Assignment deleted successfully');
-            
-            // Refresh the table
-            await this.refreshAllCapacitySections();
             
         } catch (error) {
             console.error('Error deleting assignment:', error);
             NotificationManager.error(`Failed to delete assignment: ${error.message}`);
+        } finally {
+            // Always clear the deletion flag
+            this.deletingAssignment = null;
+            this.deleteStartTime = null;
         }
     }
 
@@ -7386,7 +7176,7 @@ class CapacityManager extends BaseComponent {
      * Edit team member
      */
     editTeamMember(memberId) {
-        console.log('Edit team member:', memberId);
+
         // This would open the edit team member modal
         NotificationManager.info(`Edit Team Member ${memberId}: Feature in development`);
     }
@@ -7395,7 +7185,7 @@ class CapacityManager extends BaseComponent {
      * Edit assignment
      */
     editAssignment(assignmentId) {
-        console.log('Edit assignment:', assignmentId);
+
         NotificationManager.info(`Edit Assignment ${assignmentId}: Feature in development`);
     }
 
@@ -7403,7 +7193,7 @@ class CapacityManager extends BaseComponent {
      * Approve assignment
      */
     approveAssignment(assignmentId) {
-        console.log('Approve assignment:', assignmentId);
+
         NotificationManager.success(`Assignment ${assignmentId} approved!`);
         
         // Update the assignment status in the UI
@@ -7443,7 +7233,7 @@ class CapacityManager extends BaseComponent {
      * View assignment details
      */
     viewAssignmentDetails(assignmentId) {
-        console.log('View assignment details:', assignmentId);
+
         NotificationManager.info(`View Assignment Details ${assignmentId}: Feature in development`);
     }
 
@@ -7451,7 +7241,7 @@ class CapacityManager extends BaseComponent {
      * View team member details
      */
     viewMemberDetails(memberId) {
-        console.log('View member details:', memberId);
+
         // This would show detailed member information
         NotificationManager.info(`View Member Details ${memberId}: Feature in development`);
     }
@@ -7462,7 +7252,7 @@ class CapacityManager extends BaseComponent {
     initializeCapacityPanelEventListeners() {
         // Prevent multiple event listener attachments
         if (this.capacityEventListenersInitialized) {
-            console.log('Capacity panel event listeners already initialized');
+
             return;
         }
         
@@ -7501,7 +7291,7 @@ class CapacityManager extends BaseComponent {
         
         // Mark as initialized
         this.capacityEventListenersInitialized = true;
-        console.log('Capacity panel event listeners initialized');
+
     }
 
     /**
@@ -7581,7 +7371,6 @@ class CapacityManager extends BaseComponent {
                 manualAssignments: this.manualAssignments || []
             };
 
-            console.log(`Collected capacity data: ${teamMembers?.length || 0} team members, ${projects?.length || 0} projects`);
             return capacityData;
 
         } catch (error) {
@@ -7627,7 +7416,7 @@ class CapacityManager extends BaseComponent {
                     // Try to save file directly
                     if (window.electronAPI && window.electronAPI.saveFile) {
                         await window.electronAPI.saveFile(filePath, JSON.stringify(capacityData));
-                        console.log('Capacity data saved successfully to:', filePath);
+
                         NotificationManager.success(`Capacity data saved to /capacity/${filename}`);
                         return; // Success, exit early
                     }
@@ -7648,8 +7437,7 @@ class CapacityManager extends BaseComponent {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            
-            console.log('Capacity data downloaded as:', downloadFilename);
+
             NotificationManager.info(`Capacity data downloaded as ${downloadFilename}. Please save it in your projects/capacity folder.`);
 
         } catch (error) {
@@ -7760,7 +7548,6 @@ class CapacityManager extends BaseComponent {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            console.log('Capacity data exported successfully:', filename);
             NotificationManager.success(`Capacity data exported as ${filename}`);
 
         } catch (error) {
@@ -7781,8 +7568,7 @@ class CapacityManager extends BaseComponent {
      */
     async loadCapacityDataFromFile(file) {
         try {
-            console.log('Loading capacity data from file:', file.name);
-            
+
             // Show loading state
             const loadBtn = document.getElementById('capacity-load-btn');
             if (loadBtn) {
@@ -7792,10 +7578,7 @@ class CapacityManager extends BaseComponent {
 
             // Read file content
             const text = await file.text();
-            console.log('Raw file content (first 500 chars):', text.substring(0, 500));
-            console.log('File content has \\n characters:', text.includes('\\n'));
-            console.log('File content has newlines:', text.includes('\n'));
-            
+
             let capacityData;
             try {
                 capacityData = JSON.parse(text);
@@ -7807,7 +7590,7 @@ class CapacityManager extends BaseComponent {
                 }
             } catch (parseError) {
                 console.error('JSON parse error:', parseError);
-                console.log('Failed to parse content:', text.substring(0, 200));
+
                 throw new Error(`Invalid JSON format: ${parseError.message}`);
             }
 
@@ -7831,8 +7614,7 @@ class CapacityManager extends BaseComponent {
             }
 
             // Apply the loaded data to current session
-            console.log(`Loaded capacity data: ${capacityData.teamMembers?.length || 0} team members, ${capacityData.projects?.length || 0} projects`);
-            
+
             // Store loaded data and adopt its identity for this session
             this.loadedCapacityData = capacityData;
             this.capacityId = capacityData.metadata.capacityId;
@@ -7845,7 +7627,6 @@ class CapacityManager extends BaseComponent {
             // Refresh all capacity sections to show loaded data immediately
             console.log('Refreshing all capacity sections after file load...');
             await this.refreshAllCapacitySections();
-            console.log('All capacity sections refreshed successfully');
 
         } catch (error) {
             console.error('Failed to load capacity data from file:', error);
@@ -7869,7 +7650,7 @@ class CapacityManager extends BaseComponent {
             try {
                 await this.loadCapacityData();
             } catch (error) {
-                console.log('Auto-load capacity data completed (no existing data or error):', error.message);
+
             }
         }, 1000); // Delay to ensure other components are initialized
     }
