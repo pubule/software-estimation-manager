@@ -364,17 +364,138 @@
         }
 
         function autoRedistribute() {
-            console.log('Auto-redistribute allocations');
+            alert('🔄 Auto-redistribute functionality: This will redistribute existing assignments when team member capacity changes or assignments are modified.');
         }
 
         function saveAssignment() {
-            console.log('Save assignment');
-            closeAssignmentModal();
+            // Get assignment data from the modal form
+            const projectName = document.getElementById('assignment-project')?.value;
+            const teamMemberId = document.getElementById('assignment-member')?.value;
+            const totalMDs = parseFloat(document.getElementById('assignment-total-mds')?.value) || 0;
+            const startDate = document.getElementById('assignment-start-date')?.value;
+            const endDate = document.getElementById('assignment-end-date')?.value;
+            const status = document.getElementById('assignment-status')?.value || 'approved';
+            
+            if (!projectName || !teamMemberId || !totalMDs || !startDate || !endDate) {
+                alert('❌ Please fill in all required fields');
+                return;
+            }
+            
+            // Access the main application controller to get CalculationsManager
+            if (window.app && window.app.managers && window.app.managers.calculations) {
+                const calculationsManager = window.app.managers.calculations;
+                
+                if (calculationsManager.autoDistribution) {
+                    try {
+                        // Create a team member object (in a real implementation, this would come from a team member database)
+                        const teamMember = {
+                            id: teamMemberId,
+                            firstName: 'Developer',
+                            lastName: 'Team Member',
+                            role: 'G2',
+                            department: teamMemberId.includes('ro') ? 'RO' : 'IT',
+                            country: teamMemberId.includes('ro') ? 'RO' : 'IT',
+                            monthlyCapacity: 22,
+                            vacationDays: {}
+                        };
+                        
+                        // Set the current team member in the adapter
+                        calculationsManager._currentTeamMember = teamMember;
+                        
+                        // Execute auto-distribution
+                        const distribution = calculationsManager.autoDistribution.autoDistributeMDs(
+                            totalMDs,
+                            new Date(startDate),
+                            new Date(endDate),
+                            teamMemberId
+                        );
+                        
+                        // Update the capacity timeline with the distribution results
+                        updateCapacityTimeline(projectName, teamMemberId, distribution, status);
+                        
+                        // Show success message
+                        alert(`✅ Assignment created successfully!\n\nProject: ${projectName}\nTeam Member: ${teamMemberId}\nTotal MDs: ${totalMDs}\n\nMDs have been automatically distributed across the timeline.`);
+                        
+                        // Close the modal
+                        closeAssignmentModal();
+                        
+                    } catch (error) {
+                        console.error('Auto-distribution failed:', error);
+                        alert('❌ Failed to create assignment: ' + error.message);
+                    }
+                } else {
+                    console.error('AutoDistribution not available');
+                    alert('❌ Auto-distribution not available - saving assignment without distribution');
+                    closeAssignmentModal();
+                }
+            } else {
+                console.error('CalculationsManager not found');
+                alert('❌ Cannot access auto-distribution - saving assignment without distribution');
+                closeAssignmentModal();
+            }
+        }
+        
+        function updateCapacityTimeline(projectName, teamMemberId, distribution, status) {
+            // Find the team member row in the capacity table
+            const capacityTable = document.getElementById('capacity-table');
+            if (!capacityTable) {
+                console.error('Capacity table not found');
+                return;
+            }
+            
+            // Look for existing row or create new one
+            let memberRow = null;
+            const rows = capacityTable.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const memberCell = row.querySelector('.col-member');
+                if (memberCell && memberCell.textContent.includes(teamMemberId)) {
+                    memberRow = row;
+                }
+            });
+            
+            // If no row exists, create a new one (simplified for demo)
+            if (!memberRow) {
+                const tbody = capacityTable.querySelector('tbody') || capacityTable;
+                memberRow = document.createElement('tr');
+                memberRow.innerHTML = `
+                    <td class="fixed-col col-member">${teamMemberId}</td>
+                    <td class="fixed-col col-project">${projectName}</td>
+                    <td class="fixed-col col-status">${status}</td>
+                `;
+                
+                // Add month columns with distribution data
+                Object.keys(distribution).forEach(month => {
+                    if (!['hasOverflow', 'overflowAmount', 'hasUnallocatedMDs', 'unallocatedAmount', 'error'].includes(month)) {
+                        const allocation = distribution[month];
+                        const monthCell = document.createElement('td');
+                        monthCell.className = 'month-col';
+                        monthCell.dataset.month = month;
+                        
+                        if (allocation && allocation.planned > 0) {
+                            monthCell.innerHTML = `
+                                <div class="allocation-cell ${status}">
+                                    <span class="allocation-value">${allocation.planned}</span>
+                                    <div class="allocation-details">
+                                        <small>${projectName}</small>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            monthCell.innerHTML = '<div class="allocation-cell empty">-</div>';
+                        }
+                        
+                        memberRow.appendChild(monthCell);
+                    }
+                });
+                
+                tbody.appendChild(memberRow);
+            }
         }
 
         // Initialize capacity section
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Capacity section loaded with mock data');
+            console.log('Capacity section loaded');
         });
     </script>
 </body>

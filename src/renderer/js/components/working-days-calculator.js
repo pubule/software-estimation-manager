@@ -299,6 +299,116 @@ class WorkingDaysCalculator {
     }
 
     /**
+     * Calculate available capacity for team member in specific month
+     * @param {Object} teamMember Team member object
+     * @param {string} monthString Month in YYYY-MM format
+     * @param {Date} startDate Optional start date for partial month calculation
+     * @returns {number} Available working days
+     */
+    calculateAvailableCapacity(teamMember, monthString, startDate = null) {
+        const [year, month] = monthString.split('-').map(Number);
+        
+        // Calculate base working days for the month
+        let baseCapacity = this.calculateWorkingDays(month, year, teamMember.country || 'IT');
+        
+        // Handle partial month if start date is provided
+        if (startDate) {
+            const startYear = startDate.getFullYear();
+            const startMonth = startDate.getMonth() + 1;
+            
+            if (startYear === year && startMonth === month) {
+                // Calculate working days from start date to end of month
+                const monthEnd = new Date(year, month, 0); // Last day of month
+                baseCapacity = this.calculateWorkingDaysBetween(startDate, monthEnd);
+            }
+        }
+        
+        // Subtract team member vacation days if any
+        const vacationDays = this._getVacationDays(teamMember.id, monthString);
+        
+        // Subtract existing allocations from other projects
+        const existingAllocations = this._getExistingAllocations(teamMember.id, monthString);
+        
+        return Math.max(0, baseCapacity - vacationDays - existingAllocations);
+    }
+
+    /**
+     * Calculate working days between two dates
+     * @param {Date} startDate Start date (inclusive)
+     * @param {Date} endDate End date (inclusive)
+     * @returns {number} Working days count
+     */
+    calculateWorkingDaysBetween(startDate, endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        let workingDays = 0;
+        const current = new Date(start);
+        
+        while (current <= end) {
+            const dayOfWeek = current.getDay();
+            const dateString = current.toISOString().split('T')[0];
+            
+            // Skip weekends and holidays
+            if (dayOfWeek !== 0 && dayOfWeek !== 6 && !this._isHoliday(dateString)) {
+                workingDays++;
+            }
+            
+            current.setDate(current.getDate() + 1);
+        }
+        
+        return workingDays;
+    }
+
+    /**
+     * Get vacation days for team member in specific month
+     * @private
+     * @param {string} teamMemberId Team member ID
+     * @param {string} monthString Month in YYYY-MM format
+     * @returns {number} Vacation days count
+     */
+    _getVacationDays(teamMemberId, monthString) {
+        // Implementation to get vacation days from team member data
+        // For now, return 0 as default implementation
+        return 0;
+    }
+
+    /**
+     * Get existing allocations for team member in specific month
+     * @private
+     * @param {string} teamMemberId Team member ID
+     * @param {string} monthString Month in YYYY-MM format
+     * @returns {number} Existing allocated MDs
+     */
+    _getExistingAllocations(teamMemberId, monthString) {
+        const key = `${teamMemberId}-${monthString}`;
+        return this._existingAllocations.get(key) || 0;
+    }
+
+    /**
+     * Check if date is a holiday
+     * @private
+     * @param {string} dateString Date in YYYY-MM-DD format
+     * @returns {boolean} True if date is a holiday
+     */
+    _isHoliday(dateString) {
+        const year = parseInt(dateString.split('-')[0]);
+        const country = 'IT'; // Default to Italy, can be made configurable
+        const holidays = this.holidays[country] && this.holidays[country][year] || [];
+        return holidays.includes(dateString);
+    }
+
+    /**
+     * Set existing allocations for capacity calculation
+     * @param {string} teamMemberId Team member ID
+     * @param {string} monthString Month in YYYY-MM format
+     * @param {number} allocatedMDs Allocated man days
+     */
+    setExistingAllocations(teamMemberId, monthString, allocatedMDs) {
+        const key = `${teamMemberId}-${monthString}`;
+        this._existingAllocations.set(key, allocatedMDs);
+    }
+
+    /**
      * Validate month format (YYYY-MM)
      * @private
      */

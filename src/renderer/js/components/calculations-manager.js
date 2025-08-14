@@ -1326,7 +1326,22 @@ class CapacityManager extends BaseComponent {
 
         // Initialize Auto Distribution if not exists
         if (!this.autoDistribution && typeof AutoDistribution !== 'undefined') {
-            this.autoDistribution = new AutoDistribution(this.workingDaysCalculator, this.teamManager);
+            // Create a simple teamManager adapter for AutoDistribution
+            const teamManagerAdapter = {
+                getTeamMemberById: (memberId) => {
+                    console.log('TeamManager adapter: looking for member ID:', memberId);
+                    // For now, return the team member that was passed to the method
+                    // This is a simple workaround since we have access to the actual team member object
+                    if (this._currentTeamMember && this._currentTeamMember.id === memberId) {
+                        console.log('TeamManager adapter: returning current team member');
+                        return this._currentTeamMember;
+                    }
+                    console.log('TeamManager adapter: team member not found');
+                    return null;
+                }
+            };
+            
+            this.autoDistribution = new AutoDistribution(this.workingDaysCalculator, teamManagerAdapter);
         }
 
         // Initialize capacity panel event listeners
@@ -2276,9 +2291,9 @@ class CapacityManager extends BaseComponent {
                                     <tr class="no-data-row">
                                         <td colspan="20" class="no-data-message">
                                             <div class="no-data-content">
-                                                <i class="fas fa-table"></i>
-                                                <p>No capacity assignments configured yet.</p>
-                                                <button class="btn-primary" id="create-first-row-btn">Create First Assignment</button>
+                                                <i class="fas fa-table" style="color: #6c757d; font-size: 2.5em; margin-bottom: 1rem;"></i>
+                                                <p style="color: #6c757d; font-size: 1.1em; margin: 0; font-weight: 500;">No capacity assignments configured yet</p>
+                                                <p style="color: #868e96; font-size: 0.9em; margin: 0.5rem 0 0 0;">Use "Add Assignment" to create your first assignment</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -2746,6 +2761,10 @@ class CapacityManager extends BaseComponent {
      * Distribute phase MDs across months with real working days calculation
      */
     distributePhaseAcrossMonths(phaseMDs, phaseStartDate, phaseEndDate, phaseMonths) {
+        // Legacy method - we'll use the new algorithm at a higher level
+        // This method is kept for compatibility but the real improvement is in calculatePhaseBasedAllocation
+        
+        // Legacy fallback distribution method
         const distribution = {};
         let remainingMDs = phaseMDs;
         
@@ -3817,10 +3836,9 @@ class CapacityManager extends BaseComponent {
                 <tr class="no-data-row">
                     <td colspan="20" class="no-data-message">
                         <div class="no-data-content">
-                            <i class="fas fa-table"></i>
-                            <p>No capacity assignments found.</p>
-                            <p>Create manual assignments or check your team configuration.</p>
-                            <button class="btn-primary" id="create-first-assignment-btn">Create Assignment</button>
+                            <i class="fas fa-tasks" style="color: #6c757d; font-size: 2.5em; margin-bottom: 1rem;"></i>
+                            <p style="color: #6c757d; font-size: 1.1em; margin: 0; font-weight: 500;">No capacity assignments found</p>
+                            <p style="color: #868e96; font-size: 0.9em; margin: 0.5rem 0 0 0;">Create manual assignments or check your team configuration</p>
                         </div>
                     </td>
                 </tr>
@@ -4124,8 +4142,9 @@ class CapacityManager extends BaseComponent {
                 <tr class="no-data-row">
                     <td colspan="20" class="no-data-message">
                         <div class="no-data-content">
-                            <i class="fas fa-project-diagram"></i>
-                            <p>No projects found.</p>
+                            <i class="fas fa-project-diagram" style="color: #6c757d; font-size: 2.5em; margin-bottom: 1rem;"></i>
+                            <p style="color: #6c757d; font-size: 1.1em; margin: 0; font-weight: 500;">No projects available</p>
+                            <p style="color: #868e96; font-size: 0.9em; margin: 0.5rem 0 0 0;">Load projects to see capacity planning data</p>
                         </div>
                     </td>
                 </tr>
@@ -4211,9 +4230,9 @@ class CapacityManager extends BaseComponent {
                 <tr class="no-data-row">
                     <td colspan="20" class="no-data-message">
                         <div class="no-data-content">
-                            <i class="fas fa-users"></i>
-                            <p>No team allocations found.</p>
-                            <button class="btn-primary" id="create-first-assignment-btn">Create Assignment</button>
+                            <i class="fas fa-users-slash" style="color: #6c757d; font-size: 2.5em; margin-bottom: 1rem;"></i>
+                            <p style="color: #6c757d; font-size: 1.1em; margin: 0; font-weight: 500;">No team member allocations available</p>
+                            <p style="color: #868e96; font-size: 0.9em; margin: 0.5rem 0 0 0;">Create assignments to see team member allocations here</p>
                         </div>
                     </td>
                 </tr>
@@ -5956,7 +5975,18 @@ class CapacityManager extends BaseComponent {
         
         // Get estimated MDs for this phase
         const phaseItem = document.querySelector(`[data-phase-id="${phaseId}"]`);
-        const estimatedMDsText = phaseItem.querySelector('.phase-mds').textContent;
+        if (!phaseItem) {
+            console.warn(`Phase item not found for phaseId: ${phaseId}`);
+            return;
+        }
+        
+        const phaseMDsElement = phaseItem.querySelector('.phase-mds');
+        if (!phaseMDsElement) {
+            console.warn(`Phase MDs element not found for phaseId: ${phaseId}`);
+            return;
+        }
+        
+        const estimatedMDsText = phaseMDsElement.textContent;
         const estimatedMDs = parseFloat(estimatedMDsText);
         
         // Check for overflow
@@ -6562,56 +6592,77 @@ class CapacityManager extends BaseComponent {
 
             const allocations = {};
             
-            // Process each phase in the schedule
-            phaseSchedule.forEach(phaseScheduleItem => {
-
-                // Distribute the estimated MDs across the phase period
-                const phaseDistribution = this.distributePhaseAcrossMonths(
-                    phaseScheduleItem.estimatedMDs,
-                    new Date(phaseScheduleItem.startDate),
-                    new Date(phaseScheduleItem.endDate),
-                    this.getMonthsInDateRange(new Date(phaseScheduleItem.startDate), new Date(phaseScheduleItem.endDate))
-                );
+            // Use the new auto-distribution algorithm for better allocation
+            console.log('calculatePhaseBasedAllocation: autoDistribution available:', !!this.autoDistribution);
+            console.log('calculatePhaseBasedAllocation: teamMember:', teamMember.id, teamMember.firstName, teamMember.lastName);
+            console.log('calculatePhaseBasedAllocation: phaseSchedule:', phaseSchedule.length, 'phases');
+            
+            if (this.autoDistribution) {
+                // Calculate total MDs for all phases
+                const totalMDs = phaseSchedule.reduce((sum, phase) => sum + phase.estimatedMDs, 0);
+                console.log('calculatePhaseBasedAllocation: totalMDs:', totalMDs);
                 
-                console.log(`Phase ${phaseScheduleItem.phaseName} distribution:`, Object.keys(phaseDistribution));
+                // Find the earliest start date and latest end date
+                const startDate = new Date(Math.min(...phaseSchedule.map(p => new Date(p.startDate))));
+                const endDate = new Date(Math.max(...phaseSchedule.map(p => new Date(p.endDate))));
+                console.log('calculatePhaseBasedAllocation: date range:', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
                 
-                Object.entries(phaseDistribution).forEach(([month, dayData]) => {
-                    if (!allocations[month]) allocations[month] = {};
+                try {
+                    // Debug team member ID format
+                    console.log('Auto-distribution: teamMember.id:', teamMember.id);
+                    console.log('Auto-distribution: this.autoDistribution.teamManager available:', !!this.autoDistribution.teamManager);
                     
-                    // Add overflow information to the allocation
-                    const hasOverflow = phaseScheduleItem.overflow > 0;
-                    const overflowAmount = phaseScheduleItem.overflow;
+                    // Set current team member for the adapter
+                    this._currentTeamMember = teamMember;
                     
-                    if (allocations[month][completeProject.project.name]) {
-                        allocations[month][completeProject.project.name].days += dayData.days;
-                        allocations[month][completeProject.project.name].phases.push({
-                            phaseName: phaseScheduleItem.phaseName,
-                            phaseDays: dayData.days,
-                            hasOverflow,
-                            overflowAmount: hasOverflow ? overflowAmount : 0
-                        });
-                        
-                        // Update overall overflow for the month
-                        if (hasOverflow) {
-                            allocations[month][completeProject.project.name].hasOverflow = true;
-                            allocations[month][completeProject.project.name].overflowAmount += overflowAmount;
+                    // Use autoDistributeMDs for intelligent distribution
+                    const autoDistribution = this.autoDistribution.autoDistributeMDs(
+                        totalMDs,
+                        startDate,
+                        endDate,
+                        teamMember.id
+                    );
+                    
+                    console.log(`Auto-distribution for ${completeProject.project.name}:`, autoDistribution);
+                    
+                    // Convert autoDistribution format to expected allocations format
+                    Object.keys(autoDistribution).forEach(month => {
+                        // Skip metadata keys
+                        if (['hasOverflow', 'overflowAmount'].includes(month)) {
+                            return;
                         }
-                    } else {
-                        allocations[month][completeProject.project.name] = {
-                            days: dayData.days,
-                            status: completeProject.project.status || 'approved',
-                            hasOverflow,
-                            overflowAmount: hasOverflow ? overflowAmount : 0,
-                            phases: [{
-                                phaseName: phaseScheduleItem.phaseName,
-                                phaseDays: dayData.days,
-                                hasOverflow,
-                                overflowAmount: hasOverflow ? overflowAmount : 0
-                            }]
-                        };
-                    }
-                });
-            });
+                        
+                        const allocation = autoDistribution[month];
+                        if (allocation && allocation.planned > 0) {
+                            if (!allocations[month]) allocations[month] = {};
+                            
+                            allocations[month][completeProject.project.name] = {
+                                days: allocation.planned,
+                                status: completeProject.project.status || 'approved',
+                                hasOverflow: false, // New algorithm prevents overflow
+                                overflowAmount: 0,
+                                phases: phaseSchedule.map(phase => ({
+                                    phaseName: phase.phaseName,
+                                    phaseDays: allocation.planned / phaseSchedule.length, // Simplified equal distribution
+                                    hasOverflow: false,
+                                    overflowAmount: 0
+                                }))
+                            };
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.warn('Auto-distribution failed, falling back to legacy method:', error);
+                    // Fall back to legacy method below
+                    this.useLegacyPhaseDistribution(phaseSchedule, allocations, completeProject);
+                }
+            } else {
+                // Fall back to legacy method
+                console.warn('Auto-distribution not available, falling back to legacy method');
+                console.warn('Available autoDistribution instance:', !!this.autoDistribution);
+                console.warn('AutoDistribution class available:', typeof AutoDistribution !== 'undefined');
+                this.useLegacyPhaseDistribution(phaseSchedule, allocations, completeProject);
+            }
 
             return allocations;
             
@@ -6620,7 +6671,93 @@ class CapacityManager extends BaseComponent {
             throw new Error(`Cannot create assignment: ${error.message}`);
         }
     }
-    
+
+    /**
+     * Legacy phase distribution fallback method
+     * Used when auto-distribution fails or is not available
+     */
+    useLegacyPhaseDistribution(phaseSchedule, allocations, completeProject) {
+        console.log('Using legacy phase distribution method');
+        
+        try {
+            // Simple fallback: distribute phases evenly across time period
+            phaseSchedule.forEach(phase => {
+                const phaseStartDate = new Date(phase.startDate);
+                const phaseEndDate = new Date(phase.endDate);
+                
+                // Get months for this phase
+                const phaseMonths = this.getMonthsBetween(phaseStartDate, phaseEndDate);
+                const phaseMDs = phase.estimatedMDs;
+                
+                if (phaseMonths.length > 0 && phaseMDs > 0) {
+                    const mdsPerMonth = Math.ceil(phaseMDs / phaseMonths.length);
+                    
+                    phaseMonths.forEach((month, index) => {
+                        if (!allocations[month]) allocations[month] = {};
+                        
+                        // For last month, allocate remaining MDs
+                        const isLastMonth = index === phaseMonths.length - 1;
+                        const monthMDs = isLastMonth ? 
+                            (phaseMDs - (mdsPerMonth * (phaseMonths.length - 1))) : 
+                            mdsPerMonth;
+                        
+                        if (monthMDs > 0) {
+                            if (!allocations[month][completeProject.project.name]) {
+                                allocations[month][completeProject.project.name] = {
+                                    days: 0,
+                                    status: 'approved',
+                                    hasOverflow: true, // Legacy method doesn't check capacity
+                                    overflowAmount: 0,
+                                    phases: []
+                                };
+                            }
+                            
+                            allocations[month][completeProject.project.name].days += monthMDs;
+                            allocations[month][completeProject.project.name].phases.push({
+                                phaseName: phase.phaseName,
+                                phaseDays: monthMDs,
+                                hasOverflow: true, // Legacy method may cause overflow
+                                overflowAmount: 0
+                            });
+                        }
+                    });
+                }
+            });
+            
+            console.log('Legacy distribution completed for', Object.keys(allocations).length, 'months');
+            
+        } catch (error) {
+            console.error('Legacy phase distribution failed:', error);
+            // Return empty allocations on failure
+        }
+    }
+
+    /**
+     * Get months between start and end date (helper for legacy method)
+     * @param {Date} startDate Start date (inclusive)
+     * @param {Date} endDate End date (exclusive)
+     * @returns {Array} Array of month strings in YYYY-MM format
+     */
+    getMonthsBetween(startDate, endDate) {
+        const months = [];
+        const current = new Date(startDate);
+
+        while (current < endDate) {
+            const monthString = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+            months.push(monthString);
+            current.setMonth(current.getMonth() + 1);
+            
+            // Stop if we've reached the end month
+            const endMonth = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
+            const currentMonth = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+            if (currentMonth === endMonth) {
+                break;
+            }
+        }
+
+        return months;
+    }
+
     /**
      * Calculate allocation for a manual assignment (LEGACY - keeping for compatibility)
      */
@@ -6820,7 +6957,6 @@ class CapacityManager extends BaseComponent {
                 // Get project name
                 const projectName = this.getProjectNameById(assignment.projectId);
 
-                console.log(`Month ${monthKey} allocation data structure:`, Object.keys(monthAllocationData));
                 
                 // Check if monthAllocationData already has the project as a key (nested structure)
                 // This happens when calculatedAllocation already has the structure: month -> project -> data

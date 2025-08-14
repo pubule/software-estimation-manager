@@ -24,8 +24,12 @@ describe('AutoDistribution Algorithms - TDD Implementation', () => {
                 // Standard mock: 22 working days per month
                 return 22;
             }),
-            calculateAvailableCapacity: jest.fn((teamMember, month) => {
+            calculateAvailableCapacity: jest.fn((teamMember, month, startDate) => {
                 // Mock available capacity (22 working days - vacation - existing allocations)
+                // If startDate is provided and it's the first month, return partial capacity
+                if (startDate && month === '2024-02') {
+                    return 14; // Partial month capacity
+                }
                 return 20; // Default available capacity
             }),
             isNationalHoliday: jest.fn(() => false)

@@ -80,58 +80,110 @@ class AutoDistribution {
         const months = this._getMonthsBetween(startDate, endDate);
         const distribution = {};
         let remainingMDs = totalMDs;
-        let totalOverflow = 0;
-
-        // Phase 1: Fill each month evenly first, then apply safety buffer checks
-        const monthsCount = months.length;
-        let baseAllocationPerMonth = Math.floor(totalMDs / monthsCount);
-        let remainder = totalMDs % monthsCount;
-
-        for (let i = 0; i < months.length; i++) {
-            const month = months[i];
-            
-            // Distribute remainder to later months
-            const allocation = baseAllocationPerMonth + (i >= monthsCount - remainder ? 1 : 0);
-            
-            distribution[month] = {
-                planned: allocation,
-                actual: allocation,
-                locked: false
-            };
-            
-            remainingMDs -= allocation;
-        }
-
-        // Phase 2: Check for capacity violations and calculate overflow
+        
+        // PHASE 1: Calculate real capacity for each month
+        const monthCapacities = {};
+        let totalAvailableCapacity = 0;
+        
         for (const month of months) {
-            const availableCapacity = this.workingDaysCalculator.calculateAvailableCapacity(
+            // For first month, consider start date for partial month
+            const isFirstMonth = month === months[0];
+            const monthStartDate = isFirstMonth ? startDate : null;
+            
+            const capacity = this.workingDaysCalculator.calculateAvailableCapacity(
                 teamMember, 
-                month
+                month, 
+                monthStartDate
             );
             
-            const plannedAllocation = distribution[month].planned;
+            monthCapacities[month] = capacity;
+            totalAvailableCapacity += capacity;
             
-            // Only cap if allocation actually exceeds capacity
-            if (plannedAllocation > availableCapacity) {
-                const overflow = plannedAllocation - availableCapacity;
-                totalOverflow += overflow;
+            // Initialize distribution
+            distribution[month] = {
+                planned: 0,
+                actual: 0,
+                locked: false
+            };
+        }
+        
+        // Check if total capacity is sufficient
+        const hasInsufficientCapacity = totalAvailableCapacity < totalMDs;
+        const overflowAmount = hasInsufficientCapacity ? totalMDs - totalAvailableCapacity : 0;
+        
+        // PHASE 2: Distribute MDs proportionally to capacity
+        for (const month of months) {
+            if (remainingMDs <= 0) break;
+            
+            const monthCapacity = monthCapacities[month];
+            
+            if (totalAvailableCapacity > 0) {
+                // Proportional distribution based on capacity
+                const proportion = monthCapacity / totalAvailableCapacity;
+                let plannedForMonth = Math.min(
+                    Math.round(totalMDs * proportion),
+                    monthCapacity,
+                    remainingMDs
+                );
                 
-                // Cap allocation at available capacity
-                distribution[month].planned = availableCapacity;
-                distribution[month].actual = availableCapacity;
+                distribution[month].planned = plannedForMonth;
+                distribution[month].actual = plannedForMonth;
+                remainingMDs -= plannedForMonth;
             }
         }
-
+        
+        // PHASE 3: Distribute any remaining MDs to months with available capacity
+        if (remainingMDs > 0) {
+            const monthsWithCapacity = months.filter(month => {
+                return distribution[month].planned < monthCapacities[month];
+            });
+            
+            for (const month of monthsWithCapacity) {
+                if (remainingMDs <= 0) break;
+                
+                const availableInMonth = monthCapacities[month] - distribution[month].planned;
+                const toAdd = Math.min(remainingMDs, availableInMonth);
+                
+                distribution[month].planned += toAdd;
+                distribution[month].actual += toAdd;
+                remainingMDs -= toAdd;
+            }
+        }
+        
+        // PHASE 4: Force remaining MDs into last month if range is limited
+        if (remainingMDs > 0 && months.length > 0) {
+            const lastMonth = months[months.length - 1];
+            
+            // Force all remaining MDs into the last month
+            distribution[lastMonth].planned += remainingMDs;
+            distribution[lastMonth].actual += remainingMDs;
+            
+            remainingMDs = 0; // All MDs now distributed
+        }
+        
         // Create result object with overflow metadata
         const result = { ...distribution };
         
-        if (totalOverflow > 0) {
-            result.hasOverflow = true;
-            result.overflowAmount = totalOverflow;
-        } else {
-            result.hasOverflow = false;
-            result.overflowAmount = 0;
+        // Calculate final overflow amount considering both scenarios:
+        // 1. Insufficient total capacity (original logic)
+        // 2. Forced allocation in last month (new PHASE 4 logic)
+        let finalOverflowAmount = 0;
+        let hasAnyOverflow = false;
+        
+        // Check each month for overflow (especially important for last month after PHASE 4)
+        for (const month of Object.keys(distribution)) {
+            const monthCapacity = monthCapacities[month] || 0;
+            const monthAllocation = distribution[month].planned || 0;
+            const monthOverflow = Math.max(0, monthAllocation - monthCapacity);
+            
+            if (monthOverflow > 0) {
+                finalOverflowAmount += monthOverflow;
+                hasAnyOverflow = true;
+            }
         }
+        
+        result.hasOverflow = hasAnyOverflow;
+        result.overflowAmount = finalOverflowAmount;
 
         return result;
     }
