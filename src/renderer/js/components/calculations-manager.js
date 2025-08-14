@@ -4879,6 +4879,40 @@ class CapacityManager extends BaseComponent {
                     // Hide reset button for auto-updated fields
                     const resetButton = input.parentElement?.querySelector('.reset-capacity-mds-btn');
                     if (resetButton) resetButton.style.display = 'none';
+                    
+                    // Check for overflow and update CSS classes
+                    if (this.autoDistribution && newValue > 0) {
+                        try {
+                            const overflowResult = this.autoDistribution.checkCapacityOverflow(memberId, month, newValue);
+                            const parentCell = input.closest('td');
+                            const container = input.parentElement;
+                            
+                            if (overflowResult.hasOverflow) {
+                                // Add overflow classes
+                                input.classList.add('overflow');
+                                if (parentCell) parentCell.classList.add('overflow');
+                                
+                                // Add overflow warning icon if not present
+                                if (container && !container.querySelector('.overflow-warning')) {
+                                    const warningIcon = document.createElement('i');
+                                    warningIcon.className = 'fas fa-exclamation-triangle overflow-warning';
+                                    container.appendChild(warningIcon);
+                                }
+                            } else {
+                                // Remove overflow classes
+                                input.classList.remove('overflow');
+                                if (parentCell) parentCell.classList.remove('overflow');
+                                
+                                // Remove overflow warning icon
+                                const warningIcon = container?.querySelector('.overflow-warning');
+                                if (warningIcon) {
+                                    warningIcon.remove();
+                                }
+                            }
+                        } catch (error) {
+                            console.warn(`Could not check overflow for ${memberId} in ${month}:`, error);
+                        }
+                    }
                 }
             }
         });
@@ -8173,6 +8207,9 @@ class CapacityManager extends BaseComponent {
                 capacityInputs.forEach(input => {
                     const month = input.dataset.month;
                     
+                    // Always remove auto-updated class from all inputs in this assignment
+                    input.classList.remove('auto-updated');
+                    
                     // Get the saved value for this month
                     if (savedAllocation[month] && savedAllocation[month][projectName]) {
                         const savedValue = savedAllocation[month][projectName].days || 0;
@@ -8204,6 +8241,40 @@ class CapacityManager extends BaseComponent {
                                 cell.title = `${projectName}: ${savedValue} MDs`;
                             }
                             
+                            // Check for overflow and update CSS classes for reset values
+                            if (this.autoDistribution && savedValue > 0) {
+                                try {
+                                    const overflowResult = this.autoDistribution.checkCapacityOverflow(memberId, month, savedValue);
+                                    const parentCell = input.closest('td');
+                                    const container = input.parentElement;
+                                    
+                                    if (overflowResult.hasOverflow) {
+                                        // Add overflow classes
+                                        input.classList.add('overflow');
+                                        if (parentCell) parentCell.classList.add('overflow');
+                                        
+                                        // Add overflow warning icon if not present
+                                        if (container && !container.querySelector('.overflow-warning')) {
+                                            const warningIcon = document.createElement('i');
+                                            warningIcon.className = 'fas fa-exclamation-triangle overflow-warning';
+                                            container.appendChild(warningIcon);
+                                        }
+                                    } else {
+                                        // Remove overflow classes
+                                        input.classList.remove('overflow');
+                                        if (parentCell) parentCell.classList.remove('overflow');
+                                        
+                                        // Remove overflow warning icon
+                                        const warningIcon = container?.querySelector('.overflow-warning');
+                                        if (warningIcon) {
+                                            warningIcon.remove();
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.warn(`Could not check overflow for ${memberId} in ${month} during reset:`, error);
+                                }
+                            }
+                            
                             // Track that this input was updated
                             updatedInputs.push({
                                 month,
@@ -8224,15 +8295,8 @@ class CapacityManager extends BaseComponent {
             
             // NO SAVING - just UI restoration, no data modification
 
-            // Show success message
-            const message = `✅ Reset allocation for ${memberId} on ${projectName} to saved values (${updatedInputs.length} fields updated)`;
-            
-            // Show notification (no automatic saving!)
-            if (window.app && window.app.managers && window.app.managers.notification) {
-                window.app.managers.notification.show(message, 'success');
-            } else {
-                alert(message);
-            }
+            // Silent reset - no notifications needed
+            console.log(`Reset completed for ${memberId} on ${projectName}: ${updatedInputs.length} fields updated`);
             
             // No refresh needed - we've updated the UI directly
 
