@@ -3454,11 +3454,33 @@ class CapacityManager extends BaseComponent {
      * Update project status in member allocations
      */
     async updateProjectStatusInAllocations(memberId, projectName, newStatus) {
-        // Find the team member
-        const teamMembers = await this.getRealTeamMembers();
-        const member = teamMembers.find(m => m.id === memberId);
+        // Find the team member - handle both simple and composite IDs
+        const rawTeamMembers = await this.getRealTeamMembers();
+        const teamMembers = this.consolidateTeamMembersByPerson(rawTeamMembers);
+        
+        // Try to find member by exact ID match or by matching the member part of composite IDs
+        const member = teamMembers.find(m => {
+            // Direct match
+            if (m.id === memberId) return true;
+            
+            // Check if memberId matches the originalId
+            if (m.originalId === memberId) return true;
+            
+            // Check if memberId is in the consolidatedFrom array
+            if (m.consolidatedFrom && m.consolidatedFrom.some(id => {
+                // Extract member part from composite ID
+                const memberPart = id.includes(':') ? id.split(':')[1] : id;
+                return memberPart === memberId;
+            })) return true;
+            
+            // Extract member part from current ID and compare
+            const currentMemberPart = m.id.includes(':') ? m.id.split(':')[1] : m.id;
+            return currentMemberPart === memberId;
+        });
         
         if (!member) {
+            console.error(`Team member with ID ${memberId} not found. Available IDs:`, 
+                teamMembers.map(m => ({ id: m.id, originalId: m.originalId, consolidatedFrom: m.consolidatedFrom })));
             throw new Error(`Team member with ID ${memberId} not found`);
         }
         
@@ -3474,7 +3496,15 @@ class CapacityManager extends BaseComponent {
         // Also update status in manual assignments if they exist
         if (this.manualAssignments) {
             this.manualAssignments.forEach(assignment => {
-                if (assignment.teamMemberId === memberId) {
+                // Check if this assignment belongs to the member (handle different ID formats)
+                const assignmentMemberPart = assignment.teamMemberId.includes(':') 
+                    ? assignment.teamMemberId.split(':')[1] 
+                    : assignment.teamMemberId;
+                const searchMemberPart = memberId.includes(':') 
+                    ? memberId.split(':')[1] 
+                    : memberId;
+                    
+                if (assignment.teamMemberId === memberId || assignmentMemberPart === searchMemberPart) {
                     // Find project in calculatedAllocation
                     Object.keys(assignment.calculatedAllocation || {}).forEach(monthKey => {
                         if (assignment.calculatedAllocation[monthKey][projectName]) {
