@@ -2311,12 +2311,12 @@ class CapacityManager extends BaseComponent {
                 <!-- Two-Panel Layout -->
                 <div class="two-panel-layout">
                     <!-- Panel 1: Project Phases Gantt -->
-                    <div class="gantt-panel">
+                    <div class="gantt-panel collapsed">
                         <div class="panel-title">
                             <i class="fas fa-project-diagram"></i>
                             <span>Project Phases Timeline</span>
                             <button class="panel-collapse-btn" id="toggle-gantt-panel">
-                                <i class="fas fa-chevron-up"></i>
+                                <i class="fas fa-chevron-down"></i>
                             </button>
                         </div>
                         <div class="scrollable-table-wrapper gantt-wrapper" id="gantt-scroll-wrapper">
@@ -2349,8 +2349,6 @@ class CapacityManager extends BaseComponent {
                                     <tr>
                                         <!-- Fixed columns -->
                                         <th class="fixed-col col-member">Team Member</th>
-                                        <th class="fixed-col col-role">Role</th>
-                                        <th class="fixed-col col-vendor">Vendor</th>
                                         <th class="fixed-col col-actions">Actions</th>
                                         <!-- Scrollable month columns -->
                                         ${this.generateMonthHeaders()}
@@ -4371,21 +4369,24 @@ class CapacityManager extends BaseComponent {
         allocationsByMember.forEach((data, key) => {
             const member = data.member;
             const memberName = `${member.firstName} ${member.lastName}`;
-            const isManualAssignment = data.assignment && data.assignment.teamMemberId === member.id;
+            const memberRole = member.role || '';
+            const memberVendor = member.vendor || '';
+            
+            // Always show action buttons for manual assignments
+            const hasAssignment = data.assignmentId && data.assignmentId !== 'undefined';
             
             html += `
                 <tr class="allocation-member-row" data-member="${member.id}" data-project="${data.projectName}">
                     <td class="fixed-col col-member">
                         <div class="member-info">
                             <span class="member-name">${memberName}</span>
+                            <span class="member-details">${memberRole}${memberRole && memberVendor ? ' - ' : ''}${memberVendor}</span>
                             <span class="project-tag">${data.projectName}</span>
                         </div>
                     </td>
-                    <td class="fixed-col col-role">${member.role || 'N/A'}</td>
-                    <td class="fixed-col col-vendor">${member.vendor || 'N/A'}</td>
                     <td class="fixed-col col-actions">
                         <div class="row-actions">
-                            ${isManualAssignment ? `
+                            ${hasAssignment ? `
                                 <button class="btn btn-small btn-secondary edit-allocation-btn" 
                                         data-action="edit" 
                                         data-assignment-id="${data.assignmentId}"
