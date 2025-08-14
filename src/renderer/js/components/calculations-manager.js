@@ -5194,8 +5194,8 @@ class CapacityManager extends BaseComponent {
                                     <span class="available-mds" data-phase-id="${phase.id}">-</span>
                                 </div>
                                 <div class="stat-item overflow-indicator" data-phase-id="${phase.id}" style="display: none;">
-                                    <label>Overflow:</label>
-                                    <span class="overflow-amount">-</span>
+                                    <label>Overflow MDs:</label>
+                                    <span class="overflow-amount" data-phase-id="${phase.id}">-</span>
                                 </div>
                             </div>
                         </div>
@@ -5307,7 +5307,7 @@ class CapacityManager extends BaseComponent {
         const overflow = estimatedMDs - workingDays;
         if (overflow > 0) {
             overflowIndicator.style.display = 'block';
-            overflowIndicator.querySelector('.overflow-amount').textContent = `+${overflow.toFixed(1)} MDs overflow`;
+            overflowIndicator.querySelector('.overflow-amount').textContent = `+${Math.round(overflow)} MDs`;
             overflowIndicator.className = 'stat-item overflow-indicator overflow-warning';
         } else {
             overflowIndicator.style.display = 'none';
