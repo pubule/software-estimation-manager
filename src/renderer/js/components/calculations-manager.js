@@ -5522,8 +5522,8 @@ class CapacityManager extends BaseComponent {
      * Calculate available MDs and overflow for a phase
      */
     calculatePhaseAvailability(phaseId) {
-        const startDateInput = document.querySelector(`[data-phase-id="${phaseId}"].phase-start-date`);
-        const endDateInput = document.querySelector(`[data-phase-id="${phaseId}"].phase-end-date`);
+        const startDateInput = document.querySelector(`[data-phase-id="${phaseId}"] .phase-start-date`);
+        const endDateInput = document.querySelector(`[data-phase-id="${phaseId}"] .phase-end-date`);
         const availableMDsSpan = document.querySelector(`.available-mds[data-phase-id="${phaseId}"]`);
         const overflowIndicator = document.querySelector(`.overflow-indicator[data-phase-id="${phaseId}"]`);
         
@@ -6513,6 +6513,9 @@ class CapacityManager extends BaseComponent {
             if (endDateInput) {
                 endDateInput.value = phase.endDate;
             }
+            
+            // Calculate availability and overflow for this phase
+            this.calculatePhaseAvailability(phase.phaseId);
         });
         
         // Trigger recalculation
