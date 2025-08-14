@@ -2315,6 +2315,7 @@ class CapacityManager extends BaseComponent {
                             <thead>
                                 <tr>
                                     <!-- Fixed columns -->
+                                    <th class="fixed-col col-actions">Actions</th>
                                     <th class="fixed-col col-member">Team Member</th>
                                     <th class="fixed-col col-project">Project</th>
                                     <th class="fixed-col col-status">Status</th>
@@ -2325,7 +2326,7 @@ class CapacityManager extends BaseComponent {
                             <tbody id="capacity-table-body">
                                 <!-- Table rows will be populated here -->
                                 <tr class="no-data-row">
-                                    <td colspan="18" class="no-data-message">
+                                    <td colspan="19" class="no-data-message">
                                         <div class="no-data-content">
                                             <i class="fas fa-table"></i>
                                             <p>No capacity assignments configured yet.</p>
@@ -4021,8 +4022,32 @@ class CapacityManager extends BaseComponent {
                     }
                 }).join('');
                 
+                // Find the corresponding manual assignment for this member/project combination
+                const projectObj = this.getProjectByName(project);
+                const assignment = this.findAssignmentForMemberAndProject(member.id, projectObj?.id || project);
+                
                 tableHTML += `
-                    <tr class="capacity-row" data-member="${member.id}" data-project="${project}">
+                    <tr class="capacity-row" data-member="${member.id}" data-project="${project}" ${assignment ? `data-assignment-id="${assignment.id}"` : ''}>
+                        <td class="fixed-col col-actions">
+                            <div class="row-actions">
+                                ${assignment ? `
+                                    <button class="btn btn-small btn-secondary edit-assignment-btn" 
+                                            data-action="edit" data-assignment-id="${assignment.id}" title="Edit Assignment">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-small btn-secondary duplicate-assignment-btn"
+                                            data-action="duplicate" data-assignment-id="${assignment.id}" title="Duplicate Assignment">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="btn btn-small btn-danger delete-assignment-btn"
+                                            data-action="delete" data-assignment-id="${assignment.id}" title="Delete Assignment">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                ` : `
+                                    <span class="text-muted" style="font-size: 0.8em;">Auto-generated</span>
+                                `}
+                            </div>
+                        </td>
                         ${isFirstProject ? `
                             <td class="fixed-col col-member" rowspan="${projects.length}">
                                 <div class="member-info">
@@ -4084,6 +4109,33 @@ class CapacityManager extends BaseComponent {
                 e.target.closest('.reset-capacity-mds-btn')) {
                 const button = e.target.closest('.reset-capacity-mds-btn') || e.target;
                 this.handleCapacityValueReset(button);
+            }
+        });
+
+        // Add event listeners for assignment action buttons
+        document.addEventListener('click', (e) => {
+            // Edit assignment button
+            if (e.target.classList.contains('edit-assignment-btn') || 
+                e.target.closest('.edit-assignment-btn')) {
+                const button = e.target.closest('.edit-assignment-btn') || e.target;
+                const assignmentId = button.dataset.assignmentId;
+                this.showEditAssignmentModal(assignmentId);
+            }
+            
+            // Duplicate assignment button
+            if (e.target.classList.contains('duplicate-assignment-btn') || 
+                e.target.closest('.duplicate-assignment-btn')) {
+                const button = e.target.closest('.duplicate-assignment-btn') || e.target;
+                const assignmentId = button.dataset.assignmentId;
+                this.duplicateAssignment(assignmentId);
+            }
+            
+            // Delete assignment button
+            if (e.target.classList.contains('delete-assignment-btn') || 
+                e.target.closest('.delete-assignment-btn')) {
+                const button = e.target.closest('.delete-assignment-btn') || e.target;
+                const assignmentId = button.dataset.assignmentId;
+                this.deleteAssignment(assignmentId);
             }
         });
 
@@ -4832,6 +4884,19 @@ class CapacityManager extends BaseComponent {
         document.getElementById('budget-context').textContent = '';
         document.getElementById('phases-list').innerHTML = '';
         
+        // Reset modal title and button text to default
+        const modal = document.getElementById('assignment-modal');
+        const title = modal?.querySelector('.modal-header h3');
+        const submitBtn = modal?.querySelector('#submit-assignment');
+        
+        if (title) title.textContent = 'Add Team Member Assignment';
+        if (submitBtn) submitBtn.textContent = 'Add Assignment';
+        
+        // Clear editing state
+        if (modal?.dataset.editingAssignmentId) {
+            delete modal.dataset.editingAssignmentId;
+        }
+        
         // Reset form
         document.getElementById('assignment-form').reset();
     }
@@ -5566,11 +5631,16 @@ class CapacityManager extends BaseComponent {
     async handleAddAssignment() {
         try {
             const form = document.getElementById('assignment-form');
+            const modal = document.getElementById('assignment-modal');
             const formData = new FormData(form);
             
             const teamMemberId = formData.get('teamMember');
             const projectId = formData.get('project');
             const notes = formData.get('notes');
+            
+            // Check if we're editing an existing assignment
+            const editingAssignmentId = modal?.dataset.editingAssignmentId;
+            const isEditing = !!editingAssignmentId;
             
             // Validate selections
             if (!teamMemberId || !projectId) {
@@ -5617,49 +5687,91 @@ class CapacityManager extends BaseComponent {
             // Calculate phase-based allocation
             const calculatedAllocation = await this.calculatePhaseBasedAllocation(teamMember, completeProject, phaseSchedule);
             
-            // Create assignment with new structure
-            const assignment = {
-                id: this.generateId('assignment-'),
-                teamMemberId: teamMemberId,
-                projectId: projectId,
-                status: 'approved',
-                phaseSchedule: phaseSchedule,
-                budgetInfo: budgetInfo,
-                calculatedAllocation: calculatedAllocation,
-                notes: notes,
-                created: new Date().toISOString()
-            };
-
-            console.log('Creating new phase-based assignment:', assignment);
-            
             // Initialize manual assignments array if it doesn't exist
             if (!this.manualAssignments) {
                 this.manualAssignments = [];
             }
             
-            // Save assignment
-            this.manualAssignments.push(assignment);
-            console.log('Assignment added to manualAssignments. Total assignments:', this.manualAssignments.length);
-            console.log('manualAssignments:', this.manualAssignments.map(a => ({ id: a.id, teamMemberId: a.teamMemberId, projectId: a.projectId })));
-            
-            // Check for overflows and show alerts
-            const overflows = this.detectOverflows(phaseSchedule);
-            if (overflows.length > 0) {
-                const overflowMessages = overflows.map(o => `${o.phaseName}: +${o.overflow.toFixed(1)} MDs`);
-                NotificationManager.warning(`Assignment created with overflows: ${overflowMessages.join(', ')}`);
+            if (isEditing) {
+                // Update existing assignment
+                const existingIndex = this.manualAssignments.findIndex(a => a.id === editingAssignmentId);
+                if (existingIndex === -1) {
+                    throw new Error('Assignment to edit not found');
+                }
+                
+                const existingAssignment = this.manualAssignments[existingIndex];
+                
+                // Update assignment with new data
+                const updatedAssignment = {
+                    ...existingAssignment,
+                    teamMemberId: teamMemberId,
+                    projectId: projectId,
+                    phaseSchedule: phaseSchedule,
+                    budgetInfo: budgetInfo,
+                    calculatedAllocation: calculatedAllocation,
+                    notes: notes,
+                    updated: new Date().toISOString()
+                };
+                
+                this.manualAssignments[existingIndex] = updatedAssignment;
+                console.log('Assignment updated:', updatedAssignment.id);
+                
+                // Check for overflows and show alerts
+                const overflows = this.detectOverflows(phaseSchedule);
+                if (overflows.length > 0) {
+                    const overflowMessages = overflows.map(o => `${o.phaseName}: +${o.overflow.toFixed(1)} MDs`);
+                    NotificationManager.warning(`Assignment updated with overflows: ${overflowMessages.join(', ')}`);
+                } else {
+                    NotificationManager.success('Assignment updated successfully');
+                }
+                
             } else {
-                NotificationManager.success('Assignment created successfully');
+                // Create new assignment
+                const assignment = {
+                    id: this.generateId('assignment-'),
+                    teamMemberId: teamMemberId,
+                    projectId: projectId,
+                    status: 'approved',
+                    phaseSchedule: phaseSchedule,
+                    budgetInfo: budgetInfo,
+                    calculatedAllocation: calculatedAllocation,
+                    notes: notes,
+                    created: new Date().toISOString()
+                };
+
+                console.log('Creating new phase-based assignment:', assignment);
+                
+                // Save assignment
+                this.manualAssignments.push(assignment);
+                console.log('Assignment added to manualAssignments. Total assignments:', this.manualAssignments.length);
+                console.log('manualAssignments:', this.manualAssignments.map(a => ({ id: a.id, teamMemberId: a.teamMemberId, projectId: a.projectId })));
+                
+                // Check for overflows and show alerts
+                const overflows = this.detectOverflows(phaseSchedule);
+                if (overflows.length > 0) {
+                    const overflowMessages = overflows.map(o => `${o.phaseName}: +${o.overflow.toFixed(1)} MDs`);
+                    NotificationManager.warning(`Assignment created with overflows: ${overflowMessages.join(', ')}`);
+                } else {
+                    NotificationManager.success('Assignment created successfully');
+                }
             }
             
             // Close modal and refresh
             this.resetAssignmentModal();
+            
+            // Clear editing state
+            if (modal?.dataset.editingAssignmentId) {
+                delete modal.dataset.editingAssignmentId;
+            }
+            
             document.getElementById('assignment-modal').classList.remove('active');
             
             await this.refreshAllCapacitySections();
             
         } catch (error) {
-            console.error('Error creating assignment:', error);
-            NotificationManager.error(`Failed to create assignment: ${error.message}`);
+            console.error('Error handling assignment:', error);
+            const isEditing = !!editingAssignmentId;
+            NotificationManager.error(`Failed to ${isEditing ? 'update' : 'create'} assignment: ${error.message}`);
         }
     }
     
@@ -6266,6 +6378,220 @@ class CapacityManager extends BaseComponent {
         } catch (error) {
             console.error('Error getting available projects:', error);
             return [];
+        }
+    }
+
+    /**
+     * Get project object by name
+     */
+    getProjectByName(projectName) {
+        if (!this.cachedProjects) {
+            return null;
+        }
+        return this.cachedProjects.find(project => 
+            project.name === projectName || project.code === projectName
+        );
+    }
+
+    /**
+     * Find assignment for a specific member and project combination
+     */
+    findAssignmentForMemberAndProject(memberId, projectId) {
+        if (!this.manualAssignments || this.manualAssignments.length === 0) {
+            return null;
+        }
+        
+        // Direct match
+        let assignment = this.manualAssignments.find(a => 
+            a.teamMemberId === memberId && a.projectId === projectId
+        );
+        
+        if (assignment) {
+            return assignment;
+        }
+        
+        // Check consolidated IDs - members might be consolidated from different teams
+        // Look for assignments that match any consolidated source ID
+        return this.manualAssignments.find(a => {
+            if (a.projectId !== projectId) {
+                return false;
+            }
+            
+            // If the member has been consolidated, check all original team IDs
+            // memberId format: "member-fullstack-1" (consolidated)
+            // assignment.teamMemberId format: "team-fullstack-avg:member-fullstack-1" (original)
+            
+            // Extract base member ID
+            const baseMemberId = memberId.includes(':') ? memberId.split(':')[1] : memberId;
+            
+            // Check if assignment's teamMemberId contains this base ID
+            if (a.teamMemberId.includes(':')) {
+                const assignmentBaseMemberId = a.teamMemberId.split(':')[1];
+                return assignmentBaseMemberId === baseMemberId;
+            } else {
+                return a.teamMemberId === baseMemberId;
+            }
+        });
+    }
+
+    /**
+     * Show edit assignment modal with pre-filled data
+     */
+    async showEditAssignmentModal(assignmentId) {
+        console.log('Show edit assignment modal for:', assignmentId);
+        
+        // Find the assignment to edit
+        const assignment = this.manualAssignments.find(a => a.id === assignmentId);
+        if (!assignment) {
+            NotificationManager.error('Assignment not found');
+            return;
+        }
+        
+        // Show the add assignment modal first
+        await this.showAddAssignmentModal();
+        
+        // Change modal title and button text
+        const modal = document.getElementById('assignment-modal');
+        const title = modal.querySelector('.modal-header h3');
+        const submitBtn = modal.querySelector('#submit-assignment');
+        
+        if (title) title.textContent = 'Edit Team Member Assignment';
+        if (submitBtn) submitBtn.textContent = 'Update Assignment';
+        
+        // Pre-fill form data
+        this.populateAssignmentModalWithData(assignment);
+        
+        // Store assignment ID for update
+        modal.dataset.editingAssignmentId = assignmentId;
+    }
+
+    /**
+     * Populate assignment modal with existing assignment data
+     */
+    populateAssignmentModalWithData(assignment) {
+        // Fill team member dropdown
+        const teamMemberSelect = document.getElementById('assignment-team-member');
+        if (teamMemberSelect) {
+            teamMemberSelect.value = assignment.teamMemberId;
+            // Trigger change event to update member info
+            teamMemberSelect.dispatchEvent(new Event('change'));
+        }
+        
+        // Fill project dropdown  
+        const projectSelect = document.getElementById('assignment-project');
+        if (projectSelect) {
+            projectSelect.value = assignment.projectId;
+            // Trigger change event to load project phases
+            projectSelect.dispatchEvent(new Event('change'));
+        }
+        
+        // Fill notes
+        const notesTextarea = document.getElementById('assignment-notes');
+        if (notesTextarea) {
+            notesTextarea.value = assignment.notes || '';
+        }
+        
+        // Wait for phase schedule to be populated, then fill it
+        setTimeout(() => {
+            this.populatePhaseScheduleData(assignment.phaseSchedule);
+        }, 500);
+    }
+
+    /**
+     * Populate phase schedule data
+     */
+    populatePhaseScheduleData(phaseSchedule) {
+        phaseSchedule.forEach(phase => {
+            // Fill start date
+            const startDateInput = document.querySelector(`[data-phase-id="${phase.phaseId}"] .phase-start-date`);
+            if (startDateInput) {
+                startDateInput.value = phase.startDate;
+            }
+            
+            // Fill end date
+            const endDateInput = document.querySelector(`[data-phase-id="${phase.phaseId}"] .phase-end-date`);
+            if (endDateInput) {
+                endDateInput.value = phase.endDate;
+            }
+        });
+        
+        // Trigger recalculation
+        this.recalculateBudgetInfo();
+    }
+
+    /**
+     * Duplicate assignment
+     */
+    async duplicateAssignment(assignmentId) {
+        console.log('Duplicate assignment:', assignmentId);
+        
+        const assignment = this.manualAssignments.find(a => a.id === assignmentId);
+        if (!assignment) {
+            NotificationManager.error('Assignment not found');
+            return;
+        }
+        
+        try {
+            // Create duplicated assignment with new ID
+            const duplicatedAssignment = {
+                ...assignment,
+                id: this.generateId('assignment-'),
+                created: new Date().toISOString(),
+                notes: (assignment.notes || '') + ' (Copy)'
+            };
+            
+            // Add to manual assignments
+            if (!this.manualAssignments) {
+                this.manualAssignments = [];
+            }
+            this.manualAssignments.push(duplicatedAssignment);
+            
+            console.log('Assignment duplicated successfully:', duplicatedAssignment.id);
+            NotificationManager.success('Assignment duplicated successfully');
+            
+            // Refresh the table
+            await this.refreshAllCapacitySections();
+            
+        } catch (error) {
+            console.error('Error duplicating assignment:', error);
+            NotificationManager.error(`Failed to duplicate assignment: ${error.message}`);
+        }
+    }
+
+    /**
+     * Delete assignment
+     */
+    async deleteAssignment(assignmentId) {
+        console.log('Delete assignment:', assignmentId);
+        
+        const assignment = this.manualAssignments.find(a => a.id === assignmentId);
+        if (!assignment) {
+            NotificationManager.error('Assignment not found');
+            return;
+        }
+        
+        // Show confirmation dialog
+        const confirmed = confirm(`Are you sure you want to delete this assignment?\n\nTeam Member: ${assignment.teamMemberId}\nProject: ${assignment.projectId}`);
+        if (!confirmed) {
+            return;
+        }
+        
+        try {
+            // Remove from manual assignments array
+            const index = this.manualAssignments.findIndex(a => a.id === assignmentId);
+            if (index > -1) {
+                this.manualAssignments.splice(index, 1);
+            }
+            
+            console.log('Assignment deleted successfully:', assignmentId);
+            NotificationManager.success('Assignment deleted successfully');
+            
+            // Refresh the table
+            await this.refreshAllCapacitySections();
+            
+        } catch (error) {
+            console.error('Error deleting assignment:', error);
+            NotificationManager.error(`Failed to delete assignment: ${error.message}`);
         }
     }
 
