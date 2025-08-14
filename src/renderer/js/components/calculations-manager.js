@@ -3260,20 +3260,29 @@ class CapacityManager extends BaseComponent {
                     // Generate sequential allocations based on project phases
                     const automaticAllocations = this.generateSequentialAllocations(member, memberRole, projects);
                     
-                    // Merge with manual assignments
-                    const allocations = this.mergeManualAssignments(member, automaticAllocations);
+                    // CRITICAL FIX: Create unique composite ID BEFORE merging manual assignments
+                    const uniqueId = `${team.id}:${member.id}`;
+                    console.log(`DEBUG: Creating unique ID: ${member.id} -> ${uniqueId} (vendorId: ${member.vendorId})`);
+                    
+                    // Create member with unique ID for manual assignment matching
+                    const memberWithUniqueId = {
+                        ...member,
+                        id: uniqueId,
+                        originalId: member.id,
+                        teamId: team.id
+                    };
+                    
+                    // Merge with manual assignments using the unique ID
+                    const allocations = this.mergeManualAssignments(memberWithUniqueId, automaticAllocations);
                     
                     // Debug: show allocation structure
-                    console.log(`Final allocations for ${member.id}:`, Object.keys(allocations).length, 'months');
+                    console.log(`Final allocations for ${uniqueId}:`, Object.keys(allocations).length, 'months');
                     Object.entries(allocations).forEach(([monthKey, monthData]) => {
                         const projects = Object.keys(monthData);
                         if (projects.length > 0) {
                             console.log(`  Month ${monthKey}: projects = [${projects.join(', ')}]`);
                         }
                     });
-                    
-                    // Assign merged allocations to member for visualization
-                    member.allocations = allocations;
                     
                     // Check and flag overflow
                     const processedAllocations = this.checkAndFlagOverflow(
@@ -3283,10 +3292,6 @@ class CapacityManager extends BaseComponent {
                     
                     // Calculate current utilization
                     const utilizationData = this.calculateCurrentUtilization(processedAllocations, memberRole);
-                    
-                    // CRITICAL FIX: Create unique composite ID to resolve collision between identical member IDs in different teams
-                    const uniqueId = `${team.id}:${member.id}`;
-                    console.log(`DEBUG: Creating unique ID: ${member.id} -> ${uniqueId} (vendorId: ${member.vendorId})`);
                     
                     return {
                         ...member, // Include ALL original member fields (including vendorId!)
@@ -6098,24 +6103,39 @@ class CapacityManager extends BaseComponent {
         }
         
         // Find manual assignments for this member
-        // Handle both full unique IDs (team-xxx:member-yyy) and member IDs (member.id)
+        // Be careful to only match the correct team when assignment specifies a team
         const memberAssignments = this.manualAssignments.filter(assignment => {
-            // Direct match with full unique ID
+            // Direct match with full unique ID - this is the primary matching mechanism
             if (assignment.teamMemberId === member.id) {
+                console.log(`Direct match: assignment ${assignment.id} matches member ${member.id}`);
                 return true;
             }
             
-            // Extract member ID from teamMemberId format "team-xxx:member-yyy"
-            const memberIdFromTeamId = assignment.teamMemberId.includes(':') 
-                ? assignment.teamMemberId.split(':')[1]
-                : assignment.teamMemberId;
-                
-            // Extract member ID from member.id format (in case it's also prefixed)
-            const baseMemberId = member.id.includes(':') 
-                ? member.id.split(':')[1] 
-                : member.id.replace(/^team-[^:]+:/, ''); // Remove team prefix if present
-                
-            return memberIdFromTeamId === baseMemberId;
+            // Check if this member has consolidatedFrom IDs (happens after consolidation)
+            if (member.consolidatedFrom && member.consolidatedFrom.length > 0) {
+                // Check if assignment matches any of the original IDs
+                const matchesConsolidatedId = member.consolidatedFrom.some(originalId => 
+                    assignment.teamMemberId === originalId
+                );
+                if (matchesConsolidatedId) {
+                    console.log(`Consolidated match: assignment ${assignment.id} (${assignment.teamMemberId}) matches consolidated member ${member.id}`);
+                    return true;
+                }
+            }
+            
+            // Legacy support: assignments without team prefix can match any team with that member
+            if (!assignment.teamMemberId.includes(':')) {
+                const baseMemberId = member.id.includes(':') 
+                    ? member.id.split(':')[1] 
+                    : member.id;
+                    
+                if (assignment.teamMemberId === baseMemberId) {
+                    console.log(`Legacy match: assignment ${assignment.id} matches member ${member.id}`);
+                    return true;
+                }
+            }
+            
+            return false;
         });
         
         console.log(`Found ${memberAssignments.length} manual assignments for member ${member.id}`);
