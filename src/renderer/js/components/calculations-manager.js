@@ -5514,8 +5514,41 @@ class CapacityManager extends BaseComponent {
      */
     handlePhaseDateChange(input) {
         const phaseId = input.dataset.phaseId;
-        this.calculatePhaseAvailability(phaseId);
-        this.updateBudgetBalance();
+        
+        // Mark this input as user-modified to preserve manual changes
+        input.dataset.userModified = 'true';
+        
+        // Check if this is a start date input
+        const isStartDate = input.classList.contains('phase-start-date');
+        
+        if (isStartDate) {
+            console.log(`Start date changed for phase ${phaseId}, triggering sequential propagation`);
+            
+            // Find the index of this phase in the DOM
+            const phaseItems = document.querySelectorAll('.phase-item');
+            let phaseIndex = -1;
+            
+            for (let i = 0; i < phaseItems.length; i++) {
+                if (phaseItems[i].dataset.phaseId === phaseId) {
+                    phaseIndex = i;
+                    break;
+                }
+            }
+            
+            if (phaseIndex !== -1) {
+                // Propagate dates to this and all subsequent phases
+                this.propagateSequentialDates(phaseIndex, input);
+            } else {
+                console.warn(`Could not find phase index for ${phaseId}`);
+                // Fallback to original behavior
+                this.calculatePhaseAvailability(phaseId);
+                this.updateBudgetBalance();
+            }
+        } else {
+            // For end date changes, use original behavior
+            this.calculatePhaseAvailability(phaseId);
+            this.updateBudgetBalance();
+        }
     }
     
     /**
@@ -5581,6 +5614,159 @@ class CapacityManager extends BaseComponent {
         }
         
         return workingDays;
+    }
+    
+    /**
+     * Calculate end date from start date and required MDs (working days)
+     * @param {Date|string} startDate - The start date
+     * @param {number} requiredMDs - Number of working days (MDs) required
+     * @param {string} country - Country code for holidays (default: 'IT')
+     * @returns {Date} The calculated end date
+     */
+    calculateEndDateFromMDs(startDate, requiredMDs, country = 'IT') {
+        if (requiredMDs <= 0) {
+            return new Date(startDate);
+        }
+        
+        const start = new Date(startDate);
+        const holidays = this.getHolidays(start.getFullYear(), country);
+        let workingDaysCount = 0;
+        const currentDate = new Date(start);
+        
+        // We need to count working days until we reach requiredMDs
+        while (workingDaysCount < requiredMDs) {
+            const dayOfWeek = currentDate.getDay();
+            const dateString = currentDate.toISOString().split('T')[0];
+            
+            // Count Monday-Friday (1-5) as working days, excluding holidays
+            if (dayOfWeek >= 1 && dayOfWeek <= 5 && !holidays.includes(dateString)) {
+                workingDaysCount++;
+            }
+            
+            // If we haven't reached the required MDs, move to next day
+            if (workingDaysCount < requiredMDs) {
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        }
+        
+        return currentDate;
+    }
+    
+    /**
+     * Get next working day after a given date
+     * @param {Date} date - The reference date
+     * @param {string} country - Country code for holidays (default: 'IT')
+     * @returns {Date} Next working day
+     */
+    getNextWorkingDay(date, country = 'IT') {
+        const holidays = this.getHolidays(date.getFullYear(), country);
+        const nextDay = new Date(date);
+        nextDay.setDate(nextDay.getDate() + 1);
+        
+        // Keep advancing until we find a working day
+        while (true) {
+            const dayOfWeek = nextDay.getDay();
+            const dateString = nextDay.toISOString().split('T')[0];
+            
+            // Check if it's a working day (Mon-Fri, not holiday)
+            if (dayOfWeek >= 1 && dayOfWeek <= 5 && !holidays.includes(dateString)) {
+                return nextDay;
+            }
+            
+            nextDay.setDate(nextDay.getDate() + 1);
+        }
+    }
+    
+    /**
+     * Propagate sequential dates to all phases starting from a given phase index
+     * @param {number} startingPhaseIndex - Index of the phase to start propagation from
+     * @param {HTMLElement} triggerInput - The input element that triggered the propagation (optional)
+     */
+    propagateSequentialDates(startingPhaseIndex, triggerInput = null) {
+        console.log('Starting sequential date propagation from phase index:', startingPhaseIndex);
+        
+        const phaseItems = document.querySelectorAll('.phase-item');
+        if (startingPhaseIndex >= phaseItems.length) {
+            console.warn('Starting phase index out of bounds');
+            return;
+        }
+        
+        let currentEndDate = null;
+        
+        // Process each phase from the starting index onwards
+        for (let i = startingPhaseIndex; i < phaseItems.length; i++) {
+            const phaseItem = phaseItems[i];
+            const phaseId = phaseItem.dataset.phaseId;
+            const startDateInput = phaseItem.querySelector('.phase-start-date');
+            const endDateInput = phaseItem.querySelector('.phase-end-date');
+            const phaseMDsElement = phaseItem.querySelector('.phase-mds');
+            
+            if (!startDateInput || !endDateInput || !phaseMDsElement) {
+                console.warn(`Missing elements for phase ${phaseId}`);
+                continue;
+            }
+            
+            const estimatedMDs = parseFloat(phaseMDsElement.textContent);
+            
+            if (i === startingPhaseIndex) {
+                // For the starting phase, use its current start date (if available)
+                const startDateValue = startDateInput.value;
+                if (!startDateValue) {
+                    console.warn(`No start date available for starting phase ${phaseId}`);
+                    break;
+                }
+                
+                // Calculate end date for this phase
+                const startDate = new Date(startDateValue);
+                const endDate = this.calculateEndDateFromMDs(startDate, estimatedMDs);
+                const endDateString = endDate.toISOString().split('T')[0];
+                
+                // Update end date input (only if not manually set by user)
+                if (!endDateInput.dataset.userModified) {
+                    endDateInput.value = endDateString;
+                    endDateInput.dataset.autoPopulated = 'true';
+                }
+                
+                currentEndDate = endDate;
+                console.log(`Phase ${phaseId}: start=${startDateValue}, end=${endDateString}, MDs=${estimatedMDs}`);
+                
+            } else {
+                // For subsequent phases, start date = next working day after previous phase end
+                if (!currentEndDate) {
+                    console.warn(`No end date available from previous phase for ${phaseId}`);
+                    break;
+                }
+                
+                const nextStartDate = this.getNextWorkingDay(currentEndDate);
+                const startDateString = nextStartDate.toISOString().split('T')[0];
+                
+                // Calculate end date for this phase
+                const endDate = this.calculateEndDateFromMDs(nextStartDate, estimatedMDs);
+                const endDateString = endDate.toISOString().split('T')[0];
+                
+                // Update both start and end date inputs (only if not manually modified)
+                if (!startDateInput.dataset.userModified) {
+                    startDateInput.value = startDateString;
+                    startDateInput.dataset.autoPopulated = 'true';
+                }
+                
+                if (!endDateInput.dataset.userModified) {
+                    endDateInput.value = endDateString;
+                    endDateInput.dataset.autoPopulated = 'true';
+                }
+                
+                currentEndDate = endDate;
+                console.log(`Phase ${phaseId}: start=${startDateString}, end=${endDateString}, MDs=${estimatedMDs}`);
+            }
+            
+            // Trigger recalculation for this phase
+            this.calculatePhaseAvailability(phaseId);
+        }
+        
+        // Update overall budget balance
+        this.updateBudgetBalance();
+        
+        console.log('Sequential date propagation completed');
     }
     
     /**
