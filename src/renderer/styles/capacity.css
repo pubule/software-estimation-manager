@@ -3118,6 +3118,397 @@
     display: block;
 }
 
+/* =====================================================
+   GANTT VIEW STYLES
+   ===================================================== */
+
+/* Expand/Collapse Column */
+.fixed-col.col-expand {
+    width: 40px;
+    min-width: 40px;
+    max-width: 40px;
+    padding: 0;
+    text-align: center;
+}
+
+.expand-btn {
+    background: none;
+    border: none;
+    color: #cccccc;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.expand-btn:hover {
+    background: #333333;
+    color: #ffffff;
+}
+
+.expand-btn i {
+    font-size: 12px;
+    transition: transform 0.2s ease;
+}
+
+/* Gantt Row Styling */
+.gantt-row.project-row {
+    background: #252526;
+    border-bottom: 2px solid #333333;
+}
+
+.gantt-row.project-row:hover {
+    background: #2d2d30;
+}
+
+/* Project Info Column Updates */
+.project-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.project-name {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.project-status {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: #a0a0a0;
+}
+
+.phase-count {
+    font-size: 11px;
+    color: #569cd6;
+    font-style: italic;
+}
+
+/* Gantt Cells */
+.gantt-cell {
+    position: relative;
+    background: #1e1e1e;
+    border: 1px solid #333333;
+    vertical-align: middle;
+    padding: 4px;
+    min-height: 48px;
+}
+
+.gantt-cell.simple {
+    background: #252526;
+}
+
+.gantt-cell.overflow {
+    background: #3c1618;
+    border-color: #f56565;
+}
+
+/* Phase Bars Container */
+.phase-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 6px;
+    min-height: 20px;
+}
+
+/* Individual Phase Bar */
+.phase-bar {
+    height: 16px;
+    border-radius: 3px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.phase-bar:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Phase Colors */
+.phase-bar.phase-technicalAnalysis { background: linear-gradient(135deg, #3498db, #2980b9); }
+.phase-bar.phase-development { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+.phase-bar.phase-integrationTests { background: linear-gradient(135deg, #f39c12, #e67e22); }
+.phase-bar.phase-uatTests { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+.phase-bar.phase-consolidation { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+.phase-bar.phase-vapt { background: linear-gradient(135deg, #34495e, #2c3e50); }
+.phase-bar.phase-postGoLive { background: linear-gradient(135deg, #1abc9c, #16a085); }
+
+/* Overflow Phase Bars */
+.phase-bar.overflow {
+    border: 2px solid #dc3545;
+    animation: pulse-overflow 2s infinite;
+    background: linear-gradient(135deg, #dc3545, #c82333) !important;
+}
+
+@keyframes pulse-overflow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Phase Name Text */
+.phase-name {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Month Total */
+.month-total {
+    font-size: 11px;
+    font-weight: 500;
+    color: #cccccc;
+}
+
+.gantt-cell.simple .month-total {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Simple Allocation Display */
+.simple-allocation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    background: #333333;
+    border-radius: 4px;
+    color: #ffffff;
+}
+
+/* Overflow Warning Icon */
+.overflow-warning {
+    color: #f56565;
+    margin-left: 4px;
+    font-size: 10px;
+    animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* =====================================================
+   EXPANDABLE ALLOCATION ROWS
+   ===================================================== */
+
+/* Allocation Rows */
+.allocation-row {
+    background: #2a2a2a;
+    border-left: 4px solid #569cd6;
+}
+
+.allocation-row.hidden {
+    display: none;
+}
+
+.allocation-row.allocation-header {
+    background: #1e1e1e;
+    border-left: 4px solid #4fc1ff;
+}
+
+.allocation-section-header {
+    color: #4fc1ff;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.allocation-section-header i {
+    color: #4fc1ff;
+}
+
+/* Allocation Header Cells */
+.allocation-header-cell {
+    background: #1e1e1e;
+    color: #a0a0a0;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    text-align: center;
+    border: 1px solid #333333;
+    padding: 4px 2px;
+}
+
+/* Member Rows */
+.member-row {
+    background: #2a2a2a;
+    border-left: 4px solid #666666;
+}
+
+.member-row:hover {
+    background: #323233;
+}
+
+.member-row .member-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.member-row .member-name {
+    font-weight: 500;
+    color: #ffffff;
+    font-size: 13px;
+}
+
+.member-row .member-details {
+    font-size: 11px;
+    color: #a0a0a0;
+}
+
+/* Member Allocation Cells */
+.member-allocation {
+    background: #252526;
+    border: 1px solid #404040;
+    text-align: center;
+    padding: 4px;
+    vertical-align: middle;
+}
+
+.member-allocation.overflow {
+    background: #3c1618;
+    border-color: #f56565;
+}
+
+.member-allocation.empty {
+    background: #1e1e1e;
+    color: #666666;
+}
+
+.member-allocation .capacity-mds-input {
+    width: 100%;
+    max-width: 60px;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 2px;
+    border-radius: 2px;
+}
+
+.member-allocation .capacity-mds-input:focus {
+    background: #333333;
+    outline: 1px solid #569cd6;
+}
+
+.member-allocation.overflow .capacity-mds-input {
+    color: #f56565;
+    background: rgba(245, 101, 101, 0.1);
+}
+
+.member-capacity {
+    font-size: 11px;
+    color: #a0a0a0;
+    text-align: center;
+    padding: 8px 4px;
+}
+
+/* =====================================================
+   MONTH COLUMN CONSISTENCY
+   ===================================================== */
+
+/* Ensure perfect alignment between Gantt and allocation rows */
+.month-col {
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
+    text-align: center;
+    padding: 4px;
+    border-right: 1px solid #333333;
+    vertical-align: top;
+}
+
+/* =====================================================
+   HOVER EFFECTS AND INTERACTIONS
+   ===================================================== */
+
+/* Gantt Cell Hover */
+.gantt-cell:hover {
+    background: #2a2a2a;
+}
+
+.gantt-cell:hover .phase-bars {
+    filter: brightness(1.1);
+}
+
+/* Phase Bar Tooltip Enhancement */
+.phase-bar[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e1e1e;
+    color: #ffffff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    z-index: 1000;
+    border: 1px solid #333333;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* =====================================================
+   RESPONSIVE ADJUSTMENTS FOR GANTT
+   ===================================================== */
+
+@media (max-width: 768px) {
+    .phase-bars {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .phase-bar {
+        min-width: 40px;
+        height: 12px;
+        font-size: 8px;
+    }
+    
+    .month-col {
+        width: 60px;
+        min-width: 60px;
+        max-width: 60px;
+    }
+    
+    .phase-name {
+        font-size: 8px;
+    }
+    
+    .month-total {
+        font-size: 10px;
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .assignment-modal-content {

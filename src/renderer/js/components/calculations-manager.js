@@ -2315,8 +2315,8 @@ class CapacityManager extends BaseComponent {
                             <thead>
                                 <tr>
                                     <!-- Fixed columns -->
+                                    <th class="fixed-col col-expand"></th>
                                     <th class="fixed-col col-actions">Actions</th>
-                                    <th class="fixed-col col-member">Team Member</th>
                                     <th class="fixed-col col-project">Project</th>
                                     <th class="fixed-col col-status">Status</th>
                                     <!-- Scrollable month columns - All current year months + 3 next year months -->
@@ -2326,7 +2326,7 @@ class CapacityManager extends BaseComponent {
                             <tbody id="capacity-table-body">
                                 <!-- Table rows will be populated here -->
                                 <tr class="no-data-row">
-                                    <td colspan="19" class="no-data-message">
+                                    <td colspan="20" class="no-data-message">
                                         <div class="no-data-content">
                                             <i class="fas fa-table"></i>
                                             <p>No capacity assignments configured yet.</p>
@@ -3935,7 +3935,7 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
-     * Load and populate the capacity planning table
+     * Load and populate the capacity planning table with Gantt view
      */
     async loadCapacityTable() {
         const rawTeamMembers = await this.getRealTeamMembers();
@@ -3951,145 +3951,394 @@ class CapacityManager extends BaseComponent {
         const overflowAlerts = this.generateOverflowAlerts(teamMembers);
         this.displayOverflowAlerts(overflowAlerts);
 
-        // Generate table rows for each team member and their allocations
-        let tableHTML = '';
+        // Generate Gantt-style table with expandable team member allocations
+        const ganttHTML = await this.generateGanttTableRows(teamMembers);
+        tableBody.innerHTML = ganttHTML;
+
+        // Initialize expand/collapse functionality
+        this.initializeGanttExpansion();
+    }
+
+    /**
+     * Generate Gantt-style table rows with project phases and expandable team member allocations
+     */
+    async generateGanttTableRows(teamMembers) {
+        // Group allocations by project first
+        const projectsData = this.groupAllocationsByProject(teamMembers);
         
-        teamMembers.forEach(member => {
-            // Get all projects this member is allocated to across all months
-            const allProjects = new Set();
-            Object.values(member.allocations).forEach(monthAllocations => {
-                Object.keys(monthAllocations).forEach(project => allProjects.add(project));
-            });
-            
-            const projects = Array.from(allProjects);
-            
-            // Skip members with no project assignments
-            if (projects.length === 0) {
-                return;
-            }
-            
-            projects.forEach((project, index) => {
-                const isFirstProject = index === 0;
-                const memberName = `${member.firstName} ${member.lastName}`;
-                const memberRole = `${member.role} - ${member.vendor}`;
-                
-                // Generate month cells for this project allocation
-                const monthCells = this.getTimelineMonths().map(monthKey => {
-                    // Convert abbreviated month format (e.g., "Aug") to ISO format (e.g., "2025-08")
-                    const isoMonthKey = this.convertTimelineToISOMonth(monthKey);
-                    const monthData = member.allocations[isoMonthKey];
-                    const projectData = monthData && monthData[project];
-                    
-                    // Debug timeline cell rendering
-                    console.log(`Timeline cell debug: month=${monthKey} (ISO: ${isoMonthKey}), project=${project}, hasMonthData=${!!monthData}, hasProjectData=${!!projectData}`);
-                    if (monthData) {
-                        console.log(`  Month ${monthKey} projects:`, Object.keys(monthData));
-                    }
-                    
-                    if (projectData) {
-                        const statusIcon = projectData.status === 'approved' ? '✅' : '🟡';
-                        const statusClass = projectData.status;
-                        const overflowClass = projectData.hasOverflow ? 'overflow' : '';
-                        const phases = projectData.phases ? projectData.phases.map(p => p.phaseName).join(', ') : '';
-                        
-                        return `
-                            <td class="timeline-cell editable-cell ${statusClass} ${overflowClass}" 
-                                title="${memberName} - ${project}: ${projectData.days} MDs (${projectData.status})${phases ? ` - Phases: ${phases}` : ''}">
-                                <input type="number" class="capacity-mds-input ${overflowClass}" 
-                                       value="${projectData.days}" 
-                                       min="0" 
-                                       step="1" 
-                                       data-member-id="${member.id}"
-                                       data-project="${project}"
-                                       data-month="${isoMonthKey}"
-                                       data-original-value="${projectData.days}"
-                                       ${projectData.hasOverflow ? 'style="background-color: #fee; border-color: #f56565; color: #c53030;"' : ''}>
-                                <button type="button" class="reset-capacity-mds-btn" 
-                                        title="Reset to original value" 
-                                        data-member-id="${member.id}"
-                                        data-project="${project}"
-                                        data-month="${isoMonthKey}">
-                                    <i class="fas fa-undo"></i>
-                                </button>
-                                ${projectData.hasOverflow ? '<i class="fas fa-exclamation-triangle overflow-warning" style="color: #f56565; margin-left: 4px;"></i>' : ''}
-                            </td>
-                        `;
-                    } else {
-                        return `<td class="timeline-cell empty" 
-                                    title="${memberName} - ${project}: No allocation">
-                                <span class="no-allocation">-</span>
-                            </td>`;
-                    }
-                }).join('');
-                
-                // Find the corresponding manual assignment for this member/project combination
-                const projectObj = this.getProjectByName(project);
-                const assignment = this.findAssignmentForMemberAndProject(member.id, projectObj?.id || project);
-                
-                tableHTML += `
-                    <tr class="capacity-row" data-member="${member.id}" data-project="${project}" ${assignment ? `data-assignment-id="${assignment.id}"` : ''}>
-                        <td class="fixed-col col-actions">
-                            <div class="row-actions">
-                                ${assignment ? `
-                                    <button class="btn btn-small btn-secondary edit-assignment-btn" 
-                                            data-action="edit" data-assignment-id="${assignment.id}" title="Edit Assignment">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-small btn-secondary duplicate-assignment-btn"
-                                            data-action="duplicate" data-assignment-id="${assignment.id}" title="Duplicate Assignment">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                    <button class="btn btn-small btn-danger delete-assignment-btn"
-                                            data-action="delete" data-assignment-id="${assignment.id}" title="Delete Assignment">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                ` : `
-                                    <span class="text-muted" style="font-size: 0.8em;">Auto-generated</span>
-                                `}
-                            </div>
-                        </td>
-                        ${isFirstProject ? `
-                            <td class="fixed-col col-member" rowspan="${projects.length}">
-                                <div class="member-info">
-                                    <span class="member-name">${memberName}</span>
-                                    <span class="member-details">${memberRole}</span>
-                                    <span class="member-capacity">Max: ${member.maxCapacity} MD/month</span>
-                                </div>
-                            </td>
-                        ` : ''}
-                        <td class="fixed-col col-project">${project}</td>
-                        <td class="fixed-col col-status">
-                            <div class="project-status">
-                                ${this.generateProjectStatusFromRealData(member, project)}
-                            </div>
-                        </td>
-                        ${monthCells}
-                    </tr>
-                `;
-            });
-        });
-        
-        // If no assignments exist, show empty table with message
-        if (tableHTML.trim() === '') {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="100%" class="empty-capacity-message">
-                        <div class="no-assignments">
-                            <i class="fas fa-calendar-times"></i>
-                            <p>No project assignments found</p>
-                            <small>Add team members to projects to see capacity planning data</small>
+        if (projectsData.length === 0) {
+            return `
+                <tr class="no-data-row">
+                    <td colspan="20" class="no-data-message">
+                        <div class="no-data-content">
+                            <i class="fas fa-table"></i>
+                            <p>No capacity assignments found.</p>
+                            <p>Create manual assignments or check your team configuration.</p>
+                            <button class="btn-primary" id="create-first-assignment-btn">Create Assignment</button>
                         </div>
                     </td>
                 </tr>
             `;
-        } else {
-            tableBody.innerHTML = tableHTML;
-            // Initialize event listeners for editable cells only if we have data
-            this.initializeCapacityCellEventListeners();
+        }
+
+        let html = '';
+        
+        for (const projectData of projectsData) {
+            // Generate Gantt row for project phases
+            html += this.generateProjectGanttRow(projectData);
+            
+            // Generate expandable team member allocation rows
+            html += this.generateTeamMemberAllocationRows(projectData);
         }
         
-        const assignmentCount = tableHTML.trim() === '' ? 0 : tableBody.querySelectorAll('tr').length;
-        console.log(`Capacity table loaded with ${teamMembers.length} team members and ${assignmentCount} project assignments`);
+        return html;
+    }
+
+    /**
+     * Group team member allocations by project
+     */
+    groupAllocationsByProject(teamMembers) {
+        const projectsMap = new Map();
+        
+        teamMembers.forEach(member => {
+            Object.values(member.allocations).forEach(monthAllocations => {
+                Object.keys(monthAllocations).forEach(projectName => {
+                    if (!projectsMap.has(projectName)) {
+                        projectsMap.set(projectName, {
+                            name: projectName,
+                            members: new Map(),
+                            assignment: null
+                        });
+                    }
+                    
+                    const projectData = projectsMap.get(projectName);
+                    if (!projectData.members.has(member.id)) {
+                        projectData.members.set(member.id, {
+                            member: member,
+                            allocations: member.allocations
+                        });
+                    }
+                });
+            });
+        });
+        
+        // Convert to array and get assignments for each project
+        const projectsArray = Array.from(projectsMap.values());
+        
+        projectsArray.forEach(projectData => {
+            // Find manual assignment for this project
+            const projectObj = this.getProjectByName(projectData.name);
+            projectData.assignment = this.manualAssignments?.find(a => 
+                a.projectId === (projectObj?.id || projectData.name)
+            );
+        });
+        
+        return projectsArray;
+    }
+
+    /**
+     * Generate Gantt row showing project phases
+     */
+    generateProjectGanttRow(projectData) {
+        const assignment = projectData.assignment;
+        const projectName = projectData.name;
+        
+        // Generate month cells with phase visualization
+        const monthCells = this.generateProjectGanttCells(projectData);
+        
+        return `
+            <tr class="gantt-row project-row" data-project-name="${projectName}" ${assignment ? `data-assignment-id="${assignment.id}"` : ''}>
+                <td class="fixed-col expand-toggle">
+                    <button class="expand-btn" data-expanded="false" data-project="${projectName}">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </td>
+                <td class="fixed-col col-actions">
+                    <div class="row-actions">
+                        ${assignment ? `
+                            <button class="btn btn-small btn-secondary edit-assignment-btn" 
+                                    data-action="edit" data-assignment-id="${assignment.id}" title="Edit Assignment">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-small btn-secondary duplicate-assignment-btn"
+                                    data-action="duplicate" data-assignment-id="${assignment.id}" title="Duplicate Assignment">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="btn btn-small btn-danger delete-assignment-btn"
+                                    data-action="delete" data-assignment-id="${assignment.id}" title="Delete Assignment">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : `
+                            <span class="text-muted" style="font-size: 0.8em;">Auto-generated</span>
+                        `}
+                    </div>
+                </td>
+                <td class="fixed-col col-project">
+                    <div class="project-info">
+                        <span class="project-name">${projectName}</span>
+                        <span class="project-status status-${assignment?.status || 'auto-generated'}">
+                            ${assignment?.status || 'auto-generated'}
+                        </span>
+                        ${assignment ? `<span class="phase-count">${assignment.phaseSchedule?.length || 0} phases</span>` : ''}
+                    </div>
+                </td>
+                <td class="fixed-col col-status">
+                    <div class="status-badge status-active">
+                        ● Active
+                    </div>
+                </td>
+                ${monthCells}
+            </tr>
+        `;
+    }
+
+    /**
+     * Generate Gantt cells for project phases visualization
+     */
+    generateProjectGanttCells(projectData) {
+        const assignment = projectData.assignment;
+        const timelineMonths = this.getTimelineMonths();
+        
+        // If no assignment with phases, show simple allocation totals
+        if (!assignment || !assignment.phaseSchedule) {
+            return timelineMonths.map(monthKey => {
+                const isoMonthKey = this.convertTimelineToISOMonth(monthKey);
+                let totalMDs = 0;
+                
+                // Sum up all member allocations for this project in this month
+                projectData.members.forEach(memberData => {
+                    const monthData = memberData.allocations[isoMonthKey];
+                    const projectAllocation = monthData?.[projectData.name];
+                    if (projectAllocation) {
+                        totalMDs += projectAllocation.days || 0;
+                    }
+                });
+                
+                return `
+                    <td class="month-col gantt-cell simple" data-month="${isoMonthKey}">
+                        <div class="simple-allocation">
+                            <span class="month-total">${totalMDs > 0 ? totalMDs + ' MDs' : '-'}</span>
+                        </div>
+                    </td>
+                `;
+            }).join('');
+        }
+        
+        // Generate phase-based Gantt visualization
+        const phaseGanttBars = this.generatePhaseGanttBars(assignment.phaseSchedule, timelineMonths);
+        
+        return timelineMonths.map(monthKey => {
+            const isoMonthKey = this.convertTimelineToISOMonth(monthKey);
+            const monthPhases = phaseGanttBars[isoMonthKey] || [];
+            
+            let totalMDs = 0;
+            let hasOverflow = false;
+            
+            // Calculate total MDs and overflow for this month
+            projectData.members.forEach(memberData => {
+                const monthData = memberData.allocations[isoMonthKey];
+                const projectAllocation = monthData?.[projectData.name];
+                if (projectAllocation) {
+                    totalMDs += projectAllocation.days || 0;
+                    if (projectAllocation.hasOverflow) hasOverflow = true;
+                }
+            });
+            
+            const phaseBarsHTML = monthPhases.map(phase => `
+                <div class="phase-bar phase-${phase.phaseId} ${phase.overflow > 0 ? 'overflow' : ''}" 
+                     title="${phase.phaseName}: ${phase.estimatedMDs} MDs${phase.overflow > 0 ? ` (Overflow: +${phase.overflow})` : ''}">
+                    <span class="phase-name">${this.truncateText(phase.phaseName, 8)}</span>
+                </div>
+            `).join('');
+            
+            return `
+                <td class="month-col gantt-cell ${hasOverflow ? 'overflow' : ''}" data-month="${isoMonthKey}">
+                    <div class="phase-bars">
+                        ${phaseBarsHTML}
+                    </div>
+                    <span class="month-total">${totalMDs > 0 ? totalMDs + ' MDs' : '-'}</span>
+                    ${hasOverflow ? '<i class="fas fa-exclamation-triangle overflow-warning"></i>' : ''}
+                </td>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Generate phase Gantt bars for timeline visualization
+     */
+    generatePhaseGanttBars(phaseSchedule, timelineMonths) {
+        const ganttBars = {};
+        
+        phaseSchedule.forEach(phase => {
+            const startMonth = this.getMonthFromDate(phase.startDate);
+            const endMonth = this.getMonthFromDate(phase.endDate);
+            const monthsSpanned = this.getMonthsBetween(phase.startDate, phase.endDate);
+            
+            monthsSpanned.forEach(month => {
+                if (!ganttBars[month]) ganttBars[month] = [];
+                
+                ganttBars[month].push({
+                    phaseName: phase.phaseName,
+                    phaseId: phase.phaseId,
+                    estimatedMDs: phase.estimatedMDs,
+                    overflow: phase.overflow,
+                    isStart: month === startMonth,
+                    isEnd: month === endMonth
+                });
+            });
+        });
+        
+        return ganttBars;
+    }
+
+    /**
+     * Generate expandable team member allocation rows
+     */
+    generateTeamMemberAllocationRows(projectData) {
+        const timelineMonths = this.getTimelineMonths();
+        const projectName = projectData.name;
+        
+        let html = '';
+        
+        // Header row for team member allocations
+        html += `
+            <tr class="allocation-row allocation-header hidden" data-parent-project="${projectName}">
+                <td class="fixed-col"></td>
+                <td colspan="3" class="allocation-section-header">
+                    <i class="fas fa-users"></i> Team Member Allocations
+                </td>
+                ${timelineMonths.map(monthKey => {
+                    const isoMonthKey = this.convertTimelineToISOMonth(monthKey);
+                    return `<td class="month-col allocation-header-cell">${monthKey}</td>`;
+                }).join('')}
+            </tr>
+        `;
+        
+        // Individual team member rows
+        projectData.members.forEach(memberData => {
+            const member = memberData.member;
+            const memberName = `${member.firstName} ${member.lastName}`;
+            const memberRole = `${member.role} - ${member.vendor}`;
+            
+            const monthCells = timelineMonths.map(monthKey => {
+                const isoMonthKey = this.convertTimelineToISOMonth(monthKey);
+                const monthData = memberData.allocations[isoMonthKey];
+                const projectAllocation = monthData?.[projectName];
+                
+                if (projectAllocation) {
+                    const overflowClass = projectAllocation.hasOverflow ? 'overflow' : '';
+                    return `
+                        <td class="month-col member-allocation ${overflowClass}">
+                            <input type="number" class="capacity-mds-input ${overflowClass}" 
+                                   value="${projectAllocation.days}" 
+                                   min="0" step="1" 
+                                   data-member-id="${member.id}"
+                                   data-project="${projectName}"
+                                   data-month="${isoMonthKey}"
+                                   data-original-value="${projectAllocation.days}"
+                                   title="${memberName} - ${projectName}: ${projectAllocation.days} MDs">
+                            ${projectAllocation.hasOverflow ? '<i class="fas fa-exclamation-triangle overflow-warning"></i>' : ''}
+                        </td>
+                    `;
+                } else {
+                    return `
+                        <td class="month-col member-allocation empty">
+                            <span class="no-allocation">-</span>
+                        </td>
+                    `;
+                }
+            }).join('');
+            
+            html += `
+                <tr class="allocation-row member-row hidden" data-parent-project="${projectName}" data-member-id="${member.id}">
+                    <td class="fixed-col"></td>
+                    <td class="fixed-col"></td>
+                    <td class="fixed-col col-member">
+                        <div class="member-info">
+                            <span class="member-name">${memberName}</span>
+                            <span class="member-details">${memberRole}</span>
+                        </div>
+                    </td>
+                    <td class="fixed-col member-capacity">
+                        Max: ${member.maxCapacity} MD/month
+                    </td>
+                    ${monthCells}
+                </tr>
+            `;
+        });
+        
+        return html;
+    }
+
+    /**
+     * Initialize expand/collapse functionality for Gantt rows
+     */
+    initializeGanttExpansion() {
+        // Add event listeners for expand/collapse buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('expand-btn') || e.target.closest('.expand-btn')) {
+                const button = e.target.closest('.expand-btn') || e.target;
+                const projectName = button.dataset.project;
+                this.toggleProjectExpansion(projectName, button);
+            }
+        });
+    }
+
+    /**
+     * Toggle expansion of project team member allocations
+     */
+    toggleProjectExpansion(projectName, button) {
+        const allocationRows = document.querySelectorAll(`[data-parent-project="${projectName}"]`);
+        const isExpanded = button.dataset.expanded === 'true';
+        
+        if (isExpanded) {
+            // Collapse
+            allocationRows.forEach(row => row.classList.add('hidden'));
+            button.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            button.dataset.expanded = 'false';
+        } else {
+            // Expand
+            allocationRows.forEach(row => row.classList.remove('hidden'));
+            button.innerHTML = '<i class="fas fa-chevron-down"></i>';
+            button.dataset.expanded = 'true';
+        }
+    }
+
+    /**
+     * Utility function to truncate text
+     */
+    truncateText(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength - 3) + '...';
+    }
+
+    /**
+     * Get month string from date (YYYY-MM format)
+     */
+    getMonthFromDate(dateString) {
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        return `${year}-${month}`;
+    }
+
+    /**
+     * Get array of months between two dates
+     */
+    getMonthsBetween(startDate, endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const months = [];
+        
+        const current = new Date(start.getFullYear(), start.getMonth(), 1);
+        while (current <= end) {
+            const year = current.getFullYear();
+            const month = String(current.getMonth() + 1).padStart(2, '0');
+            months.push(`${year}-${month}`);
+            current.setMonth(current.getMonth() + 1);
+        }
+        
+        return months;
     }
 
     /**
