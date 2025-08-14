@@ -6516,7 +6516,7 @@ class CapacityManager extends BaseComponent {
         });
         
         // Trigger recalculation
-        this.recalculateBudgetInfo();
+        this.updateBudgetBalance();
     }
 
     /**
