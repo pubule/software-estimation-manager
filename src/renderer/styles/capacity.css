@@ -3647,8 +3647,8 @@
 }
 
 .gantt-phases-table .col-project-name {
-    width: 200px;
-    min-width: 200px;
+    width: 239px;
+    min-width: 239px;
     position: sticky;
     left: 0;
     z-index: 21;
@@ -3659,7 +3659,7 @@
     width: 160px;
     min-width: 160px;
     position: sticky;
-    left: 200px;
+    left: 239px;
     z-index: 21;
     background: #2d2d30;
 }
@@ -3719,7 +3719,7 @@
 }
 
 .gantt-phases-table tbody .col-phases {
-    left: 200px;
+    left: 239px;
 }
 
 .team-allocations-table tbody .col-member {

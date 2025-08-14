@@ -3918,11 +3918,11 @@ class CapacityManager extends BaseComponent {
         const allocationsHTML = this.generateAllocationsPanel(projectsData, teamMembers);
         allocationsTableBody.innerHTML = allocationsHTML;
 
-        // Initialize synchronized scrolling between panels
-        this.initializeSynchronizedScroll();
-        
-        // Initialize event listeners for both panels
-        this.initializeAllocationActions();
+        // Initialize event listeners for both panels (with slight delay to ensure DOM is ready)
+        setTimeout(() => {
+            this.initializeSynchronizedScroll();
+            this.initializeAllocationActions();
+        }, 100);
     }
 
     /**
@@ -4487,22 +4487,28 @@ class CapacityManager extends BaseComponent {
             });
         }
         
-        // Handle panel collapse/expand
-        const toggleBtn = document.getElementById('toggle-gantt-panel');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', () => {
+        // Handle panel collapse/expand using event delegation
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'toggle-gantt-panel' || e.target.closest('#toggle-gantt-panel')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const toggleBtn = document.getElementById('toggle-gantt-panel');
                 const ganttPanel = document.querySelector('.gantt-panel');
-                const icon = toggleBtn.querySelector('i');
+                
+                if (!ganttPanel) return;
                 
                 if (ganttPanel.classList.contains('collapsed')) {
                     ganttPanel.classList.remove('collapsed');
-                    icon.className = 'fas fa-chevron-up';
+                    const icon = toggleBtn?.querySelector('i');
+                    if (icon) icon.className = 'fas fa-chevron-up';
                 } else {
                     ganttPanel.classList.add('collapsed');
-                    icon.className = 'fas fa-chevron-down';
+                    const icon = toggleBtn?.querySelector('i');
+                    if (icon) icon.className = 'fas fa-chevron-down';
                 }
-            });
-        }
+            }
+        });
     }
 
     /**
