@@ -2283,6 +2283,7 @@ class CapacityManager extends BaseComponent {
                                         <!-- Fixed columns -->
                                         <th class="fixed-col col-member">Team Member</th>
                                         <th class="fixed-col col-actions">Actions</th>
+                                        <th class="fixed-col col-total-mds">Total MDs</th>
                                         <!-- Scrollable month columns -->
                                         ${this.generateMonthHeaders()}
                                     </tr>
@@ -4342,12 +4343,69 @@ class CapacityManager extends BaseComponent {
                             `}
                         </div>
                     </td>
+                    <td class="fixed-col col-total-mds">
+                        <div class="total-mds-cell">
+                            <span class="total-mds-value">${this.calculateRowTotalMDs(data.allocations)} MDs</span>
+                        </div>
+                    </td>
                     ${this.generateAllocationCells(member, data.projectName, data.projectId, data.allocations, timelineMonths)}
                 </tr>
             `;
         });
         
         return html;
+    }
+
+    /**
+     * Calculate total MDs for a row by summing all monthly allocations
+     */
+    calculateRowTotalMDs(allocations) {
+        if (!allocations || typeof allocations !== 'object') {
+            return 0;
+        }
+
+        let total = 0;
+        Object.entries(allocations).forEach(([month, monthData]) => {
+            // Skip metadata fields and ensure it's a valid month format
+            if (/^\d{4}-\d{2}$/.test(month) && monthData && typeof monthData === 'object') {
+                Object.values(monthData).forEach(projectData => {
+                    if (projectData && typeof projectData.days === 'number') {
+                        total += projectData.days;
+                    }
+                });
+            }
+        });
+
+        return Math.round(total * 10) / 10; // Round to 1 decimal place
+    }
+
+    /**
+     * Update Total MDs column for a specific row by summing capacity inputs
+     */
+    updateRowTotalMDs(memberId, projectName) {
+        try {
+            // Find the row for this member/project
+            const row = document.querySelector(`tr[data-member="${memberId}"][data-project="${projectName}"]`);
+            if (!row) return;
+
+            // Find all capacity input fields in this row
+            const capacityInputs = row.querySelectorAll('.capacity-mds-input');
+            let total = 0;
+
+            capacityInputs.forEach(input => {
+                const value = parseFloat(input.value) || 0;
+                total += value;
+            });
+
+            // Find and update the total MDs cell
+            const totalCell = row.querySelector('.total-mds-value');
+            if (totalCell) {
+                const roundedTotal = Math.round(total * 10) / 10;
+                totalCell.textContent = `${roundedTotal} MDs`;
+            }
+        } catch (error) {
+            console.warn(`Error updating total MDs for ${memberId}-${projectName}:`, error);
+        }
     }
 
     /**
@@ -4663,6 +4721,9 @@ class CapacityManager extends BaseComponent {
         // Save the change to data structure
         this.updateCapacityValue(memberId, project, month, newValue);
         
+        // Update Total MDs column after value change
+        this.updateRowTotalMDs(memberId, project);
+        
         // Trigger auto-redistribution for this assignment (use projectId not projectName)
         this.triggerAutoRedistribution(memberId, projectId || project, newValue, month);
     }
@@ -4916,6 +4977,9 @@ class CapacityManager extends BaseComponent {
                 }
             }
         });
+        
+        // Update Total MDs column after redistribution
+        this.updateRowTotalMDs(memberId, projectName);
     }
 
     /**
@@ -8292,6 +8356,9 @@ class CapacityManager extends BaseComponent {
             });
             
             console.log(`Reset completed. Updated ${updatedInputs.length} input fields.`);
+            
+            // Update Total MDs column after reset
+            this.updateRowTotalMDs(memberId, projectName);
             
             // NO SAVING - just UI restoration, no data modification
 
