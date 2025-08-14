@@ -3338,6 +3338,11 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    position: sticky;
+    left: 0;
+    width: 360px; /* Total width of all 4 fixed columns: 40 + 110 + 120 + 90 */
+    z-index: 15;
+    background: #1e1e1e !important;
 }
 
 .allocation-section-header i {
@@ -3527,4 +3532,384 @@
     .phase-stats {
         flex-direction: column;
     }
+}
+
+/* =======================================================
+   TWO-PANEL LAYOUT STYLES
+   ======================================================= */
+
+.two-panel-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 20px;
+    height: calc(100vh - 280px);
+}
+
+/* Gantt Panel (Upper) */
+.gantt-panel {
+    flex: 0 0 auto;
+    min-height: 200px;
+    max-height: 40%;
+    display: flex;
+    flex-direction: column;
+    background: #1e1e1e;
+    border: 1px solid #3e3e42;
+    border-radius: 4px;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.gantt-panel.collapsed {
+    max-height: 42px;
+    min-height: 42px;
+}
+
+.gantt-panel.collapsed .gantt-wrapper {
+    display: none;
+}
+
+/* Allocations Panel (Lower) */
+.allocations-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #1e1e1e;
+    border: 1px solid #3e3e42;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* Panel Titles */
+.panel-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    background: #2d2d30;
+    border-bottom: 1px solid #3e3e42;
+    color: #cccccc;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.panel-title i {
+    color: #4fc1ff;
+}
+
+.panel-collapse-btn {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: #cccccc;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.panel-collapse-btn:hover {
+    background: #3e3e42;
+}
+
+/* Table Wrappers */
+.gantt-wrapper,
+.allocations-wrapper {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+/* Gantt Phases Table */
+.gantt-phases-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #1e1e1e;
+}
+
+.gantt-phases-table thead {
+    background: #2d2d30;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.gantt-phases-table th {
+    padding: 8px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: #cccccc;
+    border-bottom: 2px solid #007acc;
+    text-transform: uppercase;
+}
+
+.gantt-phases-table .col-project-name {
+    width: 200px;
+    min-width: 200px;
+    position: sticky;
+    left: 0;
+    z-index: 21;
+    background: #2d2d30;
+}
+
+.gantt-phases-table .col-phases {
+    width: 160px;
+    min-width: 160px;
+    position: sticky;
+    left: 200px;
+    z-index: 21;
+    background: #2d2d30;
+}
+
+/* Team Allocations Table */
+.team-allocations-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #1e1e1e;
+}
+
+.team-allocations-table thead {
+    background: #2d2d30;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.team-allocations-table th {
+    padding: 8px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: #cccccc;
+    border-bottom: 2px solid #007acc;
+    text-transform: uppercase;
+}
+
+.team-allocations-table .col-member {
+    width: 180px;
+    min-width: 180px;
+    position: sticky;
+    left: 0;
+    z-index: 21;
+    background: #2d2d30;
+}
+
+.team-allocations-table .col-role {
+    width: 100px;
+    min-width: 100px;
+    position: sticky;
+    left: 180px;
+    z-index: 21;
+    background: #2d2d30;
+}
+
+.team-allocations-table .col-vendor {
+    width: 100px;
+    min-width: 100px;
+    position: sticky;
+    left: 280px;
+    z-index: 21;
+    background: #2d2d30;
+}
+
+.team-allocations-table .col-actions {
+    width: 120px;
+    min-width: 120px;
+    position: sticky;
+    left: 380px;
+    z-index: 21;
+    background: #2d2d30;
+}
+
+/* Fixed columns in tbody */
+.gantt-phases-table tbody .fixed-col,
+.team-allocations-table tbody .fixed-col {
+    background: #1e1e1e;
+    border-right: 1px solid #3e3e42;
+    position: sticky;
+}
+
+.gantt-phases-table tbody .col-project-name {
+    left: 0;
+}
+
+.gantt-phases-table tbody .col-phases {
+    left: 200px;
+}
+
+.team-allocations-table tbody .col-member {
+    left: 0;
+}
+
+.team-allocations-table tbody .col-role {
+    left: 180px;
+}
+
+.team-allocations-table tbody .col-vendor {
+    left: 280px;
+}
+
+.team-allocations-table tbody .col-actions {
+    left: 380px;
+}
+
+/* Gantt Project Row */
+.gantt-project-row {
+    border-bottom: 1px solid #3e3e42;
+}
+
+.gantt-project-row:hover {
+    background: #252526;
+}
+
+.project-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.phases-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.phases-count {
+    font-weight: 600;
+    color: #4fc1ff;
+    font-size: 12px;
+}
+
+.phases-list {
+    font-size: 10px;
+    color: #999;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Allocation Member Row */
+.allocation-member-row {
+    border-bottom: 1px solid #3e3e42;
+}
+
+.allocation-member-row:hover {
+    background: #252526;
+}
+
+.member-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.member-name {
+    font-weight: 600;
+    color: #cccccc;
+    font-size: 12px;
+}
+
+.project-tag {
+    font-size: 10px;
+    color: #4fc1ff;
+    background: rgba(79, 193, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 3px;
+    display: inline-block;
+    width: fit-content;
+}
+
+/* Gantt Cell Styles */
+.gantt-cell {
+    padding: 4px;
+    border-right: 1px solid #3e3e42;
+    text-align: center;
+    position: relative;
+}
+
+.gantt-cell.empty {
+    background: #1a1a1a;
+}
+
+.gantt-cell.has-overflow {
+    background: rgba(245, 101, 101, 0.1);
+}
+
+.phase-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* Auto-generated Label */
+.auto-generated-label {
+    font-size: 10px;
+    color: #999;
+    font-style: italic;
+}
+
+/* Action Buttons in Allocations */
+.row-actions {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+}
+
+.row-actions .btn {
+    padding: 2px 6px;
+    font-size: 11px;
+}
+
+/* Member Allocation Cells */
+.member-allocation {
+    padding: 4px;
+    border-right: 1px solid #3e3e42;
+    text-align: center;
+}
+
+.member-allocation.empty {
+    background: #1a1a1a;
+}
+
+.member-allocation.overflow {
+    background: rgba(245, 101, 101, 0.1);
+}
+
+.no-allocation {
+    color: #666;
+    font-size: 11px;
+}
+
+/* Synchronized Month Columns */
+.gantt-phases-table .month-col,
+.team-allocations-table .month-col {
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
+}
+
+/* Scrollbar Styling */
+.gantt-wrapper::-webkit-scrollbar,
+.allocations-wrapper::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.gantt-wrapper::-webkit-scrollbar-track,
+.allocations-wrapper::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.gantt-wrapper::-webkit-scrollbar-thumb,
+.allocations-wrapper::-webkit-scrollbar-thumb {
+    background: #3e3e42;
+    border-radius: 4px;
+}
+
+.gantt-wrapper::-webkit-scrollbar-thumb:hover,
+.allocations-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #4e4e52;
 }

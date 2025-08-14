@@ -2275,67 +2275,101 @@ class CapacityManager extends BaseComponent {
     generateCapacityTimelineHTML() {
         return `
             <div class="capacity-timeline-section">
-                <!-- Capacity Planning Table -->
-                <div class="capacity-table-container">
-<!-- Table Filters -->
-                    <div class="capacity-filters">
-                        <div class="filter-group">
-                            <label for="team-filter">Team member:</label>
-                            <select id="team-filter" class="filter-select">
-                                <option value="">All Teams</option>
-                                <option value="vendor-a">Vendor A</option>
-                                <option value="internal">Internal Resources</option>
-                            </select>
+                <!-- Table Filters -->
+                <div class="capacity-filters">
+                    <div class="filter-group">
+                        <label for="team-filter">Team member:</label>
+                        <select id="team-filter" class="filter-select">
+                            <option value="">All Teams</option>
+                            <option value="vendor-a">Vendor A</option>
+                            <option value="internal">Internal Resources</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="projects-filter">Projects:</label>
+                        <select id="projects-filter" class="filter-select">
+                            <option value="">All Projects</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="vendor-filter">Vendor:</label>
+                        <select id="vendor-filter" class="filter-select">
+                            <option value="">All Vendors</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="status-filter">Status:</label>
+                        <select id="status-filter" class="filter-select">
+                            <option value="all">All Statuses</option>
+                            <option value="approved">Approved</option>
+                            <option value="pending">Pending</option>
+                            <option value="draft">Draft</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Two-Panel Layout -->
+                <div class="two-panel-layout">
+                    <!-- Panel 1: Project Phases Gantt -->
+                    <div class="gantt-panel">
+                        <div class="panel-title">
+                            <i class="fas fa-project-diagram"></i>
+                            <span>Project Phases Timeline</span>
+                            <button class="panel-collapse-btn" id="toggle-gantt-panel">
+                                <i class="fas fa-chevron-up"></i>
+                            </button>
                         </div>
-                        <div class="filter-group">
-                            <label for="projects-filter">Projects:</label>
-                            <select id="projects-filter" class="filter-select">
-                                <option value="">All Projects</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label for="vendor-filter">Vendor:</label>
-                            <select id="vendor-filter" class="filter-select">
-                                <option value="">All Vendors</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label for="status-filter">Status:</label>
-                            <select id="status-filter" class="filter-select">
-                                <option value="all">All Statuses</option>
-                                <option value="approved">Approved</option>
-                                <option value="pending">Pending</option>
-                                <option value="draft">Draft</option>
-                            </select>
+                        <div class="scrollable-table-wrapper gantt-wrapper" id="gantt-scroll-wrapper">
+                            <table id="gantt-table" class="gantt-phases-table">
+                                <thead>
+                                    <tr>
+                                        <!-- Fixed columns -->
+                                        <th class="fixed-col col-project-name">Project</th>
+                                        <th class="fixed-col col-phases">Phases</th>
+                                        <!-- Scrollable month columns -->
+                                        ${this.generateMonthHeaders()}
+                                    </tr>
+                                </thead>
+                                <tbody id="gantt-table-body">
+                                    <!-- Gantt rows will be populated here -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    
-                    <div class="scrollable-table-wrapper">
-                        <table id="capacity-table" class="capacity-planning-table">
-                            <thead>
-                                <tr>
-                                    <!-- Fixed columns -->
-                                    <th class="fixed-col col-expand"></th>
-                                    <th class="fixed-col col-actions">Actions</th>
-                                    <th class="fixed-col col-project">Project</th>
-                                    <th class="fixed-col col-status">Status</th>
-                                    <!-- Scrollable month columns - All current year months + 3 next year months -->
-                                    ${this.generateMonthHeaders()}
-                                </tr>
-                            </thead>
-                            <tbody id="capacity-table-body">
-                                <!-- Table rows will be populated here -->
-                                <tr class="no-data-row">
-                                    <td colspan="20" class="no-data-message">
-                                        <div class="no-data-content">
-                                            <i class="fas fa-table"></i>
-                                            <p>No capacity assignments configured yet.</p>
-                                            <button class="btn-primary" id="create-first-row-btn">Create First Assignment</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+
+                    <!-- Panel 2: Team Member Allocations -->
+                    <div class="allocations-panel">
+                        <div class="panel-title">
+                            <i class="fas fa-users"></i>
+                            <span>Team Member Allocations</span>
+                        </div>
+                        <div class="scrollable-table-wrapper allocations-wrapper" id="allocations-scroll-wrapper">
+                            <table id="allocations-table" class="team-allocations-table">
+                                <thead>
+                                    <tr>
+                                        <!-- Fixed columns -->
+                                        <th class="fixed-col col-member">Team Member</th>
+                                        <th class="fixed-col col-role">Role</th>
+                                        <th class="fixed-col col-vendor">Vendor</th>
+                                        <th class="fixed-col col-actions">Actions</th>
+                                        <!-- Scrollable month columns -->
+                                        ${this.generateMonthHeaders()}
+                                    </tr>
+                                </thead>
+                                <tbody id="allocations-table-body">
+                                    <!-- Allocation rows will be populated here -->
+                                    <tr class="no-data-row">
+                                        <td colspan="20" class="no-data-message">
+                                            <div class="no-data-content">
+                                                <i class="fas fa-table"></i>
+                                                <p>No capacity assignments configured yet.</p>
+                                                <button class="btn-primary" id="create-first-row-btn">Create First Assignment</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3028,33 +3062,6 @@ class CapacityManager extends BaseComponent {
         return processedAllocations;
     }
 
-    /**
-     * Generate overflow alerts for UI display
-     */
-    generateOverflowAlerts(teamMembers) {
-        const alerts = [];
-        
-        teamMembers.forEach(member => {
-            Object.entries(member.allocations || {}).forEach(([month, projects]) => {
-                Object.entries(projects).forEach(([projectName, allocation]) => {
-                    if (allocation.hasOverflow) {
-                        alerts.push({
-                            type: 'overflow',
-                            severity: 'error',
-                            memberId: member.id,
-                            memberName: `${member.firstName} ${member.lastName}`,
-                            month: month,
-                            projectName: projectName,
-                            overflowAmount: allocation.overflowAmount,
-                            message: `${member.firstName} ${member.lastName}: ${this.formatMonth(month)} overallocated by ${allocation.overflowAmount} MDs on project "${projectName}"`
-                        });
-                    }
-                });
-            });
-        });
-        
-        return alerts;
-    }
 
     /**
      * Format month string for display
@@ -3327,63 +3334,7 @@ class CapacityManager extends BaseComponent {
      * AUXILIARY METHODS FOR UI INTEGRATION
      */
 
-    /**
-     * Display overflow alerts in UI
-     */
-    displayOverflowAlerts(alerts) {
-        const alertsContainer = document.querySelector('.capacity-alerts-container') || 
-                               document.getElementById('capacity-alerts') ||
-                               this.createAlertsContainer();
-        
-        if (!alertsContainer) return;
-        
-        if (alerts.length === 0) {
-            alertsContainer.style.display = 'none';
-            return;
-        }
-        
-        alertsContainer.style.display = 'block';
-        alertsContainer.innerHTML = `
-            <div class="alerts-header">
-                <i class="fas fa-exclamation-triangle"></i>
-                <h4>Capacity Overflow Alerts (${alerts.length})</h4>
-            </div>
-            <div class="alerts-list">
-                ${alerts.map(alert => `
-                    <div class="alert-item alert-high">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <span>${alert.message}</span>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    }
 
-    /**
-     * Create alerts container if it doesn't exist
-     */
-    createAlertsContainer() {
-        const container = document.createElement('div');
-        container.className = 'capacity-alerts-container';
-        container.style.cssText = `
-            margin-bottom: 16px;
-            padding: 12px;
-            background: #fee;
-            border: 1px solid #f56565;
-            border-radius: 4px;
-            display: none;
-        `;
-        
-        // Try to insert before capacity table
-        const tableContainer = document.querySelector('.capacity-table-container') || 
-                              document.querySelector('.table-container');
-        if (tableContainer && tableContainer.parentNode) {
-            tableContainer.parentNode.insertBefore(container, tableContainer);
-            return container;
-        }
-        
-        return null;
-    }
 
     /**
      * Generate project status from real data with interactive dropdown
@@ -3935,28 +3886,45 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
-     * Load and populate the capacity planning table with Gantt view
+     * Load and populate the capacity planning tables with two-panel layout
      */
     async loadCapacityTable() {
         const rawTeamMembers = await this.getRealTeamMembers();
         const teamMembers = this.consolidateTeamMembersByPerson(rawTeamMembers);
-        const tableBody = document.getElementById('capacity-table-body');
         
-        if (!tableBody) {
-            console.warn('Capacity table body not found');
+        // Get both table bodies
+        const ganttTableBody = document.getElementById('gantt-table-body');
+        const allocationsTableBody = document.getElementById('allocations-table-body');
+        
+        if (!ganttTableBody || !allocationsTableBody) {
+            // Fallback to old single table if new structure not found
+            const oldTableBody = document.getElementById('capacity-table-body');
+            if (oldTableBody) {
+                const ganttHTML = await this.generateGanttTableRows(teamMembers);
+                oldTableBody.innerHTML = ganttHTML;
+                this.initializeGanttExpansion();
+            } else {
+                console.warn('Capacity table bodies not found');
+            }
             return;
         }
 
-        // Generate overflow alerts first
-        const overflowAlerts = this.generateOverflowAlerts(teamMembers);
-        this.displayOverflowAlerts(overflowAlerts);
+        // Generate content for both panels
+        const projectsData = this.groupAllocationsByProject(teamMembers);
+        
+        // Panel 1: Generate Gantt view for project phases
+        const ganttHTML = this.generateGanttPanel(projectsData);
+        ganttTableBody.innerHTML = ganttHTML;
+        
+        // Panel 2: Generate allocations view for team members
+        const allocationsHTML = this.generateAllocationsPanel(projectsData, teamMembers);
+        allocationsTableBody.innerHTML = allocationsHTML;
 
-        // Generate Gantt-style table with expandable team member allocations
-        const ganttHTML = await this.generateGanttTableRows(teamMembers);
-        tableBody.innerHTML = ganttHTML;
-
-        // Initialize expand/collapse functionality
-        this.initializeGanttExpansion();
+        // Initialize synchronized scrolling between panels
+        this.initializeSynchronizedScroll();
+        
+        // Initialize event listeners for both panels
+        this.initializeAllocationActions();
     }
 
     /**
@@ -4203,8 +4171,7 @@ class CapacityManager extends BaseComponent {
         // Header row for team member allocations
         html += `
             <tr class="allocation-row allocation-header hidden" data-parent-project="${projectName}">
-                <td class="fixed-col"></td>
-                <td colspan="3" class="allocation-section-header">
+                <td colspan="4" class="allocation-section-header">
                     <i class="fas fa-users"></i> Team Member Allocations
                 </td>
                 ${timelineMonths.map(monthKey => {
@@ -4268,6 +4235,318 @@ class CapacityManager extends BaseComponent {
         });
         
         return html;
+    }
+
+    /**
+     * Generate Gantt panel content for project phases
+     */
+    generateGanttPanel(projectsData) {
+        if (projectsData.length === 0) {
+            return `
+                <tr class="no-data-row">
+                    <td colspan="20" class="no-data-message">
+                        <div class="no-data-content">
+                            <i class="fas fa-project-diagram"></i>
+                            <p>No projects found.</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        let html = '';
+        const timelineMonths = this.getTimelineMonths();
+        
+        projectsData.forEach(projectData => {
+            const assignment = projectData.assignment;
+            const phasesInfo = assignment?.phaseSchedule ? 
+                Object.keys(assignment.phaseSchedule).map(phase => 
+                    this.getPhaseDisplayName(phase)
+                ).join(', ') : 'No phases defined';
+            
+            html += `
+                <tr class="gantt-project-row" data-project="${projectData.name}">
+                    <td class="fixed-col col-project-name">
+                        <div class="project-name-cell">
+                            <span class="project-name">${projectData.name}</span>
+                        </div>
+                    </td>
+                    <td class="fixed-col col-phases">
+                        <div class="phases-summary">
+                            <span class="phases-count">${assignment?.phaseSchedule ? Object.keys(assignment.phaseSchedule).length : 0} phases</span>
+                            <span class="phases-list" title="${phasesInfo}">${phasesInfo}</span>
+                        </div>
+                    </td>
+                    ${this.generateGanttCells(projectData, timelineMonths)}
+                </tr>
+            `;
+        });
+        
+        return html;
+    }
+
+    /**
+     * Generate Gantt cells for project timeline
+     */
+    generateGanttCells(projectData, timelineMonths) {
+        const assignment = projectData.assignment;
+        
+        if (!assignment || !assignment.phaseSchedule) {
+            return timelineMonths.map(() => 
+                '<td class="month-col gantt-cell empty"><span class="no-phase">-</span></td>'
+            ).join('');
+        }
+        
+        const phaseGanttBars = this.generatePhaseGanttBars(assignment.phaseSchedule, timelineMonths);
+        
+        return timelineMonths.map(monthKey => {
+            const isoMonthKey = this.convertTimelineToISOMonth(monthKey);
+            const monthPhases = phaseGanttBars[isoMonthKey] || [];
+            
+            if (monthPhases.length === 0) {
+                return '<td class="month-col gantt-cell empty"><span class="no-phase">-</span></td>';
+            }
+            
+            const phaseBarsHTML = monthPhases.map(phase => `
+                <div class="phase-bar phase-${phase.phaseId} ${phase.overflow > 0 ? 'overflow' : ''}" 
+                     title="${phase.phaseName}: ${phase.estimatedMDs} MDs${phase.overflow > 0 ? ` (Overflow: +${phase.overflow})` : ''}">
+                    <span class="phase-name">${phase.phaseName.substring(0, 5)}...</span>
+                </div>
+            `).join('');
+            
+            return `
+                <td class="month-col gantt-cell ${monthPhases.some(p => p.overflow > 0) ? 'has-overflow' : ''}">
+                    <div class="phase-bars">
+                        ${phaseBarsHTML}
+                    </div>
+                </td>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Generate allocations panel content for team members
+     */
+    generateAllocationsPanel(projectsData, teamMembers) {
+        if (projectsData.length === 0 || teamMembers.length === 0) {
+            return `
+                <tr class="no-data-row">
+                    <td colspan="20" class="no-data-message">
+                        <div class="no-data-content">
+                            <i class="fas fa-users"></i>
+                            <p>No team allocations found.</p>
+                            <button class="btn-primary" id="create-first-assignment-btn">Create Assignment</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        let html = '';
+        const timelineMonths = this.getTimelineMonths();
+        
+        // Create a map of all allocations by team member and project
+        const allocationsByMember = new Map();
+        
+        projectsData.forEach(projectData => {
+            projectData.members.forEach((memberData, memberId) => {
+                const member = memberData.member;
+                const key = `${memberId}_${projectData.name}`;
+                
+                // Find the assignment for this member and project
+                const assignment = this.findAssignmentForMemberAndProject(memberId, projectData.assignment?.projectId);
+                
+                allocationsByMember.set(key, {
+                    member: member,
+                    projectName: projectData.name,
+                    projectId: projectData.assignment?.projectId,
+                    allocations: memberData.allocations,
+                    assignment: assignment,
+                    assignmentId: projectData.assignment?.id
+                });
+            });
+        });
+        
+        // Generate rows for each member-project combination
+        allocationsByMember.forEach((data, key) => {
+            const member = data.member;
+            const memberName = `${member.firstName} ${member.lastName}`;
+            const isManualAssignment = data.assignment && data.assignment.teamMemberId === member.id;
+            
+            html += `
+                <tr class="allocation-member-row" data-member="${member.id}" data-project="${data.projectName}">
+                    <td class="fixed-col col-member">
+                        <div class="member-info">
+                            <span class="member-name">${memberName}</span>
+                            <span class="project-tag">${data.projectName}</span>
+                        </div>
+                    </td>
+                    <td class="fixed-col col-role">${member.role || 'N/A'}</td>
+                    <td class="fixed-col col-vendor">${member.vendor || 'N/A'}</td>
+                    <td class="fixed-col col-actions">
+                        <div class="row-actions">
+                            ${isManualAssignment ? `
+                                <button class="btn btn-small btn-secondary edit-allocation-btn" 
+                                        data-action="edit" 
+                                        data-assignment-id="${data.assignmentId}"
+                                        data-member-id="${member.id}"
+                                        data-project-id="${data.projectId}"
+                                        title="Edit Allocation">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-small btn-secondary duplicate-allocation-btn" 
+                                        data-action="duplicate" 
+                                        data-assignment-id="${data.assignmentId}"
+                                        data-member-id="${member.id}"
+                                        data-project-id="${data.projectId}"
+                                        title="Duplicate Allocation">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button class="btn btn-small btn-danger delete-allocation-btn" 
+                                        data-action="delete" 
+                                        data-assignment-id="${data.assignmentId}"
+                                        data-member-id="${member.id}"
+                                        data-project-id="${data.projectId}"
+                                        title="Delete Allocation">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : `
+                                <span class="auto-generated-label">Auto-generated</span>
+                            `}
+                        </div>
+                    </td>
+                    ${this.generateAllocationCells(member, data.projectName, data.allocations, timelineMonths)}
+                </tr>
+            `;
+        });
+        
+        return html;
+    }
+
+    /**
+     * Generate allocation cells for a team member
+     */
+    generateAllocationCells(member, projectName, allocations, timelineMonths) {
+        return timelineMonths.map(monthKey => {
+            const isoMonthKey = this.convertTimelineToISOMonth(monthKey);
+            const monthData = allocations[isoMonthKey];
+            const projectAllocation = monthData?.[projectName];
+            
+            if (projectAllocation) {
+                const overflowClass = projectAllocation.hasOverflow ? 'overflow' : '';
+                return `
+                    <td class="month-col member-allocation ${overflowClass}">
+                        <input type="number" 
+                               class="capacity-mds-input ${overflowClass}" 
+                               value="${projectAllocation.days}" 
+                               min="0" 
+                               step="1" 
+                               data-member-id="${member.id}" 
+                               data-project="${projectName}" 
+                               data-month="${isoMonthKey}"
+                               data-original-value="${projectAllocation.days}"
+                               title="${member.firstName} ${member.lastName} - ${projectName}: ${projectAllocation.days} MDs">
+                        ${projectAllocation.hasOverflow ? '<i class="fas fa-exclamation-triangle overflow-warning"></i>' : ''}
+                    </td>
+                `;
+            } else {
+                return `
+                    <td class="month-col member-allocation empty">
+                        <span class="no-allocation">-</span>
+                    </td>
+                `;
+            }
+        }).join('');
+    }
+
+    /**
+     * Initialize synchronized scrolling between panels
+     */
+    initializeSynchronizedScroll() {
+        const ganttWrapper = document.getElementById('gantt-scroll-wrapper');
+        const allocationsWrapper = document.getElementById('allocations-scroll-wrapper');
+        
+        if (ganttWrapper && allocationsWrapper) {
+            let isScrolling = false;
+            
+            ganttWrapper.addEventListener('scroll', () => {
+                if (!isScrolling) {
+                    isScrolling = true;
+                    allocationsWrapper.scrollLeft = ganttWrapper.scrollLeft;
+                    setTimeout(() => { isScrolling = false; }, 10);
+                }
+            });
+            
+            allocationsWrapper.addEventListener('scroll', () => {
+                if (!isScrolling) {
+                    isScrolling = true;
+                    ganttWrapper.scrollLeft = allocationsWrapper.scrollLeft;
+                    setTimeout(() => { isScrolling = false; }, 10);
+                }
+            });
+        }
+        
+        // Handle panel collapse/expand
+        const toggleBtn = document.getElementById('toggle-gantt-panel');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                const ganttPanel = document.querySelector('.gantt-panel');
+                const icon = toggleBtn.querySelector('i');
+                
+                if (ganttPanel.classList.contains('collapsed')) {
+                    ganttPanel.classList.remove('collapsed');
+                    icon.className = 'fas fa-chevron-up';
+                } else {
+                    ganttPanel.classList.add('collapsed');
+                    icon.className = 'fas fa-chevron-down';
+                }
+            });
+        }
+    }
+
+    /**
+     * Initialize event listeners for allocation actions
+     */
+    initializeAllocationActions() {
+        // Edit allocation
+        document.addEventListener('click', async (e) => {
+            if (e.target.closest('.edit-allocation-btn')) {
+                const btn = e.target.closest('.edit-allocation-btn');
+                const assignmentId = btn.dataset.assignmentId;
+                await this.showEditAssignmentModal(assignmentId);
+            }
+        });
+        
+        // Duplicate allocation
+        document.addEventListener('click', async (e) => {
+            if (e.target.closest('.duplicate-allocation-btn')) {
+                const btn = e.target.closest('.duplicate-allocation-btn');
+                const assignmentId = btn.dataset.assignmentId;
+                await this.duplicateAssignment(assignmentId);
+            }
+        });
+        
+        // Delete allocation
+        document.addEventListener('click', async (e) => {
+            if (e.target.closest('.delete-allocation-btn')) {
+                const btn = e.target.closest('.delete-allocation-btn');
+                const assignmentId = btn.dataset.assignmentId;
+                await this.deleteAssignment(assignmentId);
+            }
+        });
+        
+        // Handle capacity input changes
+        document.addEventListener('change', async (e) => {
+            if (e.target.classList.contains('capacity-mds-input')) {
+                const input = e.target;
+                const memberId = input.dataset.memberId;
+                const project = input.dataset.project;
+                const month = input.dataset.month;
+                const value = parseInt(input.value) || 0;
+                
+                await this.updateCapacityValue(memberId, project, month, value);
+            }
+        });
     }
 
     /**
