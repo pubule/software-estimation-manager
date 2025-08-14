@@ -5521,33 +5521,43 @@ class CapacityManager extends BaseComponent {
         // Check if this is a start date input
         const isStartDate = input.classList.contains('phase-start-date');
         
-        if (isStartDate) {
-            console.log(`Start date changed for phase ${phaseId}, triggering sequential propagation`);
-            
-            // Find the index of this phase in the DOM
-            const phaseItems = document.querySelectorAll('.phase-item');
-            let phaseIndex = -1;
-            
-            for (let i = 0; i < phaseItems.length; i++) {
-                if (phaseItems[i].dataset.phaseId === phaseId) {
-                    phaseIndex = i;
-                    break;
-                }
+        // Find the index of this phase in the DOM
+        const phaseItems = document.querySelectorAll('.phase-item');
+        let phaseIndex = -1;
+        
+        for (let i = 0; i < phaseItems.length; i++) {
+            if (phaseItems[i].dataset.phaseId === phaseId) {
+                phaseIndex = i;
+                break;
             }
-            
-            if (phaseIndex !== -1) {
-                // Propagate dates to this and all subsequent phases
-                this.propagateSequentialDates(phaseIndex, input);
-            } else {
-                console.warn(`Could not find phase index for ${phaseId}`);
-                // Fallback to original behavior
-                this.calculatePhaseAvailability(phaseId);
-                this.updateBudgetBalance();
-            }
-        } else {
-            // For end date changes, use original behavior
+        }
+        
+        if (phaseIndex === -1) {
+            console.warn(`Could not find phase index for ${phaseId}`);
+            // Fallback to original behavior
             this.calculatePhaseAvailability(phaseId);
             this.updateBudgetBalance();
+            return;
+        }
+        
+        if (isStartDate) {
+            // Propagate dates to this and all subsequent phases
+            this.propagateSequentialDates(phaseIndex, input);
+        } else {
+            // For end date changes, first recalculate current phase availability
+            this.calculatePhaseAvailability(phaseId);
+            
+            // Then propagate to subsequent phases (starting from the next phase)
+            if (phaseIndex + 1 < phaseItems.length) {
+                // Pass the modified end date to start propagation from next phase
+                const currentEndDateValue = input.value;
+                if (currentEndDateValue) {
+                    this.propagateSequentialDatesFromEndDate(phaseIndex + 1, new Date(currentEndDateValue));
+                }
+            } else {
+                // If this is the last phase, just update budget balance
+                this.updateBudgetBalance();
+            }
         }
     }
     
@@ -5683,11 +5693,8 @@ class CapacityManager extends BaseComponent {
      * @param {HTMLElement} triggerInput - The input element that triggered the propagation (optional)
      */
     propagateSequentialDates(startingPhaseIndex, triggerInput = null) {
-        console.log('Starting sequential date propagation from phase index:', startingPhaseIndex);
-        
         const phaseItems = document.querySelectorAll('.phase-item');
         if (startingPhaseIndex >= phaseItems.length) {
-            console.warn('Starting phase index out of bounds');
             return;
         }
         
@@ -5702,7 +5709,6 @@ class CapacityManager extends BaseComponent {
             const phaseMDsElement = phaseItem.querySelector('.phase-mds');
             
             if (!startDateInput || !endDateInput || !phaseMDsElement) {
-                console.warn(`Missing elements for phase ${phaseId}`);
                 continue;
             }
             
@@ -5712,7 +5718,6 @@ class CapacityManager extends BaseComponent {
                 // For the starting phase, use its current start date (if available)
                 const startDateValue = startDateInput.value;
                 if (!startDateValue) {
-                    console.warn(`No start date available for starting phase ${phaseId}`);
                     break;
                 }
                 
@@ -5728,12 +5733,10 @@ class CapacityManager extends BaseComponent {
                 }
                 
                 currentEndDate = endDate;
-                console.log(`Phase ${phaseId}: start=${startDateValue}, end=${endDateString}, MDs=${estimatedMDs}`);
                 
             } else {
                 // For subsequent phases, start date = next working day after previous phase end
                 if (!currentEndDate) {
-                    console.warn(`No end date available from previous phase for ${phaseId}`);
                     break;
                 }
                 
@@ -5756,7 +5759,6 @@ class CapacityManager extends BaseComponent {
                 }
                 
                 currentEndDate = endDate;
-                console.log(`Phase ${phaseId}: start=${startDateString}, end=${endDateString}, MDs=${estimatedMDs}`);
             }
             
             // Trigger recalculation for this phase
@@ -5765,8 +5767,62 @@ class CapacityManager extends BaseComponent {
         
         // Update overall budget balance
         this.updateBudgetBalance();
+    }
+    
+    /**
+     * Propagate sequential dates starting from a specific end date
+     * @param {number} startingPhaseIndex - Index of the first phase to update
+     * @param {Date} previousEndDate - End date of the previous phase
+     */
+    propagateSequentialDatesFromEndDate(startingPhaseIndex, previousEndDate) {
+        const phaseItems = document.querySelectorAll('.phase-item');
+        if (startingPhaseIndex >= phaseItems.length) {
+            return;
+        }
         
-        console.log('Sequential date propagation completed');
+        let currentEndDate = previousEndDate;
+        
+        // Process each phase from the starting index onwards
+        for (let i = startingPhaseIndex; i < phaseItems.length; i++) {
+            const phaseItem = phaseItems[i];
+            const phaseId = phaseItem.dataset.phaseId;
+            const startDateInput = phaseItem.querySelector('.phase-start-date');
+            const endDateInput = phaseItem.querySelector('.phase-end-date');
+            const phaseMDsElement = phaseItem.querySelector('.phase-mds');
+            
+            if (!startDateInput || !endDateInput || !phaseMDsElement) {
+                continue;
+            }
+            
+            const estimatedMDs = parseFloat(phaseMDsElement.textContent);
+            
+            // Calculate start date as next working day after previous phase end
+            const nextStartDate = this.getNextWorkingDay(currentEndDate);
+            const startDateString = nextStartDate.toISOString().split('T')[0];
+            
+            // Calculate end date for this phase
+            const endDate = this.calculateEndDateFromMDs(nextStartDate, estimatedMDs);
+            const endDateString = endDate.toISOString().split('T')[0];
+            
+            // Update both start and end date inputs (only if not manually modified)
+            if (!startDateInput.dataset.userModified) {
+                startDateInput.value = startDateString;
+                startDateInput.dataset.autoPopulated = 'true';
+            }
+            
+            if (!endDateInput.dataset.userModified) {
+                endDateInput.value = endDateString;
+                endDateInput.dataset.autoPopulated = 'true';
+            }
+            
+            currentEndDate = endDate;
+            
+            // Trigger recalculation for this phase
+            this.calculatePhaseAvailability(phaseId);
+        }
+        
+        // Update overall budget balance
+        this.updateBudgetBalance();
     }
     
     /**
