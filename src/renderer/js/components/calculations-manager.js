@@ -5783,7 +5783,7 @@ class CapacityManager extends BaseComponent {
         
         document.querySelectorAll('.phase-item').forEach(phaseItem => {
             const phaseId = phaseItem.dataset.phaseId;
-            const phaseName = phaseItem.querySelector('h5').textContent.replace(/.*\s/, '');
+            const phaseName = phaseItem.querySelector('h5').textContent.replace(/^.*?\s/, '').trim();
             const startDate = phaseItem.querySelector('.phase-start-date').value;
             const endDate = phaseItem.querySelector('.phase-end-date').value;
             const estimatedMDsText = phaseItem.querySelector('.phase-mds').textContent;
