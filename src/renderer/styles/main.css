@@ -3989,6 +3989,22 @@
     background: rgba(255, 140, 0, 0.1);
 }
 
+.capacity-mds-input.auto-updated {
+    border-color: var(--accent-color, #007acc);
+    background: rgba(0, 122, 204, 0.1);
+}
+
+.capacity-input-container {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.capacity-input-container .capacity-mds-input {
+    width: 100%;
+    padding-right: 20px; /* Make room for reset button */
+}
+
 
 .reset-capacity-mds-btn {
     position: absolute;
@@ -4009,7 +4025,8 @@
     font-size: 10px;
 }
 
-.timeline-cell.editable-cell:hover .reset-capacity-mds-btn {
+.timeline-cell.editable-cell:hover .reset-capacity-mds-btn,
+.member-allocation:hover .reset-capacity-mds-btn {
     opacity: 1;
 }
 

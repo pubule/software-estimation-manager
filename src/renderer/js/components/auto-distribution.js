@@ -252,10 +252,13 @@ class AutoDistribution {
             const oldValue = assignment.allocations[changedMonth]?.planned || 0;
             const difference = oldValue - newValue;
 
+            console.log(`redistributeAfterUserChange: month=${changedMonth}, oldValue=${oldValue}, newValue=${newValue}, difference=${difference}`);
+
             // Update the changed month
             result.allocations[changedMonth] = {
                 ...result.allocations[changedMonth],
-                planned: newValue
+                planned: newValue,
+                actual: newValue
             };
 
             if (difference === 0) {
@@ -264,9 +267,12 @@ class AutoDistribution {
 
             // Get future months only (never redistribute to past)
             const futureMonths = this._getFutureMonths(changedMonth, result.allocations);
+            console.log(`Future months from ${changedMonth}:`, futureMonths);
+            
             const teamMember = this.teamManager.getTeamMemberById(assignment.teamMemberId);
 
             if (difference > 0) {
+                console.log(`User reduced allocation by ${difference} MDs - redistributing to future months`);
                 // User reduced allocation - redistribute excess to future
                 this._redistributeExcessToFuture(
                     result.allocations, 
@@ -457,6 +463,7 @@ class AutoDistribution {
      */
     _redistributeExcessToFuture(allocations, futureMonths, excessMDs, teamMember) {
         let remaining = excessMDs;
+        console.log(`_redistributeExcessToFuture: distributing ${excessMDs} MDs to months:`, futureMonths);
 
         for (const month of futureMonths) {
             if (remaining <= 0) break;
@@ -466,18 +473,51 @@ class AutoDistribution {
 
             // Calculate how much we can add to this month
             const currentAllocation = allocations[month]?.planned || 0;
-            const availableCapacity = this.workingDaysCalculator.calculateAvailableCapacity(teamMember, month);
-            const canAdd = Math.max(0, availableCapacity - currentAllocation);
-            const toAdd = Math.min(remaining, canAdd);
+            
+            try {
+                const availableCapacity = this.workingDaysCalculator.calculateAvailableCapacity(teamMember, month);
+                const canAdd = Math.max(0, availableCapacity - currentAllocation);
+                const toAdd = Math.min(remaining, canAdd);
 
-            if (toAdd > 0) {
-                if (!allocations[month]) {
-                    allocations[month] = { planned: 0, actual: 0, locked: false };
+                console.log(`Month ${month}: current=${currentAllocation}, capacity=${availableCapacity}, canAdd=${canAdd}, willAdd=${toAdd}`);
+
+                if (toAdd > 0) {
+                    if (!allocations[month]) {
+                        allocations[month] = { planned: 0, actual: 0, locked: false };
+                    }
+                    allocations[month].planned += toAdd;
+                    allocations[month].actual = allocations[month].planned;
+                    remaining -= toAdd;
                 }
-                allocations[month].planned += toAdd;
-                allocations[month].actual = allocations[month].planned;
-                remaining -= toAdd;
+            } catch (error) {
+                console.warn(`Error calculating capacity for ${month}:`, error);
+                // If capacity calculation fails, try to add some anyway (fallback)
+                const fallbackAdd = Math.min(remaining, 5); // Add max 5 MDs as fallback
+                if (fallbackAdd > 0) {
+                    if (!allocations[month]) {
+                        allocations[month] = { planned: 0, actual: 0, locked: false };
+                    }
+                    allocations[month].planned += fallbackAdd;
+                    allocations[month].actual = allocations[month].planned;
+                    remaining -= fallbackAdd;
+                }
             }
+        }
+        
+        console.log(`_redistributeExcessToFuture: ${remaining} MDs still remaining after redistribution`);
+        
+        // PHASE 4: If there are still remaining MDs and we have future months, force them into the last month
+        if (remaining > 0 && futureMonths.length > 0) {
+            const lastMonth = futureMonths[futureMonths.length - 1];
+            console.log(`Forcing ${remaining} remaining MDs into last month: ${lastMonth}`);
+            
+            if (!allocations[lastMonth]) {
+                allocations[lastMonth] = { planned: 0, actual: 0, locked: false };
+            }
+            allocations[lastMonth].planned += remaining;
+            allocations[lastMonth].actual += remaining;
+            
+            console.log(`Last month ${lastMonth} now has ${allocations[lastMonth].planned} MDs (may cause overflow)`);
         }
     }
 
