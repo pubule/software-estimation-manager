@@ -3284,8 +3284,15 @@ class CapacityManager extends BaseComponent {
                     // Calculate current utilization
                     const utilizationData = this.calculateCurrentUtilization(processedAllocations, memberRole);
                     
+                    // CRITICAL FIX: Create unique composite ID to resolve collision between identical member IDs in different teams
+                    const uniqueId = `${team.id}:${member.id}`;
+                    console.log(`DEBUG: Creating unique ID: ${member.id} -> ${uniqueId} (vendorId: ${member.vendorId})`);
+                    
                     return {
                         ...member, // Include ALL original member fields (including vendorId!)
+                        id: uniqueId, // Override with unique composite ID
+                        originalId: member.id, // Keep original ID for reference
+                        teamId: team.id, // Add team reference
                         role: memberRole, // From vendor configuration (G1/G2/TA/PM)
                         vendor: vendor,
                         maxCapacity: utilizationData.realWorkingDaysInMonth, // Real working days
@@ -4711,15 +4718,92 @@ class CapacityManager extends BaseComponent {
             
             // Load complete project data
             const dataManager = this.app?.managers?.data || window.dataManager;
-            const completeProject = await dataManager.loadProject(project.filePath);
+            const completeProjectData = await dataManager.loadProject(project.filePath);
+            
+            console.log('=== DEBUG loadProjectForAssignment ===');
+            console.log('  - Project ID:', projectId);
+            console.log('  - Project metadata:', project);
+            console.log('  - Complete project data loaded:', !!completeProjectData);
+            console.log('  - Complete project keys:', Object.keys(completeProjectData || {}));
+            console.log('  - Project.project available:', !!completeProjectData?.project);
+            console.log('  - Project.project.name:', completeProjectData?.project?.name);
+            
+            // NUOVO: Recupera calculationData dalla versione più recente se disponibile
+            if (completeProjectData.versions && completeProjectData.versions.length > 0) {
+                console.log('  - Project has versions:', completeProjectData.versions.length);
+                
+                // Ordina le versioni per ID e prendi la più recente
+                const sortedVersions = completeProjectData.versions.sort((a, b) => {
+                    // Confronta gli ID delle versioni (es. "v1.0.0" vs "v1.1.0")
+                    return b.id.localeCompare(a.id, undefined, { numeric: true });
+                });
+                
+                const latestVersion = sortedVersions[0];
+                console.log('  - Latest version ID:', latestVersion.id);
+                
+                // Usa i calculationData dalla versione più recente se disponibili
+                if (latestVersion.projectSnapshot?.calculationData) {
+                    completeProjectData.calculationData = latestVersion.projectSnapshot.calculationData;
+                    console.log('  - Using calculationData from latest version:', latestVersion.id);
+                    console.log('  - Version calculationData.vendorCosts length:', 
+                        latestVersion.projectSnapshot.calculationData.vendorCosts?.length || 0);
+                } else {
+                    console.log('  - Latest version has no calculationData in projectSnapshot');
+                }
+            } else {
+                console.log('  - Project has no versions, will use direct calculationData or generate dynamically');
+            }
+            
+            console.log('  - calculationData available:', !!completeProjectData?.calculationData);
+            console.log('  - vendorCosts available:', !!completeProjectData?.calculationData?.vendorCosts);
+            console.log('  - vendorCosts length:', completeProjectData?.calculationData?.vendorCosts?.length || 0);
+            
+            if (completeProjectData?.calculationData?.vendorCosts) {
+                console.log('  - Available vendor costs in loaded project:');
+                completeProjectData.calculationData.vendorCosts.forEach((cost, index) => {
+                    console.log(`    ${index}: vendorId='${cost.vendorId}', role='${cost.role}', finalMDs=${cost.finalMDs}`);
+                });
+            } else {
+                console.log('  - CRITICAL: calculationData missing, generating dynamically...');
+                
+                // CRITICAL FIX: Generate calculationData if missing
+                // Temporarily set this project as current to trigger vendor costs calculation
+                const originalCurrentProject = this.app.currentProject;
+                this.app.currentProject = completeProjectData;
+                
+                try {
+                    // Trigger vendor costs calculation
+                    this.calculateVendorCosts();
+                    
+                    // Add the calculated vendorCosts to the project data
+                    if (this.vendorCosts && this.vendorCosts.length > 0) {
+                        completeProjectData.calculationData = {
+                            vendorCosts: JSON.parse(JSON.stringify(this.vendorCosts)),
+                            timestamp: new Date().toISOString()
+                        };
+                        console.log('  - Successfully generated calculationData with', completeProjectData.calculationData.vendorCosts.length, 'vendor costs');
+                        console.log('  - Generated vendor costs:');
+                        completeProjectData.calculationData.vendorCosts.forEach((cost, index) => {
+                            console.log(`    ${index}: vendorId='${cost.vendorId}', role='${cost.role}', finalMDs=${cost.finalMDs}`);
+                        });
+                    } else {
+                        console.warn('  - Failed to generate vendor costs - array is empty');
+                    }
+                } catch (error) {
+                    console.error('  - Error generating vendor costs:', error);
+                } finally {
+                    // Restore original current project
+                    this.app.currentProject = originalCurrentProject;
+                }
+            }
             
             // Show dynamic sections
             document.getElementById('budget-section').style.display = 'block';
             document.getElementById('phases-section').style.display = 'block';
             
-            // Update budget section and phases
-            await this.updateBudgetSection(completeProject);
-            await this.updatePhasesSection(completeProject);
+            // Update budget section and phases - pass the project data correctly
+            await this.updateBudgetSection(completeProjectData);
+            await this.updatePhasesSection(completeProjectData);
             
         } catch (error) {
             console.error('Error loading project for assignment:', error);
@@ -4961,20 +5045,77 @@ class CapacityManager extends BaseComponent {
         try {
             // Get team member role and vendor
             const teamMembers = await this.getRealTeamMembers();
+            
+            console.log('=== DEBUG updateBudgetSection START ===');
+            console.log('  - Dropdown selected value:', teamMemberSelect.value);
+            console.log('  - Available team members count:', teamMembers.length);
+            console.log('  - Team members IDs:', teamMembers.map(m => `${m.id} (vendorId: ${m.vendorId})`));
+            
             const selectedMember = teamMembers.find(m => m.id === teamMemberSelect.value);
+            
+            if (!selectedMember) {
+                console.error('  - CRITICAL: No team member found with ID:', teamMemberSelect.value);
+                console.error('  - Available IDs are:', teamMembers.map(m => m.id));
+                document.getElementById('total-final-mds').textContent = 'Error: Member not found';
+                return;
+            }
+            
+            console.log('  - Selected member found:', selectedMember.firstName, selectedMember.lastName);
+            console.log('  - Selected member originalId:', selectedMember.originalId);
+            console.log('  - Selected member teamId:', selectedMember.teamId);
+            console.log('  - Selected member vendorId:', selectedMember.vendorId);
+            console.log('  - Selected member vendorType:', selectedMember.vendorType);
+            
             const memberRole = this.getMemberRole(selectedMember);
             const vendorName = this.getVendorName(selectedMember);
             
+            console.log('  - Calculated member role:', memberRole);
+            console.log('  - Calculated vendor name:', vendorName);
+            
             // Find matching vendor cost in project calculation data
             let finalMDs = 0;
+            console.log('  - Project name:', completeProject?.project?.name || completeProject?.name);
+            console.log('  - Project structure keys:', Object.keys(completeProject || {}));
+            console.log('  - Project.project available:', !!completeProject?.project);
+            console.log('  - Project calculationData available:', !!completeProject.calculationData);
+            console.log('  - VendorCosts available:', !!completeProject.calculationData?.vendorCosts);
+            console.log('  - VendorCosts length:', completeProject.calculationData?.vendorCosts?.length || 0);
+            
             if (completeProject.calculationData?.vendorCosts) {
-                const vendorCost = completeProject.calculationData.vendorCosts.find(cost => 
-                    cost.vendorId === selectedMember.vendorId && cost.role === memberRole
-                );
+                console.log('  - Available vendor costs in project:');
+                completeProject.calculationData.vendorCosts.forEach((cost, index) => {
+                    console.log(`    ${index}: vendorId='${cost.vendorId}', role='${cost.role}', finalMDs=${cost.finalMDs}, vendor='${cost.vendor}'`);
+                });
+                
+                console.log('  - Searching for match with:');
+                console.log(`    vendorId: '${selectedMember.vendorId}' (type: ${typeof selectedMember.vendorId})`);
+                console.log(`    role: '${memberRole}' (type: ${typeof memberRole})`);
+                
+                const vendorCost = completeProject.calculationData.vendorCosts.find(cost => {
+                    const vendorIdMatch = cost.vendorId === selectedMember.vendorId;
+                    const roleMatch = cost.role === memberRole;
+                    console.log(`  - Checking cost: vendorId='${cost.vendorId}' (match: ${vendorIdMatch}), role='${cost.role}' (match: ${roleMatch})`);
+                    return vendorIdMatch && roleMatch;
+                });
+                
+                console.log('  - Found matching vendor cost:', vendorCost);
                 if (vendorCost) {
                     finalMDs = vendorCost.finalMDs || 0;
+                    console.log('  - Using finalMDs:', finalMDs);
+                } else {
+                    console.log('  - ISSUE: No matching vendor cost found!');
+                    console.log('  - Expected match:', `vendorId='${selectedMember.vendorId}' AND role='${memberRole}'`);
+                    console.log('  - Available combinations:');
+                    completeProject.calculationData.vendorCosts.forEach((cost, index) => {
+                        console.log(`    Option ${index}: '${cost.vendorId}' + '${cost.role}' -> ${cost.finalMDs} MDs`);
+                    });
                 }
+            } else {
+                console.error('  - CRITICAL: No calculationData.vendorCosts found in project');
             }
+            
+            console.log('  - Final result: finalMDs =', finalMDs);
+            console.log('=== DEBUG updateBudgetSection END ===');
             
             document.getElementById('total-final-mds').textContent = `${finalMDs.toFixed(1)} MDs`;
             document.getElementById('budget-context').textContent = `Budget for ${vendorName} - ${memberRole} in this project`;

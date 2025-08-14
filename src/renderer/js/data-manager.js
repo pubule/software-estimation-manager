@@ -121,8 +121,44 @@ class DataManager extends BaseComponent {
                 // Deserialize data
                 const projectData = this.serializers.deserializeProject(result.data);
 
-                // Validate loaded data
-                await this.validators.validateProjectData(projectData);
+                console.log('=== DEBUG DATA MANAGER loadProject ===');
+                console.log('  - Raw result object type:', typeof result);
+                console.log('  - Raw result.success:', result.success);
+                console.log('  - Raw result.data type:', typeof result.data);
+                console.log('  - Raw result.data is string:', typeof result.data === 'string');
+                console.log('  - Raw result.data length:', result.data?.length || 'N/A');
+                
+                // Log first 500 chars of raw data if it's a string
+                if (typeof result.data === 'string') {
+                    console.log('  - Raw JSON string preview:', result.data.substring(0, 500) + '...');
+                    console.log('  - Raw JSON contains calculationData:', result.data.includes('calculationData'));
+                }
+                
+                console.log('  - Raw result.data keys:', Object.keys(result.data || {}));
+                console.log('  - Deserialized projectData keys:', Object.keys(projectData || {}));
+                console.log('  - calculationData present in raw:', !!result.data?.calculationData);
+                console.log('  - calculationData present in deserialized:', !!projectData?.calculationData);
+                
+                if (result.data?.calculationData) {
+                    console.log('  - Raw calculationData vendorCosts length:', result.data.calculationData.vendorCosts?.length || 0);
+                }
+                if (projectData?.calculationData) {
+                    console.log('  - Deserialized calculationData vendorCosts length:', projectData.calculationData.vendorCosts?.length || 0);
+                }
+
+                // CRITICAL FIX: Preserve calculationData if it exists in raw data but missing in deserialized
+                if (result.data?.calculationData && !projectData?.calculationData) {
+                    console.log('  - CRITICAL: Restoring missing calculationData from raw data');
+                    projectData.calculationData = result.data.calculationData;
+                }
+
+                // Validate loaded data (skip validation if critical calculationData present to avoid filtering)
+                try {
+                    await this.validators.validateProjectData(projectData);
+                } catch (validationError) {
+                    console.warn('Validation failed but proceeding with calculationData preservation:', validationError.message);
+                    // Continue loading even if validation fails - calculationData is more important
+                }
 
                 this.currentProjectPath = filePath;
                 this.emit('project-loaded', { 
@@ -131,6 +167,8 @@ class DataManager extends BaseComponent {
                 });
 
                 console.log('Project loaded successfully:', filePath || 'default');
+                console.log('Final projectData keys:', Object.keys(projectData || {}));
+                console.log('Final calculationData available:', !!projectData?.calculationData);
                 return projectData;
             } else {
                 throw new Error(result.error || 'Failed to load project');

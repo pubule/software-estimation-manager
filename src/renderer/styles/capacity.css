@@ -3078,6 +3078,38 @@
     font-weight: 600;
 }
 
+/* Override absolute positioning for modal assignment overflow indicators */
+.stat-item.overflow-indicator.overflow-warning {
+    position: static !important;
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.25rem;
+    background: #2d3748;
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 2px solid #f56565; /* Red border for overflow */
+    min-width: 120px;
+    margin: 0; /* Remove any margin that might push it outside */
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
+    transform: none !important;
+    z-index: auto !important;
+}
+
+.stat-item.overflow-indicator.overflow-warning label {
+    color: #fc8181;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+.stat-item.overflow-indicator.overflow-warning .overflow-amount {
+    color: #fc8181;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
 .no-phases-message,
 .error-message {
     text-align: center;
