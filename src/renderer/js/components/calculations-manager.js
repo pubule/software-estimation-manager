@@ -2999,6 +2999,13 @@ class CapacityManager extends BaseComponent {
      * MAIN METHOD: Get real team members from Teams configuration
      */
     async getRealTeamMembers() {
+        // Check cache first to avoid repeated calculations
+        if (this._teamMembersCache && this._teamMembersCacheTime && 
+            (Date.now() - this._teamMembersCacheTime < 30000) && !this._cacheIsDirty) { // 30 second cache
+            console.log('getRealTeamMembers: Using cached data');
+            return this._teamMembersCache;
+        }
+        
         try {
             console.log('getRealTeamMembers: Starting...');
             
@@ -3014,7 +3021,6 @@ class CapacityManager extends BaseComponent {
                                   (window.app && window.app.managers && window.app.managers.configuration && window.app.managers.configuration.globalConfig);
                 
                 if (globalConfig) {
-
                     configManager = { globalConfig: globalConfig };
                 } else {
                     console.warn('No configuration available, returning empty team members array');
@@ -3027,9 +3033,7 @@ class CapacityManager extends BaseComponent {
             
             // DEBUG: Log raw team data to see vendorId values
             teams.forEach(team => {
-
                 (team.members || []).forEach(member => {
-
                 });
             });
             
@@ -3060,9 +3064,7 @@ class CapacityManager extends BaseComponent {
 
                             // Re-log corrected team data
                             teams.forEach(team => {
-
                                 (team.members || []).forEach(member => {
-
                                 });
                             });
                         }
@@ -3082,7 +3084,6 @@ class CapacityManager extends BaseComponent {
                     try {
                         await teamsManager.ensureDefaultTeams();
                         teams = configManager.globalConfig.teams || [];
-
                     } catch (error) {
                         console.warn('Failed to initialize default teams:', error);
                     }
@@ -3100,7 +3101,6 @@ class CapacityManager extends BaseComponent {
                                 // Save to global config
                                 configManager.globalConfig.teams = teams;
                                 await configManager.saveGlobalConfig();
-
                             }
                         } catch (error) {
                             console.warn('Failed to load default teams from defaults.json:', error);
@@ -3114,65 +3114,72 @@ class CapacityManager extends BaseComponent {
                 }
             }
 
-            // Load real projects
-            const dataManager = this.app?.managers?.data || window.dataManager;
-            if (!dataManager) {
-                console.warn('Data manager not available, using empty projects list');
-                // Still continue with empty projects array instead of falling back to mock
-            }
-
+            // Load real projects - cache projects too for better performance
             let projects = [];
-            try {
-                if (dataManager) {
-                    const projectsList = await dataManager.listProjects() || [];
+            if (!this._projectsCache || !this._projectsCacheTime || 
+                (Date.now() - this._projectsCacheTime > 60000)) { // 1 minute cache for projects
+                
+                const dataManager = this.app?.managers?.data || window.dataManager;
+                if (!dataManager) {
+                    console.warn('Data manager not available, using empty projects list');
+                } else {
+                    try {
+                        const projectsList = await dataManager.listProjects() || [];
+                        
+                        // Transform project list to extract project data properly
+                        projects = projectsList.map(projectItem => {
+                            if (projectItem && projectItem.project) {
+                                // Extract project data from nested structure
+                                return {
+                                    ...projectItem.project,  // Include all project metadata (id, name, code, etc.)
+                                    filePath: projectItem.filePath,
+                                    fileName: projectItem.fileName,
+                                    // Add default phases structure if missing (will be empty array since we don't load full data here)
+                                    phases: [],  // Will be loaded later if needed by individual functions
+                                    status: projectItem.project.status || 'approved',  // Ensure status exists
+                                    startDate: projectItem.project.startDate || null,
+                                    endDate: projectItem.project.endDate || null
+                                };
+                            } else {
+                                console.warn('Invalid project item structure:', projectItem);
+                                return null;
+                            }
+                        }).filter(project => project !== null);
 
-                    // Transform project list to extract project data properly
-                    projects = projectsList.map(projectItem => {
-                        if (projectItem && projectItem.project) {
-                            // Extract project data from nested structure
-                            return {
-                                ...projectItem.project,  // Include all project metadata (id, name, code, etc.)
-                                filePath: projectItem.filePath,
-                                fileName: projectItem.fileName,
-                                // Add default phases structure if missing (will be empty array since we don't load full data here)
-                                phases: [],  // Will be loaded later if needed by individual functions
-                                status: projectItem.project.status || 'approved',  // Ensure status exists
-                                startDate: projectItem.project.startDate || null,
-                                endDate: projectItem.project.endDate || null
-                            };
-                        } else {
-                            console.warn('Invalid project item structure:', projectItem);
-                            return null;
-                        }
-                    }).filter(project => project !== null);
+                        console.log('Projects:', projects.map(p => ({
+                            name: p.name,
+                            id: p.id,
+                            status: p.status,
+                            startDate: p.startDate,
+                            phasesCount: p.phases?.length || 0
+                        })));
+                        
+                        // Filter out projects without required dates for automatic allocation
+                        // Only projects with proper dates can be used for automatic allocation
+                        const projectsForAutoAllocation = projects.filter(project => {
+                            return project.startDate && project.endDate && project.status;
+                        });
 
-                    console.log('Projects:', projects.map(p => ({
-                        name: p.name,
-                        id: p.id,
-                        status: p.status,
-                        startDate: p.startDate,
-                        phasesCount: p.phases?.length || 0
-                    })));
-                    
-                    // Filter out projects without required dates for automatic allocation
-                    // Only projects with proper dates can be used for automatic allocation
-                    const projectsForAutoAllocation = projects.filter(project => {
-                        return project.startDate && project.endDate && project.status;
-                    });
-
-                    // Use filtered projects for automatic allocations, original projects list for manual assignments
-                    projects = projectsForAutoAllocation;
+                        // Use filtered projects for automatic allocations, original projects list for manual assignments
+                        projects = projectsForAutoAllocation;
+                        
+                        // Cache projects
+                        this._projectsCache = projects;
+                        this._projectsCacheTime = Date.now();
+                        
+                    } catch (error) {
+                        console.warn('Error loading projects:', error);
+                        projects = [];
+                    }
                 }
-            } catch (error) {
-                console.warn('Error loading projects:', error);
-                projects = [];
+            } else {
+                console.log('getRealTeamMembers: Using cached projects');
+                projects = this._projectsCache;
             }
 
             // Generate real team members
-
             const realTeamMembers = teams.flatMap(team => 
                 (team.members || []).map(member => {
-
                     const memberRole = this.getMemberRole(member);
                     const vendor = this.resolveVendorName(member);
                     
@@ -3198,7 +3205,6 @@ class CapacityManager extends BaseComponent {
                     Object.entries(allocations).forEach(([monthKey, monthData]) => {
                         const projects = Object.keys(monthData);
                         if (projects.length > 0) {
-
                         }
                     });
                     
@@ -3229,6 +3235,11 @@ class CapacityManager extends BaseComponent {
                     };
                 })
             );
+
+            // Cache the result
+            this._teamMembersCache = realTeamMembers;
+            this._teamMembersCacheTime = Date.now();
+            this._cacheIsDirty = false; // Reset dirty flag when cache is updated
 
             return realTeamMembers;
 
@@ -3788,7 +3799,22 @@ class CapacityManager extends BaseComponent {
      * Load and populate the capacity planning tables with two-panel layout
      */
     async loadCapacityTable() {
-        const rawTeamMembers = await this.getRealTeamMembers();
+        // Add debounce for loadCapacityTable to prevent excessive calls
+        if (this._loadCapacityTableTimer) {
+            clearTimeout(this._loadCapacityTableTimer);
+        }
+        
+        // If already loading, return existing promise
+        if (this._loadingCapacityTable) {
+            console.log('loadCapacityTable: Already loading, returning existing promise');
+            return this._capacityTablePromise || Promise.resolve();
+        }
+        
+        this._loadingCapacityTable = true;
+        
+        this._capacityTablePromise = (async () => {
+            try {
+                const rawTeamMembers = await this.getRealTeamMembers();
         const teamMembers = this.consolidateTeamMembersByPerson(rawTeamMembers);
         
         // Get both table bodies
@@ -3825,6 +3851,17 @@ class CapacityManager extends BaseComponent {
             this.initializeAllocationActions();
             this.initializeCapacityCellEventListeners();
         }, 100);
+        
+            } catch (error) {
+                console.error('Error loading capacity table:', error);
+                throw error;
+            } finally {
+                this._loadingCapacityTable = false;
+                this._capacityTablePromise = null;
+            }
+        })();
+        
+        return this._capacityTablePromise;
     }
 
     /**
@@ -6363,7 +6400,8 @@ class CapacityManager extends BaseComponent {
         let workingDays = 0;
         const currentDate = new Date(startDate);
         
-        while (currentDate < endDate) {
+        // Use <= to include the end date in the calculation (fixed: was < endDate)
+        while (currentDate <= endDate) {
             const dayOfWeek = currentDate.getDay();
             // Count Monday-Friday (1-5) as working days
             if (dayOfWeek >= 1 && dayOfWeek <= 5) {
@@ -6705,6 +6743,9 @@ class CapacityManager extends BaseComponent {
                 };
                 
                 this.manualAssignments[existingIndex] = updatedAssignment;
+                
+                // Mark cache as dirty since assignment data has changed
+                this._cacheIsDirty = true;
 
                 // Check for overflows and show alerts
                 const overflows = this.detectOverflows(phaseSchedule);
@@ -6732,6 +6773,9 @@ class CapacityManager extends BaseComponent {
 
                 // Save assignment
                 this.manualAssignments.push(assignment);
+                
+                // Mark cache as dirty since assignment data has changed
+                this._cacheIsDirty = true;
 
                 // Check for overflows and show alerts
                 const overflows = this.detectOverflows(phaseSchedule);
@@ -6841,11 +6885,32 @@ class CapacityManager extends BaseComponent {
      * Refresh all capacity sections after assignment changes
      */
     async refreshAllCapacitySections() {
+        // Implement debounce mechanism to prevent multiple rapid calls
+        if (this._refreshDebounceTimer) {
+            clearTimeout(this._refreshDebounceTimer);
+        }
+        
+        // Prevent multiple simultaneous refreshes - return existing promise if already running
+        if (this._refreshInProgress) {
+            console.log('Refresh already in progress, returning existing promise...');
+            // Return the existing refresh promise instead of creating a recursive call
+            return this._currentRefreshPromise || Promise.resolve();
+        }
+        
+        this._refreshInProgress = true;
+        
+        // Store the current refresh promise to return to subsequent calls
+        this._currentRefreshPromise = (async () => {
         try {
             console.log('Refreshing all capacity sections after assignment change...');
             
             // Show loading state
             this.showCapacityLoadingState();
+            
+            // Clear any existing manual assignments cache to force reload
+            if (this.manualAssignments) {
+                console.log('Clearing manual assignments cache for fresh data...');
+            }
             
             // Refresh all major sections in parallel for better performance
             const refreshPromises = [];
@@ -6876,13 +6941,29 @@ class CapacityManager extends BaseComponent {
             NotificationManager.error('Error updating capacity views');
         } finally {
             this.hideCapacityLoadingState();
+            this._refreshInProgress = false;
+            this._currentRefreshPromise = null;
+            
+            // Clear debounce timer
+            if (this._refreshDebounceTimer) {
+                clearTimeout(this._refreshDebounceTimer);
+                this._refreshDebounceTimer = null;
+            }
         }
+        })();
+        
+        return this._currentRefreshPromise;
     }
 
     /**
      * Show loading state in capacity sections
      */
     showCapacityLoadingState() {
+        // Throttle loading state updates to prevent excessive DOM manipulation
+        if (this._loadingStateShown) {
+            return;
+        }
+        this._loadingStateShown = true;
         const sections = [
             'capacity-content',
             'resource-overview-content', 
@@ -6917,6 +6998,9 @@ class CapacityManager extends BaseComponent {
      * Hide loading state from capacity sections
      */
     hideCapacityLoadingState() {
+        // Clear the loading state flag
+        this._loadingStateShown = false;
+        
         const sections = [
             'capacity-content',
             'resource-overview-content',
@@ -7640,6 +7724,10 @@ class CapacityManager extends BaseComponent {
             const index = this.manualAssignments.findIndex(a => a.id === assignmentId);
             if (index > -1) {
                 this.manualAssignments.splice(index, 1);
+                
+                // Mark cache as dirty since assignment data has changed
+                this._cacheIsDirty = true;
+                
                 NotificationManager.success('Assignment deleted successfully');
                 
                 // Refresh the table
@@ -7656,6 +7744,18 @@ class CapacityManager extends BaseComponent {
             this.deletingAssignment = null;
             this.deleteStartTime = null;
         }
+    }
+
+    /**
+     * Mark assignment-related caches as dirty for efficient cache management
+     */
+    markCacheAsDirty() {
+        console.log('Marking cache as dirty for next refresh...');
+        this._cacheIsDirty = true;
+        
+        // Clear only non-critical caches immediately
+        this._capacityTablePromise = null;
+        this._loadingCapacityTable = false;
     }
 
     /**
