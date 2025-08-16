@@ -3220,6 +3220,16 @@
     min-height: 20px;
 }
 
+/* Positioned Phase Bars Container for precise timeline positioning */
+.phase-bars.positioned-bars {
+    position: relative;
+    height: 20px; /* Default height, can be overridden by inline style */
+    width: 100%;
+    display: block; /* Override flex for absolute positioning */
+    min-height: 20px;
+    overflow: visible; /* Allow phases to extend beyond container if needed */
+}
+
 /* Individual Phase Bar */
 .phase-bar {
     height: 16px;
@@ -3237,9 +3247,30 @@
     transition: all 0.2s ease;
 }
 
+/* Positioned Phase Bars - for precise timeline positioning */
+.positioned-bars .phase-bar {
+    position: absolute !important;
+    top: 2px; /* Small margin from top, overridden by inline style for stacking */
+    min-width: 30px; /* Minimum width for visibility and text */
+    overflow: hidden;
+    white-space: nowrap;
+    z-index: 10;
+    border: 1px solid rgba(0,0,0,0.2); /* Subtle border for better definition */
+}
+
+/* Phase name text adjustments for positioned bars */
+.positioned-bars .phase-bar .phase-name {
+    font-size: 9px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
 .phase-bar:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    z-index: 20; /* Bring hovered bar to front */
 }
 
 /* Phase Colors */

@@ -4154,6 +4154,8 @@ class CapacityManager extends BaseComponent {
                 return;
             }
             
+            const startDate = new Date(phase.startDate);
+            const endDate = new Date(phase.endDate);
             const startMonth = this.getMonthFromDate(phase.startDate);
             const endMonth = this.getMonthFromDate(phase.endDate);
             const monthsSpanned = this.generateMonthsBetweenDates(phase.startDate, phase.endDate);
@@ -4161,13 +4163,34 @@ class CapacityManager extends BaseComponent {
             monthsSpanned.forEach(month => {
                 if (!ganttBars[month]) ganttBars[month] = [];
                 
+                // Calculate precise positioning within the month
+                const monthDate = new Date(month + '-01');
+                const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
+                
+                let startPosition = 0;
+                let endPosition = 100;
+                
+                if (month === startMonth) {
+                    // Calculate start position as percentage of month
+                    startPosition = ((startDate.getDate() - 1) / daysInMonth) * 100;
+                }
+                
+                if (month === endMonth) {
+                    // Calculate end position as percentage of month
+                    endPosition = (endDate.getDate() / daysInMonth) * 100;
+                }
+                
                 ganttBars[month].push({
                     phaseName: phase.phaseName || `Phase ${phase.phaseId}`,
                     phaseId: phase.phaseId || 'unknown',
                     estimatedMDs: phase.estimatedMDs || 0,
                     overflow: phase.overflow || 0,
                     isStart: month === startMonth,
-                    isEnd: month === endMonth
+                    isEnd: month === endMonth,
+                    startPosition: Math.round(startPosition * 100) / 100, // Round to 2 decimals
+                    endPosition: Math.round(endPosition * 100) / 100,
+                    startDate: phase.startDate,
+                    endDate: phase.endDate
                 });
             });
         });
@@ -4402,16 +4425,29 @@ class CapacityManager extends BaseComponent {
                 return '<td class="month-col gantt-cell empty"><span class="no-phase">-</span></td>';
             }
             
-            const phaseBarsHTML = monthPhases.map(phase => `
-                <div class="phase-bar phase-${phase.phaseId} ${phase.overflow > 0 ? 'overflow' : ''}" 
-                     title="${phase.phaseName}: ${phase.estimatedMDs} MDs${phase.overflow > 0 ? ` (Overflow: +${phase.overflow})` : ''}">
-                    <span class="phase-name">${phase.phaseName.substring(0, 5)}...</span>
-                </div>
-            `).join('');
+            const phaseBarsHTML = monthPhases.map((phase, index) => {
+                // Calculate dynamic positioning and width for precise timeline representation
+                const left = phase.startPosition;
+                const width = phase.endPosition - phase.startPosition;
+                
+                // Stack phases vertically if multiple phases in same month
+                const topOffset = index * 18; // 18px spacing between stacked phases
+                
+                return `
+                    <div class="phase-bar phase-${phase.phaseId} ${phase.overflow > 0 ? 'overflow' : ''}" 
+                         style="left: ${left}%; width: ${width}%; position: absolute; top: ${topOffset + 2}px;"
+                         title="${phase.phaseName}: ${phase.estimatedMDs} MDs (${phase.startDate} → ${phase.endDate})${phase.overflow > 0 ? ` | Overflow: +${phase.overflow}` : ''}">
+                        <span class="phase-name">${phase.phaseName.substring(0, 6)}</span>
+                    </div>
+                `;
+            }).join('');
+            
+            // Calculate dynamic height based on number of stacked phases
+            const containerHeight = Math.max(20, monthPhases.length * 18 + 4);
             
             return `
                 <td class="month-col gantt-cell ${monthPhases.some(p => p.overflow > 0) ? 'has-overflow' : ''}">
-                    <div class="phase-bars">
+                    <div class="phase-bars positioned-bars" style="height: ${containerHeight}px;">
                         ${phaseBarsHTML}
                     </div>
                 </td>
