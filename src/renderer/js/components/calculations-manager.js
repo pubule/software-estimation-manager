@@ -4567,11 +4567,17 @@ class CapacityManager extends BaseComponent {
         
         // Create a map of all allocations by team member and project
         const allocationsByMember = new Map();
+        const uniqueMembers = new Map(); // Track unique team members
         
         projectsData.forEach(projectData => {
             projectData.members.forEach((memberData, memberId) => {
                 const member = memberData.member;
                 const key = `${memberId}_${projectData.name}`;
+                
+                // Track unique members for capacity rows
+                if (!uniqueMembers.has(memberId)) {
+                    uniqueMembers.set(memberId, member);
+                }
                 
                 // Find the assignment for this member and project
                 const assignment = this.findAssignmentForMemberAndProject(memberId, projectData.assignment?.projectId);
@@ -4587,12 +4593,28 @@ class CapacityManager extends BaseComponent {
             });
         });
         
-        // Generate rows for each member-project combination
+        // Group allocations by member for better organization
+        const memberGroups = new Map();
         allocationsByMember.forEach((data, key) => {
-            const member = data.member;
-            const memberName = `${member.firstName} ${member.lastName}`;
-            const memberRole = member.role || '';
-            const memberVendor = member.vendor || '';
+            const memberId = data.member.id;
+            if (!memberGroups.has(memberId)) {
+                memberGroups.set(memberId, []);
+            }
+            memberGroups.get(memberId).push(data);
+        });
+        
+        // Generate rows: capacity row first, then allocation rows for each member
+        memberGroups.forEach((allocations, memberId) => {
+            const member = uniqueMembers.get(memberId);
+            
+            // Generate capacity row for this member
+            html += this.generateCapacityRow(member, timelineMonths);
+            
+            // Generate allocation rows for all projects of this member
+            allocations.forEach((data) => {
+                const memberName = `${member.firstName} ${member.lastName}`;
+                const memberRole = member.role || '';
+                const memberVendor = member.vendor || '';
             
             // Calculate total MDs using the improved method
             const totalMDs = this.calculateRowTotalMDs(data.allocations, member, data.projectName, data.projectId);
@@ -4657,9 +4679,80 @@ class CapacityManager extends BaseComponent {
                     ${this.generateAllocationCells(member, data.projectName, data.projectId, data.allocations, timelineMonths)}
                 </tr>
             `;
-        });
+            }); // Close allocations.forEach
+        }); // Close memberGroups.forEach
         
         return html;
+    }
+
+    /**
+     * Generate capacity row for a team member showing available MDs per month
+     */
+    generateCapacityRow(member, timelineMonths) {
+        const memberName = `${member.firstName} ${member.lastName}`;
+        const memberRole = member.role || '';
+        const memberVendor = member.vendor || '';
+        
+        // Calculate total capacity across all months
+        let totalCapacity = 0;
+        const capacityByMonth = {};
+        
+        timelineMonths.forEach(monthKey => {
+            const isoMonth = this.convertTimelineToISOMonth(monthKey);
+            try {
+                const monthCapacity = this.workingDaysCalculator ? 
+                    this.workingDaysCalculator.calculateAvailableCapacity(member, isoMonth) : 22;
+                capacityByMonth[isoMonth] = Math.round(monthCapacity * 10) / 10;
+                totalCapacity += monthCapacity;
+            } catch (error) {
+                // Fallback to default capacity if calculation fails
+                capacityByMonth[isoMonth] = 22;
+                totalCapacity += 22;
+            }
+        });
+        
+        totalCapacity = Math.round(totalCapacity * 10) / 10;
+        
+        return `
+            <tr class="capacity-info-row" data-member="${member.id}">
+                <td class="fixed-col col-member">
+                    <div class="capacity-info">
+                        <span class="capacity-label">Available Capacity</span>
+                        <span class="member-name">${memberName}</span>
+                        <span class="member-details">${memberRole}${memberRole && memberVendor ? ' - ' : ''}${memberVendor}</span>
+                    </div>
+                </td>
+                <td class="fixed-col col-actions">
+                    <div class="capacity-actions">
+                        <i class="fas fa-calendar-check" title="Capacity information"></i>
+                    </div>
+                </td>
+                <td class="fixed-col col-total-mds">
+                    <div class="total-capacity-cell">
+                        <span class="total-capacity-value">${totalCapacity} MDs</span>
+                    </div>
+                </td>
+                ${this.generateCapacityCells(member, capacityByMonth, timelineMonths)}
+            </tr>
+        `;
+    }
+
+    /**
+     * Generate capacity cells for monthly available MDs
+     */
+    generateCapacityCells(member, capacityByMonth, timelineMonths) {
+        return timelineMonths.map(monthKey => {
+            const isoMonth = this.convertTimelineToISOMonth(monthKey);
+            const capacity = capacityByMonth[isoMonth] || 0;
+            
+            return `
+                <td class="month-col capacity-month" data-month="${isoMonth}">
+                    <div class="capacity-display">
+                        <span class="capacity-value">${capacity} MDs</span>
+                    </div>
+                </td>
+            `;
+        }).join('');
     }
 
     /**

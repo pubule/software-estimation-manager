@@ -3855,6 +3855,95 @@ Sticky columns stay on top to maintain table structure integrity.
     background: #1e1e1e;
 }
 
+/* CAPACITY INFO ROWS - Show available MDs per team member */
+.capacity-info-row {
+    background: #2d2d30 !important; /* Slightly different background to distinguish from allocation rows */
+    border-bottom: 1px solid #404040 !important; /* Subtle separator */
+}
+
+.capacity-info-row td {
+    background: #2d2d30 !important;
+    font-weight: 600;
+    color: #e6e6e6;
+}
+
+.capacity-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.capacity-label {
+    font-size: 9px;
+    color: #4CAF50; /* Green to indicate available capacity */
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.capacity-info .member-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #e6e6e6;
+}
+
+.capacity-info .member-details {
+    font-size: 10px;
+    color: #999;
+    font-weight: 400;
+}
+
+.capacity-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.capacity-actions i {
+    color: #4CAF50;
+    font-size: 14px;
+}
+
+.total-capacity-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.total-capacity-value {
+    font-size: 11px;
+    font-weight: 700;
+    color: #4CAF50;
+    padding: 4px 8px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 4px;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.capacity-month {
+    background: #2d2d30 !important;
+    text-align: center;
+    padding: 8px 4px;
+}
+
+.capacity-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.capacity-value {
+    font-size: 10px;
+    font-weight: 600;
+    color: #4CAF50;
+    padding: 2px 4px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
 /* Team allocations table cell borders to prevent transparency during scroll - using outline for better scroll resistance */
 .team-allocations-table td {
     background: #1e1e1e; /* Ensure solid background */
