@@ -54,9 +54,10 @@ class AutoDistribution {
      * @param {Date} startDate Distribution start date
      * @param {Date} endDate Distribution end date
      * @param {string} teamMemberId Team member ID
+     * @param {Object} existingAllocations Existing allocations per month to subtract from capacity
      * @returns {Object} Monthly allocation distribution
      */
-    autoDistributeMDs(totalMDs, startDate, endDate, teamMemberId) {
+    autoDistributeMDs(totalMDs, startDate, endDate, teamMemberId, existingAllocations = {}) {
         // Validation
         if (totalMDs < 0) {
             throw new Error('Total MDs must be positive');
@@ -90,11 +91,15 @@ class AutoDistribution {
             const isFirstMonth = month === months[0];
             const monthStartDate = isFirstMonth ? startDate : null;
             
-            const capacity = this.workingDaysCalculator.calculateAvailableCapacity(
+            const baseCapacity = this.workingDaysCalculator.calculateAvailableCapacity(
                 teamMember, 
                 month, 
                 monthStartDate
             );
+            
+            // Subtract existing allocations from other phases
+            const existingForMonth = existingAllocations[month] || 0;
+            const capacity = Math.max(0, baseCapacity - existingForMonth);
             
             monthCapacities[month] = capacity;
             totalAvailableCapacity += capacity;

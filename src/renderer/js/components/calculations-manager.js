@@ -8010,6 +8010,69 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
+     * Merge phase distribution into the final allocations object
+     */
+    mergePhaseDistribution(phaseAllocations, phaseDistribution, phase, projectName) {
+        Object.keys(phaseDistribution).forEach(month => {
+            // Skip metadata
+            if (['hasOverflow', 'overflowAmount'].includes(month)) return;
+            
+            const allocation = phaseDistribution[month];
+            if (allocation && allocation.planned > 0) {
+                if (!phaseAllocations[month]) {
+                    phaseAllocations[month] = {};
+                }
+                
+                if (!phaseAllocations[month][projectName]) {
+                    phaseAllocations[month][projectName] = {
+                        days: 0,
+                        hasOverflow: false,
+                        overflowAmount: 0,
+                        phases: []
+                    };
+                }
+                
+                // Add phase days to monthly total
+                phaseAllocations[month][projectName].days += allocation.planned;
+                
+                // Add phase detail
+                phaseAllocations[month][projectName].phases.push({
+                    phaseName: phase.phaseName,
+                    phaseDays: allocation.planned,
+                    hasOverflow: false,
+                    overflowAmount: 0
+                });
+            }
+        });
+        
+        // Handle overflow from phase distribution
+        if (phaseDistribution.hasOverflow && phaseDistribution.overflowAmount > 0) {
+            // Find months where this phase was allocated and mark overflow
+            Object.keys(phaseDistribution).forEach(month => {
+                if (['hasOverflow', 'overflowAmount'].includes(month)) return;
+                
+                const allocation = phaseDistribution[month];
+                if (allocation && allocation.planned > 0 && phaseAllocations[month] && phaseAllocations[month][projectName]) {
+                    // Estimate overflow per month (simplified approach)
+                    const monthOverflow = phaseDistribution.overflowAmount / 
+                        Object.keys(phaseDistribution).filter(k => !['hasOverflow', 'overflowAmount'].includes(k)).length;
+                    
+                    phaseAllocations[month][projectName].hasOverflow = true;
+                    phaseAllocations[month][projectName].overflowAmount += monthOverflow;
+                    
+                    // Update phase overflow info
+                    const phaseInMonth = phaseAllocations[month][projectName].phases
+                        .find(p => p.phaseName === phase.phaseName);
+                    if (phaseInMonth) {
+                        phaseInMonth.hasOverflow = true;
+                        phaseInMonth.overflowAmount = monthOverflow;
+                    }
+                }
+            });
+        }
+    }
+
+    /**
      * Calculate phase-based allocation for assignment
      */
     async calculatePhaseBasedAllocation(teamMember, completeProject, phaseSchedule) {
@@ -8025,69 +8088,54 @@ class CapacityManager extends BaseComponent {
             console.log('calculatePhaseBasedAllocation: phaseSchedule:', phaseSchedule.length, 'phases');
             
             if (this.autoDistribution) {
-                // Calculate total MDs for all phases
-                const totalMDs = phaseSchedule.reduce((sum, phase) => sum + phase.estimatedMDs, 0);
-                console.log('calculatePhaseBasedAllocation: totalMDs:', totalMDs);
+                console.log('calculatePhaseBasedAllocation: using phase-by-phase distribution');
+                console.log('calculatePhaseBasedAllocation: teamMember:', teamMember.id, teamMember.firstName, teamMember.lastName);
+                console.log('calculatePhaseBasedAllocation: phaseSchedule:', phaseSchedule.length, 'phases');
                 
-                // Find the earliest start date and latest end date
-                const startDate = new Date(Math.min(...phaseSchedule.map(p => new Date(p.startDate))));
-                const endDate = new Date(Math.max(...phaseSchedule.map(p => new Date(p.endDate))));
-                console.log('calculatePhaseBasedAllocation: date range:', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
+                // Set current team member for the adapter
+                this._currentTeamMember = teamMember;
                 
-                try {
-                    // Debug team member ID format
-                    console.log('Auto-distribution: teamMember.id:', teamMember.id);
-                    console.log('Auto-distribution: this.autoDistribution.teamManager available:', !!this.autoDistribution.teamManager);
+                // Sort phases by start date to handle overlaps correctly
+                const sortedPhases = phaseSchedule.sort((a, b) => 
+                    new Date(a.startDate) - new Date(b.startDate)
+                );
+                
+                console.log('Sorted phases by start date:', sortedPhases.map(p => `${p.phaseName}: ${p.startDate}`));
+                
+                // Distribute phase by phase, tracking existing allocations
+                const existingAllocations = {}; // Track accumulated allocations per month
+                const projectName = completeProject.project.name;
+                
+                for (const phase of sortedPhases) {
+                    console.log(`Processing phase: ${phase.phaseName} (${phase.estimatedMDs} MD, ${phase.startDate} → ${phase.endDate})`);
                     
-                    // Set current team member for the adapter
-                    this._currentTeamMember = teamMember;
-                    
-                    // Use autoDistributeMDs for intelligent distribution
-                    const autoDistribution = this.autoDistribution.autoDistributeMDs(
-                        totalMDs,
-                        startDate,
-                        endDate,
-                        teamMember.id
+                    const phaseDistribution = this.autoDistribution.autoDistributeMDs(
+                        phase.estimatedMDs,
+                        new Date(phase.startDate),
+                        new Date(phase.endDate),
+                        teamMember.id,
+                        existingAllocations
                     );
                     
-                    console.log(`Auto-distribution for ${completeProject.project.name}:`, autoDistribution);
+                    console.log(`Phase ${phase.phaseName} distribution:`, phaseDistribution);
                     
-                    // Convert autoDistribution format to expected allocations format
-                    Object.keys(autoDistribution).forEach(month => {
-                        // Skip metadata keys
-                        if (['hasOverflow', 'overflowAmount'].includes(month)) {
-                            return;
-                        }
-                        
-                        const allocation = autoDistribution[month];
-                        if (allocation && allocation.planned > 0) {
-                            if (!allocations[month]) allocations[month] = {};
-                            
-                            allocations[month][completeProject.project.name] = {
-                                days: allocation.planned,
-                                hasOverflow: false, // New algorithm prevents overflow
-                                overflowAmount: 0,
-                                phases: phaseSchedule.map(phase => ({
-                                    phaseName: phase.phaseName,
-                                    phaseDays: allocation.planned / phaseSchedule.length, // Simplified equal distribution
-                                    hasOverflow: false,
-                                    overflowAmount: 0
-                                }))
-                            };
+                    // Merge phase distribution into final allocations
+                    this.mergePhaseDistribution(allocations, phaseDistribution, phase, projectName);
+                    
+                    // Update existing allocations for next phase
+                    Object.keys(phaseDistribution).forEach(month => {
+                        if (!['hasOverflow', 'overflowAmount'].includes(month)) {
+                            const allocation = phaseDistribution[month];
+                            if (allocation && allocation.planned > 0) {
+                                existingAllocations[month] = (existingAllocations[month] || 0) + allocation.planned;
+                            }
                         }
                     });
                     
-                } catch (error) {
-                    console.warn('Auto-distribution failed, falling back to legacy method:', error);
-                    // Fall back to legacy method below
-                    this.useLegacyPhaseDistribution(phaseSchedule, allocations, completeProject);
+                    console.log('Updated existing allocations:', existingAllocations);
                 }
             } else {
-                // Fall back to legacy method
-                console.warn('Auto-distribution not available, falling back to legacy method');
-                console.warn('Available autoDistribution instance:', !!this.autoDistribution);
-                console.warn('AutoDistribution class available:', typeof AutoDistribution !== 'undefined');
-                this.useLegacyPhaseDistribution(phaseSchedule, allocations, completeProject);
+                throw new Error('Auto-distribution not available - cannot calculate phase-based allocation');
             }
 
             return allocations;
