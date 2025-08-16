@@ -3256,14 +3256,14 @@
     overflow: hidden;
     white-space: nowrap;
     z-index: 20; /* Higher than normal cells to ensure visibility */
-    border: 1px solid rgba(0,0,0,0.2); /* Subtle border for better definition */
+    border: none; /* Remove border to prevent visual overlap between sequential phases */
 }
 
 /* Continuous Phase Bars - span multiple months */
 .positioned-bars .phase-bar.continuous-bar {
-    z-index: 22; /* Higher z-index for continuous bars, below sticky columns */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3); /* Enhanced shadow for depth */
-    border: 1px solid rgba(0,0,0,0.4); /* Stronger border for visibility */
+    z-index: 20; /* Same z-index as normal bars to prevent layering issues */
+    box-shadow: none; /* Remove shadow to prevent visual overlap between sequential phases */
+    border: none; /* Remove border to prevent visual overlap between sequential phases */
 }
 
 /* Phase name text adjustments for positioned bars */

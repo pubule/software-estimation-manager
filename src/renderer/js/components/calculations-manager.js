@@ -4160,6 +4160,8 @@ class CapacityManager extends BaseComponent {
             const endMonth = this.getMonthFromDate(phase.endDate);
             const monthsSpanned = this.generateMonthsBetweenDates(phase.startDate, phase.endDate);
             
+            
+            
             // Create continuous bar only in the starting month
             if (!ganttBars[startMonth]) ganttBars[startMonth] = [];
             
@@ -4192,10 +4194,41 @@ class CapacityManager extends BaseComponent {
                 }
             });
             
-            // Calculate absolute width in pixels (each month column is 80px)
+            // Calculate absolute width in pixels for continuous bars
             const monthColumnWidth = 80; // px - matches CSS .month-col width
-            const absoluteWidthPx = (totalWidthPercent / 100) * monthColumnWidth;
             
+            // For continuous bars spanning multiple months, calculate proper pixel width
+            let absoluteWidthPx;
+            if (monthsSpanned.length > 1) {
+                // Calculate width for continuous bars:
+                // First month pixels (from start position to end of month)
+                const firstMonthPixels = ((100 - startPosition) / 100) * monthColumnWidth;
+                
+                // Full months in between (excluding first and last)
+                const fullMonths = Math.max(0, monthsSpanned.length - 2);
+                const fullMonthsPixels = fullMonths * monthColumnWidth;
+                
+                // Last month pixels (from start of month to end position)
+                let lastMonthPixels = 0;
+                if (endMonth !== startMonth) {
+                    const endMonthDate = new Date(endMonth + '-01');
+                    const daysInEndMonth = new Date(endMonthDate.getFullYear(), endMonthDate.getMonth() + 1, 0).getDate();
+                    const endPosition = (endDate.getDate() / daysInEndMonth) * 100;
+                    lastMonthPixels = (endPosition / 100) * monthColumnWidth;
+                }
+                
+                absoluteWidthPx = firstMonthPixels + fullMonthsPixels + lastMonthPixels;
+            } else {
+                // Single month bar: use percentage-based width
+                absoluteWidthPx = (totalWidthPercent / 100) * monthColumnWidth;
+            }
+            
+            const roundedStartPosition = Math.round(startPosition * 100) / 100;
+            const roundedTotalWidthPercent = Math.round(totalWidthPercent * 100) / 100;
+            const roundedAbsoluteWidthPx = Math.round(absoluteWidthPx * 100) / 100;
+            
+            
+
             ganttBars[startMonth].push({
                 phaseName: phase.phaseName || `Phase ${phase.phaseId}`,
                 phaseId: phase.phaseId || 'unknown',
@@ -4203,9 +4236,9 @@ class CapacityManager extends BaseComponent {
                 overflow: phase.overflow || 0,
                 isStart: true,
                 isEnd: startMonth === endMonth,
-                startPosition: Math.round(startPosition * 100) / 100,
-                totalWidthPercent: Math.round(totalWidthPercent * 100) / 100,
-                absoluteWidthPx: Math.round(absoluteWidthPx * 100) / 100,
+                startPosition: roundedStartPosition,
+                totalWidthPercent: roundedTotalWidthPercent,
+                absoluteWidthPx: roundedAbsoluteWidthPx,
                 monthsSpanned: monthsSpanned.length,
                 startDate: phase.startDate,
                 endDate: phase.endDate,
@@ -4444,12 +4477,46 @@ class CapacityManager extends BaseComponent {
             }
             
             const phaseBarsHTML = monthPhases.map((phase, index) => {
-                // For continuous bars, use absolute pixel width and percentage left position
-                const left = phase.startPosition;
-                const width = phase.isContinuous ? `${phase.absoluteWidthPx}px` : `${phase.totalWidthPercent}%`;
+                // For continuous bars spanning multiple months, use pixel-based positioning and width
+                // For single-month bars, use percentage-based positioning and width
+                let left, width;
                 
-                // Stack phases vertically if multiple phases in same month
-                const topOffset = index * 18; // 18px spacing between stacked phases
+                if (phase.isContinuous) {
+                    // Convert percentage position to pixels for consistent alignment with pixel width
+                    const leftInPixels = (phase.startPosition / 100) * 80; // 80px is the month column width
+                    left = `${leftInPixels}px`;
+                    width = `${phase.absoluteWidthPx}px`;
+                } else {
+                    // Single month bars use percentages for both position and width
+                    left = `${phase.startPosition}%`;
+                    width = `${phase.totalWidthPercent}%`;
+                }
+                
+                // Intelligent stacking: only stack vertically if phases truly overlap in dates
+                let topOffset = 2; // Default top margin
+                
+                if (index > 0) {
+                    // Check for actual date overlap with previous phases in the same month
+                    let stackLevel = 0;
+                    const currentStart = new Date(phase.startDate);
+                    const currentEnd = new Date(phase.endDate);
+                    
+                    for (let i = 0; i < index; i++) {
+                        const previousPhase = monthPhases[i];
+                        const prevStart = new Date(previousPhase.startDate);
+                        const prevEnd = new Date(previousPhase.endDate);
+                        
+                        // Check for actual date overlap: phases overlap if one starts before the other ends
+                        const hasOverlap = currentStart <= prevEnd && currentEnd >= prevStart;
+                        
+                        if (hasOverlap) {
+                            stackLevel++;
+                        }
+                    }
+                    
+                    // Only add vertical offset if there are actual overlapping phases
+                    topOffset = 2 + (stackLevel * 18);
+                }
                 
                 // Add visual indicator for continuous bars
                 const continuousClass = phase.isContinuous ? 'continuous-bar' : '';
@@ -4457,7 +4524,7 @@ class CapacityManager extends BaseComponent {
                 
                 return `
                     <div class="phase-bar phase-${phase.phaseId} ${phase.overflow > 0 ? 'overflow' : ''} ${continuousClass}" 
-                         style="left: ${left}%; width: ${width}; position: absolute; top: ${topOffset + 2}px;"
+                         style="left: ${left}; width: ${width}; position: absolute; top: ${topOffset}px;"
                          title="${phase.phaseName}: ${phase.estimatedMDs} MDs${durationText} (${phase.startDate} → ${phase.endDate})${phase.overflow > 0 ? ` | Overflow: +${phase.overflow}` : ''}">
                         <span class="phase-name">${phase.phaseName.substring(0, 8)}</span>
                     </div>
