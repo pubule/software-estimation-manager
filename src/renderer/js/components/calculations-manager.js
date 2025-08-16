@@ -2290,6 +2290,7 @@ class CapacityManager extends BaseComponent {
                                 <thead>
                                     <tr>
                                         <!-- Fixed columns -->
+                                        <th class="fixed-col col-expand">Details</th>
                                         <th class="fixed-col col-member">Team Member</th>
                                         <th class="fixed-col col-actions">Actions</th>
                                         <th class="fixed-col col-total-mds">Total MDs</th>
@@ -4679,7 +4680,12 @@ class CapacityManager extends BaseComponent {
             const hasAssignment = data.assignmentId && data.assignmentId !== 'undefined';
             
             html += `
-                <tr class="allocation-member-row" data-member="${member.id}" data-project-id="${data.projectId}" data-status="${this.getProjectStatus(data.projectId, data.projectName)}">
+                <tr class="allocation-member-row" data-member="${member.id}" data-project-id="${data.projectId}" data-status="${this.getProjectStatus(data.projectId, data.projectName)}" data-assignment-id="${data.assignmentId || ''}">
+                    <td class="fixed-col col-expand">
+                        <button class="expand-details-btn" data-member-id="${member.id}" data-project-id="${data.projectId}" data-assignment-id="${data.assignmentId || ''}" title="Show/Hide Phase Details">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </td>
                     <td class="fixed-col col-member">
                         <div class="member-info">
                             <span class="member-name">${memberName}</span>
@@ -4989,6 +4995,18 @@ class CapacityManager extends BaseComponent {
         this._allocationActionsHandler = async (e) => {
             // Prevent event bubbling to avoid multiple triggers
             e.stopPropagation();
+            
+            // Expand/collapse details buttons
+            if (e.target.closest('.expand-details-btn')) {
+                e.preventDefault();
+                const btn = e.target.closest('.expand-details-btn');
+                const memberId = btn.dataset.memberId;
+                const projectId = btn.dataset.projectId;
+                const assignmentId = btn.dataset.assignmentId;
+                console.log(`Expand details clicked for member: ${memberId}, project: ${projectId}, assignment: ${assignmentId}`);
+                await this.toggleAllocationDetails(memberId, projectId, assignmentId);
+                return;
+            }
             
             // Edit assignment buttons (both -assignment-btn and -allocation-btn)
             if (e.target.closest('.edit-assignment-btn') || e.target.closest('.edit-allocation-btn')) {
@@ -8894,6 +8912,219 @@ class CapacityManager extends BaseComponent {
         
         // Open modal in edit mode with the assignment data
         await this.showAddAssignmentModal('edit', assignment);
+    }
+
+    /**
+     * Toggle phase details for an allocation row
+     */
+    async toggleAllocationDetails(memberId, projectId, assignmentId) {
+        try {
+            // Find the allocation row
+            const allocationRow = document.querySelector(`#allocations-table .allocation-member-row[data-member="${memberId}"][data-project-id="${projectId}"]`);
+            if (!allocationRow) {
+                console.error('Allocation row not found');
+                return;
+            }
+
+            // Check if details row already exists
+            const existingDetailsRow = allocationRow.nextElementSibling;
+            const isExpanded = existingDetailsRow && existingDetailsRow.classList.contains('allocation-details-row');
+            
+            const expandBtn = allocationRow.querySelector('.expand-details-btn i');
+            
+            if (isExpanded) {
+                // Collapse: remove details row
+                existingDetailsRow.remove();
+                expandBtn.className = 'fas fa-chevron-right';
+                console.log('Collapsed allocation details');
+            } else {
+                // Expand: create and insert details row
+                const detailsRow = await this.createAllocationDetailsRow(memberId, projectId, assignmentId);
+                if (detailsRow) {
+                    allocationRow.insertAdjacentElement('afterend', detailsRow);
+                    expandBtn.className = 'fas fa-chevron-down';
+                    console.log('Expanded allocation details');
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling allocation details:', error);
+        }
+    }
+
+    /**
+     * Create detailed phase breakdown row
+     */
+    async createAllocationDetailsRow(memberId, projectId, assignmentId) {
+        try {
+            // Get assignment data
+            const assignment = this.manualAssignments.find(a => a.id === assignmentId);
+            if (!assignment) {
+                console.error('Assignment not found:', assignmentId);
+                return null;
+            }
+
+            // Get project name for display
+            const projectName = this.getProjectNameById(assignment.projectId) || 'Unknown Project';
+
+            // Calculate phase breakdown using assignment data
+            const phaseBreakdown = await this.calculatePhaseBreakdown(assignment);
+            
+            // Generate details table HTML
+            const detailsHTML = this.generatePhaseDetailsTable(phaseBreakdown);
+            
+            // Create the row element
+            const detailsRow = document.createElement('tr');
+            detailsRow.className = 'allocation-details-row';
+            detailsRow.innerHTML = `
+                <td colspan="100%" class="details-cell">
+                    <div class="phase-details-container">
+                        <h4>Phase Breakdown for ${projectName}</h4>
+                        ${detailsHTML}
+                    </div>
+                </td>
+            `;
+            
+            return detailsRow;
+        } catch (error) {
+            console.error('Error creating allocation details row:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Calculate phase breakdown for an assignment
+     */
+    async calculatePhaseBreakdown(assignment) {
+        try {
+            // Get phase schedule from assignment
+            const phaseSchedule = assignment.phaseSchedule || [];
+            if (phaseSchedule.length === 0) {
+                console.warn('No phase schedule found in assignment');
+                return [];
+            }
+
+            // Get timeline months for alignment
+            const timelineMonths = this.generateTimelineMonths();
+            
+            const breakdown = [];
+            
+            for (const phase of phaseSchedule) {
+                const phaseData = {
+                    phaseName: phase.phaseName,
+                    phaseId: phase.phaseId,
+                    startDate: phase.startDate,
+                    endDate: phase.endDate,
+                    totalMDs: phase.estimatedMDs,
+                    monthlyAllocations: {}
+                };
+
+                // Calculate monthly allocation for this phase from assignment allocations
+                if (assignment.allocations) {
+                    for (const [month, allocation] of Object.entries(assignment.allocations)) {
+                        // Skip metadata fields
+                        if (['hasOverflow', 'overflowAmount', 'hasUnallocatedMDs', 'unallocatedAmount', 'error'].includes(month)) {
+                            continue;
+                        }
+
+                        // Check if this month falls within the phase date range
+                        const monthDate = new Date(month + '-01');
+                        const phaseStart = new Date(phase.startDate);
+                        const phaseEnd = new Date(phase.endDate);
+                        
+                        // Set to first day of month for comparison
+                        const phaseStartMonth = new Date(phaseStart.getFullYear(), phaseStart.getMonth(), 1);
+                        const phaseEndMonth = new Date(phaseEnd.getFullYear(), phaseEnd.getMonth(), 1);
+                        
+                        if (monthDate >= phaseStartMonth && monthDate <= phaseEndMonth) {
+                            // This is a simplified allocation - in a real implementation, 
+                            // you would need to calculate the precise allocation for this phase in this month
+                            // For now, we'll show the total allocation for the month
+                            phaseData.monthlyAllocations[month] = allocation.planned || allocation.actual || 0;
+                        }
+                    }
+                }
+                
+                breakdown.push(phaseData);
+            }
+
+            return breakdown;
+        } catch (error) {
+            console.error('Error calculating phase breakdown:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Generate HTML table for phase details
+     */
+    generatePhaseDetailsTable(phaseBreakdown) {
+        if (!phaseBreakdown || phaseBreakdown.length === 0) {
+            return '<p class="no-phases">No phase data available</p>';
+        }
+
+        // Get timeline months for column headers
+        const timelineMonths = this.generateTimelineMonths();
+        
+        // Generate month headers that align with main table
+        const monthHeaders = timelineMonths.map(monthKey => {
+            const [year, month] = monthKey.split('-');
+            const monthName = new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short' });
+            return `<th class="month-col">${monthName}</th>`;
+        }).join('');
+
+        // Generate phase rows
+        const phaseRows = phaseBreakdown.map(phase => {
+            const monthCells = timelineMonths.map(monthKey => {
+                const isoMonthKey = this.convertTimelineToISOMonth ? this.convertTimelineToISOMonth(monthKey) : monthKey;
+                const allocation = phase.monthlyAllocations[isoMonthKey];
+                
+                if (allocation && allocation > 0) {
+                    return `<td class="month-col phase-allocation">${allocation.toFixed(1)}</td>`;
+                } else {
+                    return `<td class="month-col phase-allocation empty">-</td>`;
+                }
+            }).join('');
+
+            return `
+                <tr class="phase-detail-row">
+                    <td class="phase-name">${phase.phaseName}</td>
+                    <td class="phase-dates">${this.formatDateRange(phase.startDate, phase.endDate)}</td>
+                    <td class="phase-total">${phase.totalMDs} MD</td>
+                    ${monthCells}
+                </tr>
+            `;
+        }).join('');
+
+        return `
+            <table class="phase-details-table">
+                <thead>
+                    <tr>
+                        <th class="fixed-col-detail col-phase-name">Phase</th>
+                        <th class="fixed-col-detail col-phase-dates">Date Range</th>
+                        <th class="fixed-col-detail col-phase-total">Total MDs</th>
+                        ${monthHeaders}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${phaseRows}
+                </tbody>
+            </table>
+        `;
+    }
+
+    /**
+     * Format date range for display
+     */
+    formatDateRange(startDate, endDate) {
+        try {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const startStr = start.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+            const endStr = end.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+            return `${startStr} - ${endStr}`;
+        } catch (error) {
+            return `${startDate} - ${endDate}`;
+        }
     }
 
     /**
