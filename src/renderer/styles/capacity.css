@@ -3760,6 +3760,16 @@
     background: #2d2d30;
 }
 
+.team-allocations-table .col-total-mds {
+    width: 120px;
+    min-width: 120px;
+    position: sticky;
+    left: 399px; /* CRITICAL: Must match gantt table for synchronized scrolling */
+    z-index: 21;
+    background: #2d2d30;
+    text-align: center;
+}
+
 /* Fixed columns in tbody */
 .gantt-phases-table tbody .fixed-col,
 .team-allocations-table tbody .fixed-col {
@@ -3804,6 +3814,10 @@
 
 .team-allocations-table tbody .col-actions {
     left: 250px;
+}
+
+.team-allocations-table tbody .col-total-mds {
+    left: 399px; /* CRITICAL: Must match gantt table (399px) for synchronized scrolling */
 }
 
 /* Gantt Project Row */
