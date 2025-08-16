@@ -3930,11 +3930,47 @@ class CapacityManager extends BaseComponent {
         const projectsArray = Array.from(projectsMap.values());
         
         projectsArray.forEach(projectData => {
-            // Find manual assignment for this project
-            const projectObj = this.getProjectByName(projectData.name);
-            projectData.assignment = this.manualAssignments?.find(a => 
-                a.projectId === (projectObj?.id || projectData.name)
-            );
+            // Find manual assignment for this project using multiple matching strategies
+            if (this.manualAssignments?.length > 0) {
+                // Strategy 1: Find by project name directly
+                projectData.assignment = this.manualAssignments.find(a => {
+                    // Get project info by ID
+                    const projectObj = this.getProjectNameById(a.projectId);
+                    return projectObj === projectData.name;
+                });
+                
+                // Strategy 2: If not found, try by project object lookup
+                if (!projectData.assignment) {
+                    const projectObj = this.getProjectByName(projectData.name);
+                    if (projectObj) {
+                        projectData.assignment = this.manualAssignments.find(a => 
+                            a.projectId === projectObj.id
+                        );
+                    }
+                }
+                
+                // Strategy 3: If still not found, try fuzzy matching
+                if (!projectData.assignment) {
+                    projectData.assignment = this.manualAssignments.find(a => {
+                        // Check if assignment has project data embedded
+                        return a.projectName === projectData.name || 
+                               a.projectId === projectData.name;
+                    });
+                }
+                
+                // Debug logging for troubleshooting
+                if (projectData.assignment) {
+                    console.log(`✓ Found assignment for project "${projectData.name}":`, {
+                        assignmentId: projectData.assignment.id,
+                        projectId: projectData.assignment.projectId,
+                        phasesCount: projectData.assignment.phaseSchedule?.length || 0
+                    });
+                } else {
+                    console.warn(`✗ No assignment found for project "${projectData.name}". Available assignments:`, 
+                        this.manualAssignments?.map(a => ({ id: a.id, projectId: a.projectId })) || []
+                    );
+                }
+            }
         });
         
         return projectsArray;
@@ -4073,26 +4109,91 @@ class CapacityManager extends BaseComponent {
     generatePhaseGanttBars(phaseSchedule, timelineMonths) {
         const ganttBars = {};
         
+        console.log('generatePhaseGanttBars input:', {
+            phaseScheduleLength: phaseSchedule.length,
+            firstPhase: phaseSchedule[0],
+            timelineMonthsLength: timelineMonths.length,
+            firstTimelineMonth: timelineMonths[0]
+        });
+        
         phaseSchedule.forEach(phase => {
+            console.log('Processing phase:', {
+                phaseName: phase.phaseName,
+                phaseId: phase.phaseId,
+                startDate: phase.startDate,
+                endDate: phase.endDate,
+                estimatedMDs: phase.estimatedMDs
+            });
+            
+            if (!phase.startDate || !phase.endDate) {
+                console.warn(`Phase ${phase.phaseName || phase.phaseId} missing start/end dates`);
+                return;
+            }
+            
             const startMonth = this.getMonthFromDate(phase.startDate);
             const endMonth = this.getMonthFromDate(phase.endDate);
-            const monthsSpanned = this.getMonthsBetween(phase.startDate, phase.endDate);
+            
+            // Use a more reliable method to generate months between dates
+            const monthsSpanned = this.generateMonthsBetweenDates(phase.startDate, phase.endDate);
+            
+            console.log(`Phase ${phase.phaseName}: ${startMonth} to ${endMonth}, spans:`, monthsSpanned);
             
             monthsSpanned.forEach(month => {
                 if (!ganttBars[month]) ganttBars[month] = [];
                 
                 ganttBars[month].push({
-                    phaseName: phase.phaseName,
-                    phaseId: phase.phaseId,
-                    estimatedMDs: phase.estimatedMDs,
-                    overflow: phase.overflow,
+                    phaseName: phase.phaseName || `Phase ${phase.phaseId}`,
+                    phaseId: phase.phaseId || 'unknown',
+                    estimatedMDs: phase.estimatedMDs || 0,
+                    overflow: phase.overflow || 0,
                     isStart: month === startMonth,
                     isEnd: month === endMonth
                 });
             });
         });
         
+        console.log('Final gantt bars:', ganttBars);
         return ganttBars;
+    }
+
+    
+    /**
+     * Generate months between two dates - dedicated method for phase timeline
+     */
+    generateMonthsBetweenDates(startDate, endDate) {
+        const months = [];
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        // Ensure we have valid dates
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            console.warn('Invalid dates provided:', { startDate, endDate });
+            return months;
+        }
+        
+        // Start from the beginning of the start month
+        const current = new Date(start.getFullYear(), start.getMonth(), 1);
+        
+        // Continue until we've passed the end date's month
+        while (current.getFullYear() < end.getFullYear() || 
+               (current.getFullYear() === end.getFullYear() && current.getMonth() <= end.getMonth())) {
+            
+            const year = current.getFullYear();
+            const month = String(current.getMonth() + 1).padStart(2, '0');
+            const monthString = `${year}-${month}`;
+            months.push(monthString);
+            
+            // Move to next month
+            current.setMonth(current.getMonth() + 1);
+            
+            // Safety check to prevent infinite loops
+            if (months.length > 24) {
+                console.warn('Month generation exceeded 24 months, breaking loop');
+                break;
+            }
+        }
+        
+        return months;
     }
 
     /**
@@ -4208,10 +4309,38 @@ class CapacityManager extends BaseComponent {
         
         projectsData.forEach(projectData => {
             const assignment = projectData.assignment;
-            const phasesInfo = assignment?.phaseSchedule ? 
-                Object.keys(assignment.phaseSchedule).map(phase => 
-                    this.getPhaseDisplayName(phase)
-                ).join(', ') : 'No phases defined';
+            
+            // Calculate phases info
+            let phasesCount = 0;
+            let phasesInfo = 'No phases defined';
+            let totalMDs = 0;
+            
+            if (assignment?.phaseSchedule && Array.isArray(assignment.phaseSchedule)) {
+                phasesCount = assignment.phaseSchedule.length;
+                phasesInfo = assignment.phaseSchedule.map(phase => 
+                    this.getPhaseDisplayName(phase.phaseName || phase.phaseId || 'Phase')
+                ).join(', ');
+                
+                // Calculate total MDs from phase schedule
+                totalMDs = assignment.phaseSchedule.reduce((sum, phase) => {
+                    return sum + (parseFloat(phase.estimatedMDs) || 0);
+                }, 0);
+            } else if (assignment?.budgetInfo?.totalFinalMDs) {
+                // Fallback to budget info if available
+                totalMDs = parseFloat(assignment.budgetInfo.totalFinalMDs) || 0;
+            }
+            
+            // Format phases info for display
+            const shortPhasesInfo = phasesCount > 0 ? 
+                assignment.phaseSchedule.map((_, index) => index).join(', ') : 
+                'No phases';
+            
+            console.log(`Project "${projectData.name}" - Assignment:`, {
+                hasAssignment: !!assignment,
+                phasesCount,
+                totalMDs,
+                phaseSchedule: assignment?.phaseSchedule?.length || 0
+            });
             
             html += `
                 <tr class="gantt-project-row" data-project="${projectData.name}">
@@ -4222,13 +4351,13 @@ class CapacityManager extends BaseComponent {
                     </td>
                     <td class="fixed-col col-phases">
                         <div class="phases-summary">
-                            <span class="phases-count">${assignment?.phaseSchedule ? Object.keys(assignment.phaseSchedule).length : 0} phases</span>
-                            <span class="phases-list" title="${phasesInfo}">${phasesInfo}</span>
+                            <span class="phases-count">${phasesCount} phases</span>
+                            <span class="phases-list" title="${phasesInfo}">${shortPhasesInfo}</span>
                         </div>
                     </td>
                     <td class="fixed-col col-total-mds">
                         <div class="total-mds-cell">
-                            <span class="total-mds-value">${assignment?.totalMDs || 0} MDs</span>
+                            <span class="total-mds-value">${totalMDs.toFixed(1)} MDs</span>
                         </div>
                     </td>
                     ${this.generateGanttCells(projectData, timelineMonths)}
@@ -4246,12 +4375,25 @@ class CapacityManager extends BaseComponent {
         const assignment = projectData.assignment;
         
         if (!assignment || !assignment.phaseSchedule) {
+            console.log(`No assignment or phaseSchedule for project "${projectData.name}"`);
             return timelineMonths.map(() => 
                 '<td class="month-col gantt-cell empty"><span class="no-phase">-</span></td>'
             ).join('');
         }
         
+        console.log(`Generating Gantt cells for project "${projectData.name}":`, {
+            phasesCount: assignment.phaseSchedule.length,
+            samplePhase: assignment.phaseSchedule[0],
+            timelineMonthsCount: timelineMonths.length,
+            sampleTimelineMonth: timelineMonths[0]
+        });
+        
         const phaseGanttBars = this.generatePhaseGanttBars(assignment.phaseSchedule, timelineMonths);
+        console.log(`Generated phase gantt bars for "${projectData.name}":`, {
+            ganttBarsKeys: Object.keys(phaseGanttBars),
+            ganttBarsCount: Object.keys(phaseGanttBars).length,
+            sampleGanttBar: Object.values(phaseGanttBars)[0]
+        });
         
         return timelineMonths.map(monthKey => {
             const isoMonthKey = this.convertTimelineToISOMonth(monthKey);
