@@ -79,6 +79,17 @@ class AutoDistribution {
 
         // Get months between start and end date
         const months = this._getMonthsBetween(startDate, endDate);
+        console.log(`DEBUG: Processing ${totalMDs} MD from ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+        console.log(`DEBUG: _getMonthsBetween returned: ${JSON.stringify(months)}`);
+        
+        if (months.length === 0) {
+            console.error(`ERROR: No months found between ${startDate.toISOString().split('T')[0]} and ${endDate.toISOString().split('T')[0]}`);
+            return {
+                hasOverflow: true,
+                overflowAmount: totalMDs
+            };
+        }
+        
         const distribution = {};
         let remainingMDs = totalMDs;
         
@@ -94,12 +105,17 @@ class AutoDistribution {
             const baseCapacity = this.workingDaysCalculator.calculateAvailableCapacity(
                 teamMember, 
                 month, 
-                monthStartDate
+                monthStartDate,
+                true // excludeExistingAllocations - we handle phase overlaps manually
             );
             
-            // Subtract existing allocations from other phases
-            const existingForMonth = existingAllocations[month] || 0;
-            const capacity = Math.max(0, baseCapacity - existingForMonth);
+            // Calculate precise temporal overlaps instead of full month allocations
+            const overlappingAllocation = this._calculateTemporalOverlap(
+                month, startDate, endDate, existingAllocations
+            );
+            const capacity = Math.max(0, baseCapacity - overlappingAllocation);
+            
+            console.log(`DEBUG: Month ${month} - baseCapacity: ${baseCapacity}, overlappingAllocation: ${overlappingAllocation}, finalCapacity: ${capacity}`);
             
             monthCapacities[month] = capacity;
             totalAvailableCapacity += capacity;
@@ -112,24 +128,22 @@ class AutoDistribution {
             };
         }
         
+        console.log(`DEBUG: Total available capacity: ${totalAvailableCapacity}, Total MDs needed: ${totalMDs}`);
+        
         // Check if total capacity is sufficient
         const hasInsufficientCapacity = totalAvailableCapacity < totalMDs;
         const overflowAmount = hasInsufficientCapacity ? totalMDs - totalAvailableCapacity : 0;
         
-        // PHASE 2: Distribute MDs proportionally to capacity
+        // PHASE 2: Distribute MDs sequentially month by month (not proportionally)
+        // This ensures better distribution when phases overlap or have partial months
         for (const month of months) {
             if (remainingMDs <= 0) break;
             
             const monthCapacity = monthCapacities[month];
             
-            if (totalAvailableCapacity > 0) {
-                // Proportional distribution based on capacity
-                const proportion = monthCapacity / totalAvailableCapacity;
-                let plannedForMonth = Math.min(
-                    Math.round(totalMDs * proportion),
-                    monthCapacity,
-                    remainingMDs
-                );
+            if (monthCapacity > 0) {
+                // Allocate as much as possible to this month up to its capacity
+                const plannedForMonth = Math.min(monthCapacity, remainingMDs);
                 
                 distribution[month].planned = plannedForMonth;
                 distribution[month].actual = plannedForMonth;
@@ -155,27 +169,23 @@ class AutoDistribution {
             }
         }
         
-        // PHASE 4: Force remaining MDs into last month if range is limited
-        if (remainingMDs > 0 && months.length > 0) {
-            const lastMonth = months[months.length - 1];
-            
-            // Force all remaining MDs into the last month
-            distribution[lastMonth].planned += remainingMDs;
-            distribution[lastMonth].actual += remainingMDs;
-            
-            remainingMDs = 0; // All MDs now distributed
+        // PHASE 4: Handle any truly remaining MDs
+        // If there are still remaining MDs, it means insufficient capacity across all months
+        // Don't force them into any month - let overflow detection handle this properly
+        if (remainingMDs > 0) {
+            console.warn(`Unable to allocate ${remainingMDs} MDs - insufficient capacity across all months in phase range`);
         }
         
         // Create result object with overflow metadata
         const result = { ...distribution };
         
-        // Calculate final overflow amount considering both scenarios:
-        // 1. Insufficient total capacity (original logic)
-        // 2. Forced allocation in last month (new PHASE 4 logic)
-        let finalOverflowAmount = 0;
-        let hasAnyOverflow = false;
+        // Calculate final overflow amount considering:
+        // 1. MDs that couldn't be allocated due to insufficient capacity
+        // 2. Any month-specific capacity overflows (should be rare with new logic)
+        let finalOverflowAmount = remainingMDs; // Start with unallocated MDs
+        let hasAnyOverflow = remainingMDs > 0;
         
-        // Check each month for overflow (especially important for last month after PHASE 4)
+        // Check each month for any capacity overflow (shouldn't happen with new logic)
         for (const month of Object.keys(distribution)) {
             const monthCapacity = monthCapacities[month] || 0;
             const monthAllocation = distribution[month].planned || 0;
@@ -184,6 +194,7 @@ class AutoDistribution {
             if (monthOverflow > 0) {
                 finalOverflowAmount += monthOverflow;
                 hasAnyOverflow = true;
+                console.warn(`Unexpected month overflow in ${month}: ${monthOverflow} MDs over capacity`);
             }
         }
         
@@ -209,7 +220,7 @@ class AutoDistribution {
         // Get available capacity (accounts for existing allocations)
         let maxCapacity;
         try {
-            maxCapacity = this.workingDaysCalculator.calculateAvailableCapacity(teamMember, month);
+            maxCapacity = this.workingDaysCalculator.calculateAvailableCapacity(teamMember, month, null, false);
             
             // Add back current allocation to get total capacity
             const existingAllocation = this._getExistingAllocations(teamMemberId, month);
@@ -341,7 +352,7 @@ class AutoDistribution {
             const monthString = `${sampleDate.getFullYear()}-${String(sampleDate.getMonth() + 1).padStart(2, '0')}`;
             
             try {
-                const capacity = this.workingDaysCalculator.calculateAvailableCapacity(teamMember, monthString);
+                const capacity = this.workingDaysCalculator.calculateAvailableCapacity(teamMember, monthString, null, false);
                 totalCapacity += capacity;
             } catch (error) {
                 // Fallback to team member's default monthly capacity
@@ -353,26 +364,26 @@ class AutoDistribution {
     }
 
     /**
-     * Get months between start and end date (exclusive of end date)
+     * Get months between start and end date (inclusive of end date month if end date > 1st of month)
      * @private
      * @param {Date} startDate Start date (inclusive)
-     * @param {Date} endDate End date (exclusive)
+     * @param {Date} endDate End date (inclusive if not on 1st day of month)
      * @returns {Array} Array of month strings in YYYY-MM format
      */
     _getMonthsBetween(startDate, endDate) {
         const months = [];
         const current = new Date(startDate);
 
-        // Continue while current month is before end date month
-        while (current < endDate) {
+        // Continue while current month is before or equal to end date month
+        while (current <= endDate) {
             const monthString = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
             months.push(monthString);
+            
+            // Move to next month
             current.setMonth(current.getMonth() + 1);
             
-            // Stop if we've reached the end month (avoid including end month)
-            const endMonth = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
-            const currentMonth = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
-            if (currentMonth === endMonth) {
+            // If we've moved beyond the end date, stop
+            if (current > endDate) {
                 break;
             }
         }
@@ -407,7 +418,7 @@ class AutoDistribution {
             const newAllocation = currentAllocation + additionalMDs;
 
             // Check if this would exceed capacity
-            const availableCapacity = this.workingDaysCalculator.calculateAvailableCapacity(teamMember, month);
+            const availableCapacity = this.workingDaysCalculator.calculateAvailableCapacity(teamMember, month, null, false);
             
             if (newAllocation > availableCapacity) {
                 // Allocate up to capacity, track overflow
@@ -480,7 +491,7 @@ class AutoDistribution {
             const currentAllocation = allocations[month]?.planned || 0;
             
             try {
-                const availableCapacity = this.workingDaysCalculator.calculateAvailableCapacity(teamMember, month);
+                const availableCapacity = this.workingDaysCalculator.calculateAvailableCapacity(teamMember, month, null, false);
                 const canAdd = Math.max(0, availableCapacity - currentAllocation);
                 const toAdd = Math.min(remaining, canAdd);
 
@@ -496,33 +507,16 @@ class AutoDistribution {
                 }
             } catch (error) {
                 console.warn(`Error calculating capacity for ${month}:`, error);
-                // If capacity calculation fails, try to add some anyway (fallback)
-                const fallbackAdd = Math.min(remaining, 5); // Add max 5 MDs as fallback
-                if (fallbackAdd > 0) {
-                    if (!allocations[month]) {
-                        allocations[month] = { planned: 0, actual: 0, locked: false };
-                    }
-                    allocations[month].planned += fallbackAdd;
-                    allocations[month].actual = allocations[month].planned;
-                    remaining -= fallbackAdd;
-                }
+                // No fallback - respect capacity calculation failures
+                // This prevents incorrect allocations when capacity cannot be determined
             }
         }
         
         console.log(`_redistributeExcessToFuture: ${remaining} MDs still remaining after redistribution`);
         
-        // PHASE 4: If there are still remaining MDs and we have future months, force them into the last month
-        if (remaining > 0 && futureMonths.length > 0) {
-            const lastMonth = futureMonths[futureMonths.length - 1];
-            console.log(`Forcing ${remaining} remaining MDs into last month: ${lastMonth}`);
-            
-            if (!allocations[lastMonth]) {
-                allocations[lastMonth] = { planned: 0, actual: 0, locked: false };
-            }
-            allocations[lastMonth].planned += remaining;
-            allocations[lastMonth].actual += remaining;
-            
-            console.log(`Last month ${lastMonth} now has ${allocations[lastMonth].planned} MDs (may cause overflow)`);
+        // No forcing of remaining MDs - respect capacity constraints
+        if (remaining > 0) {
+            console.warn(`Could not redistribute ${remaining} MDs due to capacity constraints in future months`);
         }
     }
 
@@ -554,6 +548,82 @@ class AutoDistribution {
         }
 
         return remaining; // Return unallocated amount
+    }
+
+    /**
+     * Calculate temporal overlap between current phase and existing allocations for a specific month
+     * @private
+     * @param {string} month Month in YYYY-MM format
+     * @param {Date} currentPhaseStart Current phase start date
+     * @param {Date} currentPhaseEnd Current phase end date
+     * @param {Object} existingAllocations Existing allocations with phase date ranges
+     * @returns {number} Overlapping allocation in MDs
+     */
+    _calculateTemporalOverlap(month, currentPhaseStart, currentPhaseEnd, existingAllocations) {
+        let totalOverlap = 0;
+        
+        // Parse month to get month boundaries
+        const [year, monthNum] = month.split('-').map(Number);
+        const monthStart = new Date(year, monthNum - 1, 1);
+        const monthEnd = new Date(year, monthNum, 0);
+        
+        // Check existing allocations for this month
+        const monthAllocations = existingAllocations[month];
+        if (!monthAllocations) {
+            console.log(`DEBUG: No existing allocations for ${month}`);
+            return 0;
+        }
+        
+        // Handle legacy format (number) for backward compatibility
+        if (typeof monthAllocations === 'number') {
+            console.log(`DEBUG: Legacy format - assuming full month overlap: ${monthAllocations} MDs`);
+            return monthAllocations;
+        }
+        
+        // New format: array of phase allocations with date ranges
+        if (Array.isArray(monthAllocations)) {
+            for (const allocation of monthAllocations) {
+                const existingStart = new Date(allocation.startDate);
+                const existingEnd = new Date(allocation.endDate);
+                
+                // Calculate the overlap period between current phase and existing phase within this month
+                const overlapStart = new Date(Math.max(
+                    Math.max(currentPhaseStart.getTime(), existingStart.getTime()),
+                    monthStart.getTime()
+                ));
+                const overlapEnd = new Date(Math.min(
+                    Math.min(currentPhaseEnd.getTime(), existingEnd.getTime()),
+                    monthEnd.getTime()
+                ));
+                
+                // Check if there's actual overlap
+                if (overlapStart <= overlapEnd) {
+                    // Calculate overlap in working days using working days calculator
+                    const overlapDays = this.workingDaysCalculator.calculateWorkingDaysBetween(
+                        overlapStart, overlapEnd
+                    );
+                    
+                    // For simplicity, assume proportional allocation within the month
+                    // This could be improved with more sophisticated calculations
+                    const existingPhaseDaysInMonth = this.workingDaysCalculator.calculateWorkingDaysBetween(
+                        new Date(Math.max(existingStart.getTime(), monthStart.getTime())),
+                        new Date(Math.min(existingEnd.getTime(), monthEnd.getTime()))
+                    );
+                    
+                    if (existingPhaseDaysInMonth > 0) {
+                        const proportionalOverlap = (overlapDays / existingPhaseDaysInMonth) * allocation.allocatedMDs;
+                        totalOverlap += proportionalOverlap;
+                        
+                        console.log(`DEBUG: Phase ${allocation.phaseName} overlap in ${month}: ${overlapDays} days, ${proportionalOverlap.toFixed(1)} MDs`);
+                    }
+                } else {
+                    console.log(`DEBUG: No temporal overlap with phase ${allocation.phaseName} in ${month}`);
+                }
+            }
+        }
+        
+        console.log(`DEBUG: Total temporal overlap for ${month}: ${totalOverlap.toFixed(1)} MDs`);
+        return totalOverlap;
     }
 }
 

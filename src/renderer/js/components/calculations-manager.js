@@ -4757,7 +4757,7 @@ class CapacityManager extends BaseComponent {
             const isoMonth = this.convertTimelineToISOMonth(monthKey);
             try {
                 const monthCapacity = this.workingDaysCalculator ? 
-                    this.workingDaysCalculator.calculateAvailableCapacity(member, isoMonth) : 22;
+                    this.workingDaysCalculator.calculateAvailableCapacity(member, isoMonth, null, false) : 22;
                 capacityByMonth[isoMonth] = Math.round(monthCapacity * 10) / 10;
                 totalCapacity += monthCapacity;
             } catch (error) {
@@ -7280,20 +7280,12 @@ class CapacityManager extends BaseComponent {
      * Calculate working days between two dates
      */
     calculateWorkingDaysBetween(startDate, endDate) {
-        let workingDays = 0;
-        const currentDate = new Date(startDate);
-        
-        // Use <= to include the end date in the calculation (fixed: was < endDate)
-        while (currentDate <= endDate) {
-            const dayOfWeek = currentDate.getDay();
-            // Count Monday-Friday (1-5) as working days
-            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-                workingDays++;
-            }
-            currentDate.setDate(currentDate.getDate() + 1);
+        // Use unified calculation with holidays through WorkingDaysCalculator
+        if (!this.workingDaysCalculator) {
+            throw new Error('WorkingDaysCalculator not initialized - required for unified holiday calculations');
         }
         
-        return workingDays;
+        return this.workingDaysCalculator.calculateWorkingDaysBetween(startDate, endDate);
     }
     
     /**
@@ -8122,12 +8114,24 @@ class CapacityManager extends BaseComponent {
                     // Merge phase distribution into final allocations
                     this.mergePhaseDistribution(allocations, phaseDistribution, phase, projectName);
                     
-                    // Update existing allocations for next phase
+                    // Update existing allocations for next phase with temporal information
                     Object.keys(phaseDistribution).forEach(month => {
                         if (!['hasOverflow', 'overflowAmount'].includes(month)) {
                             const allocation = phaseDistribution[month];
                             if (allocation && allocation.planned > 0) {
-                                existingAllocations[month] = (existingAllocations[month] || 0) + allocation.planned;
+                                // Initialize month array if not exists
+                                if (!existingAllocations[month]) {
+                                    existingAllocations[month] = [];
+                                }
+                                
+                                // Add allocation with phase temporal info
+                                existingAllocations[month].push({
+                                    phaseId: phase.phaseId,
+                                    phaseName: phase.phaseName,
+                                    startDate: phase.startDate,
+                                    endDate: phase.endDate,
+                                    allocatedMDs: allocation.planned
+                                });
                             }
                         }
                     });
