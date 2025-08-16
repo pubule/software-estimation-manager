@@ -3245,7 +3245,7 @@
     position: relative;
     overflow: hidden;
     cursor: pointer;
-    transition: all 0.2s ease;
+    /* transition: all 0.2s ease; - REMOVED: causes flickering with continuous bars */
 }
 
 /* Positioned Phase Bars - for precise timeline positioning */
@@ -3275,10 +3275,12 @@
     max-width: 100%;
 }
 
+/* REMOVED hover transform to prevent flickering with continuous bars */
 .phase-bar:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    z-index: 20; /* Bring hovered bar to front */
+    /* transform: translateY(-1px); - REMOVED: causes flickering with continuous bars */
+    /* box-shadow: 0 2px 4px rgba(0,0,0,0.3); - REMOVED: causes flickering */
+    z-index: 20; /* Keep z-index to bring hovered bar to front */
+    cursor: pointer; /* Keep cursor change for UX */
 }
 
 /* Phase Colors */
@@ -3544,27 +3546,13 @@
     background: #2a2a2a;
 }
 
+/* REMOVED brightness filter to prevent flickering with continuous bars */
 .gantt-cell:hover .phase-bars {
-    filter: brightness(1.1);
+    /* filter: brightness(1.1); - REMOVED: causes flickering with continuous phase bars */
 }
 
-/* Phase Bar Tooltip Enhancement */
-.phase-bar[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    top: -30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1e1e1e;
-    color: #ffffff;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    white-space: nowrap;
-    z-index: 1000;
-    border: 1px solid #333333;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
+/* Phase Bar Tooltip Enhancement - REMOVED to prevent flickering */
+/* Using native HTML title attribute instead of CSS ::after tooltip for better performance */
 
 /* =====================================================
    RESPONSIVE ADJUSTMENTS FOR GANTT
