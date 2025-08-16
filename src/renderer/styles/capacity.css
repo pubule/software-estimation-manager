@@ -3694,14 +3694,18 @@
 }
 
 /* 
-Z-INDEX LAYERING HIERARCHY (from top to bottom):
-- Headers (thead, th): z-index 35 - Always on top during vertical scroll
-- Sticky columns (fixed-col): z-index 25 - Below headers, above phase bars
-- Continuous phase bars: z-index 22 - Span multiple months
-- Normal phase bars: z-index 20 - Project timeline visualization
+Z-INDEX LAYERING HIERARCHY FOR CAPACITY TIMELINE TABLES (from top to bottom):
+- Sticky headers only (th.fixed-col, th.col-*): z-index 35 - Always on top during scroll
+- Sticky columns (td.fixed-col): z-index 25 - Below sticky headers, above phase bars
+- Continuous phase bars: z-index 22 - Span multiple months, below sticky columns
+- Normal phase bars: z-index 20 - Project timeline visualization, below sticky columns  
 - Normal cells (non-gantt, non-fixed): z-index 10 - Above pseudo-elements, below phase bars
-- Gantt cells (.gantt-cell): no z-index - Natural layering for phase bars container
+- Month headers/cells (th.month-col, td.month-col): z-index 5 - Scroll UNDER sticky columns
+- Gantt cells (.gantt-cell): no z-index - Natural layering preserves phase bars priority
 - Pseudo-element borders (::after): z-index 1 - Bottom layer for visual borders
+
+CRITICAL: Month columns scroll UNDER sticky columns during horizontal scroll.
+Sticky columns stay on top to maintain table structure integrity.
 */
 
 /* Gantt Phases Table */
@@ -3760,7 +3764,26 @@ Z-INDEX LAYERING HIERARCHY (from top to bottom):
     border: none; /* Remove default borders */
     border-bottom: 2px solid #007acc; /* Keep existing blue bottom border for headers */
     position: relative; /* Enable pseudo-element positioning */
-    z-index: 35; /* Match thead z-index for consistent header layering */
+    /* z-index removed - will be applied specifically to sticky headers only */
+}
+
+/* Only sticky column headers get high z-index */
+.gantt-phases-table th.fixed-col,
+.gantt-phases-table th.col-project-name,
+.gantt-phases-table th.col-phases, 
+.gantt-phases-table th.col-total-mds {
+    z-index: 35; /* High z-index only for sticky headers */
+}
+
+/* Month headers and cells scroll UNDER sticky columns during horizontal scroll */
+.gantt-phases-table th.month-col,
+.gantt-phases-table td.month-col:not(.gantt-cell) {
+    z-index: 5; /* Low z-index to ensure they scroll under sticky columns */
+}
+
+/* Gantt cells with month-col class keep natural layering for phase bars */
+.gantt-phases-table td.month-col.gantt-cell {
+    /* No z-index - preserves phase bars z-index (20-22) which are higher than sticky columns */
 }
 
 .gantt-phases-table th::after {
@@ -3880,7 +3903,21 @@ Z-INDEX LAYERING HIERARCHY (from top to bottom):
     border: none; /* Remove default borders */
     border-bottom: 2px solid #007acc; /* Keep existing blue bottom border for headers */
     position: relative; /* Enable pseudo-element positioning */
-    z-index: 35; /* Match thead z-index for consistent header layering */
+    /* z-index removed - will be applied specifically to sticky headers only */
+}
+
+/* Only sticky column headers get high z-index */
+.team-allocations-table th.fixed-col,
+.team-allocations-table th.col-member,
+.team-allocations-table th.col-actions,
+.team-allocations-table th.col-total-mds {
+    z-index: 35; /* High z-index only for sticky headers */
+}
+
+/* Month headers and cells scroll UNDER sticky columns during horizontal scroll */
+.team-allocations-table th.month-col,
+.team-allocations-table td.month-col {
+    z-index: 5; /* Low z-index to ensure they scroll under sticky columns */
 }
 
 .team-allocations-table th::after {
