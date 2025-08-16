@@ -2140,6 +2140,13 @@ class CapacityManager extends BaseComponent {
         }
 
         try {
+            // Save current gantt panel state before regenerating HTML
+            let ganttPanelExpanded = false;
+            const existingGanttPanel = document.querySelector('.gantt-panel');
+            if (existingGanttPanel) {
+                ganttPanelExpanded = !existingGanttPanel.classList.contains('collapsed');
+            }
+
             // Show loading state
             container.innerHTML = `
                 <div class="loading-message">
@@ -2154,6 +2161,15 @@ class CapacityManager extends BaseComponent {
             // Generate only the timeline section
             const timelineHTML = this.generateCapacityTimelineHTML();
             container.innerHTML = timelineHTML;
+            
+            // Restore gantt panel state after HTML regeneration
+            const newGanttPanel = document.querySelector('.gantt-panel');
+            const toggleBtn = document.getElementById('toggle-gantt-panel');
+            if (newGanttPanel && toggleBtn && ganttPanelExpanded) {
+                newGanttPanel.classList.remove('collapsed');
+                const icon = toggleBtn.querySelector('i');
+                if (icon) icon.className = 'fas fa-chevron-up';
+            }
             
             // Initialize timeline-specific event listeners
             this.initializeTimelineEventListeners();
@@ -2409,6 +2425,44 @@ class CapacityManager extends BaseComponent {
             createFirstRowBtn.addEventListener('click', () => this.showAddAssignmentModal());
         }
 
+        // Handle panel collapse/expand for gantt panel
+        this.initializeGanttPanelToggle();
+    }
+
+    /**
+     * Initialize gantt panel toggle functionality
+     */
+    initializeGanttPanelToggle() {
+        // Remove existing listener to prevent duplicates
+        if (this._ganttPanelToggleHandler) {
+            document.removeEventListener('click', this._ganttPanelToggleHandler);
+        }
+
+        // Create the handler function
+        this._ganttPanelToggleHandler = (e) => {
+            if (e.target.id === 'toggle-gantt-panel' || e.target.closest('#toggle-gantt-panel')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const toggleBtn = document.getElementById('toggle-gantt-panel');
+                const ganttPanel = document.querySelector('.gantt-panel');
+                
+                if (!ganttPanel) return;
+                
+                if (ganttPanel.classList.contains('collapsed')) {
+                    ganttPanel.classList.remove('collapsed');
+                    const icon = toggleBtn?.querySelector('i');
+                    if (icon) icon.className = 'fas fa-chevron-up';
+                } else {
+                    ganttPanel.classList.add('collapsed');
+                    const icon = toggleBtn?.querySelector('i');
+                    if (icon) icon.className = 'fas fa-chevron-down';
+                }
+            }
+        };
+
+        // Add the event listener
+        document.addEventListener('click', this._ganttPanelToggleHandler);
     }
 
     /**
@@ -4641,29 +4695,6 @@ class CapacityManager extends BaseComponent {
                 }
             });
         }
-        
-        // Handle panel collapse/expand using event delegation
-        document.addEventListener('click', (e) => {
-            if (e.target.id === 'toggle-gantt-panel' || e.target.closest('#toggle-gantt-panel')) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const toggleBtn = document.getElementById('toggle-gantt-panel');
-                const ganttPanel = document.querySelector('.gantt-panel');
-                
-                if (!ganttPanel) return;
-                
-                if (ganttPanel.classList.contains('collapsed')) {
-                    ganttPanel.classList.remove('collapsed');
-                    const icon = toggleBtn?.querySelector('i');
-                    if (icon) icon.className = 'fas fa-chevron-up';
-                } else {
-                    ganttPanel.classList.add('collapsed');
-                    const icon = toggleBtn?.querySelector('i');
-                    if (icon) icon.className = 'fas fa-chevron-down';
-                }
-            }
-        });
     }
 
     /**
@@ -8465,6 +8496,12 @@ class CapacityManager extends BaseComponent {
         if (this._ganttExpansionHandler) {
             document.removeEventListener('click', this._ganttExpansionHandler);
             this._ganttExpansionHandler = null;
+        }
+        
+        // Remove gantt panel toggle handler
+        if (this._ganttPanelToggleHandler) {
+            document.removeEventListener('click', this._ganttPanelToggleHandler);
+            this._ganttPanelToggleHandler = null;
         }
         
         // Clear any pending timers
