@@ -9004,7 +9004,7 @@ class CapacityManager extends BaseComponent {
             }
 
             // Get timeline months for alignment
-            const timelineMonths = this.generateTimelineMonths();
+            const timelineMonths = this.getTimelineMonthKeys();
             
             const breakdown = [];
             
@@ -9063,7 +9063,7 @@ class CapacityManager extends BaseComponent {
         }
 
         // Get timeline months for column headers
-        const timelineMonths = this.generateTimelineMonths();
+        const timelineMonths = this.getTimelineMonthKeys();
         
         // Generate month headers that align with main table
         const monthHeaders = timelineMonths.map(monthKey => {
@@ -9075,8 +9075,8 @@ class CapacityManager extends BaseComponent {
         // Generate phase rows
         const phaseRows = phaseBreakdown.map(phase => {
             const monthCells = timelineMonths.map(monthKey => {
-                const isoMonthKey = this.convertTimelineToISOMonth ? this.convertTimelineToISOMonth(monthKey) : monthKey;
-                const allocation = phase.monthlyAllocations[isoMonthKey];
+                // monthKey is already in YYYY-MM format
+                const allocation = phase.monthlyAllocations[monthKey];
                 
                 if (allocation && allocation > 0) {
                     return `<td class="month-col phase-allocation">${allocation.toFixed(1)}</td>`;
