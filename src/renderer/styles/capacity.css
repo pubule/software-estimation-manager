@@ -3200,6 +3200,7 @@
     vertical-align: middle;
     padding: 4px;
     min-height: 48px;
+    overflow: visible; /* CRITICAL: Allow continuous phase bars to extend beyond cell boundaries */
 }
 
 .gantt-cell.simple {
@@ -3227,7 +3228,7 @@
     width: 100%;
     display: block; /* Override flex for absolute positioning */
     min-height: 20px;
-    overflow: visible; /* Allow phases to extend beyond container if needed */
+    overflow: visible; /* CRITICAL: Allow continuous bars to extend beyond cell boundaries */
 }
 
 /* Individual Phase Bar */
@@ -3256,6 +3257,13 @@
     white-space: nowrap;
     z-index: 10;
     border: 1px solid rgba(0,0,0,0.2); /* Subtle border for better definition */
+}
+
+/* Continuous Phase Bars - span multiple months */
+.positioned-bars .phase-bar.continuous-bar {
+    z-index: 15; /* Higher z-index for continuous bars */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3); /* Enhanced shadow for depth */
+    border: 1px solid rgba(0,0,0,0.4); /* Stronger border for visibility */
 }
 
 /* Phase name text adjustments for positioned bars */
@@ -4009,6 +4017,7 @@
     width: 80px;
     min-width: 80px;
     max-width: 80px;
+    overflow: visible; /* CRITICAL: Allow continuous phase bars to extend beyond month column boundaries */
 }
 
 /* Scrollbar Styling */

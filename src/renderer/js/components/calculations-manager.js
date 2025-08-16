@@ -4160,38 +4160,56 @@ class CapacityManager extends BaseComponent {
             const endMonth = this.getMonthFromDate(phase.endDate);
             const monthsSpanned = this.generateMonthsBetweenDates(phase.startDate, phase.endDate);
             
-            monthsSpanned.forEach(month => {
-                if (!ganttBars[month]) ganttBars[month] = [];
-                
-                // Calculate precise positioning within the month
+            // Create continuous bar only in the starting month
+            if (!ganttBars[startMonth]) ganttBars[startMonth] = [];
+            
+            // Calculate precise positioning for continuous bar across all months
+            const startMonthDate = new Date(startMonth + '-01');
+            const daysInStartMonth = new Date(startMonthDate.getFullYear(), startMonthDate.getMonth() + 1, 0).getDate();
+            const startPosition = ((startDate.getDate() - 1) / daysInStartMonth) * 100;
+            
+            // Calculate total width spanning all months
+            let totalWidthPercent = 0;
+            
+            monthsSpanned.forEach((month, index) => {
                 const monthDate = new Date(month + '-01');
                 const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
                 
-                let startPosition = 0;
-                let endPosition = 100;
-                
-                if (month === startMonth) {
-                    // Calculate start position as percentage of month
-                    startPosition = ((startDate.getDate() - 1) / daysInMonth) * 100;
+                if (month === startMonth && month === endMonth) {
+                    // Phase starts and ends in same month
+                    const endPosition = (endDate.getDate() / daysInMonth) * 100;
+                    totalWidthPercent = endPosition - startPosition;
+                } else if (month === startMonth) {
+                    // First month: from start position to end of month
+                    totalWidthPercent += (100 - startPosition);
+                } else if (month === endMonth) {
+                    // Last month: from start of month to end position
+                    const endPosition = (endDate.getDate() / daysInMonth) * 100;
+                    totalWidthPercent += endPosition;
+                } else {
+                    // Middle months: full month width
+                    totalWidthPercent += 100;
                 }
-                
-                if (month === endMonth) {
-                    // Calculate end position as percentage of month
-                    endPosition = (endDate.getDate() / daysInMonth) * 100;
-                }
-                
-                ganttBars[month].push({
-                    phaseName: phase.phaseName || `Phase ${phase.phaseId}`,
-                    phaseId: phase.phaseId || 'unknown',
-                    estimatedMDs: phase.estimatedMDs || 0,
-                    overflow: phase.overflow || 0,
-                    isStart: month === startMonth,
-                    isEnd: month === endMonth,
-                    startPosition: Math.round(startPosition * 100) / 100, // Round to 2 decimals
-                    endPosition: Math.round(endPosition * 100) / 100,
-                    startDate: phase.startDate,
-                    endDate: phase.endDate
-                });
+            });
+            
+            // Calculate absolute width in pixels (each month column is 80px)
+            const monthColumnWidth = 80; // px - matches CSS .month-col width
+            const absoluteWidthPx = (totalWidthPercent / 100) * monthColumnWidth;
+            
+            ganttBars[startMonth].push({
+                phaseName: phase.phaseName || `Phase ${phase.phaseId}`,
+                phaseId: phase.phaseId || 'unknown',
+                estimatedMDs: phase.estimatedMDs || 0,
+                overflow: phase.overflow || 0,
+                isStart: true,
+                isEnd: startMonth === endMonth,
+                startPosition: Math.round(startPosition * 100) / 100,
+                totalWidthPercent: Math.round(totalWidthPercent * 100) / 100,
+                absoluteWidthPx: Math.round(absoluteWidthPx * 100) / 100,
+                monthsSpanned: monthsSpanned.length,
+                startDate: phase.startDate,
+                endDate: phase.endDate,
+                isContinuous: monthsSpanned.length > 1
             });
         });
         
@@ -4426,18 +4444,22 @@ class CapacityManager extends BaseComponent {
             }
             
             const phaseBarsHTML = monthPhases.map((phase, index) => {
-                // Calculate dynamic positioning and width for precise timeline representation
+                // For continuous bars, use absolute pixel width and percentage left position
                 const left = phase.startPosition;
-                const width = phase.endPosition - phase.startPosition;
+                const width = phase.isContinuous ? `${phase.absoluteWidthPx}px` : `${phase.totalWidthPercent}%`;
                 
                 // Stack phases vertically if multiple phases in same month
                 const topOffset = index * 18; // 18px spacing between stacked phases
                 
+                // Add visual indicator for continuous bars
+                const continuousClass = phase.isContinuous ? 'continuous-bar' : '';
+                const durationText = phase.isContinuous ? ` (${phase.monthsSpanned} months)` : '';
+                
                 return `
-                    <div class="phase-bar phase-${phase.phaseId} ${phase.overflow > 0 ? 'overflow' : ''}" 
-                         style="left: ${left}%; width: ${width}%; position: absolute; top: ${topOffset + 2}px;"
-                         title="${phase.phaseName}: ${phase.estimatedMDs} MDs (${phase.startDate} → ${phase.endDate})${phase.overflow > 0 ? ` | Overflow: +${phase.overflow}` : ''}">
-                        <span class="phase-name">${phase.phaseName.substring(0, 6)}</span>
+                    <div class="phase-bar phase-${phase.phaseId} ${phase.overflow > 0 ? 'overflow' : ''} ${continuousClass}" 
+                         style="left: ${left}%; width: ${width}; position: absolute; top: ${topOffset + 2}px;"
+                         title="${phase.phaseName}: ${phase.estimatedMDs} MDs${durationText} (${phase.startDate} → ${phase.endDate})${phase.overflow > 0 ? ` | Overflow: +${phase.overflow}` : ''}">
+                        <span class="phase-name">${phase.phaseName.substring(0, 8)}</span>
                     </div>
                 `;
             }).join('');
