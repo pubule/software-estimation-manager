@@ -5639,31 +5639,47 @@ class CapacityManager extends BaseComponent {
                 </div>
             `;
             document.body.appendChild(modal);
+            
+            // IMPORTANT: Setup event listeners ONLY when creating the modal for the first time
+            // This prevents duplicate listeners that cause multiple assignment creation
+            
+            // Setup form submission - ONLY ONCE when modal is created
+            const form = document.getElementById('assignment-form');
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                // Prevent double-clicks by disabling the submit button
+                const submitBtn = document.getElementById('submit-assignment');
+                if (submitBtn && !submitBtn.disabled) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Creating...';
+                    
+                    // Call handler and re-enable button when done
+                    this.handleAddAssignment().finally(() => {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = modal.dataset.editingAssignmentId ? 'Update Assignment' : 'Add Assignment';
+                        }
+                    });
+                }
+            });
+
+            // Setup modal close handlers - ONLY ONCE when modal is created
+            modal.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    this.resetAssignmentModal();
+                    modal.classList.remove('active');
+                });
+            });
         }
 
-        // Populate dropdowns
+        // Populate dropdowns (this can be done every time modal is shown)
         await this.populateAssignmentModalDropdowns();
         
-        // Setup event listeners for dynamic content
+        // Setup event listeners for dynamic content (this can be done every time)
         this.setupAssignmentModalEventListeners();
 
         // Show modal
         modal.classList.add('active');
-
-        // Setup form submission
-        const form = document.getElementById('assignment-form');
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleAddAssignment();
-        });
-
-        // Setup modal close handlers
-        modal.querySelectorAll('.modal-close').forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.resetAssignmentModal();
-                modal.classList.remove('active');
-            });
-        });
     }
 
     /**
@@ -6744,7 +6760,9 @@ class CapacityManager extends BaseComponent {
                 
                 this.manualAssignments[existingIndex] = updatedAssignment;
                 
-                // Mark cache as dirty since assignment data has changed
+                // Clear all caches to ensure fresh data
+                this._teamMembersCache = null;
+                this._teamMembersCacheTime = null;
                 this._cacheIsDirty = true;
 
                 // Check for overflows and show alerts
@@ -6757,7 +6775,7 @@ class CapacityManager extends BaseComponent {
                 }
                 
             } else {
-                // Create new assignment
+                // Create new assignment with a unique, stable ID
                 const assignment = {
                     id: this.generateId('assignment-'),
                     teamMemberId: teamMemberId,
@@ -6771,10 +6789,13 @@ class CapacityManager extends BaseComponent {
                     created: new Date().toISOString()
                 };
 
-                // Save assignment
+                // Save assignment - NO duplicate checking, user manages duplicates manually
                 this.manualAssignments.push(assignment);
+                console.log(`Created new assignment ${assignment.id} for ${teamMemberId} on ${projectId}`);
                 
-                // Mark cache as dirty since assignment data has changed
+                // Clear all caches to ensure fresh data
+                this._teamMembersCache = null;
+                this._teamMembersCacheTime = null;
                 this._cacheIsDirty = true;
 
                 // Check for overflows and show alerts
@@ -6907,9 +6928,22 @@ class CapacityManager extends BaseComponent {
             // Show loading state
             this.showCapacityLoadingState();
             
-            // Clear any existing manual assignments cache to force reload
+            // IMPORTANT: Clear all caches to ensure fresh data after assignment changes
+            console.log('Clearing all caches for fresh data...');
+            this._teamMembersCache = null;
+            this._teamMembersCacheTime = null;
+            this._cacheIsDirty = false; // Reset dirty flag after clearing cache
+            this._capacityTablePromise = null;
+            this._loadingCapacityTable = false;
+            
+            // Log current manual assignments state for debugging
             if (this.manualAssignments) {
-                console.log('Clearing manual assignments cache for fresh data...');
+                console.log(`Current manual assignments count: ${this.manualAssignments.length}`);
+                this.manualAssignments.forEach(a => {
+                    console.log(`  - Assignment ${a.id}: ${a.teamMemberId} -> ${a.projectId}`);
+                });
+            } else {
+                console.log('No manual assignments array initialized');
             }
             
             // Refresh all major sections in parallel for better performance
@@ -6934,7 +6968,7 @@ class CapacityManager extends BaseComponent {
             // Wait for all refreshes to complete
             await Promise.all(refreshPromises);
 
-            NotificationManager.success('Capacity views updated with new assignment');
+            NotificationManager.success('Capacity views updated');
             
         } catch (error) {
             console.error('Error refreshing capacity sections:', error);
@@ -7697,36 +7731,56 @@ class CapacityManager extends BaseComponent {
             this.deleteStartTime = null;
         }
         
-        // Prevent duplicate calls by checking if deletion is already in progress
+        // Prevent duplicate calls by checking if deletion is already in progress for THE SAME assignment
         if (this.deletingAssignment === assignmentId) {
             console.log(`Delete operation already in progress for assignment: ${assignmentId}`);
             return;
         }
         
-        // Set flag to prevent duplicate calls
-        this.deletingAssignment = assignmentId;
-        this.deleteStartTime = Date.now();
+        // If we have a different assignment ID, reset the flag (important for re-rendered buttons)
+        if (this.deletingAssignment && this.deletingAssignment !== assignmentId) {
+            console.log(`Resetting flag from old assignment ${this.deletingAssignment} to new ${assignmentId}`);
+            this.deletingAssignment = null;
+            this.deleteStartTime = null;
+        }
         
         try {
-            const assignment = this.manualAssignments?.find(a => a.id === assignmentId);
+            // Check if manual assignments array exists
+            if (!this.manualAssignments || !Array.isArray(this.manualAssignments)) {
+                console.log('No manual assignments array found');
+                NotificationManager.info('No assignments to delete');
+                return;
+            }
+            
+            const assignment = this.manualAssignments.find(a => a.id === assignmentId);
             if (!assignment) {
-                NotificationManager.error('Assignment not found');
+                console.log(`Assignment ${assignmentId} not found. Available IDs:`, this.manualAssignments.map(a => a.id));
+                NotificationManager.error('Assignment not found - it may have already been deleted');
                 return;
             }
         
-            // Show confirmation dialog
+            // Show confirmation dialog BEFORE setting the flag
             const confirmed = confirm(`Are you sure you want to delete this assignment?\n\nTeam Member: ${assignment.teamMemberId}\nProject: ${assignment.projectId}`);
             if (!confirmed) {
+                // User cancelled - no need to set/reset flag
                 return;
             }
+            
+            // Set flag to prevent duplicate calls ONLY after user confirms
+            this.deletingAssignment = assignmentId;
+            this.deleteStartTime = Date.now();
             
             // Remove from manual assignments array
             const index = this.manualAssignments.findIndex(a => a.id === assignmentId);
             if (index > -1) {
-                this.manualAssignments.splice(index, 1);
+                // Store removed assignment for logging
+                const removedAssignment = this.manualAssignments.splice(index, 1)[0];
+                console.log(`Removed assignment:`, removedAssignment);
                 
-                // Mark cache as dirty since assignment data has changed
+                // Clear any cached data related to this assignment
                 this._cacheIsDirty = true;
+                this._teamMembersCache = null; // Force reload of team members
+                this._teamMembersCacheTime = null;
                 
                 NotificationManager.success('Assignment deleted successfully');
                 

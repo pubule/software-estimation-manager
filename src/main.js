@@ -15,6 +15,7 @@ function createWindow() {
         height: 900,
         minWidth: 1200,
         minHeight: 700,
+        icon: path.join(__dirname, '..', 'assets', 'icon.png'), // Aggiunta icona per sviluppo
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
