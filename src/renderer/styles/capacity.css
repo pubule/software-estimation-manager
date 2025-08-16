@@ -880,6 +880,12 @@
     box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
 }
 
+.filter-select.filter-active {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
 /* =====================================================
    MAIN CONTENT GRID
    ===================================================== */

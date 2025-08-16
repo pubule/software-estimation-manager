@@ -2240,18 +2240,11 @@ class CapacityManager extends BaseComponent {
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label for="vendor-filter">Vendor:</label>
-                        <select id="vendor-filter" class="filter-select">
-                            <option value="">All Vendors</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
                         <label for="status-filter">Status:</label>
                         <select id="status-filter" class="filter-select">
                             <option value="all">All Statuses</option>
                             <option value="approved">Approved</option>
                             <option value="pending">Pending</option>
-                            <option value="draft">Draft</option>
                         </select>
                     </div>
                 </div>
@@ -2367,7 +2360,6 @@ class CapacityManager extends BaseComponent {
         // Filter event listeners
         const teamFilter = document.getElementById('team-filter');
         const projectsFilter = document.getElementById('projects-filter');
-        const vendorFilter = document.getElementById('vendor-filter');
         const statusFilter = document.getElementById('status-filter');
 
         if (teamFilter) {
@@ -2384,12 +2376,6 @@ class CapacityManager extends BaseComponent {
             });
         }
 
-        if (vendorFilter) {
-            vendorFilter.addEventListener('change', (e) => {
-                this.currentFilters.vendor = e.target.value;
-                this.applyFilters();
-            });
-        }
 
         if (statusFilter) {
             statusFilter.addEventListener('change', (e) => {
@@ -2481,15 +2467,13 @@ class CapacityManager extends BaseComponent {
     /**
      * Load timeline-specific data
      */
-    loadTimelineData() {
+    async loadTimelineData() {
         // Load project options for filters
-        this.loadProjectOptions();
+        await this.loadProjectOptions();
         
         // Load team member options for filters
-        this.loadTeamMemberOptions();
+        await this.loadTeamMemberOptions();
         
-        // Load vendor options for filters
-        this.loadVendorOptions();
         
         // Load capacity table
         this.loadCapacityTable();
@@ -3311,7 +3295,7 @@ class CapacityManager extends BaseComponent {
     /**
      * Generate project status from real data with interactive dropdown
      */
-    generateProjectStatusFromRealData(member, project) {
+    generateProjectStatusFromRealData(member, project, projectId = null) {
         if (project === 'No Projects') {
             return '<span class="status-badge pending">No Projects</span>';
         }
@@ -3341,10 +3325,13 @@ class CapacityManager extends BaseComponent {
         // Generate interactive dropdown for status change
         const overflowBadge = hasOverflow ? ' <span class="status-badge overflow">⚠️</span>' : '';
         
+        // Use projectId if available, fallback to project name for backward compatibility
+        const effectiveProjectId = projectId || this.getProjectIdByName(project);
+        
         return `
             <select class="status-dropdown" 
                     data-member-id="${member.id}" 
-                    data-project="${project}"
+                    data-project-id="${effectiveProjectId}"
                     onchange="window.capacityManager?.handleProjectStatusChange(this)">
                 <option value="approved" ${predominantStatus === 'approved' ? 'selected' : ''}>✓ Approved</option>
                 <option value="pending" ${predominantStatus === 'pending' ? 'selected' : ''}>⏳ Pending</option>
@@ -3358,18 +3345,25 @@ class CapacityManager extends BaseComponent {
     async handleProjectStatusChange(selectElement) {
         try {
             const memberId = selectElement.dataset.memberId;
-            const project = selectElement.dataset.project;
+            const projectId = selectElement.dataset.projectId;
             const newStatus = selectElement.value;
 
+            // Get project name for legacy compatibility
+            const projectName = this.getProjectNameById(projectId);
+            
+            if (!projectName) {
+                throw new Error(`Project with ID ${projectId} not found`);
+            }
+
             // Update status in all allocations for this member-project combination
-            await this.updateProjectStatusInAllocations(memberId, project, newStatus);
+            await this.updateProjectStatusInAllocations(memberId, projectName, newStatus);
             
             // Refresh all capacity sections to reflect the change
             console.log('Refreshing all sections after status change...');
             await this.refreshAllCapacitySections();
             
             // Show success notification
-            NotificationManager.success(`Project ${project} status changed to ${newStatus}`);
+            NotificationManager.success(`Project ${projectName} status changed to ${newStatus}`);
             
         } catch (error) {
             console.error('Error changing project status:', error);
@@ -4026,9 +4020,9 @@ class CapacityManager extends BaseComponent {
         const monthCells = this.generateProjectGanttCells(projectData);
         
         return `
-            <tr class="gantt-row project-row" data-project-name="${projectName}" ${assignment ? `data-assignment-id="${assignment.id}"` : ''}>
+            <tr class="gantt-row project-row" data-project-name="${projectName}" data-status="${assignment?.status || 'approved'}" ${assignment ? `data-assignment-id="${assignment.id}"` : ''}>
                 <td class="fixed-col expand-toggle">
-                    <button class="expand-btn" data-expanded="false" data-project="${projectName}">
+                    <button class="expand-btn" data-expanded="false" data-project-id="${projectData.id}">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </td>
@@ -4331,14 +4325,12 @@ class CapacityManager extends BaseComponent {
                                        value="${projectAllocation.days}" 
                                        min="0" step="1" 
                                        data-member-id="${member.id}"
-                                       data-project="${projectName}"
                                        data-project-id="${projectId}"
                                        data-month="${isoMonthKey}"
                                        data-original-value="${projectAllocation.days}"
                                        title="${memberName} - ${projectName}: ${projectAllocation.days} MDs">
                                 <button class="reset-capacity-mds-btn" 
                                         data-member-id="${member.id}"
-                                        data-project="${projectName}"
                                         data-project-id="${projectId}"
                                         data-month="${isoMonthKey}"
                                         title="Reset to original value (${projectAllocation.days} MDs)"
@@ -4429,7 +4421,7 @@ class CapacityManager extends BaseComponent {
                 'No phases';
             
             html += `
-                <tr class="gantt-project-row" data-project="${projectData.name}">
+                <tr class="gantt-project-row" data-project-id="${projectData.id}">
                     <td class="fixed-col col-project-name">
                         <div class="project-name-cell">
                             <span class="project-name">${projectData.name}</span>
@@ -4623,7 +4615,7 @@ class CapacityManager extends BaseComponent {
             const hasAssignment = data.assignmentId && data.assignmentId !== 'undefined';
             
             html += `
-                <tr class="allocation-member-row" data-member="${member.id}" data-project="${data.projectName}">
+                <tr class="allocation-member-row" data-member="${member.id}" data-project-id="${data.projectId}" data-status="${data.status || 'approved'}">
                     <td class="fixed-col col-member">
                         <div class="member-info">
                             <span class="member-name">${memberName}</span>
@@ -4813,10 +4805,17 @@ class CapacityManager extends BaseComponent {
     /**
      * Update Total MDs column for a specific row by summing capacity inputs
      */
-    updateRowTotalMDs(memberId, projectName) {
+    updateRowTotalMDs(memberId, projectName, projectId = null) {
         try {
-            // Find the row for this member/project
-            const row = document.querySelector(`tr[data-member="${memberId}"][data-project="${projectName}"]`);
+            // Find the row for this member/project - use projectId if available, fallback to projectName
+            let row;
+            if (projectId) {
+                row = document.querySelector(`tr[data-member="${memberId}"][data-project-id="${projectId}"]`);
+            } else {
+                // Fallback to name-based lookup for backward compatibility
+                row = document.querySelector(`tr[data-member="${memberId}"][data-project="${projectName}"]`);
+            }
+            
             if (!row) return;
 
             // Find all capacity input fields in this row
@@ -4828,14 +4827,14 @@ class CapacityManager extends BaseComponent {
                 total += value;
             });
 
-            // Find and update the total MDs cell
-            const totalCell = row.querySelector('.total-mds-value');
+            // Update the total cell
+            const totalCell = row.querySelector('.total-mds');
             if (totalCell) {
-                const roundedTotal = Math.round(total * 10) / 10;
-                totalCell.textContent = `${roundedTotal} MDs`;
+                totalCell.textContent = total.toFixed(1);
             }
+
         } catch (error) {
-            console.warn(`Error updating total MDs for ${memberId}-${projectName}:`, error);
+            console.error('Error updating row total MDs:', error);
         }
     }
 
@@ -4859,14 +4858,12 @@ class CapacityManager extends BaseComponent {
                                    min="0" 
                                    step="1" 
                                    data-member-id="${member.id}" 
-                                   data-project="${projectName}" 
                                    data-project-id="${projectId}"
                                    data-month="${isoMonthKey}"
                                    data-original-value="${projectAllocation.days}"
                                    title="${member.firstName} ${member.lastName} - ${projectName}: ${projectAllocation.days} MDs">
                             <button class="reset-capacity-mds-btn" 
                                     data-member-id="${member.id}"
-                                    data-project="${projectName}"
                                     data-project-id="${projectId}"
                                     data-month="${isoMonthKey}"
                                     title="Reset to original value (${projectAllocation.days} MDs)"
@@ -5152,7 +5149,7 @@ class CapacityManager extends BaseComponent {
         this.updateCapacityValue(memberId, project, month, newValue);
         
         // Update Total MDs column after value change
-        this.updateRowTotalMDs(memberId, project);
+        this.updateRowTotalMDs(memberId, project, projectId);
         
         // Trigger auto-redistribution for this assignment (use projectId not projectName)
         this.triggerAutoRedistribution(memberId, projectId || project, newValue, month);
@@ -5409,7 +5406,7 @@ class CapacityManager extends BaseComponent {
         });
         
         // Update Total MDs column after redistribution
-        this.updateRowTotalMDs(memberId, projectName);
+        this.updateRowTotalMDs(memberId, projectName, projectId);
     }
 
     /**
@@ -5417,39 +5414,26 @@ class CapacityManager extends BaseComponent {
      */
     handleCapacityValueReset(button) {
         const memberId = button.dataset.memberId;
-        const project = button.dataset.project;
         const projectId = button.dataset.projectId;
         const month = button.dataset.month;
         
-        // Find the corresponding input field - use projectId if available
-        const selector = projectId ? 
-            `.capacity-mds-input[data-member-id="${memberId}"][data-project-id="${projectId}"][data-month="${month}"]` :
-            `.capacity-mds-input[data-member-id="${memberId}"][data-project="${project}"][data-month="${month}"]`;
+        // Find the corresponding input field using projectId
+        const input = document.querySelector(
+            `.capacity-mds-input[data-member-id="${memberId}"][data-project-id="${projectId}"][data-month="${month}"]`
+        );
             
-        const input = document.querySelector(selector);
-        
         if (input) {
-            const originalValue = parseInt(input.dataset.originalValue) || 0;
-            
-            // Reset to original value
+            const originalValue = input.dataset.originalValue;
             input.value = originalValue;
-            input.classList.remove('modified', 'auto-updated');
+            
+            // Remove modified styling
+            input.classList.remove('modified');
             
             // Hide reset button
             button.style.display = 'none';
             
-            // Update tooltip
-            const cell = input.closest('td');
-            if (cell) {
-                const currentTitle = cell.title.split(' (Original')[0];
-                cell.title = currentTitle.replace(/: \d+ MDs/, `: ${originalValue} MDs`);
-            }
-            
-            // Update the data structure
-            this.updateCapacityValue(memberId, project, month, originalValue);
-            
-            // Trigger auto-redistribution with the reset value (use projectId not projectName)
-            this.triggerAutoRedistribution(memberId, projectId || project, originalValue, month);
+            // Trigger change event to update calculations
+            input.dispatchEvent(new Event('input', { bubbles: true }));
         }
     }
 
@@ -5748,22 +5732,47 @@ class CapacityManager extends BaseComponent {
     /**
      * Load project options for filters
      */
-    loadProjectOptions() {
-        const currentProject = this.app?.currentProject;
+    async loadProjectOptions() {
         const projectsFilter = document.getElementById('projects-filter');
         
         if (!projectsFilter) return;
 
-        if (currentProject) {
-            projectsFilter.innerHTML = `
-                <option value="">All Projects</option>
-                <option value="current">${currentProject.project?.name || 'Current Project'}</option>
-            `;
-        } else {
-            projectsFilter.innerHTML = '<option value="">No Projects Available</option>';
+        try {
+            // Use the same method as the assignment modal to get all available projects
+            const projects = await this.getAvailableProjects();
+            
+            // Create ID → Name mapping for filter logic
+            this.projectIdToNameMap = new Map();
+            
+            let options = '<option value="">All Projects</option>';
+            
+            if (Array.isArray(projects) && projects.length > 0) {
+                projects.forEach(project => {
+                    const projectId = project.id || project.code;
+                    const projectName = project.name || project.code;
+                    
+                    // Store ID → Name mapping
+                    this.projectIdToNameMap.set(projectId, projectName);
+                    
+                    options += `<option value="${projectId}">${projectName}</option>`;
+                });
+            } else {
+                // Fallback to current project if no projects available through getAvailableProjects
+                const currentProject = this.app?.currentProject;
+                if (currentProject) {
+                    const currentProjectName = currentProject.project?.name || 'Current Project';
+                    this.projectIdToNameMap.set('current', currentProjectName);
+                    options += `<option value="current">${currentProjectName}</option>`;
+                }
+            }
+            
+            projectsFilter.innerHTML = options;
+            console.log('Project options loaded for filters:', projects?.length || 0, 'projects');
+            
+        } catch (error) {
+            console.error('Error loading project options for filter:', error);
+            projectsFilter.innerHTML = '<option value="">Error Loading Projects</option>';
         }
-        
-        console.log('Project options loaded for filters');
     }
 
     /**
@@ -5779,7 +5788,9 @@ class CapacityManager extends BaseComponent {
         
         // Add individual team members only
         teamMembers.forEach(member => {
-            options += `<option value="${member.id}">${member.firstName} ${member.lastName}</option>`;
+            // Extract member ID without team prefix (e.g., "member-fullstack-1" from "team-fullstack:member-fullstack-1")
+            const memberId = member.id.includes(':') ? member.id.split(':')[1] : member.id;
+            options += `<option value="${memberId}">${member.firstName} ${member.lastName}</option>`;
         });
         
         teamFilter.innerHTML = options;
@@ -5869,53 +5880,169 @@ class CapacityManager extends BaseComponent {
         // Get real team members for filtering
         const teamMembers = await this.getRealTeamMembers();
         
-        // Get all capacity rows
-        const capacityRows = document.querySelectorAll('.capacity-row');
+        // Get rows from different tables - treat them separately
+        const ganttRows = document.querySelectorAll('#gantt-table .gantt-row, #gantt-table .capacity-info-row');
+        const allocationRows = document.querySelectorAll('#allocations-table .allocation-member-row, #allocations-table .capacity-info-row');
         
-        capacityRows.forEach(row => {
+        // Get the project filter value - prioritize ID matching
+        let projectFilterId = '';
+        let projectFilterName = '';
+        if (this.currentFilters.projects && this.currentFilters.projects.trim() !== '') {
+            projectFilterId = this.currentFilters.projects;
+            
+            // Convert ID to name for fallback matching
+            if (this.projectIdToNameMap && this.projectIdToNameMap.has(this.currentFilters.projects)) {
+                projectFilterName = this.projectIdToNameMap.get(this.currentFilters.projects);
+            } else {
+                // If no mapping exists, assume the filter value might be a name already
+                projectFilterName = this.currentFilters.projects;
+            }
+        }
+        
+        // Filter Project Phases Timeline (gantt-table)
+        ganttRows.forEach(row => {
             let shouldShow = true;
             
-            // Apply team filter (only by member ID now)
+            // Team filter does NOT apply to Project Phases Timeline
+            // Only apply project and status filters to gantt table
+            
+            // Apply project filter to gantt rows (but not capacity rows)
+            if ((projectFilterId || projectFilterName) && !row.classList.contains('capacity-info-row')) {
+                // Priority 1: Check for data-project-id (preferred)
+                const rowProjectId = row.dataset.projectId;
+                
+                // Priority 2: Check for data-project (name-based, fallback)
+                const rowProjectName = row.dataset.project || row.dataset.projectName;
+                
+                let matches = false;
+                
+                // First try ID matching (most reliable)
+                if (projectFilterId && rowProjectId && projectFilterId === rowProjectId) {
+                    matches = true;
+                }
+                
+                // Then try name matching (fallback)
+                if (!matches && projectFilterName && rowProjectName) {
+                    if (projectFilterName === 'current') {
+                        // Special handling for "current" projects
+                        if (rowProjectName.toLowerCase().includes('current') || 
+                            rowProjectName.toLowerCase().includes('new project')) {
+                            matches = true;
+                        }
+                    } else {
+                        // Exact name match
+                        if (rowProjectName === projectFilterName) {
+                            matches = true;
+                        }
+                    }
+                }
+                
+                if (!matches) {
+                    shouldShow = false;
+                }
+            }
+            
+            // Apply status filter to gantt rows (but not capacity rows)
+            if (this.currentFilters.status && this.currentFilters.status !== 'all' && 
+                !row.classList.contains('capacity-info-row')) {
+                const rowStatus = row.dataset.status || 'approved';
+                if (rowStatus !== this.currentFilters.status) {
+                    shouldShow = false;
+                }
+            }
+            
+            row.style.display = shouldShow ? '' : 'none';
+        });
+        
+        // Filter Team Member Allocations (allocations-table)
+        allocationRows.forEach(row => {
+            let shouldShow = true;
+            
+            // Apply team filter to both allocation rows AND capacity rows
             if (this.currentFilters.team && this.currentFilters.team.trim() !== '') {
-                if (this.currentFilters.team !== row.dataset.member) {
+                const rowMemberId = row.dataset.member || row.dataset.memberid;
+                const filterMemberId = this.currentFilters.team;
+                if (filterMemberId !== rowMemberId) {
                     shouldShow = false;
                 }
             }
             
-            // Apply vendor filter
-            if (this.currentFilters.vendor && this.currentFilters.vendor.trim() !== '') {
-                const memberData = teamMembers.find(m => m.id === row.dataset.member);
-                if (memberData) {
-                    const memberVendor = memberData.vendor.toLowerCase().replace(' ', '-');
-                    if (memberVendor !== this.currentFilters.vendor) {
-                        shouldShow = false;
+            // Apply project filter to allocation rows (not capacity rows)
+            if ((projectFilterId || projectFilterName) && !row.classList.contains('capacity-info-row')) {
+                // Priority 1: Check for data-project-id (preferred)
+                const rowProjectId = row.dataset.projectId;
+                
+                // Priority 2: Check for data-project (name-based, fallback)
+                const rowProjectName = row.dataset.project || row.dataset.projectName;
+                
+                let matches = false;
+                
+                // First try ID matching (most reliable)
+                if (projectFilterId && rowProjectId && projectFilterId === rowProjectId) {
+                    matches = true;
+                }
+                
+                // Then try name matching (fallback)
+                if (!matches && projectFilterName && rowProjectName) {
+                    if (projectFilterName === 'current') {
+                        // Special handling for "current" projects
+                        if (rowProjectName.toLowerCase().includes('current') || 
+                            rowProjectName.toLowerCase().includes('new project')) {
+                            matches = true;
+                        }
+                    } else {
+                        // Exact name match
+                        if (rowProjectName === projectFilterName) {
+                            matches = true;
+                        }
                     }
                 }
-            }
-            
-            // Apply project filter
-            if (this.currentFilters.projects && this.currentFilters.projects.trim() !== '') {
-                const projectName = row.dataset.project;
-                if (this.currentFilters.projects === 'current' && !projectName.toLowerCase().includes('current')) {
+                
+                if (!matches) {
                     shouldShow = false;
                 }
             }
             
-            // Apply status filter
-            if (this.currentFilters.status && this.currentFilters.status !== 'all') {
-                const statusBadge = row.querySelector('.status-badge');
-                if (statusBadge) {
-                    const rowStatus = statusBadge.textContent.toLowerCase();
-                    if (rowStatus !== this.currentFilters.status) {
-                        shouldShow = false;
-                    }
+            // Apply status filter to allocation rows (not capacity rows)
+            if (this.currentFilters.status && this.currentFilters.status !== 'all' && 
+                !row.classList.contains('capacity-info-row')) {
+                const rowStatus = row.dataset.status || 'approved';
+                if (rowStatus !== this.currentFilters.status) {
+                    shouldShow = false;
                 }
             }
             
-            // Show/hide row
             row.style.display = shouldShow ? '' : 'none';
         });
 
+        // Update filter UI indicators
+        this.updateFilterIndicators();
+    }
+
+    /**
+     * Update visual indicators for active filters
+     */
+    updateFilterIndicators() {
+        const filters = [
+            { id: 'team-filter', key: 'team' },
+            { id: 'projects-filter', key: 'projects' },
+            { id: 'status-filter', key: 'status' }
+        ];
+
+        filters.forEach(({ id, key }) => {
+            const filterElement = document.getElementById(id);
+            if (filterElement) {
+                const isActive = this.currentFilters[key] && 
+                                this.currentFilters[key] !== '' && 
+                                this.currentFilters[key] !== 'all';
+                
+                if (isActive) {
+                    filterElement.classList.add('filter-active');
+                } else {
+                    filterElement.classList.remove('filter-active');
+                }
+            }
+        });
     }
 
     /**
@@ -8259,6 +8386,22 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
+     * Get project ID by project name
+     */
+    getProjectIdByName(projectName) {
+        // Try to find in loaded projects
+        if (this.cachedProjects) {
+            const project = this.cachedProjects.find(p => (p.name || p.code) === projectName);
+            if (project) {
+                return project.id;
+            }
+        }
+        
+        // Fallback: return the name as ID if no match found
+        return projectName;
+    }
+
+    /**
      * Get available projects for assignment
      */
     async getAvailableProjects() {
@@ -9259,7 +9402,7 @@ class CapacityManager extends BaseComponent {
             const updatedInputs = [];
             
             // Find all input fields for this member/project and restore their values
-            const allocationRows = document.querySelectorAll(`tr[data-member="${memberId}"][data-project="${projectName}"]`);
+            const allocationRows = document.querySelectorAll(`tr[data-member="${memberId}"][data-project-id="${projectId}"]`);
             
             allocationRows.forEach(row => {
                 // Find all capacity input fields in this row
@@ -9355,7 +9498,7 @@ class CapacityManager extends BaseComponent {
             console.log(`Reset completed. Updated ${updatedInputs.length} input fields.`);
             
             // Update Total MDs column after reset
-            this.updateRowTotalMDs(memberId, projectName);
+            this.updateRowTotalMDs(memberId, projectName, projectId);
             
             // NO SAVING - just UI restoration, no data modification
 
