@@ -8086,8 +8086,31 @@ class CapacityManager extends BaseComponent {
                 return;
             }
         
-            // Show confirmation dialog BEFORE setting the flag
-            const confirmed = confirm(`Are you sure you want to delete this assignment?\n\nTeam Member: ${assignment.teamMemberId}\nProject: ${assignment.projectId}`);
+            // Get readable names for team member and project
+            let teamMemberName = assignment.teamMemberId;
+            let projectName = assignment.projectId;
+            
+            try {
+                // Get team member data to show name instead of ID
+                const teamMembers = await this.getRealTeamMembers();
+                const teamMember = teamMembers.find(m => m.id === assignment.teamMemberId);
+                if (teamMember) {
+                    teamMemberName = `${teamMember.firstName} ${teamMember.lastName}`;
+                }
+                
+                // Get project data to show name instead of ID
+                const projects = await this.getAvailableProjects();
+                const project = projects.find(p => p.id === assignment.projectId);
+                if (project) {
+                    projectName = project.name || project.id;
+                }
+            } catch (error) {
+                console.warn('Error getting readable names for confirmation dialog:', error);
+                // Continue with IDs if names can't be retrieved
+            }
+        
+            // Show confirmation dialog with readable names
+            const confirmed = confirm(`Are you sure you want to delete this assignment?\n\nTeam Member: ${teamMemberName}\nProject: ${projectName}`);
             if (!confirmed) {
                 // User cancelled - no need to set/reset flag
                 return;
