@@ -4548,35 +4548,56 @@ class CapacityManager extends BaseComponent {
      * Initialize event listeners for allocation actions
      */
     initializeAllocationActions() {
-        // Edit allocation
-        document.addEventListener('click', async (e) => {
-            if (e.target.closest('.edit-allocation-btn')) {
-                const btn = e.target.closest('.edit-allocation-btn');
+        // Remove existing listener if it exists to prevent duplicates
+        if (this._allocationActionsHandler) {
+            document.removeEventListener('click', this._allocationActionsHandler);
+        }
+        
+        // Create a single consolidated event handler for ALL assignment actions
+        this._allocationActionsHandler = async (e) => {
+            // Prevent event bubbling to avoid multiple triggers
+            e.stopPropagation();
+            
+            // Edit assignment buttons (both -assignment-btn and -allocation-btn)
+            if (e.target.closest('.edit-assignment-btn') || e.target.closest('.edit-allocation-btn')) {
+                e.preventDefault();
+                const btn = e.target.closest('.edit-assignment-btn') || e.target.closest('.edit-allocation-btn');
                 const assignmentId = btn.dataset.assignmentId;
+                console.log(`Edit assignment clicked for assignment: ${assignmentId}`);
                 await this.showEditAssignmentModal(assignmentId);
+                return;
             }
-        });
-        
-        // Duplicate allocation
-        document.addEventListener('click', async (e) => {
-            if (e.target.closest('.duplicate-allocation-btn')) {
-                const btn = e.target.closest('.duplicate-allocation-btn');
+            
+            // Duplicate assignment buttons (both -assignment-btn and -allocation-btn)
+            if (e.target.closest('.duplicate-assignment-btn') || e.target.closest('.duplicate-allocation-btn')) {
+                e.preventDefault();
+                const btn = e.target.closest('.duplicate-assignment-btn') || e.target.closest('.duplicate-allocation-btn');
                 const assignmentId = btn.dataset.assignmentId;
+                console.log(`Duplicate assignment clicked for assignment: ${assignmentId}`);
                 await this.duplicateAssignment(assignmentId);
+                return;
             }
-        });
-        
-        // Delete allocation
-        document.addEventListener('click', async (e) => {
-            if (e.target.closest('.delete-allocation-btn')) {
-                const btn = e.target.closest('.delete-allocation-btn');
+            
+            // Delete assignment buttons (both -assignment-btn and -allocation-btn)
+            if (e.target.closest('.delete-assignment-btn') || e.target.closest('.delete-allocation-btn')) {
+                e.preventDefault();
+                const btn = e.target.closest('.delete-assignment-btn') || e.target.closest('.delete-allocation-btn');
                 const assignmentId = btn.dataset.assignmentId;
+                console.log(`Delete assignment clicked for assignment: ${assignmentId}`);
                 await this.deleteAssignment(assignmentId);
+                return;
             }
-        });
+        };
         
-        // Handle capacity input changes
-        document.addEventListener('change', async (e) => {
+        // Add the single delegated event listener
+        document.addEventListener('click', this._allocationActionsHandler);
+        
+        // Handle capacity input changes with delegation
+        if (this._capacityInputHandler) {
+            document.removeEventListener('change', this._capacityInputHandler);
+        }
+        
+        this._capacityInputHandler = async (e) => {
             if (e.target.classList.contains('capacity-mds-input')) {
                 const input = e.target;
                 const memberId = input.dataset.memberId;
@@ -4586,21 +4607,33 @@ class CapacityManager extends BaseComponent {
                 
                 await this.updateCapacityValue(memberId, project, month, value);
             }
-        });
+        };
+        
+        document.addEventListener('change', this._capacityInputHandler);
     }
 
     /**
      * Initialize expand/collapse functionality for Gantt rows
      */
     initializeGanttExpansion() {
-        // Add event listeners for expand/collapse buttons
-        document.addEventListener('click', (e) => {
+        // Remove existing listener to prevent duplicates
+        if (this._ganttExpansionHandler) {
+            document.removeEventListener('click', this._ganttExpansionHandler);
+        }
+        
+        // Create expansion handler
+        this._ganttExpansionHandler = (e) => {
             if (e.target.classList.contains('expand-btn') || e.target.closest('.expand-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
                 const button = e.target.closest('.expand-btn') || e.target;
                 const projectName = button.dataset.project;
                 this.toggleProjectExpansion(projectName, button);
             }
-        });
+        };
+        
+        // Add event listener for expand/collapse buttons
+        document.addEventListener('click', this._ganttExpansionHandler);
     }
 
     /**
@@ -4664,8 +4697,40 @@ class CapacityManager extends BaseComponent {
      * Initialize event listeners for editable capacity cells
      */
     initializeCapacityCellEventListeners() {
-        // Add event listeners for capacity input changes
-        document.addEventListener('change', (e) => {
+        // Remove existing listeners to prevent duplicates
+        if (this._capacityCellHandler) {
+            document.removeEventListener('click', this._capacityCellHandler);
+            document.removeEventListener('change', this._capacityCellChangeHandler);
+        }
+        
+        // Create dedicated handler for capacity cell actions (reset buttons only)
+        this._capacityCellHandler = (e) => {
+            // Reset capacity MDs button
+            if (e.target.classList.contains('reset-capacity-mds-btn') || 
+                e.target.closest('.reset-capacity-mds-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const button = e.target.closest('.reset-capacity-mds-btn') || e.target;
+                this.handleCapacityValueReset(button);
+                return;
+            }
+            
+            // Reset allocation button
+            if (e.target.classList.contains('reset-allocation-btn') || 
+                e.target.closest('.reset-allocation-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const button = e.target.closest('.reset-allocation-btn') || e.target;
+                const assignmentId = button.dataset.assignmentId;
+                const memberId = button.dataset.memberId;
+                const projectId = button.dataset.projectId;
+                this.resetAllocationToOriginal(assignmentId, memberId, projectId);
+                return;
+            }
+        };
+        
+        // Create dedicated handler for capacity input changes
+        this._capacityCellChangeHandler = (e) => {
             if (e.target.classList.contains('capacity-mds-input')) {
                 // Skip handling if we're in the middle of a reset operation
                 if (this._resettingAllocation) {
@@ -4674,54 +4739,11 @@ class CapacityManager extends BaseComponent {
                 }
                 this.handleCapacityValueChange(e.target);
             }
-        });
-
-        // Add event listeners for reset buttons
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('reset-capacity-mds-btn') || 
-                e.target.closest('.reset-capacity-mds-btn')) {
-                const button = e.target.closest('.reset-capacity-mds-btn') || e.target;
-                this.handleCapacityValueReset(button);
-            }
-        });
-
-        // Add event listeners for assignment action buttons
-        document.addEventListener('click', (e) => {
-            // Edit assignment button
-            if (e.target.classList.contains('edit-assignment-btn') || 
-                e.target.closest('.edit-assignment-btn')) {
-                const button = e.target.closest('.edit-assignment-btn') || e.target;
-                const assignmentId = button.dataset.assignmentId;
-                this.showEditAssignmentModal(assignmentId);
-            }
-            
-            // Duplicate assignment button
-            if (e.target.classList.contains('duplicate-assignment-btn') || 
-                e.target.closest('.duplicate-assignment-btn')) {
-                const button = e.target.closest('.duplicate-assignment-btn') || e.target;
-                const assignmentId = button.dataset.assignmentId;
-                this.duplicateAssignment(assignmentId);
-            }
-            
-            // Delete assignment button
-            if (e.target.classList.contains('delete-assignment-btn') || 
-                e.target.closest('.delete-assignment-btn')) {
-                const button = e.target.closest('.delete-assignment-btn') || e.target;
-                const assignmentId = button.dataset.assignmentId;
-                this.deleteAssignment(assignmentId);
-            }
-            
-            // Reset allocation button
-            if (e.target.classList.contains('reset-allocation-btn') || 
-                e.target.closest('.reset-allocation-btn')) {
-                const button = e.target.closest('.reset-allocation-btn') || e.target;
-                const assignmentId = button.dataset.assignmentId;
-                const memberId = button.dataset.memberId;
-                const projectId = button.dataset.projectId;
-                this.resetAllocationToOriginal(assignmentId, memberId, projectId);
-            }
-        });
-
+        };
+        
+        // Add the event listeners
+        document.addEventListener('click', this._capacityCellHandler);
+        document.addEventListener('change', this._capacityCellChangeHandler);
     }
 
     /**
@@ -7242,15 +7264,31 @@ class CapacityManager extends BaseComponent {
      * Refresh all capacity sections after assignment changes
      */
     async refreshAllCapacitySections() {
-        // Implement debounce mechanism to prevent multiple rapid calls
+        // Implement proper debounce mechanism to prevent multiple rapid calls
         if (this._refreshDebounceTimer) {
             clearTimeout(this._refreshDebounceTimer);
         }
         
+        // Return a promise that resolves after debounce delay
+        return new Promise((resolve, reject) => {
+            this._refreshDebounceTimer = setTimeout(async () => {
+                try {
+                    await this._doRefreshAllCapacitySections();
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            }, 150); // 150ms debounce delay to group rapid operations
+        });
+    }
+    
+    /**
+     * Internal method that performs the actual refresh
+     */
+    async _doRefreshAllCapacitySections() {
         // Prevent multiple simultaneous refreshes - return existing promise if already running
         if (this._refreshInProgress) {
             console.log('Refresh already in progress, returning existing promise...');
-            // Return the existing refresh promise instead of creating a recursive call
             return this._currentRefreshPromise || Promise.resolve();
         }
         
@@ -7272,53 +7310,70 @@ class CapacityManager extends BaseComponent {
             this._capacityTablePromise = null;
             this._loadingCapacityTable = false;
             
-            // Log current manual assignments state for debugging
-            if (this.manualAssignments) {
-                console.log(`Current manual assignments count: ${this.manualAssignments.length}`);
+            // Log current manual assignments state for debugging (only if debugging enabled)
+            if (console.debug && this.manualAssignments) {
+                console.debug(`Current manual assignments count: ${this.manualAssignments.length}`);
                 this.manualAssignments.forEach(a => {
-                    console.log(`  - Assignment ${a.id}: ${a.teamMemberId} -> ${a.projectId}`);
+                    console.debug(`  - Assignment ${a.id}: ${a.teamMemberId} -> ${a.projectId}`);
                 });
-            } else {
-                console.log('No manual assignments array initialized');
             }
             
-            // Refresh all major sections in parallel for better performance
-            const refreshPromises = [];
+            // Batch refresh operations for better performance
+            const refreshOperations = [];
             
-            // Always refresh capacity table
-            refreshPromises.push(this.loadCapacityTable());
+            // Priority 1: Essential data that affects other views
+            refreshOperations.push(
+                this.loadCapacityTable().catch(error => {
+                    console.error('Error loading capacity table:', error);
+                    return null; // Don't fail the entire refresh
+                })
+            );
             
-            // Always refresh dashboard data (utilization, alerts, charts)
-            refreshPromises.push(this.loadDashboardData());
+            // Priority 2: Dashboard data (can run in parallel with capacity table)
+            refreshOperations.push(
+                this.loadDashboardData().catch(error => {
+                    console.error('Error loading dashboard data:', error);
+                    return null;
+                })
+            );
             
-            // Conditionally refresh overview if it exists and is visible
-            if (document.getElementById('resource-overview-content')) {
-                refreshPromises.push(this.loadOverviewData());
+            // Priority 3: Conditional refreshes (only if elements exist and are visible)
+            const overviewElement = document.getElementById('resource-overview-content');
+            if (overviewElement && overviewElement.offsetParent !== null) {
+                refreshOperations.push(
+                    this.loadOverviewData().catch(error => {
+                        console.error('Error loading overview data:', error);
+                        return null;
+                    })
+                );
             }
             
-            // Conditionally refresh timeline if it exists and is visible  
-            if (document.getElementById('capacity-timeline-content')) {
-                refreshPromises.push(this.renderCapacityTimeline());
+            const timelineElement = document.getElementById('capacity-timeline-content');
+            if (timelineElement && timelineElement.offsetParent !== null) {
+                refreshOperations.push(
+                    this.renderCapacityTimeline().catch(error => {
+                        console.error('Error rendering capacity timeline:', error);
+                        return null;
+                    })
+                );
             }
             
-            // Wait for all refreshes to complete
-            await Promise.all(refreshPromises);
-
+            // Execute all refresh operations in parallel
+            const startTime = performance.now();
+            await Promise.allSettled(refreshOperations);
+            const endTime = performance.now();
+            
+            console.log(`Capacity refresh completed in ${(endTime - startTime).toFixed(2)}ms`);
             NotificationManager.success('Capacity views updated');
             
         } catch (error) {
             console.error('Error refreshing capacity sections:', error);
             NotificationManager.error('Error updating capacity views');
+            throw error;
         } finally {
             this.hideCapacityLoadingState();
             this._refreshInProgress = false;
             this._currentRefreshPromise = null;
-            
-            // Clear debounce timer
-            if (this._refreshDebounceTimer) {
-                clearTimeout(this._refreshDebounceTimer);
-                this._refreshDebounceTimer = null;
-            }
         }
         })();
         
@@ -8253,6 +8308,55 @@ class CapacityManager extends BaseComponent {
 
         // This would show detailed member information
         NotificationManager.info(`View Member Details ${memberId}: Feature in development`);
+    }
+
+    /**
+     * Cleanup method to remove all event listeners to prevent memory leaks
+     */
+    cleanup() {
+        console.log('Cleaning up CapacityManager event listeners...');
+        
+        // Remove allocation actions listener
+        if (this._allocationActionsHandler) {
+            document.removeEventListener('click', this._allocationActionsHandler);
+            this._allocationActionsHandler = null;
+        }
+        
+        // Remove capacity input change listener
+        if (this._capacityInputHandler) {
+            document.removeEventListener('change', this._capacityInputHandler);
+            this._capacityInputHandler = null;
+        }
+        
+        // Remove capacity cell event listeners
+        if (this._capacityCellHandler) {
+            document.removeEventListener('click', this._capacityCellHandler);
+            this._capacityCellHandler = null;
+        }
+        
+        if (this._capacityCellChangeHandler) {
+            document.removeEventListener('change', this._capacityCellChangeHandler);
+            this._capacityCellChangeHandler = null;
+        }
+        
+        // Remove gantt expansion handler
+        if (this._ganttExpansionHandler) {
+            document.removeEventListener('click', this._ganttExpansionHandler);
+            this._ganttExpansionHandler = null;
+        }
+        
+        // Clear any pending timers
+        if (this._refreshInProgress) {
+            this._refreshInProgress = false;
+            this._currentRefreshPromise = null;
+        }
+        
+        // Clear flags
+        this.deletingAssignment = null;
+        this.deleteStartTime = null;
+        this._showingAssignmentModal = false;
+        
+        console.log('CapacityManager cleanup completed');
     }
 
     /**
