@@ -77,3 +77,132 @@ No user action required. The application will automatically:
 - `/src/renderer/js/components/version-manager.js` - Checksum stability fixes
 - `/tests/jest-setup.js` - Test infrastructure improvements
 - `/jest.config.js` - Test configuration updates
+
+# Session Summary - 2025-01-16
+
+## Obiettivo Principale
+Trasformare la colonna "Phases" in colonna "Status" nella tabella Project Phases Timeline, con dropdown interattivi per modificare lo stato dei progetti tra "Approved" e "Pending", garantendo la persistenza dei cambiamenti.
+
+## Problemi Risolti
+
+### 1. Trasformazione Colonna Phases → Status
+- **File modificato**: `src/renderer/js/components/calculations-manager.js`
+- **Modifiche**:
+    - Rinominata colonna da "Phases" a "Status"
+    - Implementata funzione `generateProjectStatusDropdown()` per creare dropdown interattivi
+    - Aggiunta logica per determinare lo stato del progetto basandosi sulle allocazioni dei team member
+
+### 2. Problema ID Progetti
+- **Problema**: I progetti usavano nomi invece di ID causando problemi di identificazione
+- **Soluzione**:
+    - Uso di `data-project-id` per identificazione tecnica
+    - Mantenimento dei nomi per visualizzazione UI
+    - Aggiunta funzione `getProjectIdByName()` per conversione
+
+### 3. Team Members Vuoti
+- **Problema**: `this.teamMembers` era vuoto (0 membri)
+- **Soluzione**:
+    - Memorizzazione di `consolidatedTeamMembers` nella proprietà della classe
+    - Uso di `this.consolidatedTeamMembers` invece di array vuoto
+
+### 4. Persistenza Status Non Funzionante
+- **Problema**: Lo stato veniva resettato a "pending" dopo il refresh
+- **Soluzione Implementata**:
+    - Aggiornamento metodo `updateProjectStatusInAllocations()` per salvare automaticamente
+    - Creazione metodo `applySavedStatusFromCapacityData()` per ripristinare status salvati
+    - Modifica `loadCapacityData()` e `loadCapacityDataFromFile()` per applicare status salvati
+    - Aggiornamento cache per mantenere modifiche nella sessione corrente
+
+## File Modificati
+
+### 1. src/renderer/js/components/calculations-manager.js
+```javascript
+// Principali modifiche:
+
+// 1. Nuova funzione per generare dropdown status
+generateProjectStatusDropdown(projectData) {
+    // Logica per creare dropdown con status corrente
+    // Ricerca allocazioni nei team members consolidati
+    // Determinazione status "approved" o "pending"
+}
+
+// 2. Update status con persistenza
+async updateProjectStatusInAllocations(memberId, projectName, newStatus) {
+    // Update allocazioni in memoria
+    // Update cache per sessione corrente
+    // Salvataggio automatico con saveCapacityData()
+}
+
+// 3. Applicazione status salvati
+applySavedStatusFromCapacityData(capacityData) {
+    // Estrazione status salvati
+    // Applicazione a manual assignments
+}
+
+// 4. Store consolidated team members
+this.consolidatedTeamMembers = teamMembers;
+```
+
+### 2. src/renderer/styles/capacity.css
+```css
+/* Rinominate classi da .col-phases a .col-status */
+.col-status {
+    /* Stili per colonna status */
+}
+
+.status-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    min-height: 40px;
+}
+```
+
+## Flusso Dati Status
+
+1. **Modifica Status via Dropdown**:
+    - User seleziona nuovo status
+    - `handleProjectStatusChangeForProject()` chiamato
+    - `updateProjectStatusInAllocations()` aggiorna memoria e cache
+    - `saveCapacityData()` salva su disco
+
+2. **Salvataggio Dati**:
+    - `collectCapacityData()` raccoglie dati inclusi status
+    - Dati salvati in JSON con status embedded nelle allocazioni
+
+3. **Caricamento Dati**:
+    - `loadCapacityData()` o `loadCapacityDataFromFile()` carica JSON
+    - `applySavedStatusFromCapacityData()` applica status salvati
+    - UI refreshed per mostrare status caricati
+
+## Testing Consigliato
+1. Cambiare status di un progetto da "Approved" a "Pending"
+2. Verificare che il cambiamento sia visibile immediatamente
+3. Ricaricare la pagina e verificare che lo status sia mantenuto
+4. Salvare capacity data e ricaricarla per verificare persistenza
+
+## Note Importanti
+- Gli ID progetti sono usati internamente per identificazione (`data-project-id`)
+- I nomi progetti sono mostrati nell'UI per leggibilità
+- La consolidazione team members è critica per trovare allocazioni corrette
+- Il caching è gestito per evitare perdita dati durante la sessione
+
+## Prossimi Passi Potenziali
+- Aggiungere conferma prima di cambiare status
+- Implementare log delle modifiche status
+- Aggiungere filtro per visualizzare solo progetti con status specifico
+- Migliorare performance con caching più intelligente
+
+## Comandi Utili
+```bash
+npm run dev  # Sviluppo con hot reload
+npm test     # Eseguire test
+```
+
+## Debug Console
+Messaggi chiave da monitorare:
+- "Searching for allocations in X consolidated team members"
+- "Found allocations: X hasApproved: Y hasPending: Z"
+- "Updated X allocations for project Y to status Z"
+- "Status changes saved successfully"

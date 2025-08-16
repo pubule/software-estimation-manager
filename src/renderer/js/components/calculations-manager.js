@@ -2266,7 +2266,7 @@ class CapacityManager extends BaseComponent {
                                     <tr>
                                         <!-- Fixed columns -->
                                         <th class="fixed-col col-project-name">Project</th>
-                                        <th class="fixed-col col-phases">Phases</th>
+                                        <th class="fixed-col col-status">Status</th>
                                         <th class="fixed-col col-total-mds">Total MDs</th>
                                         <!-- Scrollable month columns -->
                                         ${this.generateMonthHeaders()}
@@ -3323,7 +3323,7 @@ class CapacityManager extends BaseComponent {
         }
 
         // Generate interactive dropdown for status change
-        const overflowBadge = hasOverflow ? ' <span class="status-badge overflow">⚠️</span>' : '';
+        const overflowBadge = ''; // Removed overflow badge as requested
         
         // Use projectId if available, fallback to project name for backward compatibility
         const effectiveProjectId = projectId || this.getProjectIdByName(project);
@@ -3333,6 +3333,112 @@ class CapacityManager extends BaseComponent {
                     data-member-id="${member.id}" 
                     data-project-id="${effectiveProjectId}"
                     onchange="window.capacityManager?.handleProjectStatusChange(this)">
+                <option value="approved" ${predominantStatus === 'approved' ? 'selected' : ''}>✓ Approved</option>
+                <option value="pending" ${predominantStatus === 'pending' ? 'selected' : ''}>⏳ Pending</option>
+            </select>${overflowBadge}
+        `;
+    }
+
+    /**
+     * Generate project status dropdown for gantt table
+     */
+    generateProjectStatusDropdown(projectData) {
+        console.log('generateProjectStatusDropdown called with:', projectData);
+        
+        if (!projectData) {
+            console.warn('No projectData provided to generateProjectStatusDropdown');
+            return '<span class="status-badge pending">No Project Data</span>';
+        }
+
+        // Handle different projectData structures - prioritize real project ID
+        let projectId = projectData.id || projectData.code;
+        let projectName = projectData.name || projectData.code || projectId;
+        
+        // If no ID found, try to find the real project ID from the projects list
+        if (!projectId || projectId === projectName) {
+            // Search in cachedProjects for a project with matching name
+            if (this.cachedProjects) {
+                const foundProject = this.cachedProjects.find(p => p.name === projectName);
+                if (foundProject) {
+                    projectId = foundProject.id || foundProject.code;
+                    console.log('Found real project ID:', projectId, 'for project name:', projectName);
+                }
+            }
+        }
+        
+        console.log('Final Project ID:', projectId, 'Project Name:', projectName);
+
+        if (!projectId || !projectName) {
+            console.warn('Project missing ID or name:', projectData);
+            return '<span class="status-badge pending">Missing Project Info</span>';
+        }
+
+        // Use consolidated team members if available
+        const teamMembers = this.consolidatedTeamMembers || [];
+        console.log('Searching for allocations in', teamMembers?.length || 0, 'consolidated team members');
+
+        // Determine project status by looking at all team member allocations
+        let hasApproved = false;
+        let hasPending = false;
+        let hasOverflow = false;
+        let totalAllocations = 0;
+
+        // Get all team members and check their allocations for this project
+        if (teamMembers && teamMembers.length > 0) {
+            teamMembers.forEach((member, memberIndex) => {
+                console.log(`Member ${memberIndex}: ${member.firstName} ${member.lastName}`, {
+                    id: member.id,
+                    hasAllocations: !!member.allocations,
+                    allocationMonths: member.allocations ? Object.keys(member.allocations).length : 0
+                });
+                
+                if (member.allocations) {
+                    Object.entries(member.allocations).forEach(([month, monthAllocations]) => {
+                        console.log(`  Month ${month}:`, Object.keys(monthAllocations));
+                        
+                        // Look for allocations for this project (try multiple keys)
+                        const possibleKeys = [projectId, projectName];
+                        let projectAllocation = null;
+                        let usedKey = null;
+                        
+                        for (const key of possibleKeys) {
+                            if (monthAllocations[key]) {
+                                projectAllocation = monthAllocations[key];
+                                usedKey = key;
+                                break;
+                            }
+                        }
+                        
+                        if (projectAllocation && projectAllocation.days > 0) {
+                            console.log(`    Found allocation for ${usedKey}:`, projectAllocation);
+                            totalAllocations++;
+                            if (projectAllocation.status === 'approved') hasApproved = true;
+                            if (projectAllocation.status === 'pending') hasPending = true;
+                            if (projectAllocation.hasOverflow) hasOverflow = true;
+                        }
+                    });
+                }
+            });
+        }
+
+        console.log('Found allocations:', totalAllocations, 'hasApproved:', hasApproved, 'hasPending:', hasPending);
+
+        // Determine predominant status for dropdown default
+        let predominantStatus = 'pending';
+        if (hasApproved && !hasPending) {
+            predominantStatus = 'approved';
+        } else if (hasApproved && hasPending) {
+            predominantStatus = 'approved'; // Default to approved when mixed
+        }
+
+        // Generate interactive dropdown for status change
+        const overflowBadge = ''; // Removed overflow badge as requested
+        
+        return `
+            <select class="status-dropdown project-status-dropdown" 
+                    data-project-id="${projectId}"
+                    data-project-name="${projectName}"
+                    onchange="window.capacityManager?.handleProjectStatusChangeForProject(this)">
                 <option value="approved" ${predominantStatus === 'approved' ? 'selected' : ''}>✓ Approved</option>
                 <option value="pending" ${predominantStatus === 'pending' ? 'selected' : ''}>⏳ Pending</option>
             </select>${overflowBadge}
@@ -3372,12 +3478,69 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
+     * Handle project status change at project level (affects all team members)
+     */
+    async handleProjectStatusChangeForProject(selectElement) {
+        try {
+            const projectId = selectElement.dataset.projectId;
+            const projectName = selectElement.dataset.projectName;
+            const newStatus = selectElement.value;
+
+            console.log(`Changing project status for ${projectName} (${projectId}) to ${newStatus}`);
+
+            // Update status for ALL team members allocated to this project
+            let updatedCount = 0;
+            
+            if (this.teamMembers && this.teamMembers.length > 0) {
+                for (const member of this.teamMembers) {
+                    if (member.allocations) {
+                        let memberHasProject = false;
+                        
+                        // Check if this member has allocations for this project
+                        Object.values(member.allocations).forEach(monthAllocations => {
+                            const projectAllocation = monthAllocations[projectName] || 
+                                                    monthAllocations[projectId];
+                            if (projectAllocation && projectAllocation.days > 0) {
+                                memberHasProject = true;
+                            }
+                        });
+
+                        // Update status for this member if they have allocations for this project
+                        if (memberHasProject) {
+                            await this.updateProjectStatusInAllocations(member.id, projectName, newStatus);
+                            updatedCount++;
+                        }
+                    }
+                }
+            }
+            
+            // Refresh all capacity sections to reflect the changes
+            console.log('Refreshing all sections after project status change...');
+            await this.refreshAllCapacitySections();
+            
+            // Show success notification
+            if (updatedCount > 0) {
+                NotificationManager.success(`Project ${projectName} status changed to ${newStatus} for ${updatedCount} team members`);
+            } else {
+                NotificationManager.warning(`Project ${projectName} status changed to ${newStatus}, but no team member allocations found`);
+            }
+            
+        } catch (error) {
+            console.error('Error changing project status:', error);
+            NotificationManager.error(`Failed to change project status: ${error.message}`);
+        }
+    }
+
+    /**
      * Update project status in member allocations
      */
     async updateProjectStatusInAllocations(memberId, projectName, newStatus) {
         // Find the team member - handle both simple and composite IDs
         const rawTeamMembers = await this.getRealTeamMembers();
         const teamMembers = this.consolidateTeamMembersByPerson(rawTeamMembers);
+        
+        // Store consolidated team members for use in other functions
+        this.consolidatedTeamMembers = teamMembers;
         
         // Try to find member by exact ID match or by matching the member part of composite IDs
         const member = teamMembers.find(m => {
@@ -3435,7 +3598,54 @@ class CapacityManager extends BaseComponent {
                 }
             });
         }
+        
+        // CRITICAL: Update the raw team members cache with modified status
+        // This ensures that when collectCapacityData calls getRealTeamMembers, 
+        // it gets the modified data
+        if (this._teamMembersCache && Array.isArray(this._teamMembersCache)) {
+            // Update each cached member's allocations
+            this._teamMembersCache.forEach(cachedMember => {
+                // Check if this member should be updated based on various ID matches
+                const shouldUpdate = member.consolidatedFrom && member.consolidatedFrom.includes(cachedMember.id) ||
+                                   cachedMember.id === memberId ||
+                                   cachedMember.originalId === memberId ||
+                                   (cachedMember.id && cachedMember.id.includes(':') && 
+                                    cachedMember.id.split(':')[1] === memberId) ||
+                                   (memberId.includes(':') && 
+                                    cachedMember.id === memberId.split(':')[1]);
+                
+                if (shouldUpdate) {
+                    // Ensure allocations object exists
+                    if (!cachedMember.allocations) {
+                        cachedMember.allocations = {};
+                    }
+                    
+                    // Update allocations in cached member
+                    Object.keys(cachedMember.allocations).forEach(monthKey => {
+                        if (cachedMember.allocations[monthKey] && 
+                            cachedMember.allocations[monthKey][projectName]) {
+                            cachedMember.allocations[monthKey][projectName].status = newStatus;
+                            console.log(`Updated cache: member ${cachedMember.id}, month ${monthKey}, project ${projectName} to status ${newStatus}`);
+                        }
+                    });
+                }
+            });
+            
+            // Mark cache as fresh so it won't be reloaded
+            this._teamMembersCacheTime = Date.now();
+        } else {
+            // If no cache exists, invalidate to force reload with new data
+            this._cacheIsDirty = true;
+        }
 
+        // Save the changes permanently to the capacity data file
+        console.log(`Updated ${updatesCount} allocations for project "${projectName}" to status "${newStatus}". Saving changes...`);
+        
+        // Set flag to preserve cache during next refresh
+        this._preserveStatusChangesCache = true;
+        
+        await this.saveCapacityData();
+        console.log('Status changes saved successfully');
     }
 
     /**
@@ -3864,6 +4074,9 @@ class CapacityManager extends BaseComponent {
             try {
                 const rawTeamMembers = await this.getRealTeamMembers();
         const teamMembers = this.consolidateTeamMembersByPerson(rawTeamMembers);
+        
+        // Store consolidated team members for use in other functions
+        this.consolidatedTeamMembers = teamMembers;
         
         // Get both table bodies
         const ganttTableBody = document.getElementById('gantt-table-body');
@@ -4420,17 +4633,20 @@ class CapacityManager extends BaseComponent {
                 assignment.phaseSchedule.map((_, index) => index).join(', ') : 
                 'No phases';
             
+            // Debug project data structure
+            console.log('Processing projectData in gantt row:', projectData);
+            const effectiveProjectId = projectData.id || projectData.code || projectData.name || 'unknown';
+            
             html += `
-                <tr class="gantt-project-row" data-project-id="${projectData.id}">
+                <tr class="gantt-project-row" data-project-id="${effectiveProjectId}">
                     <td class="fixed-col col-project-name">
                         <div class="project-name-cell">
                             <span class="project-name">${projectData.name}</span>
                         </div>
                     </td>
-                    <td class="fixed-col col-phases">
-                        <div class="phases-summary">
-                            <span class="phases-count">${phasesCount} phases</span>
-                            <span class="phases-list" title="${phasesInfo}">${shortPhasesInfo}</span>
+                    <td class="fixed-col col-status">
+                        <div class="status-cell">
+                            ${this.generateProjectStatusDropdown(projectData)}
                         </div>
                     </td>
                     <td class="fixed-col col-total-mds">
@@ -7801,10 +8017,16 @@ class CapacityManager extends BaseComponent {
             this.showCapacityLoadingState();
             
             // IMPORTANT: Clear all caches to ensure fresh data after assignment changes
-            console.log('Clearing all caches for fresh data...');
-            this._teamMembersCache = null;
-            this._teamMembersCacheTime = null;
-            this._cacheIsDirty = false; // Reset dirty flag after clearing cache
+            // EXCEPT don't clear cache if we just made status changes that need to persist
+            if (!this._preserveStatusChangesCache) {
+                console.log('Clearing all caches for fresh data...');
+                this._teamMembersCache = null;
+                this._teamMembersCacheTime = null;
+                this._cacheIsDirty = false; // Reset dirty flag after clearing cache
+            } else {
+                console.log('Preserving cache with recent status changes...');
+                this._preserveStatusChangesCache = false; // Reset flag
+            }
             this._capacityTablePromise = null;
             this._loadingCapacityTable = false;
             
@@ -9087,21 +9309,6 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
-     * Load saved capacity data (placeholder - users should load manually via file input)
-     */
-    async loadCapacityData() {
-        try {
-            console.log('Loading capacity data...');
-            // Since we save as downloads, there's no fixed location to auto-load from
-            console.log('No existing capacity data file found - this is normal for first use');
-            return null;
-        } catch (error) {
-            console.warn('Failed to load capacity data:', error);
-            return null;
-        }
-    }
-
-    /**
      * Load capacity data from fixed file
      */
     async loadCapacityData() {
@@ -9133,6 +9340,17 @@ class CapacityManager extends BaseComponent {
                 if (capacityData.filters) {
                     this.currentFilters = { ...this.currentFilters, ...capacityData.filters };
                 }
+                
+                // Restore capacity metadata and manual assignments
+                if (capacityData.metadata) {
+                    this.capacityId = capacityData.metadata.capacityId;
+                    this.capacityName = capacityData.metadata.capacityName;
+                    this.capacityDescription = capacityData.metadata.capacityDescription;
+                }
+                this.manualAssignments = capacityData.manualAssignments || [];
+                
+                // Apply saved status from the loaded capacity data
+                this.applySavedStatusFromCapacityData(capacityData);
 
                 NotificationManager.success('Capacity data loaded successfully');
                 return capacityData;
@@ -9255,6 +9473,9 @@ class CapacityManager extends BaseComponent {
             this.capacityDescription = capacityData.metadata.capacityDescription;
             this.manualAssignments = capacityData.manualAssignments || [];
             
+            // Apply saved status from the loaded capacity data
+            this.applySavedStatusFromCapacityData(capacityData);
+            
             NotificationManager.success(`Capacity data loaded from ${file.name}`);
             
             // Refresh all capacity sections to show loaded data immediately
@@ -9272,6 +9493,69 @@ class CapacityManager extends BaseComponent {
                 loadBtn.innerHTML = '<i class="fas fa-upload"></i> Load';
             }
         }
+    }
+
+    /**
+     * Apply saved status from capacity data to current allocations
+     * @private
+     */
+    applySavedStatusFromCapacityData(capacityData) {
+        if (!capacityData || !capacityData.teamMembers) {
+            console.log('No saved capacity data to apply status from');
+            return;
+        }
+
+        console.log('Applying saved status from capacity data...');
+        
+        // Create a map of saved status by member and project
+        const savedStatusMap = new Map();
+        
+        capacityData.teamMembers.forEach(savedMember => {
+            if (!savedMember.allocations) return;
+            
+            Object.keys(savedMember.allocations).forEach(monthKey => {
+                const monthAllocs = savedMember.allocations[monthKey];
+                if (typeof monthAllocs === 'object') {
+                    Object.keys(monthAllocs).forEach(projectName => {
+                        const allocation = monthAllocs[projectName];
+                        if (allocation && allocation.status) {
+                            const key = `${savedMember.id}|${projectName}`;
+                            // Only store if we haven't seen this combination before
+                            // or if this status is different from default
+                            if (!savedStatusMap.has(key) && allocation.status !== 'approved') {
+                                savedStatusMap.set(key, allocation.status);
+                                console.log(`Found saved status: ${key} = ${allocation.status}`);
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        // Apply saved status to manual assignments
+        if (this.manualAssignments && savedStatusMap.size > 0) {
+            this.manualAssignments.forEach(assignment => {
+                if (assignment.calculatedAllocation) {
+                    Object.keys(assignment.calculatedAllocation).forEach(monthKey => {
+                        const monthAllocs = assignment.calculatedAllocation[monthKey];
+                        if (typeof monthAllocs === 'object') {
+                            Object.keys(monthAllocs).forEach(projectName => {
+                                const key = `${assignment.teamMemberId}|${projectName}`;
+                                if (savedStatusMap.has(key)) {
+                                    const savedStatus = savedStatusMap.get(key);
+                                    if (monthAllocs[projectName]) {
+                                        monthAllocs[projectName].status = savedStatus;
+                                        console.log(`Applied saved status to ${key}: ${savedStatus}`);
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        console.log(`Applied ${savedStatusMap.size} saved status values`);
     }
 
     /**

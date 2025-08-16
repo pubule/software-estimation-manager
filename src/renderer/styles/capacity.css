@@ -2883,6 +2883,21 @@
     color: #ffce54;
 }
 
+/* Project Status Cell Styles */
+.status-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    min-height: 40px;
+}
+
+.project-status-dropdown {
+    width: 100%;
+    max-width: 140px;
+    font-size: 13px;
+}
+
 /* ========================================
    Assignment Modal Enhanced Styles
    ======================================== */
@@ -3769,7 +3784,7 @@ Sticky columns stay on top to maintain table structure integrity.
 
 /* Remove pseudo-element borders from sticky columns (they have their own borders) */
 .gantt-phases-table .col-project-name::after,
-.gantt-phases-table .col-phases::after,
+.gantt-phases-table .col-status::after,
 .gantt-phases-table .col-total-mds::after,
 .gantt-phases-table tbody .fixed-col::after {
     display: none;
@@ -3789,7 +3804,7 @@ Sticky columns stay on top to maintain table structure integrity.
 /* Only sticky column headers get high z-index */
 .gantt-phases-table th.fixed-col,
 .gantt-phases-table th.col-project-name,
-.gantt-phases-table th.col-phases, 
+.gantt-phases-table th.col-status, 
 .gantt-phases-table th.col-total-mds {
     z-index: 35; /* High z-index only for sticky headers */
 }
@@ -3845,7 +3860,7 @@ Sticky columns stay on top to maintain table structure integrity.
     border-right: 2px solid #3e3e42 !important; /* Stronger border for sticky columns */
 }
 
-.gantt-phases-table .col-phases {
+.gantt-phases-table .col-status {
     width: 160px;
     min-width: 160px;
     position: sticky;
@@ -4101,7 +4116,7 @@ Sticky columns stay on top to maintain table structure integrity.
     left: 0;
 }
 
-.gantt-phases-table tbody .col-phases {
+.gantt-phases-table tbody .col-status {
     left: 239px;
 }
 
