@@ -5566,153 +5566,175 @@ class CapacityManager extends BaseComponent {
      * Show add assignment modal
      */
     async showAddAssignmentModal(mode = 'create', assignmentData = null) {
-        console.log(`Show assignment modal in ${mode} mode`);
+        // Prevent multiple simultaneous calls to this method
+        if (this._showingAssignmentModal) {
+            console.log('Assignment modal already being shown, ignoring duplicate call');
+            return;
+        }
         
-        // Check if modal already exists
-        let modal = document.getElementById('assignment-modal');
-        if (!modal) {
-            // Create the modal HTML
-            modal = document.createElement('div');
-            modal.id = 'assignment-modal';
-            modal.className = 'modal';
-            modal.innerHTML = `
-                <div class="modal-content assignment-modal-content">
-                    <div class="modal-header">
-                        <h3 id="assignment-modal-title">Add Team Member Assignment</h3>
-                        <button class="modal-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="assignment-form">
-                            <div class="form-group">
-                                <label for="assignment-team-member">Team Member *</label>
-                                <select id="assignment-team-member" name="teamMember" required>
-                                    <option value="">Select Team Member</option>
-                                </select>
-                                <small class="field-info" id="member-role-info"></small>
-                            </div>
-                            <div class="form-group">
-                                <label for="assignment-project">Project *</label>
-                                <select id="assignment-project" name="project" required>
-                                    <option value="">Select Project</option>
-                                </select>
-                                <small class="field-info" id="project-readonly-info" style="display: none; color: #888;">Project cannot be changed when editing an assignment</small>
-                            </div>
-                            
-                            <!-- Budget Tracking Section -->
-                            <div class="budget-section" id="budget-section" style="display: none;">
-                                <h4><i class="fas fa-chart-line"></i> Budget Overview</h4>
-                                <div class="budget-summary">
-                                    <div class="budget-item">
-                                        <label>Total Final MDs:</label>
-                                        <span id="total-final-mds" class="budget-value">-</span>
-                                        <small id="budget-context"></small>
-                                    </div>
-                                    <div class="budget-item">
-                                        <label>Total Allocated MDs:</label>
-                                        <span id="total-allocated-mds" class="budget-value">0.0</span>
-                                        <small>Sum of MDs allocated in phases below</small>
-                                    </div>
-                                    <div class="budget-item balance-item">
-                                        <label>Balance:</label>
-                                        <span id="budget-balance" class="budget-balance">-</span>
+        this._showingAssignmentModal = true;
+        
+        try {
+            console.log(`Show assignment modal in ${mode} mode`);
+            
+            // Check if modal already exists
+            let modal = document.getElementById('assignment-modal');
+            if (!modal) {
+                // Create the modal HTML
+                modal = document.createElement('div');
+                modal.id = 'assignment-modal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content assignment-modal-content">
+                        <div class="modal-header">
+                            <h3 id="assignment-modal-title">Add Team Member Assignment</h3>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="assignment-form">
+                                <div class="form-group">
+                                    <label for="assignment-team-member">Team Member *</label>
+                                    <select id="assignment-team-member" name="teamMember" required>
+                                        <option value="">Select Team Member</option>
+                                    </select>
+                                    <small class="field-info" id="member-role-info"></small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="assignment-project">Project *</label>
+                                    <select id="assignment-project" name="project" required>
+                                        <option value="">Select Project</option>
+                                    </select>
+                                    <small class="field-info" id="project-readonly-info" style="display: none; color: #888;">Project cannot be changed when editing an assignment</small>
+                                </div>
+                                
+                                <!-- Budget Tracking Section -->
+                                <div class="budget-section" id="budget-section" style="display: none;">
+                                    <h4><i class="fas fa-chart-line"></i> Budget Overview</h4>
+                                    <div class="budget-summary">
+                                        <div class="budget-item">
+                                            <label>Total Final MDs:</label>
+                                            <span id="total-final-mds" class="budget-value">-</span>
+                                            <small id="budget-context"></small>
+                                        </div>
+                                        <div class="budget-item">
+                                            <label>Total Allocated MDs:</label>
+                                            <span id="total-allocated-mds" class="budget-value">0.0</span>
+                                            <small>Sum of MDs allocated in phases below</small>
+                                        </div>
+                                        <div class="budget-item balance-item">
+                                            <label>Balance:</label>
+                                            <span id="budget-balance" class="budget-balance">-</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <!-- Phase Scheduling Section -->
-                            <div class="phases-section" id="phases-section" style="display: none;">
-                                <h4><i class="fas fa-calendar-alt"></i> Phase Scheduling</h4>
-                                <div id="phases-list">
-                                    <!-- Dynamic phase items will be inserted here -->
+                                
+                                <!-- Phase Scheduling Section -->
+                                <div class="phases-section" id="phases-section" style="display: none;">
+                                    <h4><i class="fas fa-calendar-alt"></i> Phase Scheduling</h4>
+                                    <div id="phases-list">
+                                        <!-- Dynamic phase items will be inserted here -->
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="form-group">
-                                <label for="assignment-notes">Notes</label>
-                                <textarea id="assignment-notes" name="notes" rows="3" maxlength="500"></textarea>
-                            </div>
-                        </form>
+                                <div class="form-group">
+                                    <label for="assignment-notes">Notes</label>
+                                    <textarea id="assignment-notes" name="notes" rows="3" maxlength="500"></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                            <button type="submit" class="btn btn-primary" form="assignment-form" id="submit-assignment">Add Assignment</button>
+                        </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary modal-close">Cancel</button>
-                        <button type="submit" class="btn btn-primary" form="assignment-form" id="submit-assignment">Add Assignment</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            
-            // IMPORTANT: Setup event listeners ONLY when creating the modal for the first time
-            // This prevents duplicate listeners that cause multiple assignment creation
-            
-            // Setup form submission - ONLY ONCE when modal is created
-            const form = document.getElementById('assignment-form');
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                // Prevent double-clicks by disabling the submit button
-                const submitBtn = document.getElementById('submit-assignment');
-                if (submitBtn && !submitBtn.disabled) {
-                    submitBtn.disabled = true;
-                    submitBtn.textContent = mode === 'edit' ? 'Updating...' : 'Creating...';
-                    
-                    // Call handler and re-enable button when done
-                    this.handleAddAssignment().finally(() => {
-                        if (submitBtn) {
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = mode === 'edit' ? 'Update Assignment' : 'Add Assignment';
-                        }
-                    });
-                }
-            });
-
-            // Setup modal close handlers - ONLY ONCE when modal is created
-            modal.querySelectorAll('.modal-close').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    this.resetAssignmentModal();
-                    modal.classList.remove('active');
+                `;
+                document.body.appendChild(modal);
+                
+                // IMPORTANT: Setup event listeners ONLY when creating the modal for the first time
+                // This prevents duplicate listeners that cause multiple assignment creation
+                
+                // Setup form submission - ONLY ONCE when modal is created
+                const form = document.getElementById('assignment-form');
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    // Prevent double-clicks by disabling the submit button
+                    const submitBtn = document.getElementById('submit-assignment');
+                    if (submitBtn && !submitBtn.disabled) {
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = mode === 'edit' ? 'Updating...' : 'Creating...';
+                        
+                        // Call handler and re-enable button when done
+                        this.handleAddAssignment().finally(() => {
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = mode === 'edit' ? 'Update Assignment' : 'Add Assignment';
+                            }
+                        });
+                    }
                 });
-            });
-        }
 
-        // Set modal mode and data
-        modal.dataset.mode = mode;
-        if (assignmentData) {
-            modal.dataset.editingAssignmentId = assignmentData.id;
-        } else {
-            delete modal.dataset.editingAssignmentId;
-        }
+                // Setup modal close handlers - ONLY ONCE when modal is created
+                modal.querySelectorAll('.modal-close').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.resetAssignmentModal();
+                        modal.classList.remove('active');
+                    });
+                });
+            }
 
-        // Update modal title and button text based on mode
-        const titleElement = document.getElementById('assignment-modal-title');
-        const submitBtn = document.getElementById('submit-assignment');
-        
-        switch (mode) {
-            case 'edit':
-                titleElement.textContent = 'Edit Team Member Assignment';
-                submitBtn.textContent = 'Update Assignment';
-                break;
-            case 'duplicate':
-                titleElement.textContent = 'Duplicate Team Member Assignment';
-                submitBtn.textContent = 'Create Duplicate';
-                break;
-            default: // create
-                titleElement.textContent = 'Add Team Member Assignment';
-                submitBtn.textContent = 'Add Assignment';
-                break;
-        }
+            // Reset flags before setting up new modal
+            this.resetAssignmentModal();
 
-        // Populate dropdowns with filtering based on mode
-        await this.populateAssignmentModalDropdowns(mode);
-        
-        // Pre-populate form if editing or duplicating
-        if (assignmentData) {
-            this.populateAssignmentForm(assignmentData, mode);
-        }
-        
-        // Setup event listeners for dynamic content (this can be done every time)
-        this.setupAssignmentModalEventListeners();
+            // Set modal mode and data
+            modal.dataset.mode = mode;
+            
+            // CRITICAL FIX: Only set editingAssignmentId for edit mode, NOT for duplicate mode
+            if (mode === 'edit' && assignmentData) {
+                modal.dataset.editingAssignmentId = assignmentData.id;
+                console.log(`Edit mode: Set editingAssignmentId to ${assignmentData.id}`);
+            } else {
+                // For create and duplicate modes, ensure no editingAssignmentId is set
+                delete modal.dataset.editingAssignmentId;
+                console.log(`${mode} mode: Cleared editingAssignmentId`);
+            }
 
-        // Show modal
-        modal.classList.add('active');
+            // Update modal title and button text based on mode
+            const titleElement = document.getElementById('assignment-modal-title');
+            const submitBtn = document.getElementById('submit-assignment');
+            
+            switch (mode) {
+                case 'edit':
+                    titleElement.textContent = 'Edit Team Member Assignment';
+                    submitBtn.textContent = 'Update Assignment';
+                    break;
+                case 'duplicate':
+                    titleElement.textContent = 'Duplicate Team Member Assignment';
+                    submitBtn.textContent = 'Create Duplicate';
+                    break;
+                default: // create
+                    titleElement.textContent = 'Add Team Member Assignment';
+                    submitBtn.textContent = 'Add Assignment';
+                    break;
+            }
+
+            // Populate dropdowns with filtering based on mode
+            await this.populateAssignmentModalDropdowns(mode);
+            
+            // Pre-populate form if editing or duplicating
+            if (assignmentData) {
+                await this.populateAssignmentForm(assignmentData, mode);
+            }
+            
+            // Setup event listeners for dynamic content (this can be done every time)
+            this.setupAssignmentModalEventListeners();
+
+            // Show modal
+            modal.classList.add('active');
+            
+        } finally {
+            // Always reset the flag
+            this._showingAssignmentModal = false;
+        }
     }
 
     /**
@@ -5760,6 +5782,17 @@ class CapacityManager extends BaseComponent {
         // Clear editing state
         if (modal?.dataset.editingAssignmentId) {
             delete modal.dataset.editingAssignmentId;
+        }
+        
+        // Reset internal flags to prevent loops
+        this._duplicateFormPopulating = false;
+        this._loadingProjectForAssignment = false;
+        this._phaseDataPopulated = false;
+        
+        // Remove hidden input if it exists (from edit mode)
+        const hiddenProjectInput = document.getElementById('hidden-project-input');
+        if (hiddenProjectInput) {
+            hiddenProjectInput.remove();
         }
         
         // Reset form
@@ -6253,9 +6286,15 @@ class CapacityManager extends BaseComponent {
             if (teamMemberSelect && assignmentData.teamMemberId) {
                 teamMemberSelect.value = assignmentData.teamMemberId;
                 
-                // Trigger change event to filter projects (for duplicate mode)
-                if (mode === 'duplicate') {
+                // ONLY trigger change event for duplicate mode, and only once
+                // DO NOT trigger change in edit mode to avoid loops
+                if (mode === 'duplicate' && !this._duplicateFormPopulating) {
+                    this._duplicateFormPopulating = true;
                     teamMemberSelect.dispatchEvent(new Event('change'));
+                    // Reset flag after a delay
+                    setTimeout(() => {
+                        this._duplicateFormPopulating = false;
+                    }, 1000);
                 }
             }
 
@@ -6273,9 +6312,12 @@ class CapacityManager extends BaseComponent {
                 }
                 
                 // For edit/duplicate modes, load the project data to show budget and phases
-                if (mode === 'edit' || mode === 'duplicate') {
+                // But prevent multiple simultaneous calls
+                if ((mode === 'edit' || mode === 'duplicate') && !this._loadingProjectForAssignment) {
+                    this._loadingProjectForAssignment = true;
                     console.log(`Loading project data for ${mode} mode...`);
                     await this.loadProjectForAssignment(assignmentData.projectId);
+                    this._loadingProjectForAssignment = false;
                 }
             }
 
@@ -6291,7 +6333,10 @@ class CapacityManager extends BaseComponent {
             }
 
             // For edit/duplicate modes, populate existing assignment data after project is loaded
-            if ((mode === 'edit' || mode === 'duplicate') && assignmentData.phaseSchedule) {
+            // But only once per modal opening
+            if ((mode === 'edit' || mode === 'duplicate') && assignmentData.phaseSchedule && !this._phaseDataPopulated) {
+                this._phaseDataPopulated = true;
+                
                 // Wait a bit more for the project data to be fully loaded and UI updated
                 setTimeout(() => {
                     console.log('Populating phase schedule data for edit mode:', assignmentData.phaseSchedule);
@@ -6300,6 +6345,16 @@ class CapacityManager extends BaseComponent {
                     // Also populate budget info if available
                     if (assignmentData.budgetInfo) {
                         this.populateBudgetInfo(assignmentData.budgetInfo);
+                    }
+                    
+                    // Reset flag when modal closes
+                    const modal = document.getElementById('assignment-modal');
+                    if (modal) {
+                        const closeHandler = () => {
+                            this._phaseDataPopulated = false;
+                            modal.removeEventListener('transitionend', closeHandler);
+                        };
+                        modal.addEventListener('transitionend', closeHandler);
                     }
                 }, 200);
             }
