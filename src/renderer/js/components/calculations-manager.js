@@ -3480,6 +3480,23 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
+     * Get project status from projects array by project ID or name
+     */
+    getProjectStatus(projectId, projectName) {
+        if (!this.projects || this.projects.length === 0) {
+            return 'approved'; // Default status
+        }
+        
+        const project = this.projects.find(p => 
+            p.id === projectId || 
+            p.name === projectName ||
+            p.code === projectId
+        );
+        
+        return project?.status || 'approved';
+    }
+
+    /**
      * Removed createFallbackTeams method as per user request to eliminate all mock data
      */
 
@@ -4064,7 +4081,7 @@ class CapacityManager extends BaseComponent {
         const monthCells = this.generateProjectGanttCells(projectData);
         
         return `
-            <tr class="gantt-row project-row" data-project-name="${projectName}" data-status="${assignment?.status || 'approved'}" ${assignment ? `data-assignment-id="${assignment.id}"` : ''}>
+            <tr class="gantt-row project-row" data-project-name="${projectName}" data-status="${this.getProjectStatus(projectData.id, projectName)}" ${assignment ? `data-assignment-id="${assignment.id}"` : ''}>
                 <td class="fixed-col expand-toggle">
                     <button class="expand-btn" data-expanded="false" data-project-id="${projectData.id}">
                         <i class="fas fa-chevron-right"></i>
@@ -4662,7 +4679,7 @@ class CapacityManager extends BaseComponent {
             const hasAssignment = data.assignmentId && data.assignmentId !== 'undefined';
             
             html += `
-                <tr class="allocation-member-row" data-member="${member.id}" data-project-id="${data.projectId}" data-status="${data.status || 'approved'}">
+                <tr class="allocation-member-row" data-member="${member.id}" data-project-id="${data.projectId}" data-status="${this.getProjectStatus(data.projectId, data.projectName)}">
                     <td class="fixed-col col-member">
                         <div class="member-info">
                             <span class="member-name">${memberName}</span>
