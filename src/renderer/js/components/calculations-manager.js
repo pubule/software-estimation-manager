@@ -3934,7 +3934,6 @@ class CapacityManager extends BaseComponent {
             if (this.manualAssignments?.length > 0) {
                 // Strategy 1: Find by project name directly
                 projectData.assignment = this.manualAssignments.find(a => {
-                    // Get project info by ID
                     const projectObj = this.getProjectNameById(a.projectId);
                     return projectObj === projectData.name;
                 });
@@ -3952,23 +3951,9 @@ class CapacityManager extends BaseComponent {
                 // Strategy 3: If still not found, try fuzzy matching
                 if (!projectData.assignment) {
                     projectData.assignment = this.manualAssignments.find(a => {
-                        // Check if assignment has project data embedded
                         return a.projectName === projectData.name || 
                                a.projectId === projectData.name;
                     });
-                }
-                
-                // Debug logging for troubleshooting
-                if (projectData.assignment) {
-                    console.log(`✓ Found assignment for project "${projectData.name}":`, {
-                        assignmentId: projectData.assignment.id,
-                        projectId: projectData.assignment.projectId,
-                        phasesCount: projectData.assignment.phaseSchedule?.length || 0
-                    });
-                } else {
-                    console.warn(`✗ No assignment found for project "${projectData.name}". Available assignments:`, 
-                        this.manualAssignments?.map(a => ({ id: a.id, projectId: a.projectId })) || []
-                    );
                 }
             }
         });
@@ -4109,22 +4094,7 @@ class CapacityManager extends BaseComponent {
     generatePhaseGanttBars(phaseSchedule, timelineMonths) {
         const ganttBars = {};
         
-        console.log('generatePhaseGanttBars input:', {
-            phaseScheduleLength: phaseSchedule.length,
-            firstPhase: phaseSchedule[0],
-            timelineMonthsLength: timelineMonths.length,
-            firstTimelineMonth: timelineMonths[0]
-        });
-        
         phaseSchedule.forEach(phase => {
-            console.log('Processing phase:', {
-                phaseName: phase.phaseName,
-                phaseId: phase.phaseId,
-                startDate: phase.startDate,
-                endDate: phase.endDate,
-                estimatedMDs: phase.estimatedMDs
-            });
-            
             if (!phase.startDate || !phase.endDate) {
                 console.warn(`Phase ${phase.phaseName || phase.phaseId} missing start/end dates`);
                 return;
@@ -4132,11 +4102,7 @@ class CapacityManager extends BaseComponent {
             
             const startMonth = this.getMonthFromDate(phase.startDate);
             const endMonth = this.getMonthFromDate(phase.endDate);
-            
-            // Use a more reliable method to generate months between dates
             const monthsSpanned = this.generateMonthsBetweenDates(phase.startDate, phase.endDate);
-            
-            console.log(`Phase ${phase.phaseName}: ${startMonth} to ${endMonth}, spans:`, monthsSpanned);
             
             monthsSpanned.forEach(month => {
                 if (!ganttBars[month]) ganttBars[month] = [];
@@ -4152,7 +4118,6 @@ class CapacityManager extends BaseComponent {
             });
         });
         
-        console.log('Final gantt bars:', ganttBars);
         return ganttBars;
     }
 
@@ -4335,13 +4300,6 @@ class CapacityManager extends BaseComponent {
                 assignment.phaseSchedule.map((_, index) => index).join(', ') : 
                 'No phases';
             
-            console.log(`Project "${projectData.name}" - Assignment:`, {
-                hasAssignment: !!assignment,
-                phasesCount,
-                totalMDs,
-                phaseSchedule: assignment?.phaseSchedule?.length || 0
-            });
-            
             html += `
                 <tr class="gantt-project-row" data-project="${projectData.name}">
                     <td class="fixed-col col-project-name">
@@ -4375,25 +4333,12 @@ class CapacityManager extends BaseComponent {
         const assignment = projectData.assignment;
         
         if (!assignment || !assignment.phaseSchedule) {
-            console.log(`No assignment or phaseSchedule for project "${projectData.name}"`);
             return timelineMonths.map(() => 
                 '<td class="month-col gantt-cell empty"><span class="no-phase">-</span></td>'
             ).join('');
         }
         
-        console.log(`Generating Gantt cells for project "${projectData.name}":`, {
-            phasesCount: assignment.phaseSchedule.length,
-            samplePhase: assignment.phaseSchedule[0],
-            timelineMonthsCount: timelineMonths.length,
-            sampleTimelineMonth: timelineMonths[0]
-        });
-        
         const phaseGanttBars = this.generatePhaseGanttBars(assignment.phaseSchedule, timelineMonths);
-        console.log(`Generated phase gantt bars for "${projectData.name}":`, {
-            ganttBarsKeys: Object.keys(phaseGanttBars),
-            ganttBarsCount: Object.keys(phaseGanttBars).length,
-            sampleGanttBar: Object.values(phaseGanttBars)[0]
-        });
         
         return timelineMonths.map(monthKey => {
             const isoMonthKey = this.convertTimelineToISOMonth(monthKey);
@@ -4470,6 +4415,9 @@ class CapacityManager extends BaseComponent {
             const memberRole = member.role || '';
             const memberVendor = member.vendor || '';
             
+            // Calculate total MDs using the improved method
+            const totalMDs = this.calculateRowTotalMDs(data.allocations, member, data.projectName, data.projectId);
+            
             // Always show action buttons for manual assignments
             const hasAssignment = data.assignmentId && data.assignmentId !== 'undefined';
             
@@ -4524,7 +4472,7 @@ class CapacityManager extends BaseComponent {
                     </td>
                     <td class="fixed-col col-total-mds">
                         <div class="total-mds-cell">
-                            <span class="total-mds-value">${this.calculateRowTotalMDs(data.allocations)} MDs</span>
+                            <span class="total-mds-value">${totalMDs} MDs</span>
                         </div>
                     </td>
                     ${this.generateAllocationCells(member, data.projectName, data.projectId, data.allocations, timelineMonths)}
@@ -4538,7 +4486,37 @@ class CapacityManager extends BaseComponent {
     /**
      * Calculate total MDs for a row by summing all monthly allocations
      */
-    calculateRowTotalMDs(allocations) {
+    calculateRowTotalMDs(allocations, member, projectName, projectId) {
+        // Method 1: Try to get from assignment data (most accurate)
+        if (projectId && this.manualAssignments) {
+            const assignment = this.manualAssignments.find(a => a.projectId === projectId);
+            if (assignment && assignment.phaseSchedule) {
+                const totalFromPhases = assignment.phaseSchedule.reduce((sum, phase) => {
+                    return sum + (parseFloat(phase.estimatedMDs) || 0);
+                }, 0);
+                if (totalFromPhases > 0) {
+                    return Math.round(totalFromPhases * 10) / 10;
+                }
+            }
+        }
+        
+        // Method 2: Try to calculate from member allocations for this specific project
+        if (member && projectName && member.allocations) {
+            let total = 0;
+            Object.entries(member.allocations).forEach(([month, monthData]) => {
+                if (/^\d{4}-\d{2}$/.test(month) && monthData && typeof monthData === 'object') {
+                    const projectAllocation = monthData[projectName];
+                    if (projectAllocation && typeof projectAllocation.planned === 'number') {
+                        total += projectAllocation.planned;
+                    }
+                }
+            });
+            if (total > 0) {
+                return Math.round(total * 10) / 10;
+            }
+        }
+        
+        // Method 3: Fallback to old calculation method
         if (!allocations || typeof allocations !== 'object') {
             return 0;
         }
@@ -4546,10 +4524,12 @@ class CapacityManager extends BaseComponent {
         let total = 0;
         Object.entries(allocations).forEach(([month, monthData]) => {
             // Skip metadata fields and ensure it's a valid month format
-            if (/^\d{4}-\d{2}$/.test(month) && monthData && typeof monthData === 'object') {
+            if (/^\\d{4}-\\d{2}$/.test(month) && monthData && typeof monthData === 'object') {
                 Object.values(monthData).forEach(projectData => {
                     if (projectData && typeof projectData.days === 'number') {
                         total += projectData.days;
+                    } else if (projectData && typeof projectData.planned === 'number') {
+                        total += projectData.planned;
                     }
                 });
             }
