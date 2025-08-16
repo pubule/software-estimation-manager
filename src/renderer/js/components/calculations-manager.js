@@ -5565,8 +5565,8 @@ class CapacityManager extends BaseComponent {
     /**
      * Show add assignment modal
      */
-    async showAddAssignmentModal() {
-        console.log('Show add assignment modal');
+    async showAddAssignmentModal(mode = 'create', assignmentData = null) {
+        console.log(`Show assignment modal in ${mode} mode`);
         
         // Check if modal already exists
         let modal = document.getElementById('assignment-modal');
@@ -5578,7 +5578,7 @@ class CapacityManager extends BaseComponent {
             modal.innerHTML = `
                 <div class="modal-content assignment-modal-content">
                     <div class="modal-header">
-                        <h3>Add Team Member Assignment</h3>
+                        <h3 id="assignment-modal-title">Add Team Member Assignment</h3>
                         <button class="modal-close">&times;</button>
                     </div>
                     <div class="modal-body">
@@ -5595,6 +5595,7 @@ class CapacityManager extends BaseComponent {
                                 <select id="assignment-project" name="project" required>
                                     <option value="">Select Project</option>
                                 </select>
+                                <small class="field-info" id="project-readonly-info" style="display: none; color: #888;">Project cannot be changed when editing an assignment</small>
                             </div>
                             
                             <!-- Budget Tracking Section -->
@@ -5651,13 +5652,13 @@ class CapacityManager extends BaseComponent {
                 const submitBtn = document.getElementById('submit-assignment');
                 if (submitBtn && !submitBtn.disabled) {
                     submitBtn.disabled = true;
-                    submitBtn.textContent = 'Creating...';
+                    submitBtn.textContent = mode === 'edit' ? 'Updating...' : 'Creating...';
                     
                     // Call handler and re-enable button when done
                     this.handleAddAssignment().finally(() => {
                         if (submitBtn) {
                             submitBtn.disabled = false;
-                            submitBtn.textContent = modal.dataset.editingAssignmentId ? 'Update Assignment' : 'Add Assignment';
+                            submitBtn.textContent = mode === 'edit' ? 'Update Assignment' : 'Add Assignment';
                         }
                     });
                 }
@@ -5672,8 +5673,40 @@ class CapacityManager extends BaseComponent {
             });
         }
 
-        // Populate dropdowns (this can be done every time modal is shown)
-        await this.populateAssignmentModalDropdowns();
+        // Set modal mode and data
+        modal.dataset.mode = mode;
+        if (assignmentData) {
+            modal.dataset.editingAssignmentId = assignmentData.id;
+        } else {
+            delete modal.dataset.editingAssignmentId;
+        }
+
+        // Update modal title and button text based on mode
+        const titleElement = document.getElementById('assignment-modal-title');
+        const submitBtn = document.getElementById('submit-assignment');
+        
+        switch (mode) {
+            case 'edit':
+                titleElement.textContent = 'Edit Team Member Assignment';
+                submitBtn.textContent = 'Update Assignment';
+                break;
+            case 'duplicate':
+                titleElement.textContent = 'Duplicate Team Member Assignment';
+                submitBtn.textContent = 'Create Duplicate';
+                break;
+            default: // create
+                titleElement.textContent = 'Add Team Member Assignment';
+                submitBtn.textContent = 'Add Assignment';
+                break;
+        }
+
+        // Populate dropdowns with filtering based on mode
+        await this.populateAssignmentModalDropdowns(mode);
+        
+        // Pre-populate form if editing or duplicating
+        if (assignmentData) {
+            this.populateAssignmentForm(assignmentData, mode);
+        }
         
         // Setup event listeners for dynamic content (this can be done every time)
         this.setupAssignmentModalEventListeners();
@@ -5998,7 +6031,7 @@ class CapacityManager extends BaseComponent {
     /**
      * Populate assignment modal dropdowns
      */
-    async populateAssignmentModalDropdowns() {
+    async populateAssignmentModalDropdowns(mode = 'create') {
         // Prevent multiple simultaneous calls
         if (this._populatingDropdowns) {
             console.log('Dropdown population already in progress, skipping...');
@@ -6006,12 +6039,13 @@ class CapacityManager extends BaseComponent {
         }
         
         this._populatingDropdowns = true;
-        console.log('Starting dropdown population...');
+        console.log(`Starting dropdown population for mode: ${mode}`);
         
         try {
             // Populate team members
             const teamMemberSelect = document.getElementById('assignment-team-member');
             const projectSelect = document.getElementById('assignment-project');
+            const projectReadonlyInfo = document.getElementById('project-readonly-info');
             
             if (teamMemberSelect) {
                 teamMemberSelect.innerHTML = '<option value="">Select Team Member</option>';
@@ -6039,26 +6073,59 @@ class CapacityManager extends BaseComponent {
                 }
             }
 
-            // Populate projects
+            // Handle project dropdown based on mode
             if (projectSelect) {
-                projectSelect.innerHTML = '<option value="">Select Project</option>';
+                // First populate the projects dropdown
+                await this.populateProjectsDropdown(projectSelect, mode);
                 
-                // Use await instead of .then() to avoid race conditions
-                const projects = await this.getAvailableProjects();
-
-                if (Array.isArray(projects) && projects.length > 0) {
-                    projects.forEach(project => {
-                        const option = document.createElement('option');
-                        option.value = project.id || project.code;
-                        option.textContent = project.name || project.code;
-                        projectSelect.appendChild(option);
-                    });
+                // THEN apply mode-specific restrictions
+                if (mode === 'edit') {
+                    // In edit mode, make project selection visually disabled but keep value
+                    console.log('Making project dropdown readonly for edit mode');
+                    
+                    // Don't use disabled=true as it prevents the value from being submitted
+                    // Instead, use pointer-events:none and visual styling
+                    projectSelect.style.backgroundColor = '#f5f5f5';
+                    projectSelect.style.cursor = 'not-allowed';
+                    projectSelect.style.pointerEvents = 'none';
+                    projectSelect.setAttribute('readonly', 'true');
+                    
+                    // Add a hidden input to ensure the value is always submitted
+                    let hiddenProjectInput = document.getElementById('hidden-project-input');
+                    if (!hiddenProjectInput) {
+                        hiddenProjectInput = document.createElement('input');
+                        hiddenProjectInput.type = 'hidden';
+                        hiddenProjectInput.id = 'hidden-project-input';
+                        hiddenProjectInput.name = 'project';
+                        projectSelect.parentNode.appendChild(hiddenProjectInput);
+                    }
+                    
+                    // Update hidden input when project select value changes
+                    hiddenProjectInput.value = projectSelect.value;
+                    
+                    if (projectReadonlyInfo) {
+                        projectReadonlyInfo.style.display = 'block';
+                    }
                 } else {
-                    const option = document.createElement('option');
-                    option.value = '';
-                    option.textContent = 'No projects available';
-                    option.disabled = true;
-                    projectSelect.appendChild(option);
+                    // In create/duplicate mode, enable project selection with filtering
+                    console.log(`Enabling project dropdown for ${mode} mode`);
+                    projectSelect.style.backgroundColor = '';
+                    projectSelect.style.cursor = '';
+                    projectSelect.style.pointerEvents = '';
+                    projectSelect.removeAttribute('readonly');
+                    
+                    // Remove hidden input if it exists
+                    const hiddenProjectInput = document.getElementById('hidden-project-input');
+                    if (hiddenProjectInput) {
+                        hiddenProjectInput.remove();
+                    }
+                    
+                    if (projectReadonlyInfo) {
+                        projectReadonlyInfo.style.display = 'none';
+                    }
+                    
+                    // Setup dynamic filtering when team member changes (only for create/duplicate)
+                    this.setupProjectFilteringForTeamMember(teamMemberSelect, projectSelect);
                 }
             }
             
@@ -6078,7 +6145,168 @@ class CapacityManager extends BaseComponent {
         } finally {
             // Always reset the flag when done
             this._populatingDropdowns = false;
+        }
+    }
 
+    /**
+     * Setup dynamic project filtering based on selected team member
+     */
+    setupProjectFilteringForTeamMember(teamMemberSelect, projectSelect) {
+        // Remove existing listeners to prevent duplicates
+        const newTeamMemberSelect = teamMemberSelect.cloneNode(true);
+        teamMemberSelect.parentNode.replaceChild(newTeamMemberSelect, teamMemberSelect);
+        
+        // Add change listener for team member selection
+        newTeamMemberSelect.addEventListener('change', async (e) => {
+            const selectedTeamMemberId = e.target.value;
+            await this.filterProjectsForTeamMember(selectedTeamMemberId, projectSelect);
+        });
+    }
+
+    /**
+     * Filter projects dropdown based on selected team member's existing assignments
+     */
+    async filterProjectsForTeamMember(teamMemberId, projectSelect) {
+        if (!teamMemberId) {
+            // If no team member selected, show all projects
+            await this.populateProjectsDropdown(projectSelect, 'create');
+            return;
+        }
+
+        // Get all projects
+        const allProjects = await this.getAvailableProjects();
+        
+        // Find existing assignments for this team member
+        const existingProjectIds = new Set();
+        if (this.manualAssignments && Array.isArray(this.manualAssignments)) {
+            this.manualAssignments.forEach(assignment => {
+                if (assignment.teamMemberId === teamMemberId) {
+                    existingProjectIds.add(assignment.projectId);
+                }
+            });
+        }
+
+        // Filter out projects that already have assignments for this team member
+        const availableProjects = allProjects.filter(project => 
+            !existingProjectIds.has(project.id || project.code)
+        );
+
+        // Populate dropdown with filtered projects
+        projectSelect.innerHTML = '<option value="">Select Project</option>';
+        
+        if (availableProjects.length > 0) {
+            availableProjects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.id || project.code;
+                option.textContent = project.name || project.code;
+                projectSelect.appendChild(option);
+            });
+        } else {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No available projects (all assigned to this member)';
+            option.disabled = true;
+            projectSelect.appendChild(option);
+        }
+
+        console.log(`Filtered projects for team member ${teamMemberId}: ${availableProjects.length} available, ${existingProjectIds.size} already assigned`);
+    }
+
+    /**
+     * Populate projects dropdown (used for initial load and edit mode)
+     */
+    async populateProjectsDropdown(projectSelect, mode = 'create') {
+        projectSelect.innerHTML = '<option value="">Select Project</option>';
+        
+        try {
+            const projects = await this.getAvailableProjects();
+
+            if (Array.isArray(projects) && projects.length > 0) {
+                projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id || project.code;
+                    option.textContent = project.name || project.code;
+                    projectSelect.appendChild(option);
+                });
+            } else {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No projects available';
+                option.disabled = true;
+                projectSelect.appendChild(option);
+            }
+        } catch (error) {
+            console.error('Error loading projects:', error);
+            projectSelect.innerHTML = '<option value="">Error loading projects</option>';
+        }
+    }
+
+    /**
+     * Populate assignment form with existing data for edit/duplicate modes
+     */
+    async populateAssignmentForm(assignmentData, mode) {
+        try {
+            console.log(`Populating form for ${mode} mode with assignment:`, assignmentData);
+            
+            // Populate team member
+            const teamMemberSelect = document.getElementById('assignment-team-member');
+            if (teamMemberSelect && assignmentData.teamMemberId) {
+                teamMemberSelect.value = assignmentData.teamMemberId;
+                
+                // Trigger change event to filter projects (for duplicate mode)
+                if (mode === 'duplicate') {
+                    teamMemberSelect.dispatchEvent(new Event('change'));
+                }
+            }
+
+            // Populate project
+            const projectSelect = document.getElementById('assignment-project');
+            if (projectSelect && assignmentData.projectId) {
+                projectSelect.value = assignmentData.projectId;
+                
+                // For edit mode, also update the hidden input
+                if (mode === 'edit') {
+                    const hiddenProjectInput = document.getElementById('hidden-project-input');
+                    if (hiddenProjectInput) {
+                        hiddenProjectInput.value = assignmentData.projectId;
+                    }
+                }
+                
+                // For edit/duplicate modes, load the project data to show budget and phases
+                if (mode === 'edit' || mode === 'duplicate') {
+                    console.log(`Loading project data for ${mode} mode...`);
+                    await this.loadProjectForAssignment(assignmentData.projectId);
+                }
+            }
+
+            // Populate notes
+            const notesTextarea = document.getElementById('assignment-notes');
+            if (notesTextarea) {
+                if (mode === 'duplicate') {
+                    // Add "(Copy)" suffix for duplicates
+                    notesTextarea.value = (assignmentData.notes || '') + ' (Copy)';
+                } else {
+                    notesTextarea.value = assignmentData.notes || '';
+                }
+            }
+
+            // For edit/duplicate modes, populate existing assignment data after project is loaded
+            if ((mode === 'edit' || mode === 'duplicate') && assignmentData.phaseSchedule) {
+                // Wait a bit more for the project data to be fully loaded and UI updated
+                setTimeout(() => {
+                    console.log('Populating phase schedule data for edit mode:', assignmentData.phaseSchedule);
+                    this.populatePhaseScheduleData(assignmentData.phaseSchedule);
+                    
+                    // Also populate budget info if available
+                    if (assignmentData.budgetInfo) {
+                        this.populateBudgetInfo(assignmentData.budgetInfo);
+                    }
+                }, 200);
+            }
+
+            console.log(`Form populated for ${mode} mode with assignment ${assignmentData.id}`);
+        } catch (error) {
+            console.error('Error populating assignment form:', error);
         }
     }
     
@@ -6679,13 +6907,29 @@ class CapacityManager extends BaseComponent {
             const modal = document.getElementById('assignment-modal');
             const formData = new FormData(form);
             
-            const teamMemberId = formData.get('teamMember');
-            const projectId = formData.get('project');
-            const notes = formData.get('notes');
-            
             // Check if we're editing an existing assignment
             const editingAssignmentId = modal?.dataset.editingAssignmentId;
             const isEditing = !!editingAssignmentId;
+            
+            console.log(`Processing assignment in ${isEditing ? 'edit' : 'create'} mode, assignmentId: ${editingAssignmentId || 'new'}`);
+            
+            let teamMemberId = formData.get('teamMember');
+            let projectId = formData.get('project');
+            const notes = formData.get('notes');
+            
+            // In edit mode, if form values are missing (due to disabled fields), use existing assignment data
+            if (isEditing) {
+                const existingAssignment = this.manualAssignments.find(a => a.id === editingAssignmentId);
+                if (existingAssignment) {
+                    // Use existing values if form values are empty (due to disabled fields)
+                    teamMemberId = teamMemberId || existingAssignment.teamMemberId;
+                    projectId = projectId || existingAssignment.projectId;
+                    
+                    console.log(`Edit mode: Using teamMemberId=${teamMemberId}, projectId=${projectId} from existing assignment`);
+                } else {
+                    throw new Error('Assignment to edit not found');
+                }
+            }
             
             // Validate selections
             if (!teamMemberId || !projectId) {
@@ -6822,6 +7066,8 @@ class CapacityManager extends BaseComponent {
             
         } catch (error) {
             console.error('Error handling assignment:', error);
+            const modal = document.getElementById('assignment-modal');
+            const editingAssignmentId = modal?.dataset.editingAssignmentId;
             const isEditing = !!editingAssignmentId;
             NotificationManager.error(`Failed to ${isEditing ? 'update' : 'create'} assignment: ${error.message}`);
         }
@@ -6893,6 +7139,41 @@ class CapacityManager extends BaseComponent {
             balance: budgetBalanceText === '-' ? 0 : parseFloat(budgetBalanceText),
             isOverBudget: budgetBalanceText.includes('over budget')
         };
+    }
+
+    /**
+     * Populate budget information in the modal
+     */
+    populateBudgetInfo(budgetInfo) {
+        try {
+            // Populate total final MDs
+            const totalFinalMDsElement = document.getElementById('total-final-mds');
+            if (totalFinalMDsElement && budgetInfo.totalFinalMDs !== undefined) {
+                totalFinalMDsElement.textContent = budgetInfo.totalFinalMDs.toFixed(1);
+            }
+
+            // Populate total allocated MDs
+            const totalAllocatedMDsElement = document.getElementById('total-allocated-mds');
+            if (totalAllocatedMDsElement && budgetInfo.totalAllocatedMDs !== undefined) {
+                totalAllocatedMDsElement.textContent = budgetInfo.totalAllocatedMDs.toFixed(1);
+            }
+
+            // Populate budget balance
+            const budgetBalanceElement = document.getElementById('budget-balance');
+            if (budgetBalanceElement && budgetInfo.balance !== undefined) {
+                if (budgetInfo.isOverBudget) {
+                    budgetBalanceElement.textContent = `${Math.abs(budgetInfo.balance).toFixed(1)} over budget`;
+                    budgetBalanceElement.className = 'budget-balance over-budget';
+                } else {
+                    budgetBalanceElement.textContent = budgetInfo.balance.toFixed(1);
+                    budgetBalanceElement.className = 'budget-balance available';
+                }
+            }
+
+            console.log('Budget info populated:', budgetInfo);
+        } catch (error) {
+            console.error('Error populating budget info:', error);
+        }
     }
     
     /**
@@ -7600,7 +7881,8 @@ class CapacityManager extends BaseComponent {
      * Show edit assignment modal with pre-filled data
      */
     async showEditAssignmentModal(assignmentId) {
-
+        console.log(`showEditAssignmentModal called for assignment: ${assignmentId}`);
+        
         // Find the assignment to edit
         const assignment = this.manualAssignments.find(a => a.id === assignmentId);
         if (!assignment) {
@@ -7608,22 +7890,10 @@ class CapacityManager extends BaseComponent {
             return;
         }
         
-        // Show the add assignment modal first
-        await this.showAddAssignmentModal();
+        console.log('Found assignment to edit:', assignment);
         
-        // Change modal title and button text
-        const modal = document.getElementById('assignment-modal');
-        const title = modal.querySelector('.modal-header h3');
-        const submitBtn = modal.querySelector('#submit-assignment');
-        
-        if (title) title.textContent = 'Edit Team Member Assignment';
-        if (submitBtn) submitBtn.textContent = 'Update Assignment';
-        
-        // Pre-fill form data
-        this.populateAssignmentModalWithData(assignment);
-        
-        // Store assignment ID for update
-        modal.dataset.editingAssignmentId = assignmentId;
+        // Use the proper edit mode in showAddAssignmentModal
+        await this.showAddAssignmentModal('edit', assignment);
     }
 
     /**
@@ -7662,17 +7932,34 @@ class CapacityManager extends BaseComponent {
      * Populate phase schedule data
      */
     populatePhaseScheduleData(phaseSchedule) {
+        console.log('Populating phase schedule data:', phaseSchedule);
+        
         phaseSchedule.forEach(phase => {
+            const phaseElement = document.querySelector(`[data-phase-id="${phase.phaseId}"]`);
+            if (!phaseElement) {
+                console.warn(`Phase element not found for phase ID: ${phase.phaseId}`);
+                return;
+            }
+            
             // Fill start date
-            const startDateInput = document.querySelector(`[data-phase-id="${phase.phaseId}"] .phase-start-date`);
-            if (startDateInput) {
+            const startDateInput = phaseElement.querySelector('.phase-start-date');
+            if (startDateInput && phase.startDate) {
                 startDateInput.value = phase.startDate;
+                console.log(`Set start date for ${phase.phaseId}: ${phase.startDate}`);
             }
             
             // Fill end date
-            const endDateInput = document.querySelector(`[data-phase-id="${phase.phaseId}"] .phase-end-date`);
-            if (endDateInput) {
+            const endDateInput = phaseElement.querySelector('.phase-end-date');
+            if (endDateInput && phase.endDate) {
                 endDateInput.value = phase.endDate;
+                console.log(`Set end date for ${phase.phaseId}: ${phase.endDate}`);
+            }
+            
+            // Fill estimated MDs if available
+            const phaseMDsElement = phaseElement.querySelector('.phase-mds');
+            if (phaseMDsElement && phase.estimatedMDs !== undefined) {
+                phaseMDsElement.textContent = phase.estimatedMDs.toFixed(1);
+                console.log(`Set estimated MDs for ${phase.phaseId}: ${phase.estimatedMDs}`);
             }
             
             // Calculate availability and overflow for this phase
@@ -7681,13 +7968,14 @@ class CapacityManager extends BaseComponent {
         
         // Trigger recalculation
         this.updateBudgetBalance();
+        
+        console.log('Phase schedule data population completed');
     }
 
     /**
      * Duplicate assignment
      */
     async duplicateAssignment(assignmentId) {
-
         const assignment = this.manualAssignments.find(a => a.id === assignmentId);
         if (!assignment) {
             NotificationManager.error('Assignment not found');
@@ -7695,28 +7983,12 @@ class CapacityManager extends BaseComponent {
         }
         
         try {
-            // Create duplicated assignment with new ID
-            const duplicatedAssignment = {
-                ...assignment,
-                id: this.generateId('assignment-'),
-                created: new Date().toISOString(),
-                notes: (assignment.notes || '') + ' (Copy)'
-            };
-            
-            // Add to manual assignments
-            if (!this.manualAssignments) {
-                this.manualAssignments = [];
-            }
-            this.manualAssignments.push(duplicatedAssignment);
-
-            NotificationManager.success('Assignment duplicated successfully');
-            
-            // Refresh the table
-            await this.refreshAllCapacitySections();
+            // Instead of creating the duplicate immediately, open modal with assignment data
+            await this.showAddAssignmentModal('duplicate', assignment);
             
         } catch (error) {
-            console.error('Error duplicating assignment:', error);
-            NotificationManager.error(`Failed to duplicate assignment: ${error.message}`);
+            console.error('Error opening duplicate assignment modal:', error);
+            NotificationManager.error(`Failed to open duplicate assignment: ${error.message}`);
         }
     }
 
@@ -7831,9 +8103,21 @@ class CapacityManager extends BaseComponent {
     /**
      * Edit assignment
      */
-    editAssignment(assignmentId) {
-
-        NotificationManager.info(`Edit Assignment ${assignmentId}: Feature in development`);
+    async editAssignment(assignmentId) {
+        console.log(`Edit assignment requested for ID: ${assignmentId}`);
+        
+        // Find the assignment to edit
+        const assignment = this.manualAssignments.find(a => a.id === assignmentId);
+        if (!assignment) {
+            console.error(`Assignment not found: ${assignmentId}`);
+            NotificationManager.error(`Assignment ${assignmentId} not found`);
+            return;
+        }
+        
+        console.log('Found assignment to edit:', assignment);
+        
+        // Open modal in edit mode with the assignment data
+        await this.showAddAssignmentModal('edit', assignment);
     }
 
     /**
