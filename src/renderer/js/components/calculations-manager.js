@@ -4486,7 +4486,7 @@ class CapacityManager extends BaseComponent {
             const effectiveProjectId = projectData.id || projectData.code || projectData.name || 'unknown';
             
             html += `
-                <tr class="gantt-project-row" data-project-id="${effectiveProjectId}">
+                <tr class="gantt-project-row" data-project-id="${effectiveProjectId}" data-status="${this.getProjectStatus(projectData.id, projectData.name)}">
                     <td class="fixed-col col-project-name">
                         <div class="project-name-cell">
                             <span class="project-name">${projectData.name}</span>
@@ -5945,7 +5945,7 @@ class CapacityManager extends BaseComponent {
         const teamMembers = await this.getRealTeamMembers();
         
         // Get rows from different tables - treat them separately
-        const ganttRows = document.querySelectorAll('#gantt-table .gantt-row, #gantt-table .capacity-info-row');
+        const ganttRows = document.querySelectorAll('#gantt-table .gantt-row, #gantt-table .gantt-project-row, #gantt-table .capacity-info-row');
         const allocationRows = document.querySelectorAll('#allocations-table .allocation-member-row, #allocations-table .capacity-info-row');
         
         // Get the project filter value - prioritize ID matching
