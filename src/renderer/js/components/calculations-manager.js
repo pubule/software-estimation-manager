@@ -4372,19 +4372,12 @@ class CapacityManager extends BaseComponent {
                                 <input type="number" class="capacity-mds-input ${overflowClass}" 
                                        value="${projectAllocation.days}" 
                                        min="0" step="1" 
+                                       readonly
                                        data-member-id="${member.id}"
                                        data-project-id="${projectId}"
                                        data-month="${isoMonthKey}"
                                        data-original-value="${projectAllocation.days}"
                                        title="${memberName} - ${projectName}: ${projectAllocation.days} MDs">
-                                <button class="reset-capacity-mds-btn" 
-                                        data-member-id="${member.id}"
-                                        data-project-id="${projectId}"
-                                        data-month="${isoMonthKey}"
-                                        title="Reset to original value (${projectAllocation.days} MDs)"
-                                        style="display: none;">
-                                    <i class="fas fa-undo"></i>
-                                </button>
                                 ${projectAllocation.hasOverflow ? '<i class="fas fa-exclamation-triangle overflow-warning"></i>' : ''}
                             </div>
                         </td>
@@ -4707,14 +4700,6 @@ class CapacityManager extends BaseComponent {
                                         title="Delete Allocation">
                                     <i class="fas fa-trash"></i>
                                 </button>
-                                <button class="btn btn-small btn-warning reset-allocation-btn" 
-                                        data-action="reset" 
-                                        data-assignment-id="${data.assignmentId}"
-                                        data-member-id="${member.id}"
-                                        data-project-id="${data.projectId}"
-                                        title="Reset allocation to original values">
-                                    <i class="fas fa-undo-alt"></i>
-                                </button>
                             ` : `
                                 <span class="auto-generated-label">Auto-generated</span>
                             `}
@@ -4919,19 +4904,12 @@ class CapacityManager extends BaseComponent {
                                    value="${projectAllocation.days}" 
                                    min="0" 
                                    step="1" 
+                                   readonly
                                    data-member-id="${member.id}" 
                                    data-project-id="${projectId}"
                                    data-month="${isoMonthKey}"
                                    data-original-value="${projectAllocation.days}"
                                    title="${member.firstName} ${member.lastName} - ${projectName}: ${projectAllocation.days} MDs">
-                            <button class="reset-capacity-mds-btn" 
-                                    data-member-id="${member.id}"
-                                    data-project-id="${projectId}"
-                                    data-month="${isoMonthKey}"
-                                    title="Reset to original value (${projectAllocation.days} MDs)"
-                                    style="display: none;">
-                                <i class="fas fa-undo"></i>
-                            </button>
                             ${projectAllocation.hasOverflow ? '<i class="fas fa-exclamation-triangle overflow-warning"></i>' : ''}
                         </div>
                     </td>
@@ -5136,98 +5114,14 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
-     * Initialize event listeners for editable capacity cells
+     * Initialize event listeners for capacity cells (no longer needed - cells are read-only)
      */
     initializeCapacityCellEventListeners() {
-        // Remove existing listeners to prevent duplicates
-        if (this._capacityCellHandler) {
-            document.removeEventListener('click', this._capacityCellHandler);
-            document.removeEventListener('change', this._capacityCellChangeHandler);
-        }
-        
-        // Create dedicated handler for capacity cell actions (reset buttons only)
-        this._capacityCellHandler = (e) => {
-            // Reset capacity MDs button
-            if (e.target.classList.contains('reset-capacity-mds-btn') || 
-                e.target.closest('.reset-capacity-mds-btn')) {
-                e.preventDefault();
-                e.stopPropagation();
-                const button = e.target.closest('.reset-capacity-mds-btn') || e.target;
-                this.handleCapacityValueReset(button);
-                return;
-            }
-            
-            // Reset allocation button
-            if (e.target.classList.contains('reset-allocation-btn') || 
-                e.target.closest('.reset-allocation-btn')) {
-                e.preventDefault();
-                e.stopPropagation();
-                const button = e.target.closest('.reset-allocation-btn') || e.target;
-                const assignmentId = button.dataset.assignmentId;
-                const memberId = button.dataset.memberId;
-                const projectId = button.dataset.projectId;
-                this.resetAllocationToOriginal(assignmentId, memberId, projectId);
-                return;
-            }
-        };
-        
-        // Create dedicated handler for capacity input changes
-        this._capacityCellChangeHandler = (e) => {
-            if (e.target.classList.contains('capacity-mds-input')) {
-                // Skip handling if we're in the middle of a reset operation
-                if (this._resettingAllocation) {
-                    console.log('Skipping capacity value change during reset operation');
-                    return;
-                }
-                this.handleCapacityValueChange(e.target);
-            }
-        };
-        
-        // Add the event listeners
-        document.addEventListener('click', this._capacityCellHandler);
-        document.addEventListener('change', this._capacityCellChangeHandler);
+        // Cells are now read-only, no event listeners needed
+        // All editing is done through the assignment modal
     }
 
-    /**
-     * Handle capacity value change
-     */
-    handleCapacityValueChange(input) {
-        const memberId = input.dataset.memberId;
-        const project = input.dataset.project;
-        const projectId = input.dataset.projectId;
-        const month = input.dataset.month;
-        const newValue = parseInt(input.value) || 0;
-        const originalValue = parseInt(input.dataset.originalValue) || 0;
-
-        // Mark as modified and show reset button if value changed
-        const hasChanged = newValue !== originalValue;
-        const resetButton = input.parentElement.querySelector('.reset-capacity-mds-btn');
-        
-        if (hasChanged) {
-            input.classList.add('modified');
-            if (resetButton) resetButton.style.display = 'inline-block';
-        } else {
-            input.classList.remove('modified');
-            if (resetButton) resetButton.style.display = 'none';
-        }
-        
-        // Update tooltip
-        const cell = input.closest('td');
-        if (cell) {
-            const currentTitle = cell.title;
-            cell.title = currentTitle.replace(/: \d+ MDs/, `: ${newValue} MDs`) + 
-                       (hasChanged ? ` (Original: ${originalValue})` : '');
-        }
-
-        // Save the change to data structure
-        this.updateCapacityValue(memberId, project, month, newValue);
-        
-        // Update Total MDs column after value change
-        this.updateRowTotalMDs(memberId, project, projectId);
-        
-        // Trigger auto-redistribution for this assignment (use projectId not projectName)
-        this.triggerAutoRedistribution(memberId, projectId || project, newValue, month);
-    }
+    // handleCapacityValueChange method removed - cells are now read-only
 
 
     /**
@@ -5264,252 +5158,11 @@ class CapacityManager extends BaseComponent {
         }
     }
 
-    /**
-     * Trigger auto-redistribution for an assignment when user changes a value
-     */
-    async triggerAutoRedistribution(memberId, projectIdOrName, newValue, changedMonth) {
-        try {
-            // Find the assignment that corresponds to this allocation
-            const assignment = this.findAssignmentForMemberAndProject(memberId, projectIdOrName);
-            if (!assignment) {
-                console.warn(`No assignment found for member ${memberId} and project ${projectIdOrName}`);
-                return;
-            }
+    // triggerAutoRedistribution method removed - cells are now read-only
 
-            console.log('Found assignment:', assignment);
+    // updateUIAfterRedistribution method removed - cells are now read-only
 
-            // Get the auto-distribution algorithm
-            if (!this.autoDistribution) {
-                console.warn('AutoDistribution not available');
-                return;
-            }
-
-            // Get project name - need this to access the nested structure
-            let projectName = null;
-            
-            // Find the project name from the calculatedAllocation structure
-            if (assignment.calculatedAllocation) {
-                const firstMonth = Object.keys(assignment.calculatedAllocation)[0];
-                if (firstMonth && assignment.calculatedAllocation[firstMonth]) {
-                    projectName = Object.keys(assignment.calculatedAllocation[firstMonth])[0];
-                }
-            }
-            
-            if (!projectName) {
-                console.error('Could not determine project name from assignment');
-                return;
-            }
-            
-            console.log('Project name:', projectName);
-
-            // Convert assignment data to allocations format for the algorithm
-            let allocations = {};
-            
-            // Extract allocations from calculatedAllocation
-            if (assignment.calculatedAllocation) {
-                Object.entries(assignment.calculatedAllocation).forEach(([month, monthData]) => {
-                    // Check if it's a valid month format (YYYY-MM)
-                    if (!/^\d{4}-\d{2}$/.test(month)) {
-                        return;
-                    }
-                    
-                    // Get the project data for this month
-                    const projectData = monthData[projectName];
-                    
-                    if (projectData && projectData.days > 0) {
-                        allocations[month] = {
-                            planned: projectData.days,
-                            actual: projectData.days,
-                            locked: false
-                        };
-                    }
-                });
-            }
-
-            console.log('Converted allocations:', allocations);
-            
-            // If allocations are still empty, we can't proceed
-            if (Object.keys(allocations).length === 0) {
-                console.error('Could not extract allocations from assignment');
-                return;
-            }
-
-            // Calculate total MDs for validation
-            const totalMDs = Object.values(allocations).reduce((sum, a) => sum + a.planned, 0);
-            console.log('Total MDs before redistribution:', totalMDs);
-
-            // Create a temporary assignment structure for the algorithm
-            const tempAssignment = {
-                ...assignment,
-                allocations: allocations
-            };
-            
-            console.log('Calling redistributeAfterUserChange with:', {
-                month: changedMonth,
-                newValue: newValue,
-                currentAllocations: allocations
-            });
-            
-            // Use the redistribution after user change method
-            const updatedAssignment = this.autoDistribution.redistributeAfterUserChange(
-                tempAssignment, 
-                changedMonth, 
-                newValue
-            );
-
-            console.log('Redistribution result:', updatedAssignment);
-
-            if (updatedAssignment && updatedAssignment.allocations) {
-                // Calculate new total for validation
-                const newTotal = Object.values(updatedAssignment.allocations)
-                    .filter(a => typeof a === 'object' && a.planned !== undefined)
-                    .reduce((sum, a) => sum + a.planned, 0);
-                console.log('Total MDs after redistribution:', newTotal);
-                
-                // Save original allocation on first modification (if not already saved)
-                if (assignment.calculatedAllocation && !assignment.originalCalculatedAllocation) {
-                    console.log('Saving original allocation for reset functionality');
-                    assignment.originalCalculatedAllocation = JSON.parse(JSON.stringify(assignment.calculatedAllocation));
-                }
-                
-                // Update the original assignment with new distribution
-                if (assignment.calculatedAllocation) {
-                    Object.keys(assignment.calculatedAllocation).forEach(month => {
-                        if (updatedAssignment.allocations[month] && /^\d{4}-\d{2}$/.test(month)) {
-                            // Update the nested structure
-                            if (assignment.calculatedAllocation[month][projectName]) {
-                                const newDays = updatedAssignment.allocations[month].planned;
-                                assignment.calculatedAllocation[month][projectName].days = newDays;
-                                
-                                console.log(`Updated ${month}: ${newDays} MDs`);
-                            }
-                        }
-                    });
-                }
-                
-                // Update the UI with the new distribution
-                this.updateUIAfterRedistribution(memberId, projectName, projectIdOrName, updatedAssignment.allocations, changedMonth);
-                
-                // Mark data as dirty for saving
-                this.isCapacityDataDirty = true;
-                
-                console.log('Assignment updated successfully');
-            }
-
-        } catch (error) {
-            console.error('Error during auto-redistribution:', error);
-        }
-    }
-
-    /**
-     * Update UI cells after auto-redistribution
-     */
-    updateUIAfterRedistribution(memberId, projectName, projectId, newAllocations, excludeMonth) {
-        Object.keys(newAllocations).forEach(month => {
-            // Skip the month that was manually changed
-            if (month === excludeMonth) return;
-            
-            // Skip metadata fields
-            if (['hasOverflow', 'overflowAmount', 'hasUnallocatedMDs', 'unallocatedAmount', 'error'].includes(month)) {
-                return;
-            }
-
-            const allocation = newAllocations[month];
-            if (allocation && typeof allocation === 'object' && allocation.planned !== undefined) {
-                // Find the corresponding input field - use projectId if available
-                const selector = projectId ? 
-                    `.capacity-mds-input[data-member-id="${memberId}"][data-project-id="${projectId}"][data-month="${month}"]` :
-                    `.capacity-mds-input[data-member-id="${memberId}"][data-project="${projectName}"][data-month="${month}"]`;
-                    
-                const input = document.querySelector(selector);
-                
-                if (input && allocation.planned !== undefined) {
-                    const newValue = Math.round(allocation.planned);
-                    input.value = newValue;
-                    
-                    // Update tooltip
-                    const cell = input.closest('td');
-                    if (cell) {
-                        const originalTitle = cell.title.split(' (Original')[0];
-                        cell.title = originalTitle.replace(/: \d+ MDs/, `: ${newValue} MDs`);
-                    }
-                    
-                    // Mark as auto-updated (different from user-modified)
-                    input.classList.add('auto-updated');
-                    input.classList.remove('modified');
-                    
-                    // Hide reset button for auto-updated fields
-                    const resetButton = input.parentElement?.querySelector('.reset-capacity-mds-btn');
-                    if (resetButton) resetButton.style.display = 'none';
-                    
-                    // Check for overflow and update CSS classes
-                    if (this.autoDistribution && newValue > 0) {
-                        try {
-                            const overflowResult = this.autoDistribution.checkCapacityOverflow(memberId, month, newValue);
-                            const parentCell = input.closest('td');
-                            const container = input.parentElement;
-                            
-                            if (overflowResult.hasOverflow) {
-                                // Add overflow classes
-                                input.classList.add('overflow');
-                                if (parentCell) parentCell.classList.add('overflow');
-                                
-                                // Add overflow warning icon if not present
-                                if (container && !container.querySelector('.overflow-warning')) {
-                                    const warningIcon = document.createElement('i');
-                                    warningIcon.className = 'fas fa-exclamation-triangle overflow-warning';
-                                    container.appendChild(warningIcon);
-                                }
-                            } else {
-                                // Remove overflow classes
-                                input.classList.remove('overflow');
-                                if (parentCell) parentCell.classList.remove('overflow');
-                                
-                                // Remove overflow warning icon
-                                const warningIcon = container?.querySelector('.overflow-warning');
-                                if (warningIcon) {
-                                    warningIcon.remove();
-                                }
-                            }
-                        } catch (error) {
-                            console.warn(`Could not check overflow for ${memberId} in ${month}:`, error);
-                        }
-                    }
-                }
-            }
-        });
-        
-        // Update Total MDs column after redistribution
-        this.updateRowTotalMDs(memberId, projectName, projectId);
-    }
-
-    /**
-     * Handle reset button clicks to restore original values
-     */
-    handleCapacityValueReset(button) {
-        const memberId = button.dataset.memberId;
-        const projectId = button.dataset.projectId;
-        const month = button.dataset.month;
-        
-        // Find the corresponding input field using projectId
-        const input = document.querySelector(
-            `.capacity-mds-input[data-member-id="${memberId}"][data-project-id="${projectId}"][data-month="${month}"]`
-        );
-            
-        if (input) {
-            const originalValue = input.dataset.originalValue;
-            input.value = originalValue;
-            
-            // Remove modified styling
-            input.classList.remove('modified');
-            
-            // Hide reset button
-            button.style.display = 'none';
-            
-            // Trigger change event to update calculations
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-    }
+    // handleCapacityValueReset method removed - cells are now read-only
 
     /**
      * Generate project status badge based on member allocations
@@ -9769,209 +9422,6 @@ class CapacityManager extends BaseComponent {
         `;
     }
 
-    /**
-     * Reset allocation to original values for a specific assignment
-     * @param {string} assignmentId Assignment ID 
-     * @param {string} memberId Team member ID
-     * @param {string} projectId Project ID
-     */
-    async resetAllocationToOriginal(assignmentId, memberId, projectId) {
-        // Create unique key for this specific reset operation
-        const resetKey = `${assignmentId || `${memberId}-${projectId}`}`;
-        
-        // Initialize reset tracking if needed
-        if (!this._activeResets) {
-            this._activeResets = new Set();
-        }
-        
-        // Prevent multiple calls for the same assignment
-        if (this._activeResets.has(resetKey)) {
-            console.log(`Reset already in progress for ${resetKey}, skipping...`);
-            return;
-        }
-        
-        this._activeResets.add(resetKey);
-        this._resettingAllocation = true;
-        
-        try {
-            // Get project name first
-            const projectName = this.getProjectNameById(projectId);
-            
-            // Add a small delay to prevent multiple rapid-fire resets
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            // Find the assignment - try by assignmentId first, then fallback to member+project search
-            let assignment = null;
-            
-            if (assignmentId && this.manualAssignments) {
-                assignment = this.manualAssignments.find(a => a.id === assignmentId);
-            }
-            
-            if (!assignment) {
-                // Fallback: try to find by member ID (including consolidated members)
-                assignment = await this.findAssignmentForMemberAndProject(memberId, projectName);
-                
-                // If still not found, try with different member ID formats
-                if (!assignment && this.manualAssignments) {
-                    // Try to find assignment by checking if memberId is contained in teamMemberId
-                    assignment = this.manualAssignments.find(a => {
-                        const matchesProject = (a.projectId === projectId) || 
-                                             (projectName && a.projectName === projectName);
-                        
-                        if (!matchesProject) return false;
-                        
-                        // Check various formats
-                        return (
-                            a.teamMemberId === memberId ||
-                            a.teamMemberId.endsWith(`:${memberId}`) ||
-                            a.teamMemberId.includes(memberId)
-                        );
-                    });
-                }
-            }
-            
-            if (!assignment) {
-                throw new Error(`Assignment not found for member ${memberId} and project ${projectName}. Available assignments: ${
-                    this.manualAssignments ? this.manualAssignments.map(a => `${a.teamMemberId}->${a.projectId || a.projectName}`).join(', ') : 'none'
-                }`);
-            }
-            
-            console.log('Found assignment for reset:', assignment);
-
-            // Check if assignment has saved original allocation
-            if (!assignment.originalCalculatedAllocation || Object.keys(assignment.originalCalculatedAllocation).length === 0) {
-                throw new Error('No original allocation found to restore. The assignment needs to have originalCalculatedAllocation saved during creation/modification.');
-            }
-
-            console.log('Using saved original allocation:', assignment.originalCalculatedAllocation);
-            const savedAllocation = assignment.originalCalculatedAllocation;
-            
-            // Update the UI directly with saved values - NO DATA MODIFICATION, ONLY UI RESTORE
-            const updatedInputs = [];
-            
-            // Find all input fields for this member/project and restore their values
-            const allocationRows = document.querySelectorAll(`tr[data-member="${memberId}"][data-project-id="${projectId}"]`);
-            
-            allocationRows.forEach(row => {
-                // Find all capacity input fields in this row
-                const capacityInputs = row.querySelectorAll('.capacity-mds-input');
-                
-                capacityInputs.forEach(input => {
-                    const month = input.dataset.month;
-                    
-                    // Always remove auto-updated class from all inputs in this assignment
-                    input.classList.remove('auto-updated');
-                    
-                    // Get the saved value for this month
-                    if (savedAllocation[month] && savedAllocation[month][projectName]) {
-                        const savedValue = savedAllocation[month][projectName].days || 0;
-                        const currentValue = parseFloat(input.value) || 0;
-                        
-                        if (savedValue !== currentValue) {
-                            // Temporarily disable event handling during reset to prevent loops
-                            const originalResetting = this._resettingAllocation;
-                            this._resettingAllocation = true;
-                            
-                            // Restore the saved value
-                            input.value = savedValue;
-                            
-                            // Update the data-original-value to match saved value
-                            input.dataset.originalValue = savedValue;
-                            
-                            // Remove any modification indicators
-                            input.classList.remove('modified', 'auto-updated');
-                            
-                            // Hide reset button since value is now original
-                            const resetButton = input.parentElement.querySelector('.reset-capacity-mds-btn');
-                            if (resetButton) {
-                                resetButton.style.display = 'none';
-                            }
-                            
-                            // Update tooltip to remove "(Original: X)" indicators
-                            const cell = input.closest('td');
-                            if (cell) {
-                                cell.title = `${projectName}: ${savedValue} MDs`;
-                            }
-                            
-                            // Check for overflow and update CSS classes for reset values
-                            if (this.autoDistribution && savedValue > 0) {
-                                try {
-                                    const overflowResult = this.autoDistribution.checkCapacityOverflow(memberId, month, savedValue);
-                                    const parentCell = input.closest('td');
-                                    const container = input.parentElement;
-                                    
-                                    if (overflowResult.hasOverflow) {
-                                        // Add overflow classes
-                                        input.classList.add('overflow');
-                                        if (parentCell) parentCell.classList.add('overflow');
-                                        
-                                        // Add overflow warning icon if not present
-                                        if (container && !container.querySelector('.overflow-warning')) {
-                                            const warningIcon = document.createElement('i');
-                                            warningIcon.className = 'fas fa-exclamation-triangle overflow-warning';
-                                            container.appendChild(warningIcon);
-                                        }
-                                    } else {
-                                        // Remove overflow classes
-                                        input.classList.remove('overflow');
-                                        if (parentCell) parentCell.classList.remove('overflow');
-                                        
-                                        // Remove overflow warning icon
-                                        const warningIcon = container?.querySelector('.overflow-warning');
-                                        if (warningIcon) {
-                                            warningIcon.remove();
-                                        }
-                                    }
-                                } catch (error) {
-                                    console.warn(`Could not check overflow for ${memberId} in ${month} during reset:`, error);
-                                }
-                            }
-                            
-                            // Track that this input was updated
-                            updatedInputs.push({
-                                month,
-                                oldValue: currentValue,
-                                newValue: savedValue
-                            });
-                            
-                            console.log(`Reset ${month}: ${currentValue} → ${savedValue}`);
-                            
-                            // Restore original resetting flag for this input
-                            this._resettingAllocation = originalResetting;
-                        }
-                    }
-                });
-            });
-            
-            console.log(`Reset completed. Updated ${updatedInputs.length} input fields.`);
-            
-            // Update Total MDs column after reset
-            this.updateRowTotalMDs(memberId, projectName, projectId);
-            
-            // NO SAVING - just UI restoration, no data modification
-
-            // Silent reset - no notifications needed
-            console.log(`Reset completed for ${memberId} on ${projectName}: ${updatedInputs.length} fields updated`);
-            
-            // No refresh needed - we've updated the UI directly
-
-        } catch (error) {
-            console.error('Error resetting allocation to original:', error);
-            
-            const errorMessage = `❌ Failed to reset allocation: ${error.message}`;
-            if (window.app && window.app.managers && window.app.managers.notification) {
-                window.app.managers.notification.show(errorMessage, 'error');
-            } else {
-                alert(errorMessage);
-            }
-        } finally {
-            // Always reset the debounce flags
-            this._resettingAllocation = false;
-            if (this._activeResets) {
-                this._activeResets.delete(resetKey);
-            }
-        }
-    }
 }
 
 // Make CapacityManager available globally
