@@ -3270,27 +3270,27 @@
     background: #3c3c3c;
     position: sticky;
     left: 0;
-    z-index: 5;
+    z-index: 35;
 }
 
 .phase-details-table th.col-phase-name {
-    min-width: 160px;
+    min-width: 180px;
     left: 0;
 }
 
 .phase-details-table th.col-phase-dates {
     min-width: 140px;
-    left: 160px;
+    left: 180px;
 }
 
 .phase-details-table th.col-phase-total {
     min-width: 120px;
-    left: 300px;
+    left: 320px;
 }
 
 .phase-details-table th.col-phase-allocated {
     min-width: 120px;
-    left: 420px;
+    left: 440px;
 }
 
 .phase-details-table th.month-col {
@@ -3314,7 +3314,7 @@
     background: #2d2d30;
     position: sticky;
     left: 0;
-    z-index: 4;
+    z-index: 25;
     border-right: 1px solid #404040;
 }
 
@@ -3323,8 +3323,8 @@
     font-family: 'Consolas', monospace;
     background: #2d2d30;
     position: sticky;
-    left: 160px;
-    z-index: 4;
+    left: 180px;
+    z-index: 25;
     border-right: 1px solid #404040;
 }
 
@@ -3334,8 +3334,8 @@
     text-align: right;
     background: #2d2d30;
     position: sticky;
-    left: 300px;
-    z-index: 4;
+    left: 320px;
+    z-index: 25;
     border-right: 1px solid #404040;
 }
 
@@ -3345,8 +3345,8 @@
     text-align: right;
     background: #2d2d30;
     position: sticky;
-    left: 420px;
-    z-index: 4;
+    left: 440px;
+    z-index: 25;
     border-right: 1px solid #404040;
 }
 
@@ -4586,30 +4586,6 @@ Sticky columns stay on top to maintain table structure integrity.
    EDITABLE PHASE DETAILS STYLES
    ===================================================== */
 
-/* Phase details table */
-.phase-details-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 12px;
-    font-size: 13px;
-}
-
-.phase-details-table th,
-.phase-details-table td {
-    padding: 8px 12px;
-    text-align: left;
-    border: 1px solid #333333;
-}
-
-.phase-details-table th {
-    background: #2d2d30;
-    font-weight: 600;
-    color: #cccccc;
-}
-
-.phase-details-table td {
-    background: #252526;
-}
 
 /* Editable phase allocation cells */
 .editable-cell {
