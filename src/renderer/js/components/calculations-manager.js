@@ -1283,6 +1283,9 @@ class CapacityManager extends BaseComponent {
             status: 'all'
         };
 
+        // Track expanded details rows to preserve state during refresh
+        this._expandedDetailsRows = new Set();
+
         // Make this instance available globally for modal interactions
         if (typeof window !== 'undefined') {
             window.capacityManager = this;
@@ -1311,10 +1314,16 @@ class CapacityManager extends BaseComponent {
             // Create a simple teamManager adapter for AutoDistribution
             const teamManagerAdapter = {
                 getTeamMemberById: (memberId) => {
-                    // For now, return the team member that was passed to the method
-                    // This is a simple workaround since we have access to the actual team member object
-                    if (this._currentTeamMember && this._currentTeamMember.id === memberId) {
-                        return this._currentTeamMember;
+                    // Handle both old format ("member-fullstack-1") and new format ("team-fullstack:member-fullstack-1") IDs
+                    if (this._currentTeamMember) {
+                        const currentBaseName = this._currentTeamMember.id.includes(':') ? 
+                            this._currentTeamMember.id.split(':')[1] : this._currentTeamMember.id;
+                        const requestedBaseName = memberId.includes(':') ? 
+                            memberId.split(':')[1] : memberId;
+                        
+                        if (currentBaseName === requestedBaseName || this._currentTeamMember.id === memberId) {
+                            return this._currentTeamMember;
+                        }
                     }
                     return null;
                 }
@@ -7592,6 +7601,9 @@ class CapacityManager extends BaseComponent {
                 });
             }
             
+            // Save expanded details state before refresh
+            this._saveExpandedDetailsState();
+            
             // Batch refresh operations for better performance
             const refreshOperations = [];
             
@@ -7636,6 +7648,9 @@ class CapacityManager extends BaseComponent {
             const startTime = performance.now();
             await Promise.allSettled(refreshOperations);
             const endTime = performance.now();
+            
+            // Restore expanded details state after refresh
+            await this._restoreExpandedDetailsState();
             
             console.log(`Capacity refresh completed in ${(endTime - startTime).toFixed(2)}ms`);
             NotificationManager.success('Capacity views updated');
@@ -8176,9 +8191,23 @@ class CapacityManager extends BaseComponent {
                 } else {
                     // The allocation data is flat (directly contains days, status, etc.)
                     // This is the expected structure from phase-based calculations
+                    
+                    // Calculate total days from phase allocations if available
+                    let totalDays = 0;
+                    if (Array.isArray(monthAllocationData)) {
+                        // New format: array of phase allocations
+                        totalDays = monthAllocationData.reduce((sum, phase) => {
+                            const phaseValue = parseFloat(phase.allocatedMDs) || parseFloat(phase.planned) || parseFloat(phase.actual) || 0;
+                            return sum + phaseValue;
+                        }, 0);
+                    } else {
+                        // Legacy format
+                        totalDays = monthAllocationData.days || 0;
+                    }
+                    
                     if (mergedAllocations[monthKey][projectName]) {
                         // If project already exists, add to existing allocation
-                        mergedAllocations[monthKey][projectName].days += (monthAllocationData.days || 0);
+                        mergedAllocations[monthKey][projectName].days += totalDays;
                         if (monthAllocationData.phases) {
                             mergedAllocations[monthKey][projectName].phases.push(...monthAllocationData.phases);
                         }
@@ -8186,6 +8215,7 @@ class CapacityManager extends BaseComponent {
                         // Create new allocation entry
                         mergedAllocations[monthKey][projectName] = {
                             ...monthAllocationData,
+                            days: totalDays,
                             isManual: true // Flag to identify manual assignments
                         };
                     }
@@ -8624,6 +8654,9 @@ class CapacityManager extends BaseComponent {
      */
     async toggleAllocationDetails(memberId, projectId, assignmentId) {
         try {
+            // Create unique identifier for this row using a separator that won't conflict
+            const rowId = `${memberId}|${projectId}|${assignmentId}`;
+            
             // Find the allocation row
             const allocationRow = document.querySelector(`#allocations-table .allocation-member-row[data-member="${memberId}"][data-project-id="${projectId}"]`);
             if (!allocationRow) {
@@ -8641,6 +8674,8 @@ class CapacityManager extends BaseComponent {
                 // Collapse: remove details row
                 existingDetailsRow.remove();
                 expandBtn.className = 'fas fa-chevron-right';
+                // Remove from tracking set
+                this._expandedDetailsRows.delete(rowId);
                 console.log('Collapsed allocation details');
             } else {
                 // Expand: create and insert details row
@@ -8648,12 +8683,87 @@ class CapacityManager extends BaseComponent {
                 if (detailsRow) {
                     allocationRow.insertAdjacentElement('afterend', detailsRow);
                     expandBtn.className = 'fas fa-chevron-down';
+                    // Add to tracking set
+                    this._expandedDetailsRows.add(rowId);
                     console.log('Expanded allocation details');
                 }
             }
         } catch (error) {
             console.error('Error toggling allocation details:', error);
         }
+    }
+
+    /**
+     * Save current expanded details state before refresh
+     */
+    _saveExpandedDetailsState() {
+        // Clear existing state first
+        this._expandedDetailsRows.clear();
+        
+        // Find all currently expanded rows and save their identifiers
+        const expandedRows = document.querySelectorAll('#allocations-table .allocation-member-row');
+        expandedRows.forEach(row => {
+            const nextRow = row.nextElementSibling;
+            if (nextRow && nextRow.classList.contains('allocation-details-row')) {
+                const memberId = row.dataset.member;
+                const projectId = row.dataset.projectId;
+                const assignmentId = row.dataset.assignmentId;
+                
+                if (memberId && projectId && assignmentId) {
+                    const rowId = `${memberId}|${projectId}|${assignmentId}`;
+                    this._expandedDetailsRows.add(rowId);
+                    console.log(`Saving expanded row: ${rowId}`);
+                }
+            }
+        });
+        
+        console.log(`Saved ${this._expandedDetailsRows.size} expanded rows state before refresh`);
+    }
+
+    /**
+     * Restore expanded details state after refresh
+     */
+    async _restoreExpandedDetailsState() {
+        if (this._expandedDetailsRows.size === 0) {
+            return; // Nothing to restore
+        }
+
+        console.log(`Restoring ${this._expandedDetailsRows.size} expanded rows after refresh`);
+        
+        // Process each saved expanded row
+        for (const rowId of this._expandedDetailsRows) {
+            try {
+                const [memberId, projectId, assignmentId] = rowId.split('|');
+                console.log(`Attempting to restore row: memberId=${memberId}, projectId=${projectId}, assignmentId=${assignmentId}`);
+                
+                // Find the row in the DOM
+                const allocationRow = document.querySelector(`#allocations-table .allocation-member-row[data-member="${memberId}"][data-project-id="${projectId}"]`);
+                if (!allocationRow) {
+                    console.warn(`Row not found during restore: ${rowId}`);
+                    continue;
+                }
+
+                // Check if already expanded (shouldn't be, but safety check)
+                const existingDetailsRow = allocationRow.nextElementSibling;
+                if (existingDetailsRow && existingDetailsRow.classList.contains('allocation-details-row')) {
+                    continue; // Already expanded
+                }
+
+                // Expand the row
+                const detailsRow = await this.createAllocationDetailsRow(memberId, projectId, assignmentId);
+                if (detailsRow) {
+                    allocationRow.insertAdjacentElement('afterend', detailsRow);
+                    const expandBtn = allocationRow.querySelector('.expand-details-btn i');
+                    if (expandBtn) {
+                        expandBtn.className = 'fas fa-chevron-down';
+                    }
+                }
+            } catch (error) {
+                console.warn(`Error restoring expanded state for row ${rowId}:`, error);
+            }
+        }
+        
+        console.log('Expanded details state restoration completed');
     }
 
     /**
@@ -8763,8 +8873,8 @@ class CapacityManager extends BaseComponent {
                 // Update the original value for future comparisons
                 input.dataset.originalValue = newValue.toString();
                 
-                // Recalculate subsequent phases
-                await this.recalculateSubsequentPhases(assignment, phaseId);
+                // Recalculate subsequent phases with manual override
+                await this.recalculateSubsequentPhases(assignment, phaseId, month, newValue);
                 
                 // Refresh the UI
                 await this.refreshAllCapacitySections();
@@ -8829,7 +8939,14 @@ class CapacityManager extends BaseComponent {
 
                 // Extract phase allocations from calculatedAllocation
                 for (const [month, monthData] of Object.entries(calculatedAllocation)) {
-                    if (monthData && monthData[projectName]) {
+                    if (Array.isArray(monthData)) {
+                        // New format: array of phase allocations
+                        const phaseAllocation = monthData.find(a => a.phaseId === phase.phaseId);
+                        if (phaseAllocation && phaseAllocation.allocatedMDs > 0) {
+                            phaseData.monthlyAllocations[month] = phaseAllocation.allocatedMDs;
+                        }
+                    } else if (monthData && monthData[projectName]) {
+                        // Legacy format: project-based structure
                         const projectData = monthData[projectName];
                         
                         // Find this phase in the month's phases array
@@ -8876,7 +8993,8 @@ class CapacityManager extends BaseComponent {
             const monthCells = timelineMonths.map(monthKey => {
                 // monthKey is already in YYYY-MM format
                 const allocation = phase.monthlyAllocations[monthKey];
-                const value = allocation && allocation > 0 ? allocation.toFixed(1) : '0';
+                const numericValue = (typeof allocation === 'number' && allocation > 0) ? allocation : 0;
+                const value = numericValue.toFixed(1);
                 
                 // Create editable input for each month cell
                 return `
@@ -8895,7 +9013,10 @@ class CapacityManager extends BaseComponent {
             }).join('');
             
             // Calculate allocated MDs (sum of all monthly allocations)
-            const allocatedMDs = Object.values(phase.monthlyAllocations || {}).reduce((sum, val) => sum + (val || 0), 0);
+            const allocatedMDs = Object.values(phase.monthlyAllocations || {}).reduce((sum, val) => {
+                const numericVal = (typeof val === 'number' && !isNaN(val)) ? val : 0;
+                return sum + numericVal;
+            }, 0);
             const allocatedMDsFormatted = allocatedMDs.toFixed(1);
             
             // Determine if allocated < total (apply overflow styling)
@@ -9679,9 +9800,9 @@ class CapacityManager extends BaseComponent {
     /**
      * Recalculate subsequent phases after a manual change
      */
-    async recalculateSubsequentPhases(assignment, changedPhaseId) {
+    async recalculateSubsequentPhases(assignment, changedPhaseId, changedMonth = null, manualValue = null) {
         try {
-            console.log(`Recalculating subsequent phases after change to ${changedPhaseId}`);
+            console.log(`Recalculating subsequent phases after change to ${changedPhaseId}`, { changedMonth, manualValue });
             
             // Get the predefined phase order
             const phaseOrder = ['technicalAnalysis', 'development', 'integrationTests', 'uatTests', 'consolidation', 'vapt', 'postGoLive'];
@@ -9692,12 +9813,36 @@ class CapacityManager extends BaseComponent {
                 return;
             }
             
-            // Get team member for auto-distribution
-            const teamMember = await this.getTeamMember(assignment.teamMemberId);
-            if (!teamMember) {
-                console.error('Team member not found for recalculation');
+            // Verify auto-distribution is available
+            if (!this.autoDistribution) {
+                console.error('Auto-distribution not available for recalculation');
                 return;
             }
+            
+            // Get team member for auto-distribution
+            // Handle both old format ("member-fullstack-1") and new format ("team-fullstack:member-fullstack-1") IDs
+            const baseMemberId = assignment.teamMemberId.includes(':') ? 
+                assignment.teamMemberId.split(':')[1] : assignment.teamMemberId;
+            
+            console.log(`Looking for team member with ID: ${assignment.teamMemberId}, base ID: ${baseMemberId}`);
+            
+            // Get all team members and find the one with matching base ID
+            const allTeamMembers = await this.getTeamMembers();
+            const teamMember = allTeamMembers.find(member => {
+                const memberBaseName = member.id.includes(':') ? member.id.split(':')[1] : member.id;
+                return memberBaseName === baseMemberId;
+            });
+            
+            if (!teamMember) {
+                console.error(`Team member not found for recalculation. Assignment ID: ${assignment.teamMemberId}, Base ID: ${baseMemberId}`);
+                console.log(`Available team members:`, allTeamMembers.map(m => ({ id: m.id, firstName: m.firstName, lastName: m.lastName })));
+                return;
+            }
+            
+            console.log(`Found team member: ${teamMember.id} (${teamMember.firstName} ${teamMember.lastName})`);
+            
+            // Set current team member for auto-distribution adapter
+            this._currentTeamMember = teamMember;
             
             // Build existing allocations from all phases up to and including the changed phase
             const existingAllocations = {};
@@ -9716,9 +9861,17 @@ class CapacityManager extends BaseComponent {
                                 if (!existingAllocations[month]) {
                                     existingAllocations[month] = [];
                                 }
+                                
+                                // Preserve manually edited value if this is the changed phase and month
+                                let allocatedValue = phaseAllocation.allocatedMDs;
+                                if (phaseId === changedPhaseId && month === changedMonth && manualValue !== null) {
+                                    allocatedValue = manualValue;
+                                    console.log(`Preserving manual edit: ${phaseId} ${month} = ${manualValue} MDs (was ${phaseAllocation.allocatedMDs})`);
+                                }
+                                
                                 existingAllocations[month].push({
                                     phaseId: phaseId,
-                                    allocatedMDs: phaseAllocation.allocatedMDs
+                                    allocatedMDs: allocatedValue
                                 });
                             }
                         }
@@ -9781,7 +9934,7 @@ class CapacityManager extends BaseComponent {
             console.log('Subsequent phases recalculation completed');
             
         } catch (error) {
-            console.error('Error recalculating subsequent phases:', error);
+            console.error('Error recalculating subsequent phases:', error?.message || error);
         }
     }
 

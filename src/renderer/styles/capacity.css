@@ -3674,6 +3674,13 @@
     border-color: #f56565;
 }
 
+.phase-detail-row td.phase-allocated.overflow {
+    background: rgba(244, 71, 71, 0.2) !important;
+    color: #f44747 !important;
+    border: 1px solid #f44747 !important;
+    font-weight: 600 !important;
+}
+
 .member-allocation.empty {
     background: #1e1e1e;
     color: #666666;
