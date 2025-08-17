@@ -1170,9 +1170,9 @@
 
 /* Collapse Toggle Button */
 .icon-item.collapse-toggle {
-    margin-top: auto; /* Push to bottom */
-    border-top: 1px solid var(--border-primary);
-    padding-top: 8px;
+    margin-bottom: 8px; /* Separation from other icons */
+    border-bottom: 1px solid var(--border-primary);
+    padding-bottom: 8px;
     transition: transform var(--transition-normal);
 }
 
