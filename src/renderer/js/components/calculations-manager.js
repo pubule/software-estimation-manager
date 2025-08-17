@@ -90,8 +90,6 @@ class CalculationsManager {
         let selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
 
         if (Object.keys(selectedSuppliers).length === 0) {
-            console.log('WARNING: No selected suppliers found. This will cause empty calculations.');
-            console.log('Trying to initialize phases if phases manager is available...');
             
             // Try to initialize phases data if phases manager is available
             if (this.app.phasesManager || this.app.projectPhasesManager) {
@@ -166,7 +164,6 @@ class CalculationsManager {
             }
         });
 
-        console.log('Note: Development phase G2 MDs will be calculated from features in processFeaturesCosts()');
 
         // Map resource types to roles
         const resourceRoleMap = {
@@ -257,7 +254,6 @@ class CalculationsManager {
         const phases = currentProject.phases;
 
         if (!phases) {
-            console.log('No phases data for features processing');
             return;
         }
 
@@ -265,19 +261,16 @@ class CalculationsManager {
         const developmentPhase = phases.development;
 
         if (!developmentPhase) {
-            console.log('No development phase found');
             return;
         }
 
         const g2EffortPercent = (developmentPhase.effort && developmentPhase.effort.G2) || 0;
 
         if (g2EffortPercent === 0) {
-            console.log('G2 effort percent is 0, skipping features processing');
             return;
         }
 
         features.forEach((feature, index) => {
-            console.log(`Processing feature ${index + 1}:`, feature);
             
             const supplierId = feature.supplier;
             if (!supplierId) {
@@ -375,7 +368,6 @@ class CalculationsManager {
 
                 }
             } else {
-                console.log('No G2 supplier selected for coverage calculation');
             }
         }
 
@@ -764,7 +756,6 @@ class CalculationsManager {
             tableContainer.addEventListener('blur', this.boundHandlers.tableBlur, true);
             tableContainer.addEventListener('click', this.boundHandlers.tableClick);
             
-            console.log('Event delegation set up for table container with blur events');
         }
     }
 
@@ -835,7 +826,6 @@ class CalculationsManager {
      */
     handleTableBlur(e) {
         if (e.target.classList.contains('final-mds-input')) {
-            console.log('Final MDs input blurred (user finished editing)');
             this.handleFinalMDsChange(e.target);
         }
     }
@@ -850,7 +840,6 @@ class CalculationsManager {
             const button = e.target.classList.contains('reset-final-mds-btn') ? 
                 e.target : e.target.closest('.reset-final-mds-btn');
             
-            console.log('Reset button clicked via delegation');
             e.preventDefault();
             e.stopPropagation();
             this.handleFinalMDsReset(button);
@@ -919,11 +908,6 @@ class CalculationsManager {
 
         if (!costEntry) {
             console.error(`Cost entry not found for ${vendorId}, ${role}, ${department}`);
-            console.log('Available cost entries:', this.vendorCosts.map(c => ({
-                vendorId: c.vendorId, 
-                role: c.role, 
-                department: c.department
-            })));
             return;
         }
 
@@ -1094,7 +1078,6 @@ class CalculationsManager {
     updateTable() {
         const tableSection = document.querySelector('.calculations-table-section');
         if (tableSection) {
-            console.log('Updating table content...');
             
             const newTableHTML = this.renderCostTable();
             const tempDiv = document.createElement('div');
@@ -1105,7 +1088,6 @@ class CalculationsManager {
             
             // Use requestAnimationFrame instead of setTimeout for better DOM synchronization
             requestAnimationFrame(() => {
-                console.log('DOM updated, reattaching event listeners...');
                 this.attachTableEventListeners();
                 this.updateFilterChipCounts();
 
@@ -1329,14 +1311,11 @@ class CapacityManager extends BaseComponent {
             // Create a simple teamManager adapter for AutoDistribution
             const teamManagerAdapter = {
                 getTeamMemberById: (memberId) => {
-                    console.log('TeamManager adapter: looking for member ID:', memberId);
                     // For now, return the team member that was passed to the method
                     // This is a simple workaround since we have access to the actual team member object
                     if (this._currentTeamMember && this._currentTeamMember.id === memberId) {
-                        console.log('TeamManager adapter: returning current team member');
                         return this._currentTeamMember;
                     }
-                    console.log('TeamManager adapter: team member not found');
                     return null;
                 }
             };
@@ -1347,11 +1326,6 @@ class CapacityManager extends BaseComponent {
         // Initialize capacity panel event listeners
         this.initializeCapacityPanelEventListeners();
 
-        console.log('Available components:', {
-            teamManager: !!this.teamManager,
-            workingDaysCalculator: !!this.workingDaysCalculator,
-            autoDistribution: !!this.autoDistribution
-        });
     }
 
     /**
@@ -2462,7 +2436,6 @@ class CapacityManager extends BaseComponent {
         // Generate capacity overview
         await this.generateCapacityOverview();
         
-        console.log('Overview data loaded');
     }
 
     /**
@@ -2479,7 +2452,6 @@ class CapacityManager extends BaseComponent {
         // Load capacity table
         this.loadCapacityTable();
         
-        console.log('Timeline data loaded');
     }
 
     /**
@@ -2496,7 +2468,6 @@ class CapacityManager extends BaseComponent {
             return html;
         } catch (error) {
             console.error('Error loading capacity section HTML:', error);
-            console.log('HTML loading failed, returning error message');
             
             // Return error message instead of mock HTML
             return '<div class="error-message"><p>Unable to load capacity section. Please check your configuration.</p></div>';
@@ -2722,7 +2693,6 @@ class CapacityManager extends BaseComponent {
      * Get member role from vendor configuration
      */
     getMemberRole(member) {
-        console.log(`getMemberRole for member:`, member);
 
         if (!member.vendorId) {
 
@@ -2752,16 +2722,12 @@ class CapacityManager extends BaseComponent {
                               this.app?.managers?.config || 
                               window.app?.managers?.configuration ||
                               window.configManager;
-        console.log(`Available internal resources:`, configManager.globalConfig?.internalResources?.length || 0);
-        console.log(`Available suppliers:`, configManager.globalConfig?.suppliers?.length || 0);
         
         if (member.vendorType === 'internal') {
             const internal = configManager.globalConfig?.internalResources?.find(r => r.id === member.vendorId);
-            console.log(`Looking for internal resource with ID ${member.vendorId}:`, internal);
             return internal?.role || 'G2';
         } else {
             const supplier = configManager.globalConfig?.suppliers?.find(s => s.id === member.vendorId);
-            console.log(`Looking for supplier with ID ${member.vendorId}:`, supplier);
             return supplier?.role || 'G2';
         }
     }
@@ -2922,7 +2888,6 @@ class CapacityManager extends BaseComponent {
             });
         });
         
-        console.log(`Final allocations for ${member.id}:`, Object.keys(allocations).length, 'months');
         return allocations;
     }
 
@@ -3236,7 +3201,6 @@ class CapacityManager extends BaseComponent {
                     const allocations = this.mergeManualAssignments(memberWithUniqueId, automaticAllocations);
                     
                     // Debug: show allocation structure
-                    console.log(`Final allocations for ${uniqueId}:`, Object.keys(allocations).length, 'months');
                     Object.entries(allocations).forEach(([monthKey, monthData]) => {
                         const projects = Object.keys(monthData);
                         if (projects.length > 0) {
@@ -6425,7 +6389,7 @@ class CapacityManager extends BaseComponent {
             const vendorName = this.getVendorName(selectedMember);
             memberRoleInfo.textContent = `Role: ${memberRole}, Vendor: ${vendorName}`;
         } else {
-            console.error('DEBUG: No member found with ID:', teamMemberSelect.value);
+            console.error('No member found with ID:', teamMemberSelect.value);
 
         }
         
@@ -8546,7 +8510,6 @@ class CapacityManager extends BaseComponent {
             }
             
             const projects = await dataManager.listProjects() || [];
-            console.log(`Found ${projects.length} projects:`, projects.map(p => p.project?.name || p.project?.code));
             
             const availableProjects = projects.filter(projectItem => {
                 // Extract the actual project object from listProjects() structure
@@ -8996,7 +8959,6 @@ class CapacityManager extends BaseComponent {
      */
     async calculatePhaseBreakdown(assignment) {
         try {
-            console.log('DEBUG calculatePhaseBreakdown - Full assignment:', JSON.stringify(assignment, null, 2));
             
             // Get phase schedule from assignment
             const phaseSchedule = assignment.phaseSchedule || [];
@@ -9037,7 +8999,6 @@ class CapacityManager extends BaseComponent {
                             
                             if (phaseInMonth && phaseInMonth.phaseDays > 0) {
                                 phaseData.monthlyAllocations[month] = phaseInMonth.phaseDays;
-                                console.log(`DEBUG: Found ${phase.phaseName} in ${month}: ${phaseInMonth.phaseDays} MDs`);
                             }
                         }
                     }
@@ -9165,7 +9126,6 @@ class CapacityManager extends BaseComponent {
             // Calculate proportional allocation
             const proportionalAllocation = (phaseWorkingDaysInMonth / totalWorkingDaysInMonth) * totalMonthMDs;
             
-            console.log(`DEBUG Phase Allocation: ${phase.phaseName} in ${month}: ${phaseWorkingDaysInMonth}/${totalWorkingDaysInMonth} days = ${proportionalAllocation.toFixed(1)} MDs`);
             
             return Math.round(proportionalAllocation * 10) / 10; // Round to 1 decimal
             

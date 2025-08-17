@@ -79,8 +79,6 @@ class AutoDistribution {
 
         // Get months between start and end date
         const months = this._getMonthsBetween(startDate, endDate);
-        console.log(`DEBUG: Processing ${totalMDs} MD from ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
-        console.log(`DEBUG: _getMonthsBetween returned: ${JSON.stringify(months)}`);
         
         if (months.length === 0) {
             console.error(`ERROR: No months found between ${startDate.toISOString().split('T')[0]} and ${endDate.toISOString().split('T')[0]}`);
@@ -115,7 +113,6 @@ class AutoDistribution {
             );
             const capacity = Math.max(0, baseCapacity - overlappingAllocation);
             
-            console.log(`DEBUG: Month ${month} - baseCapacity: ${baseCapacity}, overlappingAllocation: ${overlappingAllocation}, finalCapacity: ${capacity}`);
             
             monthCapacities[month] = capacity;
             totalAvailableCapacity += capacity;
@@ -128,7 +125,6 @@ class AutoDistribution {
             };
         }
         
-        console.log(`DEBUG: Total available capacity: ${totalAvailableCapacity}, Total MDs needed: ${totalMDs}`);
         
         // Check if total capacity is sufficient
         const hasInsufficientCapacity = totalAvailableCapacity < totalMDs;
@@ -268,7 +264,6 @@ class AutoDistribution {
             const oldValue = assignment.allocations[changedMonth]?.planned || 0;
             const difference = oldValue - newValue;
 
-            console.log(`redistributeAfterUserChange: month=${changedMonth}, oldValue=${oldValue}, newValue=${newValue}, difference=${difference}`);
 
             // Update the changed month
             result.allocations[changedMonth] = {
@@ -283,12 +278,10 @@ class AutoDistribution {
 
             // Get future months only (never redistribute to past)
             const futureMonths = this._getFutureMonths(changedMonth, result.allocations);
-            console.log(`Future months from ${changedMonth}:`, futureMonths);
             
             const teamMember = this.teamManager.getTeamMemberById(assignment.teamMemberId);
 
             if (difference > 0) {
-                console.log(`User reduced allocation by ${difference} MDs - redistributing to future months`);
                 // User reduced allocation - redistribute excess to future
                 this._redistributeExcessToFuture(
                     result.allocations, 
@@ -479,7 +472,6 @@ class AutoDistribution {
      */
     _redistributeExcessToFuture(allocations, futureMonths, excessMDs, teamMember) {
         let remaining = excessMDs;
-        console.log(`_redistributeExcessToFuture: distributing ${excessMDs} MDs to months:`, futureMonths);
 
         for (const month of futureMonths) {
             if (remaining <= 0) break;
@@ -495,7 +487,6 @@ class AutoDistribution {
                 const canAdd = Math.max(0, availableCapacity - currentAllocation);
                 const toAdd = Math.min(remaining, canAdd);
 
-                console.log(`Month ${month}: current=${currentAllocation}, capacity=${availableCapacity}, canAdd=${canAdd}, willAdd=${toAdd}`);
 
                 if (toAdd > 0) {
                     if (!allocations[month]) {
@@ -512,7 +503,6 @@ class AutoDistribution {
             }
         }
         
-        console.log(`_redistributeExcessToFuture: ${remaining} MDs still remaining after redistribution`);
         
         // No forcing of remaining MDs - respect capacity constraints
         if (remaining > 0) {
@@ -570,13 +560,11 @@ class AutoDistribution {
         // Check existing allocations for this month
         const monthAllocations = existingAllocations[month];
         if (!monthAllocations) {
-            console.log(`DEBUG: No existing allocations for ${month}`);
             return 0;
         }
         
         // Handle legacy format (number) for backward compatibility
         if (typeof monthAllocations === 'number') {
-            console.log(`DEBUG: Legacy format - assuming full month overlap: ${monthAllocations} MDs`);
             return monthAllocations;
         }
         
@@ -614,15 +602,12 @@ class AutoDistribution {
                         const proportionalOverlap = (overlapDays / existingPhaseDaysInMonth) * allocation.allocatedMDs;
                         totalOverlap += proportionalOverlap;
                         
-                        console.log(`DEBUG: Phase ${allocation.phaseName} overlap in ${month}: ${overlapDays} days, ${proportionalOverlap.toFixed(1)} MDs`);
                     }
                 } else {
-                    console.log(`DEBUG: No temporal overlap with phase ${allocation.phaseName} in ${month}`);
                 }
             }
         }
         
-        console.log(`DEBUG: Total temporal overlap for ${month}: ${totalOverlap.toFixed(1)} MDs`);
         return totalOverlap;
     }
 }

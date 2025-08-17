@@ -311,33 +311,26 @@ class WorkingDaysCalculator {
         
         // Calculate base working days for the month
         let baseCapacity = this.calculateWorkingDays(month, year, teamMember.country || 'IT');
-        console.log(`DEBUG WDC: ${monthString} - initial baseCapacity: ${baseCapacity}`);
         
         // Handle partial month if start date is provided
         if (startDate) {
             const startYear = startDate.getFullYear();
             const startMonth = startDate.getMonth() + 1;
-            console.log(`DEBUG WDC: ${monthString} - startDate provided: ${startDate.toISOString().split('T')[0]}, startYear: ${startYear}, startMonth: ${startMonth}`);
             
             if (startYear === year && startMonth === month) {
                 // Calculate working days from start date to end of month
                 const monthEnd = new Date(year, month, 0); // Last day of current month
-                console.log(`DEBUG WDC: ${monthString} - calculating partial month from ${startDate.toISOString().split('T')[0]} to ${monthEnd.toISOString().split('T')[0]}`);
                 baseCapacity = this.calculateWorkingDaysBetween(startDate, monthEnd);
-                console.log(`DEBUG WDC: ${monthString} - partial month baseCapacity: ${baseCapacity}`);
             }
         }
         
         // Subtract team member vacation days if any
         const vacationDays = this._getVacationDays(teamMember.id, monthString);
-        console.log(`DEBUG WDC: ${monthString} - vacationDays: ${vacationDays}`);
         
         // Subtract existing allocations from other projects only if not excluded
         const existingAllocations = excludeExistingAllocations ? 0 : this._getExistingAllocations(teamMember.id, monthString);
-        console.log(`DEBUG WDC: ${monthString} - existingAllocations: ${existingAllocations}, excludeExistingAllocations: ${excludeExistingAllocations}`);
         
         const finalCapacity = Math.max(0, baseCapacity - vacationDays - existingAllocations);
-        console.log(`DEBUG WDC: ${monthString} - finalCapacity: ${finalCapacity} (${baseCapacity} - ${vacationDays} - ${existingAllocations})`);
         
         return finalCapacity;
     }

@@ -902,11 +902,7 @@ class ApplicationController extends BaseComponent {
 
             this.refreshDropdowns();
 
-            // Debug version update conditions
-            console.log('🔍 DEBUG - Version manager available:', !!this.managers.version);
-            console.log('🔍 DEBUG - Current project available:', !!this.currentProject);
-            console.log('🔍 DEBUG - Current project versions:', this.currentProject?.versions?.length || 0);
-            console.log('🔍 DEBUG - Current project versions array:', this.currentProject?.versions);
+            // Check version update conditions
 
             // Update current version with latest project state after successful save
             if (this.managers.version && this.currentProject && this.currentProject.versions && this.currentProject.versions.length > 0) {
