@@ -4013,10 +4013,18 @@ class CapacityManager extends BaseComponent {
                     return projectObj === projectData.name;
                 });
                 
+                // If found, add project ID to projectData
+                if (projectData.assignment) {
+                    projectData.id = projectData.assignment.projectId;
+                }
+                
                 // Strategy 2: If not found, try by project object lookup
                 if (!projectData.assignment) {
                     const projectObj = this.getProjectByName(projectData.name);
                     if (projectObj) {
+                        // Add project ID from project object
+                        projectData.id = projectObj.id;
+                        
                         projectData.assignment = this.manualAssignments.find(a => 
                             a.projectId === projectObj.id
                         );
@@ -4029,6 +4037,19 @@ class CapacityManager extends BaseComponent {
                         return a.projectName === projectData.name || 
                                a.projectId === projectData.name;
                     });
+                    
+                    // If found via fuzzy matching, add project ID
+                    if (projectData.assignment) {
+                        projectData.id = projectData.assignment.projectId;
+                    }
+                }
+            }
+            
+            // If no assignment found but we can still get project ID, try to find it
+            if (!projectData.id) {
+                const projectObj = this.getProjectByName(projectData.name);
+                if (projectObj && projectObj.id) {
+                    projectData.id = projectObj.id;
                 }
             }
         });
