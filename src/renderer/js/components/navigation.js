@@ -45,6 +45,7 @@ class EnhancedNavigationManager extends NavigationManager {
         this.projectsExpanded = false;
         this.projectLoaded = false;
         this.projectDirty = false;
+        this.lastActivePanel = null; // For collapse/expand functionality
 
         this.initializeNestedNavigation();
     }
@@ -134,8 +135,8 @@ class EnhancedNavigationManager extends NavigationManager {
     setupVSCodeSidebar() {
         console.log('Setting up VSCode sidebar...');
         
-        // Icon items click handlers
-        const iconItems = document.querySelectorAll('.icon-item');
+        // Icon items click handlers (exclude collapse toggle)
+        const iconItems = document.querySelectorAll('.icon-item:not(.collapse-toggle)');
         console.log('Found icon items:', iconItems.length);
         
         iconItems.forEach(iconItem => {
@@ -148,6 +149,9 @@ class EnhancedNavigationManager extends NavigationManager {
                 this.toggleSidebarPanel(panelType);
             });
         });
+
+        // Setup collapse toggle
+        this.setupSidebarCollapse();
 
         // Panel close buttons have been removed - no handlers needed
 
@@ -835,6 +839,47 @@ class EnhancedNavigationManager extends NavigationManager {
             if (state.currentSection) {
                 this.navigateTo(state.currentSection);
             }
+        }
+    }
+
+    // Setup collapse toggle functionality
+    setupSidebarCollapse() {
+        const collapseToggle = document.querySelector('.collapse-toggle');
+        const sidebarContainer = document.querySelector('.vscode-sidebar-container');
+        
+        if (collapseToggle && sidebarContainer) {
+            collapseToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Collapse toggle clicked');
+                this.toggleSidebarCollapse();
+            });
+        }
+    }
+
+    // Toggle sidebar collapse state
+    toggleSidebarCollapse() {
+        const sidebarContainer = document.querySelector('.vscode-sidebar-container');
+        if (!sidebarContainer) return;
+        
+        const isCollapsed = sidebarContainer.classList.contains('collapsed');
+        
+        if (isCollapsed) {
+            // Expand: restore last active panel
+            console.log('Expanding sidebar, restoring panel:', this.lastActivePanel);
+            sidebarContainer.classList.remove('collapsed');
+            if (this.lastActivePanel) {
+                this.openSidebarPanel(this.lastActivePanel);
+            } else {
+                // Default to projects panel if no last active panel
+                this.openSidebarPanel('projects');
+            }
+        } else {
+            // Collapse: save current state and close all panels
+            console.log('Collapsing sidebar, current panel:', this.currentActivePanel);
+            this.lastActivePanel = this.currentActivePanel;
+            sidebarContainer.classList.add('collapsed');
+            this.closeAllSidebarPanels();
         }
     }
 

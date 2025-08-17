@@ -1168,6 +1168,27 @@
     border-radius: 0 2px 2px 0;
 }
 
+/* Collapse Toggle Button */
+.icon-item.collapse-toggle {
+    margin-top: auto; /* Push to bottom */
+    border-top: 1px solid var(--border-primary);
+    padding-top: 8px;
+    transition: transform var(--transition-normal);
+}
+
+.icon-item.collapse-toggle i {
+    transition: transform var(--transition-normal);
+}
+
+/* Collapsed State */
+.vscode-sidebar-container.collapsed .expandable-panels {
+    width: 0 !important; /* Force collapse anche con has-active-panel */
+}
+
+.vscode-sidebar-container.collapsed .collapse-toggle i {
+    transform: rotate(180deg);
+}
+
 /* Expandable Panels Container */
 .expandable-panels {
     position: relative;
