@@ -353,8 +353,10 @@ class AutoDistribution {
                 const capacity = this.workingDaysCalculator.calculateAvailableCapacity(teamMember, monthString, null, false);
                 totalCapacity += capacity;
             } catch (error) {
-                // Fallback to team member's default monthly capacity
-                totalCapacity += teamMember.monthlyCapacity || 22;
+                // Fallback to basic working days calculation (no vacations/allocations)
+                const [year, month] = monthString.split('-').map(Number);
+                const basicWorkingDays = this.workingDaysCalculator.calculateWorkingDays(month, year, teamMember.country || 'IT');
+                totalCapacity += basicWorkingDays;
             }
         }
 

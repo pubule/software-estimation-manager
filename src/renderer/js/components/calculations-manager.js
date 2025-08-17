@@ -1566,8 +1566,9 @@ class CapacityManager extends BaseComponent {
         let totalAllocated = 0;
         
         teamMembers.forEach(member => {
-            // Get member capacity for the month
-            const memberCapacity = member.monthlyCapacity || 22; // Default working days
+            // Get member capacity for the month based on real working days
+            const [year, month] = monthKey.split('-').map(Number);
+            const memberCapacity = this.workingDaysCalculator.calculateWorkingDays(month, year, member.country || 'IT');
             totalCapacity += memberCapacity;
             
             // Get member allocations for this month
@@ -1949,7 +1950,7 @@ class CapacityManager extends BaseComponent {
                 
                 teamMembers.forEach(member => {
                     const workingDays = this.calculateWorkingDaysInMonth(month.getFullYear(), month.getMonth());
-                    totalCapacity += member.monthlyCapacity || workingDays;
+                    totalCapacity += workingDays;
                     
                     // Get member allocations for this month
                     if (member.allocations && member.allocations[monthKey]) {
@@ -2947,7 +2948,7 @@ class CapacityManager extends BaseComponent {
     /**
      * Check and flag overflow in allocations
      */
-    checkAndFlagOverflow(allocations, memberMaxCapacity) {
+    checkAndFlagOverflow(allocations) {
         const processedAllocations = {};
         let cumulativeAllocations = {};
         
@@ -3208,11 +3209,8 @@ class CapacityManager extends BaseComponent {
                         }
                     });
                     
-                    // Check and flag overflow
-                    const processedAllocations = this.checkAndFlagOverflow(
-                        allocations, 
-                        member.monthlyCapacity || 22
-                    );
+                    // Check and flag overflow (capacity calculated internally using real working days)
+                    const processedAllocations = this.checkAndFlagOverflow(allocations);
                     
                     // Calculate current utilization
                     const utilizationData = this.calculateCurrentUtilization(processedAllocations, memberRole);
@@ -3230,7 +3228,7 @@ class CapacityManager extends BaseComponent {
                         _debugInfo: {
                             allocatedDays: utilizationData.allocatedDays,
                             availableDays: utilizationData.availableDays,
-                            originalMonthlyCapacity: member.monthlyCapacity || 22
+                            originalMonthlyCapacity: 22 // Standard working days per month
                         }
                     };
                 })
@@ -5431,8 +5429,10 @@ class CapacityManager extends BaseComponent {
         const overviewStatusFilter = document.getElementById('overview-status-filter');
         const statusFilterValue = overviewStatusFilter ? overviewStatusFilter.value : 'all';
 
-        // Use data service to get capacity metrics
-        const metrics = await this.calculateCapacityMetrics(member.id, monthKey, member.monthlyCapacity || 22);
+        // Use data service to get capacity metrics with real working days for the month
+        const [year, month] = monthKey.split('-').map(Number);
+        const realWorkingDays = this.workingDaysCalculator.calculateWorkingDays(month, year, member.country || 'IT');
+        const metrics = await this.calculateCapacityMetrics(member.id, monthKey, realWorkingDays);
         
         // Extract values from metrics for easier access
         const { approvedMDs, pendingMDs, totalMDs, approvedPercentage, pendingPercentage, totalPercentage, maxCapacity } = metrics;
