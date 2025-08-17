@@ -3289,12 +3289,14 @@
 }
 
 .phase-details-table th.col-phase-allocated {
-    min-width: 140px;
+    min-width: 120px;
     left: 420px;
 }
 
 .phase-details-table th.month-col {
-    min-width: 60px;
+    min-width: 80px;
+    width: 80px;
+    max-width: 80px;
     text-align: center;
     background: #333333;
 }
@@ -3349,6 +3351,9 @@
 }
 
 .phase-details-table td.month-col {
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
     text-align: center;
     font-family: 'Consolas', monospace;
 }
