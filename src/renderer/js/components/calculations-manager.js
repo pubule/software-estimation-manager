@@ -8864,11 +8864,11 @@ class CapacityManager extends BaseComponent {
         // Get timeline months for column headers
         const timelineMonths = this.getTimelineMonthKeys();
         
-        // Generate month headers that align with main table
+        // Generate month headers that align with main table format (Month<br>Year)
         const monthHeaders = timelineMonths.map(monthKey => {
             const [year, month] = monthKey.split('-');
-            const monthName = new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short' });
-            return `<th class="month-col">${monthName}</th>`;
+            const monthName = new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+            return `<th class="month-col">${monthName}<br>${year}</th>`;
         }).join('');
 
         // Generate phase rows

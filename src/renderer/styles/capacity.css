@@ -3274,18 +3274,23 @@
 }
 
 .phase-details-table th.col-phase-name {
-    min-width: 120px;
+    min-width: 160px;
     left: 0;
 }
 
 .phase-details-table th.col-phase-dates {
-    min-width: 100px;
-    left: 120px;
+    min-width: 140px;
+    left: 160px;
 }
 
 .phase-details-table th.col-phase-total {
-    min-width: 80px;
-    left: 220px;
+    min-width: 120px;
+    left: 300px;
+}
+
+.phase-details-table th.col-phase-allocated {
+    min-width: 140px;
+    left: 420px;
 }
 
 .phase-details-table th.month-col {
@@ -3316,7 +3321,7 @@
     font-family: 'Consolas', monospace;
     background: #2d2d30;
     position: sticky;
-    left: 120px;
+    left: 160px;
     z-index: 4;
     border-right: 1px solid #404040;
 }
@@ -3327,7 +3332,18 @@
     text-align: right;
     background: #2d2d30;
     position: sticky;
-    left: 220px;
+    left: 300px;
+    z-index: 4;
+    border-right: 1px solid #404040;
+}
+
+.phase-details-table td.phase-allocated {
+    color: #ce9178;
+    font-weight: 500;
+    text-align: right;
+    background: #2d2d30;
+    position: sticky;
+    left: 420px;
     z-index: 4;
     border-right: 1px solid #404040;
 }
@@ -3353,7 +3369,8 @@
 
 .phase-detail-row:nth-child(even) td.phase-name,
 .phase-detail-row:nth-child(even) td.phase-dates,
-.phase-detail-row:nth-child(even) td.phase-total {
+.phase-detail-row:nth-child(even) td.phase-total,
+.phase-detail-row:nth-child(even) td.phase-allocated {
     background: #323232;
 }
 
@@ -4673,6 +4690,11 @@ Sticky columns stay on top to maintain table structure integrity.
 }
 
 .phase-detail-row td.phase-total {
+    font-weight: 600;
+    color: #4ec9b0;
+}
+
+.phase-detail-row td.phase-allocated {
     font-weight: 600;
     color: #4ec9b0;
 }
