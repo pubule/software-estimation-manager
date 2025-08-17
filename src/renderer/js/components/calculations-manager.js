@@ -2239,6 +2239,7 @@ class CapacityManager extends BaseComponent {
                                 <thead>
                                     <tr>
                                         <!-- Fixed columns -->
+                                        <th class="fixed-col col-expand"></th>
                                         <th class="fixed-col col-project-name">Project</th>
                                         <th class="fixed-col col-status">Status</th>
                                         <th class="fixed-col col-total-mds">Total MDs</th>
@@ -4452,6 +4453,7 @@ class CapacityManager extends BaseComponent {
             
             html += `
                 <tr class="gantt-project-row" data-project-id="${effectiveProjectId}" data-status="${this.getProjectStatus(projectData.id, projectData.name)}">
+                    <td class="fixed-col col-expand"></td>
                     <td class="fixed-col col-project-name">
                         <div class="project-name-cell">
                             <span class="project-name">${projectData.name}</span>
