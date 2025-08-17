@@ -2831,6 +2831,12 @@
     color: #dc3545 !important;
 }
 
+.capacity-subcell.percentage.over-utilization {
+    background: rgba(138, 43, 226, 0.3) !important;
+    color: #8a2be2 !important;
+    font-weight: bold !important;
+}
+
 /* =====================================================
    STATUS DROPDOWN STYLES
    ===================================================== */

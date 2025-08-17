@@ -5428,6 +5428,7 @@ class CapacityManager extends BaseComponent {
 
     // Helper method to determine color class based on percentage thresholds
     getPercentageColorClass(percentage) {
+        if (percentage > 100) return 'over-utilization';
         if (percentage >= 90) return 'high-utilization';
         if (percentage >= 50) return 'medium-utilization';
         return 'low-utilization';
