@@ -6584,7 +6584,8 @@ class CapacityManager extends BaseComponent {
             if ((mode === 'edit' || mode === 'duplicate') && assignmentData.phaseSchedule && !this._phaseDataPopulated) {
                 this._phaseDataPopulated = true;
                 
-                // Wait a bit more for the project data to be fully loaded and UI updated
+                // Wait longer for the project data to be fully loaded and UI updated
+                // Increased timeout to reduce race conditions with HTML regeneration
                 setTimeout(() => {
                     console.log('Populating phase schedule data for edit mode:', assignmentData.phaseSchedule);
                     this.populatePhaseScheduleData(assignmentData.phaseSchedule);
@@ -6603,7 +6604,7 @@ class CapacityManager extends BaseComponent {
                         };
                         modal.addEventListener('transitionend', closeHandler);
                     }
-                }, 200);
+                }, 500);
             }
 
             console.log(`Form populated for ${mode} mode with assignment ${assignmentData.id}`);
@@ -6767,6 +6768,21 @@ class CapacityManager extends BaseComponent {
             
             // Setup event listeners for phase date changes
             this.setupPhaseEventListeners();
+            
+            // CRITICAL FIX: Re-populate phase dates after HTML regeneration in edit mode
+            // Check if we're in edit mode and have assignment data with phase schedule
+            const modal = document.getElementById('assignment-modal');
+            const editingAssignmentId = modal?.dataset.editingAssignmentId;
+            if (editingAssignmentId) {
+                const assignment = this.manualAssignments.find(a => a.id === editingAssignmentId);
+                if (assignment?.phaseSchedule) {
+                    console.log('Re-populating phase dates after HTML regeneration in edit mode');
+                    // Use setTimeout to ensure DOM is fully updated
+                    setTimeout(() => {
+                        this.populatePhaseScheduleData(assignment.phaseSchedule);
+                    }, 50);
+                }
+            }
             
         } catch (error) {
             console.error('Error updating phases section:', error);
