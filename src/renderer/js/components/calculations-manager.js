@@ -5899,7 +5899,7 @@ class CapacityManager extends BaseComponent {
                             </form>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                            <button type="button" class="btn btn-secondary" id="cancel-assignment">Cancel</button>
                             <button type="submit" class="btn btn-primary" form="assignment-form" id="submit-assignment">Add Assignment</button>
                         </div>
                     </div>
@@ -5935,6 +5935,12 @@ class CapacityManager extends BaseComponent {
                         this.resetAssignmentModal();
                         modal.classList.remove('active');
                     });
+                });
+                
+                // Setup cancel button handler separately
+                modal.querySelector('#cancel-assignment').addEventListener('click', () => {
+                    this.resetAssignmentModal();
+                    modal.classList.remove('active');
                 });
             }
 
