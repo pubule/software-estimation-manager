@@ -304,9 +304,10 @@ class WorkingDaysCalculator {
      * @param {string} monthString Month in YYYY-MM format
      * @param {Date} startDate Optional start date for partial month calculation
      * @param {boolean} excludeExistingAllocations If true, don't subtract existing allocations from other projects
+     * @param {Date} phaseEndDate Optional phase end date for accurate partial month calculation
      * @returns {number} Available working days
      */
-    calculateAvailableCapacity(teamMember, monthString, startDate = null, excludeExistingAllocations = false) {
+    calculateAvailableCapacity(teamMember, monthString, startDate = null, excludeExistingAllocations = false, phaseEndDate = null) {
         const [year, month] = monthString.split('-').map(Number);
         
         // DEBUG LOGGING - START
@@ -314,6 +315,7 @@ class WorkingDaysCalculator {
         console.log(`  - teamMember.id: ${teamMember?.id}`);
         console.log(`  - teamMember.country: ${teamMember?.country}`);
         console.log(`  - startDate: ${startDate ? startDate.toISOString().split('T')[0] : 'null'}`);
+        console.log(`  - phaseEndDate: ${phaseEndDate ? phaseEndDate.toISOString().split('T')[0] : 'null'}`);
         console.log(`  - excludeExistingAllocations: ${excludeExistingAllocations}`);
         
         // Calculate base working days for the month
@@ -326,10 +328,23 @@ class WorkingDaysCalculator {
             const startMonth = startDate.getMonth() + 1;
             
             if (startYear === year && startMonth === month) {
-                // Calculate working days from start date to end of month
-                const monthEnd = new Date(year, month, 0); // FIXED: Last day of current month (month is already 1-based)
-                console.log(`  - PARTIAL MONTH: ${startDate.toISOString().split('T')[0]} to ${monthEnd.toISOString().split('T')[0]}`);
-                baseCapacity = this.calculateWorkingDaysBetween(startDate, monthEnd);
+                // Calculate working days from start date to appropriate end date
+                const monthEnd = new Date(year, month, 0); // Last day of current month (month is already 1-based)
+                
+                // Use phase end date if provided and it's in the same month, otherwise use month end
+                let effectiveEndDate = monthEnd;
+                if (phaseEndDate) {
+                    const phaseEndYear = phaseEndDate.getFullYear();
+                    const phaseEndMonth = phaseEndDate.getMonth() + 1;
+                    
+                    if (phaseEndYear === year && phaseEndMonth === month) {
+                        effectiveEndDate = phaseEndDate;
+                        console.log(`  - Using phase end date instead of month end`);
+                    }
+                }
+                
+                console.log(`  - PARTIAL MONTH: ${startDate.toISOString().split('T')[0]} to ${effectiveEndDate.toISOString().split('T')[0]}`);
+                baseCapacity = this.calculateWorkingDaysBetween(startDate, effectiveEndDate);
                 console.log(`  - baseCapacity (partial month): ${baseCapacity}`);
             }
         }

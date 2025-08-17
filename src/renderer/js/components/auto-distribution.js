@@ -98,13 +98,16 @@ class AutoDistribution {
         for (const month of months) {
             // For first month, consider start date for partial month
             const isFirstMonth = month === months[0];
+            const isLastMonth = month === months[months.length - 1];
             const monthStartDate = isFirstMonth ? startDate : null;
+            const monthEndDate = isLastMonth ? endDate : null; // Pass phase end date for last month
             
             const baseCapacity = this.workingDaysCalculator.calculateAvailableCapacity(
                 teamMember, 
                 month, 
                 monthStartDate,
-                true // excludeExistingAllocations - we handle phase overlaps manually
+                true, // excludeExistingAllocations - we handle phase overlaps manually
+                monthEndDate // phaseEndDate for accurate partial month calculation
             );
             
             // Calculate precise temporal overlaps instead of full month allocations
