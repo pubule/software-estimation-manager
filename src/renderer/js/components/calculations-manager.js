@@ -4741,16 +4741,16 @@ class CapacityManager extends BaseComponent {
         
         return `
             <tr class="capacity-info-row" data-member="${member.id}">
+                <td class="fixed-col col-actions">
+                    <div class="capacity-actions">
+                        <i class="fas fa-calendar-check" title="Capacity information"></i>
+                    </div>
+                </td>
                 <td class="fixed-col col-member">
                     <div class="capacity-info">
                         <span class="capacity-label">Available Capacity</span>
                         <span class="member-name">${memberName}</span>
                         <span class="member-details">${memberRole}${memberRole && memberVendor ? ' - ' : ''}${memberVendor}</span>
-                    </div>
-                </td>
-                <td class="fixed-col col-actions">
-                    <div class="capacity-actions">
-                        <i class="fas fa-calendar-check" title="Capacity information"></i>
                     </div>
                 </td>
                 <td class="fixed-col col-total-mds">
