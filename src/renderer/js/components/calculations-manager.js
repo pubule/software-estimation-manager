@@ -8996,6 +8996,8 @@ class CapacityManager extends BaseComponent {
      */
     async calculatePhaseBreakdown(assignment) {
         try {
+            console.log('DEBUG calculatePhaseBreakdown - Full assignment:', JSON.stringify(assignment, null, 2));
+            
             // Get phase schedule from assignment
             const phaseSchedule = assignment.phaseSchedule || [];
             if (phaseSchedule.length === 0) {
@@ -9008,6 +9010,12 @@ class CapacityManager extends BaseComponent {
             
             const breakdown = [];
             
+            // Use calculatedAllocation which contains the phase-level MD distribution
+            const calculatedAllocation = assignment.calculatedAllocation || {};
+            
+            // Get project name from assignment
+            const projectName = this.getProjectNameById(assignment.projectId) || 'Unknown Project';
+            
             for (const phase of phaseSchedule) {
                 const phaseData = {
                     phaseName: phase.phaseName,
@@ -9018,28 +9026,19 @@ class CapacityManager extends BaseComponent {
                     monthlyAllocations: {}
                 };
 
-                // Calculate monthly allocation for this phase from assignment allocations
-                if (assignment.allocations) {
-                    for (const [month, allocation] of Object.entries(assignment.allocations)) {
-                        // Skip metadata fields
-                        if (['hasOverflow', 'overflowAmount', 'hasUnallocatedMDs', 'unallocatedAmount', 'error'].includes(month)) {
-                            continue;
-                        }
-
-                        // Check if this month falls within the phase date range
-                        const monthDate = new Date(month + '-01');
-                        const phaseStart = new Date(phase.startDate);
-                        const phaseEnd = new Date(phase.endDate);
+                // Extract phase allocations from calculatedAllocation
+                for (const [month, monthData] of Object.entries(calculatedAllocation)) {
+                    if (monthData && monthData[projectName]) {
+                        const projectData = monthData[projectName];
                         
-                        // Set to first day of month for comparison
-                        const phaseStartMonth = new Date(phaseStart.getFullYear(), phaseStart.getMonth(), 1);
-                        const phaseEndMonth = new Date(phaseEnd.getFullYear(), phaseEnd.getMonth(), 1);
-                        
-                        if (monthDate >= phaseStartMonth && monthDate <= phaseEndMonth) {
-                            // This is a simplified allocation - in a real implementation, 
-                            // you would need to calculate the precise allocation for this phase in this month
-                            // For now, we'll show the total allocation for the month
-                            phaseData.monthlyAllocations[month] = allocation.planned || allocation.actual || 0;
+                        // Find this phase in the month's phases array
+                        if (projectData.phases && Array.isArray(projectData.phases)) {
+                            const phaseInMonth = projectData.phases.find(p => p.phaseName === phase.phaseName);
+                            
+                            if (phaseInMonth && phaseInMonth.phaseDays > 0) {
+                                phaseData.monthlyAllocations[month] = phaseInMonth.phaseDays;
+                                console.log(`DEBUG: Found ${phase.phaseName} in ${month}: ${phaseInMonth.phaseDays} MDs`);
+                            }
                         }
                     }
                 }
@@ -9110,6 +9109,70 @@ class CapacityManager extends BaseComponent {
                 </tbody>
             </table>
         `;
+    }
+
+    /**
+     * Calculate proportional allocation for a specific phase in a specific month
+     * @private
+     */
+    _calculatePhaseAllocationForMonth(phase, month, totalMonthMDs, allPhases) {
+        try {
+            // Parse month to get month boundaries
+            const [year, monthNum] = month.split('-').map(Number);
+            const monthStart = new Date(year, monthNum - 1, 1);
+            const monthEnd = new Date(year, monthNum, 0); // Last day of month
+            
+            // Parse phase dates
+            const phaseStart = new Date(phase.startDate);
+            const phaseEnd = new Date(phase.endDate);
+            
+            // Check if phase overlaps with this month
+            if (phaseEnd < monthStart || phaseStart > monthEnd) {
+                return 0; // No overlap
+            }
+            
+            // Calculate intersection of phase with month
+            const intersectionStart = new Date(Math.max(phaseStart.getTime(), monthStart.getTime()));
+            const intersectionEnd = new Date(Math.min(phaseEnd.getTime(), monthEnd.getTime()));
+            
+            // Calculate working days for this phase in this month
+            const phaseWorkingDaysInMonth = this.calculateWorkingDaysBetween(intersectionStart, intersectionEnd);
+            
+            if (phaseWorkingDaysInMonth <= 0) {
+                return 0;
+            }
+            
+            // Calculate total working days for all phases in this month
+            let totalWorkingDaysInMonth = 0;
+            for (const otherPhase of allPhases) {
+                const otherPhaseStart = new Date(otherPhase.startDate);
+                const otherPhaseEnd = new Date(otherPhase.endDate);
+                
+                // Check if other phase overlaps with this month
+                if (otherPhaseEnd >= monthStart && otherPhaseStart <= monthEnd) {
+                    const otherIntersectionStart = new Date(Math.max(otherPhaseStart.getTime(), monthStart.getTime()));
+                    const otherIntersectionEnd = new Date(Math.min(otherPhaseEnd.getTime(), monthEnd.getTime()));
+                    
+                    const otherPhaseWorkingDays = this.calculateWorkingDaysBetween(otherIntersectionStart, otherIntersectionEnd);
+                    totalWorkingDaysInMonth += otherPhaseWorkingDays;
+                }
+            }
+            
+            if (totalWorkingDaysInMonth <= 0) {
+                return 0;
+            }
+            
+            // Calculate proportional allocation
+            const proportionalAllocation = (phaseWorkingDaysInMonth / totalWorkingDaysInMonth) * totalMonthMDs;
+            
+            console.log(`DEBUG Phase Allocation: ${phase.phaseName} in ${month}: ${phaseWorkingDaysInMonth}/${totalWorkingDaysInMonth} days = ${proportionalAllocation.toFixed(1)} MDs`);
+            
+            return Math.round(proportionalAllocation * 10) / 10; // Round to 1 decimal
+            
+        } catch (error) {
+            console.error('Error calculating phase allocation for month:', error);
+            return 0;
+        }
     }
 
     /**
