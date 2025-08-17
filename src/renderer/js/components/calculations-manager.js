@@ -8877,12 +8877,21 @@ class CapacityManager extends BaseComponent {
                     </td>
                 `;
             }).join('');
+            
+            // Calculate allocated MDs (sum of all monthly allocations)
+            const allocatedMDs = Object.values(phase.monthlyAllocations || {}).reduce((sum, val) => sum + (val || 0), 0);
+            const allocatedMDsFormatted = allocatedMDs.toFixed(1);
+            
+            // Determine if allocated < total (apply overflow styling)
+            const isUnderAllocated = allocatedMDs < phase.totalMDs;
+            const allocatedCellClass = isUnderAllocated ? 'phase-allocated overflow' : 'phase-allocated';
 
             return `
                 <tr class="phase-detail-row">
                     <td class="phase-name">${phase.phaseName}</td>
                     <td class="phase-dates">${this.formatDateRange(phase.startDate, phase.endDate)}</td>
                     <td class="phase-total">${phase.totalMDs} MD</td>
+                    <td class="${allocatedCellClass}">${allocatedMDsFormatted} MD</td>
                     ${monthCells}
                 </tr>
             `;
@@ -8895,6 +8904,7 @@ class CapacityManager extends BaseComponent {
                         <th class="fixed-col-detail col-phase-name">Phase</th>
                         <th class="fixed-col-detail col-phase-dates">Date Range</th>
                         <th class="fixed-col-detail col-phase-total">Total MDs</th>
+                        <th class="fixed-col-detail col-phase-allocated">Allocated MDs</th>
                         ${monthHeaders}
                     </tr>
                 </thead>
