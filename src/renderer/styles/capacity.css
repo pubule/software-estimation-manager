@@ -4036,8 +4036,8 @@ Sticky columns stay on top to maintain table structure integrity.
 }
 
 .gantt-phases-table .col-project-name {
-    width: 239px;
-    min-width: 239px;
+    width: 240px;
+    min-width: 240px;
     position: sticky;
     left: 40px;
     z-index: 25; /* Higher z-index to ensure visibility above pseudo-elements */
@@ -4049,7 +4049,7 @@ Sticky columns stay on top to maintain table structure integrity.
     width: 160px;
     min-width: 160px;
     position: sticky;
-    left: 279px;
+    left: 280px;
     z-index: 25; /* Higher z-index to ensure visibility above pseudo-elements */
     background: #2d2d30 !important; /* Force solid background */
     border-right: 2px solid #3e3e42 !important; /* Stronger border for sticky columns */
@@ -4059,7 +4059,7 @@ Sticky columns stay on top to maintain table structure integrity.
     width: 120px;
     min-width: 120px;
     position: sticky;
-    left: 439px; /* CRITICAL: Must match team allocations table for synchronized scrolling */
+    left: 440px; /* CRITICAL: Must match team allocations table for synchronized scrolling */
     z-index: 25; /* Higher z-index to ensure visibility above pseudo-elements */
     background: #2d2d30 !important; /* Force solid background */
     border-right: 2px solid #3e3e42 !important; /* Stronger border for sticky columns */
@@ -4328,11 +4328,11 @@ Sticky columns stay on top to maintain table structure integrity.
 }
 
 .gantt-phases-table tbody .col-status {
-    left: 279px;
+    left: 280px;
 }
 
 .gantt-phases-table tbody .col-total-mds {
-    left: 439px; /* CRITICAL: Must match team allocations table for synchronized scrolling */
+    left: 440px; /* CRITICAL: Must match team allocations table for synchronized scrolling */
 }
 
 /* Total MDs Cell Content */
