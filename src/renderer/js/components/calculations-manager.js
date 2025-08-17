@@ -2264,7 +2264,7 @@ class CapacityManager extends BaseComponent {
                                 <thead>
                                     <tr>
                                         <!-- Fixed columns -->
-                                        <th class="fixed-col col-expand">Details</th>
+                                        <th class="fixed-col col-expand"></th>
                                         <th class="fixed-col col-member">Team Member</th>
                                         <th class="fixed-col col-actions">Actions</th>
                                         <th class="fixed-col col-total-mds">Total MDs</th>
@@ -4741,9 +4741,9 @@ class CapacityManager extends BaseComponent {
         
         return `
             <tr class="capacity-info-row" data-member="${member.id}">
-                <td class="fixed-col col-actions">
-                    <div class="capacity-actions">
-                        <i class="fas fa-calendar-check" title="Capacity information"></i>
+                <td class="fixed-col col-expand">
+                    <div class="capacity-expand">
+                        <i class="fas fa-info-circle" title="Capacity information"></i>
                     </div>
                 </td>
                 <td class="fixed-col col-member">
@@ -4751,6 +4751,11 @@ class CapacityManager extends BaseComponent {
                         <span class="capacity-label">Available Capacity</span>
                         <span class="member-name">${memberName}</span>
                         <span class="member-details">${memberRole}${memberRole && memberVendor ? ' - ' : ''}${memberVendor}</span>
+                    </div>
+                </td>
+                <td class="fixed-col col-actions">
+                    <div class="capacity-actions">
+                        <i class="fas fa-calendar-check" title="Capacity information"></i>
                     </div>
                 </td>
                 <td class="fixed-col col-total-mds">

@@ -4049,7 +4049,7 @@ Sticky columns stay on top to maintain table structure integrity.
     width: 120px;
     min-width: 120px;
     position: sticky;
-    left: 399px; /* 239px (project-name) + 160px (phases) */
+    left: 440px; /* CRITICAL: Must match team allocations table for synchronized scrolling */
     z-index: 25; /* Higher z-index to ensure visibility above pseudo-elements */
     background: #2d2d30 !important; /* Force solid background */
     border-right: 2px solid #3e3e42 !important; /* Stronger border for sticky columns */
@@ -4259,9 +4259,20 @@ Sticky columns stay on top to maintain table structure integrity.
     text-align: center;
 }
 
-.team-allocations-table .col-actions {
-    width: 150px;
-    min-width: 150px;
+.team-allocations-table .col-expand {
+    width: 40px;
+    min-width: 40px;
+    position: sticky;
+    left: 0;
+    z-index: 25; /* Higher z-index to ensure visibility above pseudo-elements */
+    background: #2d2d30 !important; /* Force solid background */
+    border-right: 2px solid #3e3e42 !important; /* Stronger border for sticky columns */
+    text-align: center;
+}
+
+.team-allocations-table .col-member {
+    width: 250px;
+    min-width: 250px;
     position: sticky;
     left: 40px;
     z-index: 25; /* Higher z-index to ensure visibility above pseudo-elements */
@@ -4269,11 +4280,11 @@ Sticky columns stay on top to maintain table structure integrity.
     border-right: 2px solid #3e3e42 !important; /* Stronger border for sticky columns */
 }
 
-.team-allocations-table .col-member {
-    width: 250px;
-    min-width: 250px;
+.team-allocations-table .col-actions {
+    width: 150px;
+    min-width: 150px;
     position: sticky;
-    left: 190px;
+    left: 290px;
     z-index: 25; /* Higher z-index to ensure visibility above pseudo-elements */
     background: #2d2d30 !important; /* Force solid background */
     border-right: 2px solid #3e3e42 !important; /* Stronger border for sticky columns */
@@ -4307,7 +4318,7 @@ Sticky columns stay on top to maintain table structure integrity.
 }
 
 .gantt-phases-table tbody .col-total-mds {
-    left: 400px; /* CRITICAL: Must match team allocations table for synchronized scrolling */
+    left: 440px; /* CRITICAL: Must match team allocations table for synchronized scrolling */
 }
 
 /* Total MDs Cell Content */
@@ -4332,16 +4343,16 @@ Sticky columns stay on top to maintain table structure integrity.
     left: 0;
 }
 
-.team-allocations-table tbody .col-actions {
-    left: 0;
+.team-allocations-table tbody .col-member {
+    left: 40px;
 }
 
-.team-allocations-table tbody .col-member {
-    left: 150px;
+.team-allocations-table tbody .col-actions {
+    left: 290px;
 }
 
 .team-allocations-table tbody .col-total-mds {
-    left: 400px; /* CRITICAL: Must match gantt table for synchronized scrolling */
+    left: 440px; /* CRITICAL: Must match gantt table for synchronized scrolling */
 }
 
 /* Gantt Project Row */
