@@ -7303,6 +7303,9 @@ class CapacityManager extends BaseComponent {
                 this._teamMembersCacheTime = null;
                 this._cacheIsDirty = true;
 
+                // Synchronize main form phase inputs with updated assignment
+                this.synchronizeMainFormPhaseDates(phaseSchedule);
+                
                 // Check for overflows and show alerts
                 const overflows = this.detectOverflows(phaseSchedule);
                 if (overflows.length > 0) {
@@ -7334,6 +7337,9 @@ class CapacityManager extends BaseComponent {
                 this._teamMembersCache = null;
                 this._teamMembersCacheTime = null;
                 this._cacheIsDirty = true;
+
+                // Synchronize main form phase inputs with new assignment
+                this.synchronizeMainFormPhaseDates(phaseSchedule);
 
                 // Check for overflows and show alerts
                 const overflows = this.detectOverflows(phaseSchedule);
@@ -7380,6 +7386,7 @@ class CapacityManager extends BaseComponent {
             const estimatedMDsText = phaseItem.querySelector('.phase-mds').textContent;
             const estimatedMDs = parseFloat(estimatedMDsText);
             
+            
             if (startDate && endDate) {
                 const availableMDs = this.calculateWorkingDaysBetween(new Date(startDate), new Date(endDate));
                 const overflow = Math.max(0, estimatedMDs - availableMDs);
@@ -7397,6 +7404,41 @@ class CapacityManager extends BaseComponent {
         });
         
         return phaseSchedule;
+    }
+    
+    /**
+     * Synchronize main form phase date inputs with assignment phase schedule
+     * This ensures the main form reflects the latest phase dates from assignments
+     */
+    synchronizeMainFormPhaseDates(phaseSchedule) {
+        console.log('Synchronizing main form phase dates with assignment data:', phaseSchedule);
+        
+        phaseSchedule.forEach(phase => {
+            // Find the main form phase inputs for this phase
+            const mainFormPhaseElement = document.querySelector(`[data-phase-id="${phase.phaseId}"]`);
+            if (!mainFormPhaseElement) {
+                console.warn(`Main form phase element not found for phase ID: ${phase.phaseId}`);
+                return;
+            }
+            
+            // Update start date input
+            const startDateInput = mainFormPhaseElement.querySelector('.phase-start-date');
+            if (startDateInput && phase.startDate) {
+                console.log(`Updating main form start date for ${phase.phaseId}: ${startDateInput.value} -> ${phase.startDate}`);
+                startDateInput.value = phase.startDate;
+                startDateInput.setAttribute('value', phase.startDate);
+            }
+            
+            // Update end date input
+            const endDateInput = mainFormPhaseElement.querySelector('.phase-end-date');
+            if (endDateInput && phase.endDate) {
+                console.log(`Updating main form end date for ${phase.phaseId}: ${endDateInput.value} -> ${phase.endDate}`);
+                endDateInput.value = phase.endDate;
+                endDateInput.setAttribute('value', phase.endDate);
+            }
+        });
+        
+        console.log('Main form phase dates synchronized successfully');
     }
     
     /**
@@ -7750,12 +7792,11 @@ class CapacityManager extends BaseComponent {
                 // Set current team member for the adapter
                 this._currentTeamMember = teamMember;
                 
-                // Sort phases by start date to handle overlaps correctly
-                const sortedPhases = phaseSchedule.sort((a, b) => 
-                    new Date(a.startDate) - new Date(b.startDate)
-                );
+                // Use phases in their predefined order (NOT sorted by date)
+                // The order matters for allocation priority, not the dates
+                const sortedPhases = phaseSchedule; // Keep original order
                 
-                console.log('Sorted phases by start date:', sortedPhases.map(p => `${p.phaseName}: ${p.startDate}`));
+                console.log('Using phases in predefined order:', sortedPhases.map(p => `${p.phaseName}: ${p.startDate}`));
                 
                 // Distribute phase by phase, tracking existing allocations
                 const existingAllocations = {}; // Track accumulated allocations per month
@@ -8360,6 +8401,8 @@ class CapacityManager extends BaseComponent {
             const startDateInput = phaseElement.querySelector('.phase-start-date');
             if (startDateInput && phase.startDate) {
                 startDateInput.value = phase.startDate;
+                // Force update the DOM attribute as well
+                startDateInput.setAttribute('value', phase.startDate);
                 console.log(`Set start date for ${phase.phaseId}: ${phase.startDate}`);
             }
             
@@ -8367,6 +8410,8 @@ class CapacityManager extends BaseComponent {
             const endDateInput = phaseElement.querySelector('.phase-end-date');
             if (endDateInput && phase.endDate) {
                 endDateInput.value = phase.endDate;
+                // Force update the DOM attribute as well
+                endDateInput.setAttribute('value', phase.endDate);
                 console.log(`Set end date for ${phase.phaseId}: ${phase.endDate}`);
             }
             
@@ -8619,6 +8664,7 @@ class CapacityManager extends BaseComponent {
             // Create the row element
             const detailsRow = document.createElement('tr');
             detailsRow.className = 'allocation-details-row';
+            detailsRow.dataset.assignmentId = assignmentId;
             detailsRow.innerHTML = `
                 <td colspan="100%" class="details-cell">
                     <div class="phase-details-container">
@@ -8628,10 +8674,106 @@ class CapacityManager extends BaseComponent {
                 </td>
             `;
             
+            // Add event listeners for phase MD inputs
+            this.attachPhaseInputEventListeners(detailsRow, assignmentId);
+            
             return detailsRow;
         } catch (error) {
             console.error('Error creating allocation details row:', error);
             return null;
+        }
+    }
+
+    /**
+     * Attach event listeners for phase MD input fields
+     */
+    attachPhaseInputEventListeners(detailsRow, assignmentId) {
+        const inputs = detailsRow.querySelectorAll('.phase-md-input');
+        
+        inputs.forEach(input => {
+            // Handle input changes
+            input.addEventListener('change', (e) => {
+                this.handlePhaseInputChange(e.target, assignmentId);
+            });
+            
+            // Handle Enter key
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.target.blur(); // Trigger change event
+                }
+            });
+            
+            // Visual feedback on focus
+            input.addEventListener('focus', (e) => {
+                e.target.parentElement.classList.add('editing');
+            });
+            
+            input.addEventListener('blur', (e) => {
+                e.target.parentElement.classList.remove('editing');
+            });
+        });
+        
+        console.log(`Attached event listeners to ${inputs.length} phase input fields for assignment ${assignmentId}`);
+    }
+
+    /**
+     * Handle changes to phase MD input fields
+     */
+    async handlePhaseInputChange(input, assignmentId) {
+        try {
+            const phaseId = input.dataset.phaseId;
+            const month = input.dataset.month;
+            const newValue = parseFloat(input.value) || 0;
+            const originalValue = parseFloat(input.dataset.originalValue) || 0;
+            
+            console.log(`Phase input changed: ${phaseId} ${month} ${originalValue} → ${newValue}`);
+            
+            if (newValue === originalValue) {
+                console.log('Value unchanged, no recalculation needed');
+                return; // No change
+            }
+            
+            // Find the assignment
+            const assignment = this.manualAssignments.find(a => a.id === assignmentId);
+            if (!assignment) {
+                console.error('Assignment not found:', assignmentId);
+                return;
+            }
+            
+            // Update assignment with new phase allocation
+            const updated = await this.updatePhaseAllocation(assignment, phaseId, month, newValue);
+            
+            if (updated) {
+                // Update the original value for future comparisons
+                input.dataset.originalValue = newValue.toString();
+                
+                // Recalculate subsequent phases
+                await this.recalculateSubsequentPhases(assignment, phaseId);
+                
+                // Refresh the UI
+                await this.refreshAllCapacitySections();
+                
+                // Visual feedback
+                input.classList.add('value-updated');
+                setTimeout(() => {
+                    input.classList.remove('value-updated');
+                }, 300);
+                
+                console.log(`Successfully updated ${phaseId} allocation for ${month}`);
+            }
+            
+        } catch (error) {
+            console.error('Error handling phase input change:', error);
+            
+            // Reset to original value on error
+            const originalValue = input.dataset.originalValue || '0';
+            input.value = originalValue;
+            
+            // Show error feedback
+            input.classList.add('error');
+            setTimeout(() => {
+                input.classList.remove('error');
+            }, 1000);
         }
     }
 
@@ -8718,12 +8860,22 @@ class CapacityManager extends BaseComponent {
             const monthCells = timelineMonths.map(monthKey => {
                 // monthKey is already in YYYY-MM format
                 const allocation = phase.monthlyAllocations[monthKey];
+                const value = allocation && allocation > 0 ? allocation.toFixed(1) : '0';
                 
-                if (allocation && allocation > 0) {
-                    return `<td class="month-col phase-allocation">${allocation.toFixed(1)}</td>`;
-                } else {
-                    return `<td class="month-col phase-allocation empty">-</td>`;
-                }
+                // Create editable input for each month cell
+                return `
+                    <td class="month-col phase-allocation editable-cell">
+                        <input type="number" 
+                               class="phase-md-input" 
+                               min="0" 
+                               step="0.1" 
+                               value="${value}"
+                               data-phase-id="${phase.phaseId}"
+                               data-month="${monthKey}"
+                               data-original-value="${value}"
+                               title="Edit MDs for ${phase.phaseName} in ${monthKey}">
+                    </td>
+                `;
             }).join('');
 
             return `
@@ -9420,6 +9572,191 @@ class CapacityManager extends BaseComponent {
                 </button>
             </div>
         `;
+    }
+
+    /**
+     * Update phase allocation in assignment data
+     */
+    async updatePhaseAllocation(assignment, phaseId, month, newValue) {
+        try {
+            console.log(`Updating phase allocation: ${phaseId} ${month} = ${newValue} MDs`);
+            
+            // Find the calculated allocation for this assignment
+            if (!assignment.calculatedAllocation) {
+                console.error('No calculated allocation found in assignment');
+                return false;
+            }
+            
+            // Update the allocation in the assignment's calculated allocation
+            if (assignment.calculatedAllocation[month]) {
+                // Find the specific phase allocation for this month
+                let found = false;
+                
+                if (Array.isArray(assignment.calculatedAllocation[month])) {
+                    // New format: array of phase allocations
+                    for (let allocation of assignment.calculatedAllocation[month]) {
+                        if (allocation.phaseId === phaseId) {
+                            allocation.allocatedMDs = newValue;
+                            allocation.planned = newValue;
+                            allocation.actual = newValue;
+                            found = true;
+                            break;
+                        }
+                    }
+                    
+                    // If phase not found, add it
+                    if (!found) {
+                        assignment.calculatedAllocation[month].push({
+                            phaseId: phaseId,
+                            allocatedMDs: newValue,
+                            planned: newValue,
+                            actual: newValue
+                        });
+                    }
+                } else {
+                    // Legacy format: convert to new array format
+                    const existingValue = assignment.calculatedAllocation[month];
+                    assignment.calculatedAllocation[month] = [
+                        {
+                            phaseId: phaseId,
+                            allocatedMDs: newValue,
+                            planned: newValue,
+                            actual: newValue
+                        }
+                    ];
+                    
+                    if (existingValue > 0) {
+                        console.warn(`Converted legacy allocation format for ${month}: ${existingValue} → array format`);
+                    }
+                }
+            } else {
+                // Create new month allocation
+                assignment.calculatedAllocation[month] = [
+                    {
+                        phaseId: phaseId,
+                        allocatedMDs: newValue,
+                        planned: newValue,
+                        actual: newValue
+                    }
+                ];
+            }
+            
+            console.log(`Successfully updated allocation for ${phaseId} in ${month}: ${newValue} MDs`);
+            return true;
+            
+        } catch (error) {
+            console.error('Error updating phase allocation:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Recalculate subsequent phases after a manual change
+     */
+    async recalculateSubsequentPhases(assignment, changedPhaseId) {
+        try {
+            console.log(`Recalculating subsequent phases after change to ${changedPhaseId}`);
+            
+            // Get the predefined phase order
+            const phaseOrder = ['technicalAnalysis', 'development', 'integrationTests', 'uatTests', 'consolidation', 'vapt', 'postGoLive'];
+            const changedPhaseIndex = phaseOrder.indexOf(changedPhaseId);
+            
+            if (changedPhaseIndex === -1) {
+                console.warn(`Phase ${changedPhaseId} not found in predefined order`);
+                return;
+            }
+            
+            // Get team member for auto-distribution
+            const teamMember = await this.getTeamMember(assignment.teamMemberId);
+            if (!teamMember) {
+                console.error('Team member not found for recalculation');
+                return;
+            }
+            
+            // Build existing allocations from all phases up to and including the changed phase
+            const existingAllocations = {};
+            
+            // Process all phases up to and including the changed phase
+            for (let i = 0; i <= changedPhaseIndex; i++) {
+                const phaseId = phaseOrder[i];
+                const phase = assignment.phaseSchedule.find(p => p.phaseId === phaseId);
+                
+                if (phase && assignment.calculatedAllocation) {
+                    for (const [month, allocations] of Object.entries(assignment.calculatedAllocation)) {
+                        if (Array.isArray(allocations)) {
+                            // New format: array of phase allocations
+                            const phaseAllocation = allocations.find(a => a.phaseId === phaseId);
+                            if (phaseAllocation && phaseAllocation.allocatedMDs > 0) {
+                                if (!existingAllocations[month]) {
+                                    existingAllocations[month] = [];
+                                }
+                                existingAllocations[month].push({
+                                    phaseId: phaseId,
+                                    allocatedMDs: phaseAllocation.allocatedMDs
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            
+            console.log('Existing allocations for subsequent phase recalculation:', existingAllocations);
+            
+            // Recalculate all subsequent phases using auto-distribution
+            for (let i = changedPhaseIndex + 1; i < phaseOrder.length; i++) {
+                const phaseId = phaseOrder[i];
+                const phase = assignment.phaseSchedule.find(p => p.phaseId === phaseId);
+                
+                if (phase && phase.estimatedMDs > 0) {
+                    console.log(`Recalculating subsequent phase: ${phase.phaseName} (${phase.estimatedMDs} MDs)`);
+                    
+                    // Use auto-distribution for this phase
+                    const distribution = this.autoDistribution.autoDistributeMDs(
+                        phase.estimatedMDs,
+                        new Date(phase.startDate),
+                        new Date(phase.endDate),
+                        assignment.teamMemberId,
+                        existingAllocations
+                    );
+                    
+                    // Update assignment with new distribution
+                    for (const [month, allocation] of Object.entries(distribution)) {
+                        if (month !== 'hasOverflow' && month !== 'overflowAmount' && allocation.planned > 0) {
+                            if (!assignment.calculatedAllocation[month]) {
+                                assignment.calculatedAllocation[month] = [];
+                            }
+                            
+                            // Remove existing allocation for this phase in this month
+                            if (Array.isArray(assignment.calculatedAllocation[month])) {
+                                assignment.calculatedAllocation[month] = assignment.calculatedAllocation[month].filter(a => a.phaseId !== phaseId);
+                                
+                                // Add new allocation
+                                assignment.calculatedAllocation[month].push({
+                                    phaseId: phaseId,
+                                    allocatedMDs: allocation.planned,
+                                    planned: allocation.planned,
+                                    actual: allocation.planned
+                                });
+                            }
+                            
+                            // Update existing allocations for next iteration
+                            if (!existingAllocations[month]) {
+                                existingAllocations[month] = [];
+                            }
+                            existingAllocations[month].push({
+                                phaseId: phaseId,
+                                allocatedMDs: allocation.planned
+                            });
+                        }
+                    }
+                }
+            }
+            
+            console.log('Subsequent phases recalculation completed');
+            
+        } catch (error) {
+            console.error('Error recalculating subsequent phases:', error);
+        }
     }
 
 }

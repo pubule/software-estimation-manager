@@ -130,20 +130,25 @@ class AutoDistribution {
         const hasInsufficientCapacity = totalAvailableCapacity < totalMDs;
         const overflowAmount = hasInsufficientCapacity ? totalMDs - totalAvailableCapacity : 0;
         
-        // PHASE 2: Distribute MDs sequentially month by month (not proportionally)
-        // This ensures better distribution when phases overlap or have partial months
+        // PHASE 2: Distribute MDs sequentially month by month using consumption logic
+        // Each phase consumes only what it needs, not all available capacity
+        console.log(`Starting phase allocation for ${totalMDs} MDs across ${months.length} months`);
+        
         for (const month of months) {
             if (remainingMDs <= 0) break;
             
             const monthCapacity = monthCapacities[month];
+            console.log(`Month ${month}: Available capacity = ${monthCapacity}, Remaining MDs to allocate = ${remainingMDs}`);
             
             if (monthCapacity > 0) {
-                // Allocate as much as possible to this month up to its capacity
+                // Consumption logic: allocate minimum between available capacity and remaining need
                 const plannedForMonth = Math.min(monthCapacity, remainingMDs);
                 
                 distribution[month].planned = plannedForMonth;
                 distribution[month].actual = plannedForMonth;
                 remainingMDs -= plannedForMonth;
+                
+                console.log(`Month ${month}: Allocated ${plannedForMonth} MDs, Remaining = ${remainingMDs}`);
             }
         }
         
@@ -541,74 +546,40 @@ class AutoDistribution {
     }
 
     /**
-     * Calculate temporal overlap between current phase and existing allocations for a specific month
+     * Calculate temporal overlap for sequential consumption logic
      * @private
      * @param {string} month Month in YYYY-MM format
      * @param {Date} currentPhaseStart Current phase start date
      * @param {Date} currentPhaseEnd Current phase end date
-     * @param {Object} existingAllocations Existing allocations with phase date ranges
-     * @returns {number} Overlapping allocation in MDs
+     * @param {Object} existingAllocations Existing allocations from previous phases
+     * @returns {number} Temporal overlap (always 0 for sequential consumption)
      */
     _calculateTemporalOverlap(month, currentPhaseStart, currentPhaseEnd, existingAllocations) {
-        let totalOverlap = 0;
+        // SEQUENTIAL CONSUMPTION LOGIC:
+        // In a sequential phase execution model, previous phases have already 
+        // finished consuming their MDs before the current phase starts.
+        // There is no real temporal overlap between sequential phases.
+        // Each phase gets clean capacity in its designated time period.
         
-        // Parse month to get month boundaries
-        const [year, monthNum] = month.split('-').map(Number);
-        const monthStart = new Date(year, monthNum - 1, 1);
-        const monthEnd = new Date(year, monthNum, 0);
-        
-        // Check existing allocations for this month
-        const monthAllocations = existingAllocations[month];
-        if (!monthAllocations) {
-            return 0;
+        console.log(`Sequential consumption: No temporal overlap for ${month} - previous phases finished`);
+        return 0;
+    }
+
+    /**
+     * Calculate working days between two dates (helper for temporal overlap)
+     * @private
+     * @param {Date} startDate Start date (inclusive)
+     * @param {Date} endDate End date (inclusive)
+     * @returns {number} Working days count
+     */
+    _calculateWorkingDaysBetween(startDate, endDate) {
+        if (!this.workingDaysCalculator || !this.workingDaysCalculator.calculateWorkingDaysBetween) {
+            // Fallback: simple day calculation (assumes all days are working days)
+            const timeDiff = endDate.getTime() - startDate.getTime();
+            return Math.max(1, Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1);
         }
         
-        // Handle legacy format (number) for backward compatibility
-        if (typeof monthAllocations === 'number') {
-            return monthAllocations;
-        }
-        
-        // New format: array of phase allocations with date ranges
-        if (Array.isArray(monthAllocations)) {
-            for (const allocation of monthAllocations) {
-                const existingStart = new Date(allocation.startDate);
-                const existingEnd = new Date(allocation.endDate);
-                
-                // Calculate the overlap period between current phase and existing phase within this month
-                const overlapStart = new Date(Math.max(
-                    Math.max(currentPhaseStart.getTime(), existingStart.getTime()),
-                    monthStart.getTime()
-                ));
-                const overlapEnd = new Date(Math.min(
-                    Math.min(currentPhaseEnd.getTime(), existingEnd.getTime()),
-                    monthEnd.getTime()
-                ));
-                
-                // Check if there's actual overlap
-                if (overlapStart <= overlapEnd) {
-                    // Calculate overlap in working days using working days calculator
-                    const overlapDays = this.workingDaysCalculator.calculateWorkingDaysBetween(
-                        overlapStart, overlapEnd
-                    );
-                    
-                    // For simplicity, assume proportional allocation within the month
-                    // This could be improved with more sophisticated calculations
-                    const existingPhaseDaysInMonth = this.workingDaysCalculator.calculateWorkingDaysBetween(
-                        new Date(Math.max(existingStart.getTime(), monthStart.getTime())),
-                        new Date(Math.min(existingEnd.getTime(), monthEnd.getTime()))
-                    );
-                    
-                    if (existingPhaseDaysInMonth > 0) {
-                        const proportionalOverlap = (overlapDays / existingPhaseDaysInMonth) * allocation.allocatedMDs;
-                        totalOverlap += proportionalOverlap;
-                        
-                    }
-                } else {
-                }
-            }
-        }
-        
-        return totalOverlap;
+        return this.workingDaysCalculator.calculateWorkingDaysBetween(startDate, endDate);
     }
 }
 

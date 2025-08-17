@@ -4552,3 +4552,145 @@ Sticky columns stay on top to maintain table structure integrity.
 .allocations-wrapper::-webkit-scrollbar-thumb:hover {
     background: #4e4e52;
 }
+
+/* =====================================================
+   EDITABLE PHASE DETAILS STYLES
+   ===================================================== */
+
+/* Phase details table */
+.phase-details-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    font-size: 13px;
+}
+
+.phase-details-table th,
+.phase-details-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border: 1px solid #333333;
+}
+
+.phase-details-table th {
+    background: #2d2d30;
+    font-weight: 600;
+    color: #cccccc;
+}
+
+.phase-details-table td {
+    background: #252526;
+}
+
+/* Editable phase allocation cells */
+.editable-cell {
+    padding: 4px !important;
+    position: relative;
+}
+
+.phase-md-input {
+    width: 100%;
+    padding: 6px 8px;
+    background: #3c3c3c;
+    border: 1px solid #555555;
+    border-radius: 3px;
+    color: #cccccc;
+    font-size: 12px;
+    font-family: inherit;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.phase-md-input:focus {
+    outline: none;
+    border-color: #007acc;
+    background: #464647;
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.phase-md-input:hover:not(:focus) {
+    border-color: #666666;
+    background: #404040;
+}
+
+/* Visual feedback states */
+.editable-cell.editing {
+    background: #2d3142 !important;
+}
+
+.phase-md-input.value-updated {
+    border-color: #4ec9b0 !important;
+    background: #1e3a32 !important;
+    animation: valueUpdated 0.3s ease;
+}
+
+.phase-md-input.error {
+    border-color: #f44747 !important;
+    background: #3c1e1e !important;
+    animation: shake 0.3s ease;
+}
+
+/* Animations */
+@keyframes valueUpdated {
+    0% { 
+        transform: scale(1);
+        box-shadow: 0 0 0 2px rgba(78, 201, 176, 0.4);
+    }
+    50% { 
+        transform: scale(1.02);
+        box-shadow: 0 0 0 4px rgba(78, 201, 176, 0.2);
+    }
+    100% { 
+        transform: scale(1);
+        box-shadow: 0 0 0 2px rgba(78, 201, 176, 0.1);
+    }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+    20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+/* Phase detail row styling */
+.phase-detail-row {
+    transition: background-color 0.2s ease;
+}
+
+.phase-detail-row:hover {
+    background: #2d2d30 !important;
+}
+
+.phase-detail-row td.phase-name {
+    font-weight: 500;
+    color: #dcdcdc;
+}
+
+.phase-detail-row td.phase-dates {
+    color: #9cdcfe;
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+}
+
+.phase-detail-row td.phase-total {
+    font-weight: 600;
+    color: #4ec9b0;
+}
+
+/* Empty allocation cells */
+.phase-allocation.empty {
+    color: #666666;
+    font-style: italic;
+}
+
+/* Responsive design for phase details */
+@media (max-width: 1200px) {
+    .phase-details-table {
+        font-size: 12px;
+    }
+    
+    .phase-md-input {
+        font-size: 11px;
+        padding: 4px 6px;
+    }
+}
