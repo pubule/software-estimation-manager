@@ -3224,7 +3224,8 @@
 }
 
 .allocation-details-row .details-cell {
-    padding: 16px 20px;
+    margin: 16px 0;
+    padding: 0;
     background: #2d2d30;
 }
 
@@ -3232,7 +3233,8 @@
     background: #1e1e1e;
     border: 1px solid #404040;
     border-radius: 6px;
-    padding: 16px;
+    margin: 16px 0;
+    padding: 0;
 }
 
 .phase-details-container h4 {
