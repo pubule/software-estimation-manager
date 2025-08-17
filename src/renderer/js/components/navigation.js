@@ -216,6 +216,13 @@ class EnhancedNavigationManager extends NavigationManager {
             panelsContainer.classList.add('has-active-panel');
         }
 
+        // Auto-expand sidebar if it was collapsed
+        const sidebarContainer = document.querySelector('.vscode-sidebar-container');
+        if (sidebarContainer && sidebarContainer.classList.contains('collapsed')) {
+            console.log('Auto-expanding sidebar - panel becoming active');
+            sidebarContainer.classList.remove('collapsed');
+        }
+
         // Update current active panel
         this.currentActivePanel = panelType;
 
@@ -242,6 +249,20 @@ class EnhancedNavigationManager extends NavigationManager {
         // Update current active panel
         if (this.currentActivePanel === panelType) {
             this.currentActivePanel = null;
+        }
+
+        // Remove active panel class from container
+        const panelsContainer = document.querySelector('.expandable-panels');
+        if (panelsContainer) {
+            panelsContainer.classList.remove('has-active-panel');
+        }
+
+        // Auto-collapse sidebar when no panels are active
+        const sidebarContainer = document.querySelector('.vscode-sidebar-container');
+        if (sidebarContainer && !sidebarContainer.classList.contains('collapsed')) {
+            console.log('Auto-collapsing sidebar - no active panels');
+            this.lastActivePanel = panelType; // Remember what was closed for potential restore
+            sidebarContainer.classList.add('collapsed');
         }
 
         console.log(`Closed sidebar panel: ${panelType}`);
