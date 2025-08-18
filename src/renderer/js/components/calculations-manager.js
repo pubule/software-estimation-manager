@@ -1461,15 +1461,6 @@ class CapacityManager extends BaseComponent {
 
                 </div>
 
-                <!-- Team Performance Section -->
-                <div class="dashboard-team-performance">
-                    <div class="card-header">
-                        <h3><i class="fas fa-users-cog"></i> Team Performance Summary</h3>
-                    </div>
-                    <div class="team-performance-grid" id="team-performance-grid">
-                        <!-- Team performance cards will be generated here -->
-                    </div>
-                </div>
 
             </div>
         `;
@@ -1530,9 +1521,6 @@ class CapacityManager extends BaseComponent {
                 `;
             }
         }
-        
-        // Load team performance data
-        this.loadTeamPerformanceData();
     }
 
     // Load Capacity Utilization Data
@@ -2332,49 +2320,6 @@ class CapacityManager extends BaseComponent {
         return 'low-capacity';
     }
 
-    // Load Team Performance Data
-    async loadTeamPerformanceData() {
-        const container = document.getElementById('team-performance-grid');
-        const teamMembers = await this.getRealTeamMembers();
-        
-        const performanceHTML = teamMembers.slice(0, 4).map(member => `
-            <div class="team-performance-card">
-                <div class="performance-header">
-                    <div class="member-info">
-                        <span class="member-name">${member.firstName} ${member.lastName}</span>
-                        <span class="member-role">${member.role} - ${member.vendor}</span>
-                    </div>
-                    <div class="performance-score ${this.getPerformanceScoreClass(member.currentUtilization)}">
-                        ${member.currentUtilization}%
-                    </div>
-                </div>
-                <div class="performance-details">
-                    <div class="performance-item">
-                        <span class="performance-label">Current Projects</span>
-                        <span class="performance-value">${Object.keys(member.allocations?.['2025-12'] || {}).length || 0}</span>
-                    </div>
-                    <div class="performance-item">
-                        <span class="performance-label">Max Capacity</span>
-                        <span class="performance-value">${member.maxCapacity} MD/month</span>
-                    </div>
-                    <div class="performance-item">
-                        <span class="performance-label">Available Days</span>
-                        <span class="performance-value">${member._debugInfo?.availableDays || 0} MDs</span>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-        container.innerHTML = performanceHTML;
-    }
-
-    // Get Performance Score Class
-    getPerformanceScoreClass(utilization) {
-        if (utilization >= 95) return 'score-critical';
-        if (utilization >= 85) return 'score-high';
-        if (utilization >= 70) return 'score-good';
-        return 'score-low';
-    }
 
     // Update Allocation Chart (when timeframe changes)
     updateAllocationChart() {
