@@ -83,7 +83,7 @@ Feature: Capacity Planning
     And resource conflicts should be visually indicated
     And allocation percentages should be clearly displayed
 
-  Scenario: Add new resource allocation from timeline
+  Scenario: Add new resource allocation from timeline with budget information
     Given I am viewing the capacity timeline
     When I click the "Add Assignment" button
     Then a resource allocation modal should open
@@ -91,6 +91,9 @@ Feature: Capacity Planning
     And I should be able to specify time periods
     And I should be able to set allocation percentages
     And project assignment options should be available
+    And budget information section should be displayed
+    And "Total Final MDs" should show calculated budget based on vendor costs
+    And project status should default to "pending" not "approved"
 
   Scenario: Resource capacity calculations and validation
     Given resource allocations are being managed
@@ -107,6 +110,17 @@ Feature: Capacity Planning
     And allocation data should be recalculated for the filtered view
     And visual indicators should reflect the filtered state
     And filter state should persist during the session
+
+  Scenario: Assignment modal budget calculation integration
+    Given I have projects with configured vendor costs
+    And I have team members with vendor assignments
+    When I create a new assignment through the modal
+    Then the assignment modal should display budget information section
+    And the "Total Final MDs" should be calculated from project vendor costs
+    And vendor cost matching should use team member vendorId and role
+    And budget context should show "Budget for [Vendor] - [Role] in this project"
+    And calculation should handle missing vendor costs gracefully by showing 0.0
+    And debug logging should show vendor cost matching process
 
   # Timeline Interface and Interaction
 

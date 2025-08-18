@@ -9,7 +9,7 @@ Feature: Project Management
     And all required components are loaded
     And capacity planning integration is available
 
-  Scenario: Create a new project with default structure
+  Scenario: Create a new project with default structure and pending status
     Given I am working on any existing project
     When I create a new project
     Then a new project should be created with name "New Project"
@@ -17,7 +17,8 @@ Feature: Project Management
     And the project should have an empty features list
     And the project should have all 8 project phases defined
     And each phase should have manDays and cost properties initialized
-    And the project status should show as unsaved
+    And the project status should show as unsaved in the title bar
+    And the project default status should be "pending" not "approved"
 
   Scenario: Initialize project with hierarchical configuration system
     Given no project configuration exists
@@ -29,21 +30,24 @@ Feature: Project Management
     And the configuration should have empty project overrides
     And the configuration should be ready for project-specific customizations
 
-  Scenario: Project dirty state affects UI indicators
+  Scenario: Project dirty state affects UI indicators including title bar
     Given I have a clean project open
     When I modify project data
     Then the project should be marked as dirty
-    And the project status indicator should display "●"
-    And the status indicator should have "unsaved" CSS class
+    And the project status indicator in title bar should display "●"
+    And the title bar status indicator should have "unsaved" CSS class
+    And the title bar status indicator should be properly aligned next to project name
+    And the title bar status indicator should use warning color (orange/yellow)
     And the navigation manager should be notified of dirty state
 
-  Scenario: Save project with unsaved changes
+  Scenario: Save project with unsaved changes updates title bar indicator
     Given I have a project with unsaved changes
     When I request to save the project
     Then the project should be saved successfully
     And the project should be marked as clean
-    And the project status indicator should display "○"
-    And the status indicator should have "saved" CSS class
+    And the title bar project status indicator should display "○"
+    And the title bar status indicator should have "saved" CSS class
+    And the title bar status indicator should use success color (green)
 
   Scenario: Handle save request for missing project
     Given no project is currently loaded

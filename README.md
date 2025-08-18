@@ -12,6 +12,9 @@ A standalone desktop application built with Electron for managing economic estim
 - **Export/Import** in multiple formats (JSON, CSV, Excel)
 - **Versioning system** for change history
 - **Local persistence** with backup and restore
+- **Capacity planning** with resource allocation and timeline management
+- **Budget calculation system** with vendor cost integration
+- **Professional title bar** with real-time project status indicators
 
 ## Tech Stack
 
@@ -279,6 +282,22 @@ The configuration system includes robust error handling:
 - ✅ Responsive modals
 - ✅ Keyboard shortcuts
 - ✅ Loading states
+- ✅ Professional title bar with status indicators
+- ✅ Real-time visual feedback for project state
+
+### 7. Capacity Planning (NEW)
+- ✅ Team member resource allocation
+- ✅ Project timeline visualization
+- ✅ Resource capacity overview
+- ✅ Assignment modal with budget calculations
+- ✅ Real-time budget information display
+
+### 8. Budget System (NEW)
+- ✅ Vendor cost integration
+- ✅ Team member vendor assignment
+- ✅ "Total Final MDs" calculation
+- ✅ Budget context display
+- ✅ Enhanced debugging for cost calculations
 
 ## Pending Features
 
@@ -445,25 +464,36 @@ class ComponentName {
 - Close other heavy applications
 - Check available disk space
 
+### Budget Calculation Issues
+- **Total Final MDs shows 0.0**: Check console logs for vendor cost matching details
+- **Missing vendor costs**: Ensure project has vendor costs configured in calculation data
+- **Vendor assignment mismatch**: Verify team member vendorId matches vendor cost entries
+- **Enhanced debugging**: Enable console logs to see step-by-step calculation process
+
+### Title Bar Display Issues
+- **Status indicator not visible**: Refresh application or check CSS loading
+- **Misaligned status indicator**: Verify browser zoom level and CSS compatibility
+- **Title bar not responding**: Check window control button functionality
+
 ## Roadmap
 
-### v1.1.0
-- [ ] Complete template system
-- [ ] Functional version history
-- [ ] Advanced Excel export
-- [ ] UI/UX improvements
+### v1.3.0 (Next Release)
+- [ ] Enhanced capacity planning with advanced filtering
+- [ ] Improved budget calculation with cost center support
+- [ ] Advanced Excel export with budget information
+- [ ] Template system for project configurations
 
-### v1.2.0
-- [ ] Charts and graphs
-- [ ] Reporting system
-- [ ] Project comparison
-- [ ] Advanced configuration
+### v1.4.0
+- [ ] Charts and graphs for budget visualization
+- [ ] Reporting system with cost analysis
+- [ ] Project comparison with budget metrics
+- [ ] Advanced configuration with role-based permissions
 
 ### v2.0.0
-- [ ] Multi-project mode
-- [ ] Basic collaboration
-- [ ] External API
-- [ ] Plugin system
+- [ ] Multi-project mode with portfolio management
+- [ ] Basic collaboration with shared budgets
+- [ ] External API for integration
+- [ ] Plugin system for custom calculations
 
 ## Contributing
 
@@ -486,5 +516,27 @@ For technical support or bug reports:
 
 ---
 
-**Software Estimation Manager v1.0.0**  
+**Software Estimation Manager v1.2.0**  
 Built with ❤️ using Electron and modern web technologies.
+
+## Latest Updates (v1.2.0)
+
+### 🎯 **Budget Calculation System**
+- Real-time vendor cost calculations in assignment modals
+- Enhanced debugging with detailed console logging
+- Vendor-role matching for accurate budget estimation
+
+### 🎨 **Title Bar Improvements** 
+- Professional status indicators with proper alignment
+- Real-time visual feedback for saved/unsaved states
+- Enhanced CSS isolation to prevent UI conflicts
+
+### ⚙️ **Enhanced Project Management**
+- Default status changed to "pending" for new assignments
+- Improved status consistency across all components
+- Better integration between capacity planning and budgeting
+
+### 📋 **Comprehensive Test Documentation**
+- 11 feature files with 200+ behavioral test scenarios
+- Complete coverage of edge cases and error conditions
+- Enhanced troubleshooting guides and debugging documentation

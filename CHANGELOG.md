@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-08-17
+
+### Added
+- **Budget Calculation System**: Complete vendor cost integration with real-time budget calculations
+  - Vendor cost matching based on team member assignments (vendorId + role)
+  - "Total Final MDs" calculation in assignment modals
+  - Budget context display showing vendor and role information
+  - Enhanced debugging with detailed console logging for vendor cost matching
+- **Title Bar Layout Improvements**: Professional status indicator alignment and visual feedback
+  - Custom title bar with project status indicators properly aligned
+  - `.title-project-info` CSS class for isolated title bar styling
+  - Real-time visual feedback for saved/unsaved project states
+  - VSCode-style window controls and branding integration
+- **Enhanced Project Status Management**: Improved default behavior and consistency
+  - Project assignments now default to "pending" status instead of "approved"
+  - Status consistency across capacity planning, calculations, and project management
+  - Better status propagation between different UI components
+- **Comprehensive Test Documentation**: Complete Gherkin test suite for behavioral documentation
+  - 11 feature files covering all major application areas (200+ scenarios)
+  - New test files: `budget-and-vendor-costs.feature`, `title-bar-and-status-indicators.feature`, `recent-improvements-and-debugging.feature`
+  - Updated existing test files to reflect current application behavior
+  - Enhanced test coverage for edge cases and error scenarios
+
+### Changed
+- **Assignment Modal Behavior**: Enhanced with budget information and improved UX
+  - Assignment modals now display budget calculation section
+  - Real-time budget updates when team member or project selection changes
+  - Better handling of missing vendor cost configurations
+- **Title Bar Architecture**: Improved CSS isolation and maintainability
+  - Separated title bar styling from general project info styling
+  - Prevented CSS conflicts with other UI elements
+  - Enhanced cross-browser compatibility with improved flexbox layout
+- **Debug Infrastructure**: Enhanced troubleshooting capabilities
+  - Detailed console logging for vendor cost matching process
+  - Step-by-step calculation logging for budget-related issues
+  - Better error messages for configuration problems
+
+### Fixed
+- **Title Bar Status Indicator**: Resolved misalignment issue where status indicator appeared below project name
+  - Status indicator now properly aligns horizontally next to project name
+  - Fixed flexbox layout for consistent rendering across browsers
+  - Resolved CSS specificity conflicts affecting other UI elements
+- **Budget Calculation Issues**: Improved reliability of "Total Final MDs" calculations
+  - Enhanced vendor cost matching logic with better error handling
+  - Fixed cases where budget showed 0.0 due to configuration mismatches
+  - Added graceful fallback for missing vendor cost data
+- **CSS Regression Prevention**: Implemented isolated styling to prevent future conflicts
+  - Created scoped CSS classes for title bar components
+  - Maintained backward compatibility with existing UI elements
+  - Enhanced maintainability of CSS architecture
+
+### Technical Improvements
+- **Enhanced Error Handling**: Better graceful degradation for missing data
+- **Performance Optimizations**: Reduced redundant calculations in budget system
+- **Code Quality**: Improved separation of concerns in title bar and budget components
+- **Documentation**: Comprehensive test scenarios documenting current behavior and edge cases
+
 ## [1.1.0] - 2025-01-08
 
 ### Added

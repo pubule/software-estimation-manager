@@ -1,7 +1,7 @@
 Feature: UI Interactions
   As a user of the Software Estimation Manager
-  I want intuitive user interface interactions
-  So that I can efficiently navigate and manage project data
+  I want intuitive user interface interactions including proper visual feedback
+  So that I can efficiently navigate and manage project data with clear status indicators
 
   Background:
     Given the Software Estimation Manager application is loaded
@@ -178,12 +178,16 @@ Feature: UI Interactions
 
   # Status and Notification System
 
-  Scenario: Project status indicator reflects current state
+  Scenario: Title bar project status indicator reflects current state with proper alignment
     Given I have a project open
     When the project has no unsaved changes
-    Then the status indicator should display "○" with "saved" CSS class
+    Then the title bar status indicator should display "○" with "saved" CSS class
+    And the status indicator should be properly aligned next to the project name
+    And the status indicator should use success color (green)
     When I make changes to the project
-    Then the status indicator should display "●" with "unsaved" CSS class
+    Then the title bar status indicator should display "●" with "unsaved" CSS class  
+    And the status indicator should use warning color (orange/yellow)
+    And the status indicator should remain horizontally aligned with project name text
 
   # Keyboard Shortcuts
 
@@ -220,3 +224,44 @@ Feature: UI Interactions
     And the system should not crash due to missing DOM elements
     And alternative navigation methods should remain functional
     And error messages should guide developers to investigate DOM structure
+
+  # Budget and Assignment Modal Interactions
+
+  Scenario: Assignment modal displays budget information with real-time updates
+    Given I have projects with vendor cost configuration
+    And I have team members with vendor assignments
+    When I open the assignment modal from capacity planning
+    Then the budget information section should be visible
+    And "Total Final MDs" should show calculated budget value
+    And budget context should identify the vendor and role
+    When I change the team member selection
+    Then the budget information should update in real-time
+    And the Total Final MDs should recalculate for the new team member
+
+  Scenario: Assignment modal handles missing vendor costs gracefully
+    Given I have a team member without matching vendor costs in the project
+    When I open the assignment modal for this team member
+    Then the Total Final MDs should display "0.0 MDs"
+    And the budget context should still show the vendor and role information
+    And the modal should remain functional for other assignment operations
+    And no errors should be displayed to the user
+
+  # Default Status Behavior
+
+  Scenario: New project assignments default to pending status
+    Given I am creating a new project assignment
+    When the assignment modal is initialized
+    Then the project status dropdown should default to "pending"
+    And "approved" should be available as an alternative option
+    And this should reflect the new default behavior for project assignments
+    And capacity calculations should handle pending status appropriately
+
+  # CSS Layout and Visual Consistency
+
+  Scenario: Title bar maintains visual consistency with application theme  
+    Given the application is using VSCode dark theme
+    When I examine the title bar visual elements
+    Then the title bar should use consistent VSCode theme colors
+    And typography should match the overall interface style
+    And the project status indicator should integrate seamlessly with the design
+    And spacing and alignment should follow VSCode design patterns
