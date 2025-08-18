@@ -1649,12 +1649,31 @@ class CapacityManager extends BaseComponent {
         const alerts = [];
         
         try {
-            const teamMembers = await this.getRealTeamMembers();
+            // Use loaded capacity data if available, otherwise fallback to current data
+            let teamMembers, projects, manualAssignments;
+            
+            if (this.loadedCapacityData) {
+                console.log('Using loaded capacity data for alerts');
+                teamMembers = this.loadedCapacityData.teamMembers || [];
+                projects = this.loadedCapacityData.projects || [];
+                manualAssignments = this.loadedCapacityData.manualAssignments || [];
+                
+                // Store references for other methods to use
+                this.loadedTeamMembers = teamMembers;
+                this.loadedProjects = projects;
+                this.manualAssignments = manualAssignments;
+            } else {
+                console.log('Using current session data for alerts');
+                teamMembers = await this.getRealTeamMembers();
+                projects = await this.getAvailableProjects();
+                manualAssignments = this.manualAssignments || [];
+            }
+            
             const currentDate = new Date();
             
             // Ensure teamMembers is an array
             if (!Array.isArray(teamMembers)) {
-                console.warn('getRealTeamMembers returned non-array:', typeof teamMembers);
+                console.warn('Team members is not an array:', typeof teamMembers);
                 return alerts;
             }
             
@@ -1665,26 +1684,44 @@ class CapacityManager extends BaseComponent {
                     alerts.push(overallocationAlert);
                 }
                 
-                // Check for assignment overflows
-                const overflowAlerts = this.checkMemberAssignmentOverflows(member);
-                alerts.push(...overflowAlerts);
+                // Skip assignment overflow alerts (too noisy for small overflows)
+                // const overflowAlerts = this.checkMemberAssignmentOverflows(member);
+                // alerts.push(...overflowAlerts);
             });
 
+            // Skip budget overflow alerts when budget is 0 (not meaningful)
+            if (manualAssignments && manualAssignments.length > 0) {
+                manualAssignments.forEach(assignment => {
+                    if (assignment.budgetInfo && assignment.budgetInfo.isOverBudget) {
+                        // Only show budget alert if there's actually a budget defined (> 0)
+                        if (assignment.budgetInfo.totalFinalMDs > 0) {
+                            const projectName = this.getProjectNameById(assignment.projectId, projects) || 'Unknown Project';
+                            const overBudgetAmount = Math.abs(assignment.budgetInfo.balance);
+                            
+                            alerts.push({
+                                type: 'error',
+                                severity: 'high',
+                                message: `<strong>Project "${projectName}"</strong> is over budget by <span style="color: #ff6b6b;">${overBudgetAmount.toFixed(1)} MDs</span><br><small style="opacity: 0.8;">Allocated: ${assignment.budgetInfo.totalAllocatedMDs} MDs | Budget: ${assignment.budgetInfo.totalFinalMDs} MDs</small>`
+                            });
+                        }
+                    }
+                });
+            }
+
             // Check for projects without assignments
-            const projects = await this.getAvailableProjects();
-            
             // Ensure projects is an array
             if (!Array.isArray(projects)) {
-                console.warn('getAvailableProjects returned non-array:', typeof projects);
+                console.warn('Projects is not an array:', typeof projects);
             } else {
                 const unassignedProjects = projects.filter(project => {
                 return !this.hasProjectAssignments(project.id);
                 });
 
                 if (unassignedProjects.length > 0) {
+                    const projectNames = unassignedProjects.map(p => p.name).join(', ');
                     alerts.push({
                         type: 'warning',
-                        message: `${unassignedProjects.length} project(s) have no team member assignments`,
+                        message: `<strong>${unassignedProjects.length} project(s)</strong> have no team member assignments<br><small style="opacity: 0.8;">${projectNames}</small>`,
                         severity: 'medium'
                     });
                 }
@@ -1702,52 +1739,99 @@ class CapacityManager extends BaseComponent {
      */
     checkMemberAssignmentOverflows(member) {
         const alerts = [];
-        
-        if (!this.manualAssignments || this.manualAssignments.length === 0) {
-            return alerts;
-        }
-        
-        // Find assignments for this member
-        const memberAssignments = this.manualAssignments.filter(assignment => 
-            assignment.teamMemberId === member.id
-        );
-        
-        if (memberAssignments.length === 0) {
-            return alerts;
-        }
-        
-        // Check each assignment for overflows
         const overflowProjects = [];
         
-        memberAssignments.forEach(assignment => {
-            if (assignment.phaseSchedule) {
-                const overflowPhases = assignment.phaseSchedule.filter(phase => phase.overflow > 0);
+        // Check overflows in member allocations (real data structure)
+        if (member.allocations) {
+            for (const monthKey in member.allocations) {
+                const monthAllocations = member.allocations[monthKey];
                 
-                if (overflowPhases.length > 0) {
-                    // Get project name
-                    const projectName = this.getProjectNameById(assignment.projectId) || 'Unknown Project';
+                for (const projectName in monthAllocations) {
+                    const projectAllocation = monthAllocations[projectName];
                     
-                    overflowPhases.forEach(phase => {
+                    // Check if project has overflow
+                    if (projectAllocation.hasOverflow && projectAllocation.overflowAmount > 0) {
                         overflowProjects.push({
                             projectName,
-                            phaseName: phase.phaseName,
-                            overflow: phase.overflow
+                            month: monthKey,
+                            overflow: projectAllocation.overflowAmount,
+                            phases: []
                         });
-                    });
+                    }
+                    
+                    // Check individual phases for overflow
+                    if (projectAllocation.phases && Array.isArray(projectAllocation.phases)) {
+                        projectAllocation.phases.forEach(phase => {
+                            if (phase.hasOverflow && phase.overflowAmount > 0) {
+                                const existingProject = overflowProjects.find(p => 
+                                    p.projectName === projectName && p.month === monthKey
+                                );
+                                
+                                if (existingProject) {
+                                    existingProject.phases.push({
+                                        phaseName: phase.phaseName,
+                                        overflow: phase.overflowAmount
+                                    });
+                                } else {
+                                    overflowProjects.push({
+                                        projectName,
+                                        month: monthKey,
+                                        overflow: 0,
+                                        phases: [{
+                                            phaseName: phase.phaseName,
+                                            overflow: phase.overflowAmount
+                                        }]
+                                    });
+                                }
+                            }
+                        });
+                    }
                 }
             }
-        });
+        }
+        
+        // Also check assignment phaseSchedule overflow (fallback for different data structure)
+        if (!overflowProjects.length && this.manualAssignments) {
+            const memberAssignments = this.manualAssignments.filter(assignment => 
+                assignment.teamMemberId === member.id
+            );
+            
+            memberAssignments.forEach(assignment => {
+                if (assignment.phaseSchedule) {
+                    const overflowPhases = assignment.phaseSchedule.filter(phase => phase.overflow > 0);
+                    
+                    if (overflowPhases.length > 0) {
+                        const projectName = this.getProjectNameById(assignment.projectId) || 'Unknown Project';
+                        
+                        overflowPhases.forEach(phase => {
+                            overflowProjects.push({
+                                projectName,
+                                phaseName: phase.phaseName,
+                                overflow: phase.overflow
+                            });
+                        });
+                    }
+                }
+            });
+        }
         
         if (overflowProjects.length > 0) {
-            // Group overflows by member as requested
-            const overflowSummary = overflowProjects.map(overflow => 
-                `${overflow.projectName}: ${overflow.phaseName} +${overflow.overflow.toFixed(1)} MDs`
-            ).join(', ');
+            // Create detailed overflow summary
+            const overflowSummary = overflowProjects.map(overflow => {
+                if (overflow.phases && overflow.phases.length > 0) {
+                    const phaseDetails = overflow.phases.map(phase => 
+                        `${phase.phaseName} +${phase.overflow.toFixed(1)} MDs`
+                    ).join(', ');
+                    return `${overflow.projectName} (${overflow.month}): ${phaseDetails}`;
+                } else {
+                    return `${overflow.projectName}: +${overflow.overflow.toFixed(1)} MDs`;
+                }
+            }).join('; ');
             
             alerts.push({
                 type: 'overflow',
                 severity: 'warning',
-                message: `${member.firstName} ${member.lastName} (${this.getMemberRole(member)} - ${this.getVendorName(member)}): ${overflowSummary}`
+                message: `<strong>${member.firstName} ${member.lastName}</strong> has phase overflow<br><small style="opacity: 0.8;">${overflowSummary}</small>`
             });
         }
         
@@ -1758,8 +1842,74 @@ class CapacityManager extends BaseComponent {
      * Check if member is over-allocated
      */
     checkMemberOverallocation(member, currentDate) {
-        // Implementation would check if member's total allocation exceeds capacity
-        // For now, return null since we don't have allocation data structure yet
+        if (!member.allocations) {
+            return null;
+        }
+        
+        const overallocatedMonths = [];
+        const currentYear = currentDate.getFullYear();
+        
+        // Check each month for over-allocation
+        for (const monthKey in member.allocations) {
+            const monthAllocations = member.allocations[monthKey];
+            
+            // Calculate total days allocated for this month
+            let totalAllocated = 0;
+            for (const projectName in monthAllocations) {
+                const allocation = monthAllocations[projectName];
+                if (allocation.days) {
+                    totalAllocated += allocation.days;
+                }
+            }
+            
+            // Get member's capacity for this month
+            const memberCapacity = member.maxCapacity || member.monthlyCapacity || 21;
+            
+            // Check if allocated days exceed capacity
+            if (totalAllocated > memberCapacity) {
+                const month = new Date(monthKey + '-01');
+                const monthName = month.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                
+                overallocatedMonths.push({
+                    month: monthName,
+                    allocated: totalAllocated,
+                    capacity: memberCapacity,
+                    overflow: totalAllocated - memberCapacity
+                });
+            }
+        }
+        
+        if (overallocatedMonths.length > 0) {
+            // Calculate total overflow
+            const totalOverflow = overallocatedMonths.reduce((sum, month) => sum + month.overflow, 0);
+            
+            // Create cleaner summary message
+            let message = `<strong>${member.firstName} ${member.lastName}</strong> is over-allocated in ${overallocatedMonths.length} month(s)`;
+            message += ` <span style="color: #ff6b6b;">(+${totalOverflow.toFixed(1)} MDs total)</span>`;
+            
+            // Add compact month list if not too many
+            if (overallocatedMonths.length <= 4) {
+                const monthsList = overallocatedMonths.map(month => 
+                    `${month.month} (+${month.overflow.toFixed(0)})`
+                ).join(', ');
+                message += `<br><small style="opacity: 0.8;">Months: ${monthsList}</small>`;
+            } else {
+                // For many months, show range and worst cases
+                const firstMonth = overallocatedMonths[0].month;
+                const lastMonth = overallocatedMonths[overallocatedMonths.length - 1].month;
+                const worstMonth = overallocatedMonths.reduce((prev, current) => 
+                    prev.overflow > current.overflow ? prev : current
+                );
+                message += `<br><small style="opacity: 0.8;">Period: ${firstMonth} - ${lastMonth} | Peak: ${worstMonth.month} (+${worstMonth.overflow.toFixed(0)} MDs)</small>`;
+            }
+            
+            return {
+                type: 'overallocation',
+                severity: 'high',
+                message: message
+            };
+        }
+        
         return null;
     }
 
@@ -1767,9 +1917,42 @@ class CapacityManager extends BaseComponent {
      * Check if project has any assignments
      */
     hasProjectAssignments(projectId) {
-        // Implementation would check if project has team member assignments
-        // For now, return true since we don't have assignments data structure yet
-        return true;
+        // Check in manual assignments
+        if (this.manualAssignments && this.manualAssignments.length > 0) {
+            const hasManualAssignment = this.manualAssignments.some(assignment => 
+                assignment.projectId === projectId
+            );
+            
+            if (hasManualAssignment) {
+                return true;
+            }
+        }
+        
+        // Check in team members allocations (loaded from capacity file)
+        if (this.loadedTeamMembers && this.loadedTeamMembers.length > 0) {
+            return this.loadedTeamMembers.some(member => {
+                if (!member.allocations) return false;
+                
+                // Check if any month has allocations for this project
+                for (const monthKey in member.allocations) {
+                    const monthAllocations = member.allocations[monthKey];
+                    
+                    // Look for project by name in allocations
+                    for (const projectName in monthAllocations) {
+                        // Try to match by project name
+                        const project = this.getProjectById(projectId);
+                        if (project && project.name === projectName) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            });
+        }
+        
+        // Fallback: check current team members from getRealTeamMembers
+        return false;
     }
 
     // Get Alert Icon
@@ -8238,20 +8421,57 @@ class CapacityManager extends BaseComponent {
     /**
      * Get project name by ID
      */
-    getProjectNameById(projectId) {
-        // Try to find in loaded projects (now using transformed structure)
+    getProjectNameById(projectId, projectsList = null) {
+        // Try to find in provided projects list first
+        if (projectsList && Array.isArray(projectsList)) {
+            const project = projectsList.find(p => p.id === projectId);
+            if (project) {
+                return project.name || project.code || `Project ${projectId}`;
+            }
+        }
+        
+        // Try to find in loaded projects (cached)
         if (this.cachedProjects) {
             const project = this.cachedProjects.find(p => p.id === projectId);
             if (project) {
                 const projectName = project.name || project.code;
-
                 return projectName;
             }
         }
         
+        // Try loaded projects from capacity data
+        if (this.loadedProjects && Array.isArray(this.loadedProjects)) {
+            const project = this.loadedProjects.find(p => p.id === projectId);
+            if (project) {
+                return project.name || project.code || `Project ${projectId}`;
+            }
+        }
+        
         // Fallback to generic name
-
         return `Project ${projectId}`;
+    }
+
+    /**
+     * Get project by ID
+     */
+    getProjectById(projectId) {
+        // Try loaded projects from capacity data first
+        if (this.loadedProjects && Array.isArray(this.loadedProjects)) {
+            const project = this.loadedProjects.find(p => p.id === projectId);
+            if (project) {
+                return project;
+            }
+        }
+        
+        // Try cached projects
+        if (this.cachedProjects) {
+            const project = this.cachedProjects.find(p => p.id === projectId);
+            if (project) {
+                return project;
+            }
+        }
+        
+        return null;
     }
 
     /**
