@@ -59,22 +59,25 @@ Commands:
   workflow <workflow-type>      Run a complete workflow
   agent <agent-id> <task>      Run specific agent task
   validate                     Run architectural validation
-  tdd <feature-name>           Start TDD workflow for feature
+  tdd <feature-name>           Start legacy TDD workflow for feature
+  test-driven-feature <name>   Start guided test-driven feature development
   fix <bug-description>        Start bug fixing workflow
   config-change <description>  Handle configuration changes
   test                         Run test suite with agent orchestration
 
 Workflows:
-  - tdd_feature_development    Complete TDD cycle for new features
-  - bug_fixing                 Systematic bug resolution
-  - configuration_changes      Handle config system changes
-  - architectural_refactoring  Major architectural changes
+  - test_driven_feature_development  Complete test-driven development with analyst guidance
+  - tdd_feature_development          Legacy TDD cycle for new features (deprecated)
+  - bug_fixing                       Systematic bug resolution
+  - configuration_changes            Handle config system changes
+  - architectural_refactoring        Major architectural changes
 
 Examples:
   node agent-runner.js list
-  node agent-runner.js workflow tdd_feature_development
-  node agent-runner.js agent architecture-guardian validate-script-order
-  node agent-runner.js tdd "user-authentication"
+  node agent-runner.js test-driven-feature "user-authentication"
+  node agent-runner.js workflow test_driven_feature_development
+  node agent-runner.js agent functional-analyst requirements-gathering
+  node agent-runner.js agent technical-analyst architecture-analysis
   node agent-runner.js validate
   node agent-runner.js test
 
@@ -185,6 +188,12 @@ For detailed agent information:
                 break;
             case 'configuration-orchestrator':
                 this.runConfigurationOrchestrator(task);
+                break;
+            case 'functional-analyst':
+                this.runFunctionalAnalyst(task);
+                break;
+            case 'technical-analyst':
+                this.runTechnicalAnalyst(task);
                 break;
             default:
                 console.log(`⚠️  Agent execution not implemented yet for: ${agentId}`);
@@ -325,7 +334,8 @@ For detailed agent information:
     }
 
     startTDDWorkflow(featureName) {
-        console.log(`\n🔄 Starting TDD workflow for: ${featureName}\n`);
+        console.log(`\n🔄 Starting legacy TDD workflow for: ${featureName}\n`);
+        console.log('⚠️  This is the legacy TDD workflow. Consider using test-driven-feature instead.\n');
         console.log('📋 This will coordinate multiple agents through the TDD cycle:');
         console.log('   1. 🏛️  Architecture Guardian - Validate architectural impact');
         console.log('   2. ✅ Test Creator - Create failing tests');
@@ -336,6 +346,189 @@ For detailed agent information:
         console.log('💡 For now, run individual agent commands:');
         console.log(`   node agent-runner.js agent architecture-guardian validate-all`);
         console.log(`   node agent-runner.js agent test-creator create-feature-tests`);
+    }
+
+    startTestDrivenFeatureWorkflow(featureName) {
+        console.log(`\n🚀 Starting guided test-driven feature development for: ${featureName}\n`);
+        console.log('🎯 This will guide you through a comprehensive test-driven development process:\n');
+        
+        console.log('📋 Workflow Phases:');
+        console.log('   1. 📝 Requirements & Testing (functional-analyst)');
+        console.log('      • Interactive business requirements gathering');
+        console.log('      • Create behavioral test suite (Jest)');
+        console.log('      • Generate Cucumber feature files');
+        console.log('      • User validation of test scenarios\n');
+        
+        console.log('   2. 🏗️  Technical Planning (technical-analyst)');
+        console.log('      • Review behavioral tests for implementation');
+        console.log('      • Analyze architecture impact');
+        console.log('      • Plan Cucumber step definitions');
+        console.log('      • Design mock strategy\n');
+        
+        console.log('   3. ✅ Approval Gate');
+        console.log('      • Present complete analysis to user');
+        console.log('      • Review all tests and technical plans');
+        console.log('      • User approval before implementation\n');
+        
+        console.log('   4. 🧪 Test Execution Setup');
+        console.log('      • Execute behavioral tests (must fail)');
+        console.log('      • Implement step definitions');
+        console.log('      • Setup test infrastructure\n');
+        
+        console.log('   5. 🔧 TDD Implementation');
+        console.log('      • Implement to make tests pass');
+        console.log('      • Follow technical plan');
+        console.log('      • Maintain architectural compliance\n');
+        
+        console.log('   6. 🔄 Refactoring & Validation');
+        console.log('      • Improve code quality');
+        console.log('      • Complete system integration');
+        console.log('      • Run full test suite\n');
+        
+        console.log('🚀 Starting Phase 1: Requirements & Testing...\n');
+        this.runAgent('functional-analyst', 'requirements-gathering', { featureName });
+    }
+
+    runFunctionalAnalyst(task, options = {}) {
+        console.log('📝 Functional Analyst executing...\n');
+        
+        switch (task) {
+            case 'requirements-gathering':
+                this.conductRequirementsGathering(options.featureName);
+                break;
+            case 'create-behavioral-tests':
+                this.createBehavioralTests(options);
+                break;
+            case 'create-cucumber-features':
+                this.createCucumberFeatures(options);
+                break;
+            case 'validate-with-user':
+                this.validateTestsWithUser(options);
+                break;
+            default:
+                console.log('📋 Available Functional Analyst tasks:');
+                console.log('   • requirements-gathering - Interactive business requirements discovery');
+                console.log('   • create-behavioral-tests - Generate Jest behavioral test suite');
+                console.log('   • create-cucumber-features - Generate Gherkin feature files');
+                console.log('   • validate-with-user - Validate test scenarios with user');
+        }
+    }
+
+    runTechnicalAnalyst(task, options = {}) {
+        console.log('🏗️ Technical Analyst executing...\n');
+        
+        switch (task) {
+            case 'architecture-analysis':
+                this.analyzeArchitectureImpact(options);
+                break;
+            case 'review-behavioral-tests':
+                this.reviewBehavioralTestsForImplementation(options);
+                break;
+            case 'plan-step-definitions':
+                this.planStepDefinitions(options);
+                break;
+            case 'design-mock-strategy':
+                this.designMockStrategy(options);
+                break;
+            default:
+                console.log('📋 Available Technical Analyst tasks:');
+                console.log('   • architecture-analysis - Analyze architecture impact');
+                console.log('   • review-behavioral-tests - Review tests for implementation');
+                console.log('   • plan-step-definitions - Plan Cucumber step definitions');
+                console.log('   • design-mock-strategy - Design comprehensive mock strategy');
+        }
+    }
+
+    conductRequirementsGathering(featureName) {
+        console.log(`🔍 Conducting requirements gathering for: ${featureName || 'new feature'}\n`);
+        console.log('📝 This process will involve:');
+        console.log('   1. Structured business questions');
+        console.log('   2. User workflow analysis');
+        console.log('   3. Success criteria definition');
+        console.log('   4. Validation rules identification');
+        console.log('   5. Integration requirements analysis\n');
+        
+        console.log('💡 For full implementation, use the interactive workflow:');
+        console.log(`   node agent-runner.js workflow test_driven_feature_development`);
+    }
+
+    createBehavioralTests(options) {
+        console.log('✅ Creating behavioral test suite...\n');
+        console.log('📋 This will generate:');
+        console.log('   • Jest test file with comprehensive scenarios');
+        console.log('   • Business requirements as test documentation');
+        console.log('   • Workflow validation tests');
+        console.log('   • Error handling tests');
+        console.log('   • Integration tests\n');
+        
+        console.log('💡 Tests will be created in: tests/{feature-name}-behavioral-tests.js');
+    }
+
+    createCucumberFeatures(options) {
+        console.log('🥒 Creating Cucumber feature files...\n');
+        console.log('📋 This will generate:');
+        console.log('   • Gherkin feature file with business scenarios');
+        console.log('   • User-friendly Given/When/Then scenarios');
+        console.log('   • Data-driven test scenarios');
+        console.log('   • Integration scenarios\n');
+        
+        console.log('💡 Feature will be created in: features/{feature-name}.feature');
+    }
+
+    validateTestsWithUser(options) {
+        console.log('👤 Validating tests with user...\n');
+        console.log('📋 This process includes:');
+        console.log('   • Review all test scenarios for accuracy');
+        console.log('   • Confirm business logic representation');
+        console.log('   • Validate workflow completeness');
+        console.log('   • Approve test suite before implementation\n');
+        
+        console.log('✅ User approval required before proceeding to technical analysis');
+    }
+
+    analyzeArchitectureImpact(options) {
+        console.log('🏗️ Analyzing architecture impact...\n');
+        console.log('📋 Analysis includes:');
+        console.log('   • Component integration requirements');
+        console.log('   • Manager system integration');
+        console.log('   • Configuration hierarchy impact');
+        console.log('   • Data persistence implications');
+        console.log('   • Script loading order considerations\n');
+        
+        console.log('💡 Results will inform technical implementation plan');
+    }
+
+    reviewBehavioralTestsForImplementation(options) {
+        console.log('🔍 Reviewing behavioral tests for implementation...\n');
+        console.log('📋 Review focuses on:');
+        console.log('   • Technical implementation requirements');
+        console.log('   • Component architecture implications');
+        console.log('   • Integration points identification');
+        console.log('   • Mock requirements analysis\n');
+        
+        console.log('📄 Output: Technical implementation requirements document');
+    }
+
+    planStepDefinitions(options) {
+        console.log('📋 Planning Cucumber step definitions...\n');
+        console.log('🎯 Planning includes:');
+        console.log('   • Page object requirements');
+        console.log('   • UI interaction patterns');
+        console.log('   • Data setup and teardown');
+        console.log('   • Integration testing approaches\n');
+        
+        console.log('📁 Output: Step definitions outline and implementation plan');
+    }
+
+    designMockStrategy(options) {
+        console.log('🎭 Designing comprehensive mock strategy...\n');
+        console.log('🛠️ Strategy covers:');
+        console.log('   • External dependency mocking');
+        console.log('   • Data layer mocking');
+        console.log('   • UI component mocking');
+        console.log('   • Integration point mocking\n');
+        
+        console.log('📋 Output: Complete mock strategy specification');
     }
 
     runValidation() {
@@ -404,6 +597,10 @@ function main() {
         case 'tdd':
             const featureName = subcommand || 'new-feature';
             runner.startTDDWorkflow(featureName);
+            break;
+        case 'test-driven-feature':
+            const newFeatureName = subcommand || 'new-feature';
+            runner.startTestDrivenFeatureWorkflow(newFeatureName);
             break;
         case 'validate':
             runner.runValidation();

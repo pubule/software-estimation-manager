@@ -1,0 +1,251 @@
+{
+  "name": "Test Creation Workflow",
+  "id": "test-creation",
+  "version": "1.0.0",
+  "description": "Workflow for creating behavioral tests and Cucumber features from business requirements",
+  "phases": [
+    {
+      "name": "requirements_discovery",
+      "description": "Interactive discovery of business requirements",
+      "tasks": [
+        {
+          "task": "ask_initial_questions",
+          "description": "Ask structured business questions to understand the feature",
+          "inputs": ["feature_name", "user_context"],
+          "outputs": ["business_requirements", "user_workflows", "success_criteria"],
+          "questions": [
+            "What business problem does this feature solve?",
+            "Who are the primary users of this feature?",
+            "What are the main steps in the user workflow?",
+            "How will success be measured?",
+            "What validation rules apply?",
+            "How does this integrate with existing functionality?"
+          ]
+        },
+        {
+          "task": "analyze_workflows",
+          "description": "Break down user workflows into testable scenarios",
+          "inputs": ["business_requirements", "user_workflows"],
+          "outputs": ["workflow_scenarios", "edge_cases", "error_scenarios"],
+          "analysis_areas": [
+            "happy_path_workflows",
+            "alternative_workflows",
+            "error_conditions",
+            "edge_cases",
+            "integration_points"
+          ]
+        },
+        {
+          "task": "identify_test_scenarios",
+          "description": "Convert workflows into specific test scenarios",
+          "inputs": ["workflow_scenarios", "edge_cases", "error_scenarios"],
+          "outputs": ["test_scenarios", "acceptance_criteria"],
+          "scenario_types": [
+            "main_workflow_scenarios",
+            "validation_scenarios", 
+            "error_handling_scenarios",
+            "integration_scenarios",
+            "edge_case_scenarios"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "behavioral_test_creation",
+      "description": "Create Jest behavioral tests from identified scenarios",
+      "tasks": [
+        {
+          "task": "structure_test_suite",
+          "description": "Create the overall structure of the behavioral test suite",
+          "inputs": ["test_scenarios", "acceptance_criteria"],
+          "outputs": ["test_structure", "describe_blocks"],
+          "structure_elements": [
+            "feature_level_describe",
+            "workflow_level_describes",
+            "setup_and_teardown",
+            "mock_requirements"
+          ]
+        },
+        {
+          "task": "write_test_cases",
+          "description": "Write individual test cases for each scenario",
+          "inputs": ["test_structure", "test_scenarios"],
+          "outputs": ["behavioral_tests"],
+          "test_patterns": [
+            "arrange_act_assert",
+            "descriptive_test_names",
+            "business_focused_assertions",
+            "comprehensive_coverage"
+          ]
+        },
+        {
+          "task": "add_documentation",
+          "description": "Add business context and requirements as test documentation",
+          "inputs": ["behavioral_tests", "business_requirements"],
+          "outputs": ["documented_tests"],
+          "documentation_elements": [
+            "business_context",
+            "user_workflows",
+            "success_criteria",
+            "business_rules"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cucumber_feature_creation",
+      "description": "Create Cucumber feature files with Gherkin scenarios",
+      "tasks": [
+        {
+          "task": "write_feature_description",
+          "description": "Create the feature description with business value",
+          "inputs": ["business_requirements", "user_workflows"],
+          "outputs": ["feature_description"],
+          "elements": [
+            "user_role_identification",
+            "capability_description",
+            "business_value_statement"
+          ]
+        },
+        {
+          "task": "create_background",
+          "description": "Define common setup for all scenarios",
+          "inputs": ["test_scenarios", "integration_points"],
+          "outputs": ["background_steps"],
+          "common_elements": [
+            "application_startup",
+            "user_authentication",
+            "data_prerequisites",
+            "system_initialization"
+          ]
+        },
+        {
+          "task": "write_scenarios",
+          "description": "Convert test scenarios into Gherkin scenarios",
+          "inputs": ["test_scenarios", "workflow_scenarios"],
+          "outputs": ["gherkin_scenarios"],
+          "scenario_types": [
+            "main_workflow_scenarios",
+            "alternative_path_scenarios", 
+            "error_handling_scenarios",
+            "data_driven_scenarios",
+            "integration_scenarios"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "test_validation",
+      "description": "Validate tests with user and prepare for technical implementation",
+      "tasks": [
+        {
+          "task": "review_with_user",
+          "description": "Present tests to user for validation and feedback",
+          "inputs": ["behavioral_tests", "gherkin_scenarios"],
+          "outputs": ["user_feedback", "validated_tests"],
+          "review_areas": [
+            "business_logic_accuracy",
+            "workflow_completeness",
+            "scenario_coverage",
+            "error_handling_adequacy"
+          ]
+        },
+        {
+          "task": "refine_tests",
+          "description": "Incorporate user feedback and refine tests",
+          "inputs": ["user_feedback", "validated_tests"],
+          "outputs": ["final_behavioral_tests", "final_cucumber_features"],
+          "refinement_areas": [
+            "scenario_adjustments",
+            "additional_edge_cases",
+            "improved_error_handling",
+            "clarified_business_rules"
+          ]
+        },
+        {
+          "task": "prepare_handoff",
+          "description": "Prepare comprehensive package for technical analyst",
+          "inputs": ["final_behavioral_tests", "final_cucumber_features", "business_requirements"],
+          "outputs": ["technical_handoff_package"],
+          "handoff_elements": [
+            "complete_test_suite",
+            "business_requirements_summary",
+            "integration_requirements",
+            "mock_data_requirements",
+            "step_definitions_needed"
+          ]
+        }
+      ]
+    }
+  ],
+  "validation_criteria": {
+    "requirements_completeness": [
+      "All main workflows identified and documented",
+      "Business rules clearly defined",
+      "Integration points identified",
+      "Error scenarios specified"
+    ],
+    "test_quality": [
+      "All scenarios covered in behavioral tests",
+      "Tests follow established patterns",
+      "Business logic clearly expressed",
+      "Edge cases and errors handled"
+    ],
+    "cucumber_quality": [
+      "Features written in business language",
+      "Scenarios cover all workflows",
+      "Given-When-Then structure followed",
+      "Background appropriately used"
+    ],
+    "user_validation": [
+      "User confirms tests match expectations",
+      "Business logic validated",
+      "Workflows accurately represented",
+      "Success criteria captured"
+    ]
+  },
+  "output_deliverables": {
+    "behavioral_tests": {
+      "file": "tests/{feature-name}-behavioral-tests.js",
+      "description": "Complete Jest test suite documenting expected behavior",
+      "includes": [
+        "Comprehensive test coverage",
+        "Business requirements as comments",
+        "Mock usage specifications",
+        "Setup and teardown logic"
+      ]
+    },
+    "cucumber_features": {
+      "file": "features/{feature-name}.feature",
+      "description": "Gherkin feature file with business scenarios", 
+      "includes": [
+        "Feature description with business value",
+        "Background setup",
+        "Scenario specifications",
+        "Data examples for scenario outlines"
+      ]
+    },
+    "requirements_documentation": {
+      "embedded": "Within test files as comments",
+      "description": "Business requirements and context",
+      "includes": [
+        "Business problem statement",
+        "User workflows",
+        "Success criteria",
+        "Integration requirements"
+      ]
+    }
+  },
+  "interaction_protocols": {
+    "user_interaction": {
+      "discovery_questions": "Ask structured questions to understand business needs",
+      "test_review": "Present tests for validation and feedback",
+      "refinement_loops": "Iterate based on user feedback"
+    },
+    "technical_handoff": {
+      "complete_package": "Provide all tests and requirements to technical analyst",
+      "integration_specs": "Document integration requirements clearly",
+      "mock_requirements": "Specify what mocking will be needed"
+    }
+  }
+}
