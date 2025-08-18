@@ -754,7 +754,6 @@
 /* Matrix Cell States */
 .matrix-cell {
     padding: var(--spacing-xs);
-    cursor: pointer;
     transition: all var(--transition-fast);
     position: relative;
 }

@@ -1392,9 +1392,6 @@ class CapacityManager extends BaseComponent {
                     <button class="btn btn-primary" onclick="window.app?.navigationManager?.navigateToCapacitySubSection('capacity-timeline')">
                         <i class="fas fa-calendar-alt"></i> Timeline Planning
                     </button>
-                    <button class="btn btn-secondary" id="refresh-dashboard-btn">
-                        <i class="fas fa-sync-alt"></i> Refresh Data
-                    </button>
                 </div>
 
                 <!-- Statistics Cards Row -->
@@ -1420,9 +1417,6 @@ class CapacityManager extends BaseComponent {
                         <div class="card-header">
                             <h3><i class="fas fa-calendar-alt"></i> 15-Month Capacity Overview</h3>
                             <div class="card-actions">
-                                <button class="btn btn-small" onclick="window.app?.navigationManager?.navigateToCapacitySubSection('capacity-timeline')">
-                                    <i class="fas fa-external-link-alt"></i> View Details
-                                </button>
                             </div>
                         </div>
                         <div class="card-content">
@@ -1498,12 +1492,6 @@ class CapacityManager extends BaseComponent {
 
     // Initialize Dashboard Event Listeners
     initializeDashboardEventListeners() {
-        // Refresh button
-        const refreshBtn = document.getElementById('refresh-dashboard-btn');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', async () => await this.loadDashboardData());
-        }
-
         // Matrix filters
         const matrixTeamFilter = document.getElementById('matrix-team-filter');
         const matrixTimeframe = document.getElementById('matrix-timeframe');
@@ -1521,13 +1509,7 @@ class CapacityManager extends BaseComponent {
             matrixViewMode.addEventListener('change', () => this.loadAvailabilityMatrix());
         }
         
-        // Matrix cell click events
-        const matrixContainer = document.querySelector('.resource-availability-matrix');
-        if (matrixContainer) {
-            matrixContainer.addEventListener('cellClick', (event) => {
-                this.handleMatrixCellClick(event.detail);
-            });
-        }
+        // Matrix cell click events removed
     }
 
     // Load Dashboard Data
@@ -2108,8 +2090,7 @@ class CapacityManager extends BaseComponent {
                 memberRow += `
                     <td class="matrix-cell ${cellClass}" 
                         data-month="${monthKey}" 
-                        data-member="${member.id}"
-                        onclick="this.closest('.resource-availability-matrix').dispatchEvent(new CustomEvent('cellClick', {detail: {memberId: '${member.id}', month: '${monthKey}', utilization: ${utilization.percentage}}}))">
+                        data-member="${member.id}">
                         ${cellContent}
                     </td>
                 `;
