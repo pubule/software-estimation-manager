@@ -1722,6 +1722,15 @@ body {
     line-height: 1;
 }
 
+.title-project-info #project-status {
+    font-size: 12px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
 #project-status.saved {
     color: var(--success);
 }
