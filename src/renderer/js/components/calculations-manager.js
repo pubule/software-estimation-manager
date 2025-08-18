@@ -2145,7 +2145,7 @@ class CapacityManager extends BaseComponent {
                     projects.push({
                         name: projectName,
                         days: allocation.days,
-                        status: allocation.status || 'approved'
+                        status: allocation.status || 'pending'
                     });
                 }
             }
@@ -4160,7 +4160,7 @@ class CapacityManager extends BaseComponent {
         
         Object.entries(capacityData).forEach(([project, allocation]) => {
             const days = allocation.days || 0;
-            const status = allocation.status || 'approved';
+            const status = allocation.status || 'pending';
             
             if (status === 'approved') {
                 approvedMDs += days;
@@ -7258,15 +7258,17 @@ class CapacityManager extends BaseComponent {
             if (completeProject.calculationData?.vendorCosts) {
                 console.log('  - Available vendor costs in project:');
                 completeProject.calculationData.vendorCosts.forEach((cost, index) => {
-
+                    console.log(`    [${index}] vendorId: ${cost.vendorId}, role: ${cost.role}, vendor: ${cost.vendor}, finalMDs: ${cost.finalMDs}`);
                 });
                 
                 console.log('  - Searching for match with:');
+                console.log(`    selectedMember.vendorId: ${selectedMember.vendorId}`);
+                console.log(`    memberRole: ${memberRole}`);
 
                 const vendorCost = completeProject.calculationData.vendorCosts.find(cost => {
                     const vendorIdMatch = cost.vendorId === selectedMember.vendorId;
                     const roleMatch = cost.role === memberRole;
-
+                    console.log(`    Checking: vendorId ${cost.vendorId} === ${selectedMember.vendorId} (${vendorIdMatch}), role ${cost.role} === ${memberRole} (${roleMatch})`);
                     return vendorIdMatch && roleMatch;
                 });
 
@@ -8635,7 +8637,7 @@ class CapacityManager extends BaseComponent {
                 name: completeProject.name || 'Unnamed Project',
                 startDate: startDate,
                 endDate: endDate,
-                status: (completeProject.status && completeProject.status.trim()) ? completeProject.status.trim() : 'approved',
+                status: (completeProject.status && completeProject.status.trim()) ? completeProject.status.trim() : 'pending',
                 phases: phasesArray  // Use converted phases array
             };
 
@@ -8928,7 +8930,7 @@ class CapacityManager extends BaseComponent {
                 version: projectItem.project.version,
                 filePath: projectItem.filePath,
                 fileName: projectItem.fileName,
-                status: 'approved' // Default status for all projects
+                status: 'pending' // Default status for all projects
             }));
 
             // Cache projects for lookup in manual assignments (use transformed structure for consistency)
