@@ -4,8 +4,110 @@
   "version": "1.0.0",
   "description": "Coordinates AI agents for complete TDD lifecycle management",
   "workflow_types": {
+    "test_driven_feature_development": {
+      "description": "Complete test-driven feature development with behavioral analysis",
+      "phases": [
+        {
+          "name": "requirements_and_testing",
+          "description": "Interactive requirements discovery and behavioral test creation",
+          "agents": ["functional-analyst"],
+          "tasks": [
+            "Conduct interactive business requirements gathering",
+            "Create comprehensive behavioral test suite (Jest)",
+            "Generate Cucumber feature files with Gherkin scenarios",
+            "Validate test scenarios with user for approval"
+          ],
+          "validation": "User approves behavioral tests and Cucumber scenarios",
+          "deliverables": [
+            "Complete behavioral test suite",
+            "Cucumber feature files",
+            "Business requirements documentation"
+          ]
+        },
+        {
+          "name": "technical_planning", 
+          "description": "Technical architecture analysis and step definitions planning",
+          "agents": ["technical-analyst"],
+          "tasks": [
+            "Review behavioral tests for technical implementation requirements",
+            "Analyze architecture impact and integration points",
+            "Plan Cucumber step definitions implementation",
+            "Design comprehensive mock strategy"
+          ],
+          "validation": "Technical implementation plan is complete and feasible",
+          "deliverables": [
+            "Technical implementation plan",
+            "Step definitions outline",
+            "Mock strategy specification",
+            "Architecture compliance checklist"
+          ]
+        },
+        {
+          "name": "approval_gate",
+          "description": "User approval gate before TDD implementation",
+          "agents": ["functional-analyst", "technical-analyst"],
+          "tasks": [
+            "Present comprehensive analysis to user",
+            "Review all tests and technical plans",
+            "Confirm implementation approach",
+            "Wait for user approval to proceed"
+          ],
+          "validation": "User explicitly approves proceeding with implementation",
+          "interaction": "pause_for_user_approval"
+        },
+        {
+          "name": "test_execution_setup",
+          "description": "Setup test environment and implement step definitions",
+          "agents": ["test-creator", "technical-analyst"],
+          "tasks": [
+            "Execute behavioral tests (must fail initially)",
+            "Implement Cucumber step definitions",
+            "Setup test data and mocks",
+            "Validate test infrastructure"
+          ],
+          "validation": "All behavioral tests fail as expected, step definitions implemented"
+        },
+        {
+          "name": "tdd_implementation",
+          "description": "Standard TDD cycle with pre-written tests",
+          "agents": ["tdd-developer", "architecture-guardian"],
+          "tasks": [
+            "Implement minimal code to make behavioral tests pass",
+            "Follow technical implementation plan",
+            "Ensure architectural compliance",
+            "Maintain test-driven approach"
+          ],
+          "validation": "All behavioral tests pass, architecture compliance maintained"
+        },
+        {
+          "name": "refactoring",
+          "description": "Code quality improvement while maintaining test coverage",
+          "agents": ["tdd-developer", "code-reviewer"],
+          "tasks": [
+            "Improve code quality while keeping tests green",
+            "Optimize performance based on technical analysis",
+            "Enhance error handling and edge cases",
+            "Ensure code maintainability"
+          ],
+          "validation": "All tests remain green, code quality improved"
+        },
+        {
+          "name": "integration_validation",
+          "description": "Complete system validation and integration testing",
+          "agents": ["test-runner", "architecture-guardian", "configuration-orchestrator"],
+          "tasks": [
+            "Run complete test suite including new tests",
+            "Validate architectural compliance",
+            "Check configuration system integration",
+            "Verify cross-platform compatibility",
+            "Execute Cucumber E2E tests"
+          ],
+          "validation": "All tests pass, system integration verified"
+        }
+      ]
+    },
     "tdd_feature_development": {
-      "description": "Complete TDD cycle for new feature development",
+      "description": "Legacy TDD cycle for new feature development (deprecated - use test_driven_feature_development)",
       "phases": [
         {
           "name": "requirement_analysis",

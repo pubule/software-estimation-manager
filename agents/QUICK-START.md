@@ -1,20 +1,22 @@
 # AI Agents - Quick Start Guide
 
-## 🚀 Getting Started
+## 🚀 Getting Started with Enhanced Guided TDD
 
-Your AI agent system is now ready! Here's how to start using it immediately:
+Your AI agent system is now ready with **enhanced guided test-driven development**! Here's how to start using it immediately:
 
-### 1. List Available Agents
+### 1. List Available Agents (Including New Analysts!)
 ```bash
 npm run agents:list
 # or
 npm run agents list
 ```
 
-### 2. Start TDD Workflow
+### 2. ✨ Start Guided Feature Development (RECOMMENDED)
 ```bash
-npm run tdd "new-feature-name"
-# or
+# New guided approach - Creates tests before implementation
+npm run agents test-driven-feature "user-authentication"
+
+# Traditional TDD approach (still available)
 npm run agents tdd "user-authentication"
 ```
 
@@ -32,9 +34,24 @@ npm run agents:test
 npm run agents test
 ```
 
-## 🎯 Priority 1 - Start Here
+## 🎯 Priority 1 - Start Here (Updated!)
 
-### Architecture Guardian (CRITICAL)
+### ✨ Functional Analyst (NEW - RECOMMENDED FIRST!)
+**What it does**: Gathers business requirements and creates behavioral tests
+```bash
+npm run agents agent functional-analyst --info
+npm run agents agent functional-analyst requirements-gathering
+npm run agents test-driven-feature "new-feature"  # Uses functional analyst
+```
+
+### ✨ Technical Analyst (NEW - SECOND!)
+**What it does**: Analyzes architecture and plans step definitions
+```bash
+npm run agents agent technical-analyst --info
+npm run agents agent technical-analyst architecture-analysis
+```
+
+### Architecture Guardian (CRITICAL - ALWAYS RUN!)
 **Why critical**: Prevents "BaseComponent is not defined" errors that break your app
 ```bash
 npm run agents agent architecture-guardian validate-script-order
@@ -42,23 +59,30 @@ npm run agents agent architecture-guardian check-component-inheritance
 npm run agents agent architecture-guardian validate-all
 ```
 
-### TDD Developer
+### TDD Developer (Enhanced with Analyst Guidance)
 ```bash
-npm run agents workflow tdd_feature_development
+npm run agents workflow test_driven_feature_development  # New guided workflow
 npm run agents agent tdd-developer --info
 ```
 
-### Test Creator  
+### Test Creator (Now Works with Analysts)
 ```bash
 npm run agents agent test-creator --info
-npm run agents workflow tdd_feature_development
+npm run agents workflow test_driven_feature_development  # Enhanced workflow
 ```
 
 ## 🛠️ Available Workflows
 
-### Complete TDD Feature Development
+### ✨ Guided Test-Driven Feature Development (NEW - RECOMMENDED!)
+```bash
+npm run agents workflow test_driven_feature_development
+# 6-phase workflow: Requirements → Technical Planning → Approval → Setup → TDD → Validation
+```
+
+### Complete TDD Feature Development (Legacy)
 ```bash
 npm run agents workflow tdd_feature_development
+# Traditional workflow - still available but consider the guided version above
 ```
 
 ### Bug Fixing Workflow
@@ -82,7 +106,11 @@ npm run agents workflow architectural_refactoring
 ```bash
 npm run agents agent <agent-id> --info
 
-# Examples:
+# ✨ New analyst agents:
+npm run agents agent functional-analyst --info
+npm run agents agent technical-analyst --info
+
+# Existing agents:
 npm run agents agent architecture-guardian --info
 npm run agents agent tdd-developer --info
 npm run agents agent configuration-orchestrator --info
@@ -92,7 +120,13 @@ npm run agents agent configuration-orchestrator --info
 ```bash
 npm run agents agent <agent-id> <task>
 
-# Examples:
+# ✨ New analyst tasks:
+npm run agents agent functional-analyst requirements-gathering
+npm run agents agent functional-analyst create-behavioral-tests
+npm run agents agent technical-analyst architecture-analysis
+npm run agents agent technical-analyst plan-step-definitions
+
+# Existing agent tasks:
 npm run agents agent architecture-guardian validate-script-order
 npm run agents agent test-runner execute-suite
 npm run agents agent bugfixer analyze-issue
@@ -112,20 +146,46 @@ npm run agents agent configuration-orchestrator --info
 npm run agents agent architecture-guardian validate-all
 ```
 
-## 🔄 TDD Workflow Example
+## 🔄 Enhanced TDD Workflow Example
 
-1. **Start TDD for new feature**:
+### ✨ Recommended Guided Approach (NEW!)
+
+1. **Start guided feature development**:
    ```bash
-   npm run tdd "project-templates"
+   npm run agents test-driven-feature "project-templates"
    ```
+   This will:
+   - Gather business requirements interactively
+   - Create behavioral tests automatically
+   - Generate Cucumber feature files
+   - Plan technical implementation
+   - **Wait for your approval before coding!**
 
-2. **Architecture validation**:
+2. **Architecture validation** (automatically included in workflow):
    ```bash
    npm run agents validate
    ```
 
-3. **Run coordinated tests**:
+3. **Implementation** (guided by pre-written tests):
+   - Tests are already created and validated
+   - Code to make tests pass
+   - Automatic architectural compliance checking
+
+4. **Final validation**:
    ```bash
+   npm run agents test
+   ```
+
+### Legacy TDD Approach (Still Available)
+
+1. **Start traditional TDD**:
+   ```bash
+   npm run tdd "project-templates"
+   ```
+
+2. **Manual validation and testing**:
+   ```bash
+   npm run agents validate
    npm run agents test
    ```
 
@@ -149,21 +209,35 @@ npm run agents list
 # Shows all agents with status indicators (✅ ready, ❌ needs setup)
 ```
 
-## 🚨 Important Notes
+## 🚨 Important Notes (Updated!)
 
-1. **Architecture Guardian is CRITICAL** - Run it before any development to prevent component loading errors
-2. **Configuration Orchestrator** - Essential for your hierarchical config system  
-3. **Script Loading Order** - Always validate when modifying HTML files
-4. **Component Inheritance** - Ensure all components extend BaseComponent properly
+1. **✨ Start with Guided Development** - Use `test-driven-feature` for new features
+2. **✨ Analysts Create Tests First** - Requirements become executable tests
+3. **✨ User Approval Required** - You approve tests before any code is written
+4. **Architecture Guardian is CRITICAL** - Run it before any development to prevent component loading errors
+5. **Configuration Orchestrator** - Essential for your hierarchical config system  
+6. **Script Loading Order** - Always validate when modifying HTML files
+7. **Component Inheritance** - Ensure all components extend BaseComponent properly
 
 ## 🔧 Integration with Development
 
-### Before Starting Development
+### ✨ Before Starting Development (NEW APPROACH)
 ```bash
-npm run agents validate
+npm run agents test-driven-feature "feature-name"  # Guided approach
+# OR
+npm run agents validate  # Traditional validation
 ```
 
-### During TDD Development
+### ✨ During Guided Development (NEW)
+```bash
+# The workflow will guide you through:
+# 1. Requirements gathering (interactive)
+# 2. Test creation (automatic)
+# 3. Your approval (manual checkpoint)
+# 4. Implementation (guided by tests)
+```
+
+### During Traditional TDD Development
 ```bash
 npm run tdd "feature-name"
 ```
@@ -180,12 +254,64 @@ npm run agents agent bugfixer analyze-issue
 npm run agents agent architecture-guardian validate-all
 ```
 
-## 📚 Next Steps
+## 📚 Next Steps (Updated!)
 
+### Recommended Learning Path
+1. **Try the Guided Workflow**: `npm run agents test-driven-feature "small-feature"`
+2. **Experience Analyst Interaction**: See how requirements become tests
+3. **Validate at Approval Gate**: Review tests before implementation
+4. **Follow TDD Implementation**: Code guided by pre-written tests
+5. **Integrate into Daily Workflow**: Use guided approach for all new features
+
+### Traditional Path (Still Available)
 1. Start with Priority 1 agents (Architecture Guardian, TDD Developer, Test Creator)
 2. Run complete architectural validation
 3. Try a TDD workflow for a small feature
 4. Integrate agents into your daily development workflow
 5. Expand to specialized agents as needed
 
-The agent system is designed to work with your existing codebase patterns and will help maintain the critical architectural requirements of your Electron application.
+## ✨ Key Benefits You'll Experience
+
+- **Clear Requirements**: Business needs expressed as executable tests
+- **No Ambiguity**: Tests eliminate interpretation errors
+- **User Validation**: You approve behavior before any coding starts
+- **Faster Development**: Implementation guided by validated tests
+- **Better Quality**: Tests created by business analysis, not afterthoughts
+- **Living Documentation**: Tests serve as always-current documentation
+
+The enhanced agent system transforms requirements analysis into a systematic process that produces executable tests, creating a seamless bridge from business needs to quality implementation!
+
+## 🎯 Quick Reference - New NPM Commands
+
+### ✨ Enhanced Commands (Added to package.json)
+```bash
+# Guided feature development (RECOMMENDED)
+npm run test-driven-feature "feature-name"
+npm run guided-tdd "feature-name"                    # Alias for above
+
+# Complete workflows
+npm run workflow:guided                              # New guided workflow
+npm run workflow:tdd                                 # Legacy TDD workflow
+
+# Existing commands still available
+npm run agents list                                  # List all agents
+npm run agents validate                              # Architecture validation
+npm run tdd "feature-name"                          # Legacy TDD approach
+```
+
+### Usage Examples
+```bash
+# Start your first guided feature
+npm run test-driven-feature "user-profile-editing"
+
+# Run the complete guided workflow
+npm run workflow:guided
+
+# Check available agents (now includes analysts)
+npm run agents:list
+
+# Get help with any command
+npm run agents
+```
+
+Ready to transform your development process? Start with: `npm run test-driven-feature "your-feature-name"`! 🚀

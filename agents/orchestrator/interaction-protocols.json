@@ -1,0 +1,324 @@
+{
+  "name": "Agent Interaction Protocols",
+  "id": "interaction-protocols",
+  "version": "1.0.0",
+  "description": "Defines interaction patterns and communication protocols between agents",
+  "user_interaction_patterns": {
+    "requirements_discovery": {
+      "description": "Interactive requirements gathering with user",
+      "protocol": "question_answer_session",
+      "phases": [
+        {
+          "phase": "initial_discovery",
+          "agent": "functional-analyst",
+          "interaction_type": "structured_questions",
+          "question_categories": [
+            "business_context",
+            "user_workflows",
+            "success_criteria",
+            "validation_rules",
+            "integration_requirements"
+          ],
+          "response_handling": "accumulate_and_validate"
+        },
+        {
+          "phase": "workflow_clarification",
+          "agent": "functional-analyst", 
+          "interaction_type": "follow_up_questions",
+          "triggers": [
+            "ambiguous_requirements",
+            "complex_workflows",
+            "integration_dependencies"
+          ],
+          "response_handling": "refine_and_confirm"
+        },
+        {
+          "phase": "test_scenario_validation",
+          "agent": "functional-analyst",
+          "interaction_type": "test_review_session",
+          "deliverables": [
+            "behavioral_test_scenarios",
+            "cucumber_feature_files",
+            "acceptance_criteria"
+          ],
+          "response_handling": "validate_and_approve"
+        }
+      ]
+    },
+    "technical_clarification": {
+      "description": "Technical questions for implementation planning", 
+      "protocol": "expert_consultation",
+      "phases": [
+        {
+          "phase": "architecture_analysis",
+          "agent": "technical-analyst",
+          "interaction_type": "technical_questions",
+          "question_categories": [
+            "component_architecture",
+            "integration_points",
+            "performance_requirements",
+            "technical_constraints"
+          ],
+          "response_handling": "technical_assessment"
+        },
+        {
+          "phase": "implementation_planning",
+          "agent": "technical-analyst",
+          "interaction_type": "design_review",
+          "deliverables": [
+            "technical_implementation_plan",
+            "step_definitions_outline",
+            "mock_strategy"
+          ],
+          "response_handling": "plan_validation"
+        }
+      ]
+    },
+    "approval_gate": {
+      "description": "User approval before implementation",
+      "protocol": "approval_checkpoint",
+      "phases": [
+        {
+          "phase": "comprehensive_review",
+          "agents": ["functional-analyst", "technical-analyst"],
+          "interaction_type": "presentation",
+          "deliverables": [
+            "complete_requirements_analysis",
+            "behavioral_test_suite",
+            "cucumber_scenarios",
+            "technical_implementation_plan",
+            "step_definitions_plan"
+          ],
+          "presentation_format": "structured_summary"
+        },
+        {
+          "phase": "user_approval",
+          "interaction_type": "confirmation_request",
+          "approval_criteria": [
+            "requirements_accuracy",
+            "test_completeness",
+            "technical_feasibility",
+            "implementation_approach"
+          ],
+          "possible_outcomes": [
+            "approved_proceed",
+            "approved_with_changes",
+            "needs_refinement",
+            "rejected"
+          ]
+        }
+      ]
+    }
+  },
+  "agent_coordination_patterns": {
+    "sequential_handoff": {
+      "description": "Sequential work handoff between agents",
+      "pattern": "producer_consumer",
+      "handoff_protocol": {
+        "context_preservation": "Full context and work products passed",
+        "validation": "Receiving agent validates input before proceeding",
+        "feedback_loop": "Receiving agent can request clarification"
+      },
+      "examples": [
+        {
+          "from": "functional-analyst",
+          "to": "technical-analyst",
+          "deliverables": [
+            "behavioral_tests",
+            "cucumber_features", 
+            "business_requirements"
+          ],
+          "validation": "technical_analyst_reviews_for_implementability"
+        },
+        {
+          "from": "technical-analyst",
+          "to": "tdd-developer",
+          "deliverables": [
+            "technical_implementation_plan",
+            "step_definitions_outline",
+            "mock_strategy"
+          ],
+          "validation": "tdd_developer_confirms_technical_approach"
+        }
+      ]
+    },
+    "collaborative_review": {
+      "description": "Multiple agents collaborating on review",
+      "pattern": "consensus_building",
+      "collaboration_protocol": {
+        "review_rounds": "Multiple review iterations allowed",
+        "consensus_requirement": "All agents must agree or escalate conflicts",
+        "conflict_resolution": "User mediation for unresolved conflicts"
+      },
+      "examples": [
+        {
+          "participants": ["functional-analyst", "technical-analyst"],
+          "activity": "requirements_validation",
+          "deliverable": "validated_requirements_and_tests"
+        },
+        {
+          "participants": ["technical-analyst", "architecture-guardian"],
+          "activity": "architectural_compliance_review",
+          "deliverable": "architecture_approved_implementation_plan"
+        }
+      ]
+    },
+    "parallel_execution": {
+      "description": "Independent agents working in parallel",
+      "pattern": "parallel_processing",
+      "coordination_protocol": {
+        "synchronization_points": "Defined merge points for parallel work",
+        "conflict_resolution": "Last-modified-wins or user mediation",
+        "progress_tracking": "Independent progress monitoring"
+      },
+      "examples": [
+        {
+          "parallel_agents": ["test-creator", "technical-analyst"],
+          "activity": "step_definitions_implementation",
+          "synchronization": "merge_at_test_execution_setup"
+        }
+      ]
+    }
+  },
+  "communication_protocols": {
+    "question_patterns": {
+      "structured_questions": {
+        "format": "category_based_questionnaire",
+        "delivery": "progressive_disclosure",
+        "response_validation": "real_time_validation",
+        "follow_up": "context_aware_follow_ups"
+      },
+      "clarification_questions": {
+        "triggers": [
+          "ambiguous_response",
+          "incomplete_information", 
+          "conflicting_requirements"
+        ],
+        "format": "targeted_specific_questions",
+        "escalation": "request_user_consultation"
+      }
+    },
+    "deliverable_handoff": {
+      "format": "structured_packages",
+      "validation": "receiver_validates_completeness",
+      "documentation": "full_context_and_rationale",
+      "versioning": "deliverable_version_tracking"
+    },
+    "feedback_loops": {
+      "immediate_feedback": {
+        "scope": "syntax_and_format_validation",
+        "response_time": "immediate",
+        "escalation": "none"
+      },
+      "review_feedback": {
+        "scope": "content_and_quality_review",
+        "response_time": "within_phase",
+        "escalation": "request_revision_or_user_consultation"
+      },
+      "approval_feedback": {
+        "scope": "overall_approach_and_direction",
+        "response_time": "end_of_phase",
+        "escalation": "user_decision_required"
+      }
+    }
+  },
+  "quality_gates": {
+    "functional_analysis_quality": {
+      "agent": "functional-analyst",
+      "criteria": [
+        "business_requirements_complete",
+        "user_workflows_documented",
+        "behavioral_tests_comprehensive",
+        "cucumber_scenarios_complete",
+        "user_validated_requirements"
+      ],
+      "validation_method": "checklist_and_user_approval"
+    },
+    "technical_analysis_quality": {
+      "agent": "technical-analyst",
+      "criteria": [
+        "architecture_impact_assessed",
+        "implementation_plan_detailed",
+        "step_definitions_planned",
+        "mock_strategy_designed",
+        "integration_points_identified"
+      ],
+      "validation_method": "technical_review_and_feasibility_check"
+    },
+    "test_implementation_quality": {
+      "agents": ["test-creator", "technical-analyst"],
+      "criteria": [
+        "behavioral_tests_executable",
+        "step_definitions_implemented",
+        "test_data_setup_complete",
+        "mocks_configured",
+        "test_infrastructure_validated"
+      ],
+      "validation_method": "test_execution_verification"
+    },
+    "tdd_implementation_quality": {
+      "agent": "tdd-developer",
+      "criteria": [
+        "all_behavioral_tests_pass",
+        "architectural_patterns_followed",
+        "code_quality_standards_met",
+        "integration_points_working",
+        "no_regression_introduced"
+      ],
+      "validation_method": "automated_test_suite_and_code_review"
+    }
+  },
+  "error_handling": {
+    "agent_failures": {
+      "timeout": {
+        "detection": "agent_response_timeout",
+        "recovery": "retry_with_extended_timeout",
+        "escalation": "manual_intervention"
+      },
+      "quality_failure": {
+        "detection": "quality_gate_failure",
+        "recovery": "agent_revision_cycle",
+        "escalation": "user_decision_on_acceptable_quality"
+      },
+      "conflict": {
+        "detection": "conflicting_agent_outputs",
+        "recovery": "automated_conflict_resolution",
+        "escalation": "user_mediation"
+      }
+    },
+    "user_interaction_failures": {
+      "unclear_response": {
+        "detection": "response_validation_failure",
+        "recovery": "clarification_questions",
+        "escalation": "request_detailed_explanation"
+      },
+      "incomplete_response": {
+        "detection": "missing_required_information",
+        "recovery": "targeted_follow_up_questions",
+        "escalation": "pause_workflow_for_information"
+      },
+      "approval_rejection": {
+        "detection": "explicit_user_rejection",
+        "recovery": "revision_cycle_with_feedback",
+        "escalation": "fundamental_approach_reconsideration"
+      }
+    }
+  },
+  "workflow_state_management": {
+    "phase_transitions": {
+      "completion_criteria": "all_phase_tasks_completed_and_validated",
+      "approval_gates": "user_approval_required_before_critical_phases",
+      "rollback_capability": "ability_to_return_to_previous_phase"
+    },
+    "context_preservation": {
+      "cross_phase": "full_context_maintained_across_phases",
+      "cross_agent": "complete_handoff_packages",
+      "user_interaction": "conversation_history_maintained"
+    },
+    "progress_tracking": {
+      "phase_level": "current_phase_and_completion_status",
+      "task_level": "individual_task_progress",
+      "overall": "workflow_completion_percentage"
+    }
+  }
+}

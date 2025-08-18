@@ -29,7 +29,11 @@
     "agents:list": "node agents/agent-runner.js list",
     "agents:validate": "node agents/agent-runner.js validate",
     "agents:test": "node agents/agent-runner.js test",
-    "tdd": "node agents/agent-runner.js tdd"
+    "tdd": "node agents/agent-runner.js tdd",
+    "test-driven-feature": "node agents/agent-runner.js test-driven-feature",
+    "guided-tdd": "node agents/agent-runner.js test-driven-feature",
+    "workflow:guided": "node agents/agent-runner.js workflow test_driven_feature_development",
+    "workflow:tdd": "node agents/agent-runner.js workflow tdd_feature_development"
   },
   "keywords": [
     "electron",
