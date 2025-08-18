@@ -2791,4 +2791,22 @@ class VersionManager {
             this.hideLoading();
         }
     }
+
+    /**
+     * Cleanup event listeners to prevent memory leaks
+     * Should be called when the component is no longer needed
+     */
+    destroy() {
+        // Remove global event listeners
+        if (this.boundHandlers.keyboardShortcuts) {
+            document.removeEventListener('keydown', this.boundHandlers.keyboardShortcuts);
+        }
+        
+        // Clear bound handlers
+        this.boundHandlers = {};
+        
+        // Clear references to prevent memory leaks
+        this.app = null;
+        this.currentVersions = [];
+    }
 }

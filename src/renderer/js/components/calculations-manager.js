@@ -142,10 +142,6 @@ class CalculationsManager {
         const phases = currentProject.phases;
 
         if (!phases || !phases.selectedSuppliers) {
-            console.log('Missing phases data:', {
-                phases: !!phases,
-                selectedSuppliers: phases?.selectedSuppliers
-            });
             return;
         }
 
@@ -1534,10 +1530,8 @@ class CapacityManager extends BaseComponent {
         // Only load timeline chart if we have capacity data loaded
         // This prevents the problematic first call with empty session data
         if (this.loadedCapacityData) {
-            console.log('🎯 Loading timeline chart with loaded capacity data');
             await this.loadTimelineOverviewChart();
         } else {
-            console.log('⏸️ Skipping timeline chart - no capacity data loaded yet');
             // Create placeholder for timeline chart
             const timelineContainer = document.getElementById('timeline-overview-chart');
             if (timelineContainer) {
@@ -1696,7 +1690,6 @@ class CapacityManager extends BaseComponent {
             let teamMembers, projects, manualAssignments;
             
             if (this.loadedCapacityData) {
-                console.log('Using loaded capacity data for alerts');
                 teamMembers = this.loadedCapacityData.teamMembers || [];
                 projects = this.loadedCapacityData.projects || [];
                 manualAssignments = this.loadedCapacityData.manualAssignments || [];
@@ -1706,7 +1699,6 @@ class CapacityManager extends BaseComponent {
                 this.loadedProjects = projects;
                 this.manualAssignments = manualAssignments;
             } else {
-                console.log('Using current session data for alerts');
                 teamMembers = await this.getRealTeamMembers();
                 projects = await this.getAvailableProjects();
                 manualAssignments = this.manualAssignments || [];
@@ -2420,7 +2412,6 @@ class CapacityManager extends BaseComponent {
     
     // Placeholder functions for quick actions
     viewMemberCapacity(memberId) {
-        console.log('View member capacity:', memberId);
         // Navigate to capacity timeline focused on this member
         if (window.app?.navigationManager) {
             window.app.navigationManager.navigateTo('capacity-timeline');
@@ -2428,13 +2419,11 @@ class CapacityManager extends BaseComponent {
     }
     
     editMemberCapacity(memberId) {
-        console.log('Edit member capacity:', memberId);
         // Open capacity editing interface
         alert('Member capacity editing feature would open here');
     }
     
     assignToProject(memberId) {
-        console.log('Assign to project:', memberId);
         // Open project assignment interface
         alert('Project assignment interface would open here');
     }
@@ -2443,7 +2432,6 @@ class CapacityManager extends BaseComponent {
     async loadTimelineOverviewChart() {
         // Prevent race conditions with flag
         if (this.timelineChartLoading) {
-            console.log('⏳ Timeline chart already loading, skipping...');
             return;
         }
         
@@ -3426,13 +3414,6 @@ class CapacityManager extends BaseComponent {
         const allocations = {};
         
         projects.forEach((project, index) => {
-            console.log(`Processing project ${index}:`, project);
-            console.log(`Project details:`, {
-                name: project.name,
-                startDate: project.startDate,
-                endDate: project.endDate,
-                phasesCount: project.phases?.length || 0
-            });
             
             // Skip projects without required data - more robust check
             if (!project.startDate || !project.name) {
@@ -3464,7 +3445,6 @@ class CapacityManager extends BaseComponent {
                         phase.months
                     );
                     
-                    console.log(`Phase ${phase.phaseName} distribution:`, Object.keys(phaseDistribution));
                     
                     Object.entries(phaseDistribution).forEach(([month, dayData]) => {
                         if (!allocations[month]) allocations[month] = {};
@@ -3607,12 +3587,10 @@ class CapacityManager extends BaseComponent {
         // Check cache first to avoid repeated calculations
         if (this._teamMembersCache && this._teamMembersCacheTime && 
             (Date.now() - this._teamMembersCacheTime < 30000) && !this._cacheIsDirty) { // 30 second cache
-            console.log('getRealTeamMembers: Using cached data');
             return this._teamMembersCache;
         }
         
         try {
-            console.log('getRealTeamMembers: Starting...');
             
             // Try multiple ways to get teams from configuration
             let configManager = this.app?.managers?.configuration || this.configManager;
@@ -3634,7 +3612,6 @@ class CapacityManager extends BaseComponent {
             }
 
             let teams = configManager.globalConfig.teams || [];
-            console.log(`Found ${teams.length} teams in configuration:`, teams.map(t => t.name));
             
             // DEBUG: Log raw team data to see vendorId values
             teams.forEach(team => {
@@ -3652,7 +3629,6 @@ class CapacityManager extends BaseComponent {
             );
             
             if (hasInvalidVendorIds) {
-                console.log('DETECTED VENDORID TRUNCATION - Reloading teams from defaults.json...');
                 
                 try {
                     // Force reload from defaults
@@ -3660,7 +3636,6 @@ class CapacityManager extends BaseComponent {
                     if (defaultConfigManager && typeof defaultConfigManager.getDefaultTeams === 'function') {
                         const defaultTeams = await defaultConfigManager.getDefaultTeams();
                         if (defaultTeams && defaultTeams.length > 0) {
-                            console.log('Successfully reloaded teams from defaults.json');
                             teams = defaultTeams;
                             
                             // Update global config with correct data
@@ -3681,7 +3656,6 @@ class CapacityManager extends BaseComponent {
             
             // If no teams exist, try to initialize from TeamsConfigManager
             if (teams.length === 0) {
-                console.log('No teams configured, attempting to initialize from TeamsConfigManager...');
                 
                 // Try to get TeamsConfigManager to load default teams
                 const teamsManager = this.app?.managers?.teams || window.teamsManager;
@@ -3696,7 +3670,6 @@ class CapacityManager extends BaseComponent {
                 
                 // If still no teams, try alternative approach - direct load from DefaultConfigManager
                 if (teams.length === 0) {
-                    console.log('Trying direct load from DefaultConfigManager...');
                     const defaultConfigManager = this.app?.managers?.defaultConfig || window.defaultConfigManager;
                     if (defaultConfigManager && typeof defaultConfigManager.getDefaultTeams === 'function') {
                         try {
@@ -3749,14 +3722,6 @@ class CapacityManager extends BaseComponent {
                                 return null;
                             }
                         }).filter(project => project !== null);
-
-                        console.log('Projects:', projects.map(p => ({
-                            name: p.name,
-                            id: p.id,
-                            status: p.status,
-                            startDate: p.startDate,
-                            phasesCount: p.phases?.length || 0
-                        })));
                         
                         // Filter out projects without required dates for automatic allocation
                         // Only projects with proper dates can be used for automatic allocation
@@ -3777,7 +3742,6 @@ class CapacityManager extends BaseComponent {
                     }
                 }
             } else {
-                console.log('getRealTeamMembers: Using cached projects');
                 projects = this._projectsCache;
             }
 
@@ -3905,7 +3869,6 @@ class CapacityManager extends BaseComponent {
      * Generate project status dropdown for gantt table
      */
     generateProjectStatusDropdown(projectData) {
-        console.log('generateProjectStatusDropdown called with:', projectData);
         
         if (!projectData) {
             console.warn('No projectData provided to generateProjectStatusDropdown');
@@ -3923,12 +3886,10 @@ class CapacityManager extends BaseComponent {
                 const foundProject = this.projects.find(p => p.name === projectName);
                 if (foundProject) {
                     projectId = foundProject.id || foundProject.code;
-                    console.log('Found real project ID:', projectId, 'for project name:', projectName);
                 }
             }
         }
         
-        console.log('Final Project ID:', projectId, 'Project Name:', projectName);
 
         if (!projectId || !projectName) {
             console.warn('Project missing ID or name:', projectData);
@@ -3944,7 +3905,6 @@ class CapacityManager extends BaseComponent {
         
         // Get status from project, default to 'approved'
         const projectStatus = project?.status || 'approved';
-        console.log(`Project "${projectName}" has status: ${projectStatus}`);
 
         // Generate interactive dropdown for status change
         const overflowBadge = ''; // Removed overflow badge as requested
@@ -3980,7 +3940,6 @@ class CapacityManager extends BaseComponent {
             await this.updateProjectStatus(null, projectName, newStatus);
             
             // Refresh all capacity sections to reflect the change
-            console.log('Refreshing all sections after status change...');
             await this.refreshAllCapacitySections();
             
             // Show success notification
@@ -4001,13 +3960,11 @@ class CapacityManager extends BaseComponent {
             const projectName = selectElement.dataset.projectName;
             const newStatus = selectElement.value;
 
-            console.log(`Changing project status for ${projectName} (${projectId}) to ${newStatus}`);
 
             // Update status at project level
             await this.updateProjectStatus(projectId, projectName, newStatus);
             
             // Refresh all capacity sections to reflect the changes
-            console.log('Refreshing all sections after project status change...');
             await this.refreshAllCapacitySections();
             
             // Show success notification (no automatic save)
@@ -4039,10 +3996,8 @@ class CapacityManager extends BaseComponent {
         const oldStatus = project.status;
         project.status = newStatus;
         
-        console.log(`Updated project "${project.name}" status from "${oldStatus}" to "${newStatus}"`);
         
         // Don't auto-save, let caller decide when to save
-        console.log('Project status updated in memory (not saved yet)');
     }
 
     /**
@@ -4372,12 +4327,6 @@ class CapacityManager extends BaseComponent {
         // Debug: log sample allocation data
         if (result.length > 0) {
             const sample = result[0];
-            console.log(`Sample consolidated member ${sample.firstName} ${sample.lastName}:`, {
-                id: sample.id,
-                consolidatedFrom: sample.consolidatedFrom,
-                allocationsMonths: Object.keys(sample.allocations),
-                sampleMonth: Object.keys(sample.allocations)[0] ? sample.allocations[Object.keys(sample.allocations)[0]] : 'No allocations'
-            });
         }
         
         return result;
@@ -4464,7 +4413,6 @@ class CapacityManager extends BaseComponent {
             `;
         }
         
-        console.log('Overview filters populated with', teamMembers.length, 'real team members');
     }
 
     /**
@@ -4478,7 +4426,6 @@ class CapacityManager extends BaseComponent {
         
         // If already loading, return existing promise
         if (this._loadingCapacityTable) {
-            console.log('loadCapacityTable: Already loading, returning existing promise');
             return this._capacityTablePromise || Promise.resolve();
         }
         
@@ -5062,7 +5009,6 @@ class CapacityManager extends BaseComponent {
                 'No phases';
             
             // Debug project data structure
-            console.log('Processing projectData in gantt row:', projectData);
             const effectiveProjectId = projectData.id || projectData.code || projectData.name || 'unknown';
             
             html += `
@@ -5573,7 +5519,6 @@ class CapacityManager extends BaseComponent {
                 const memberId = btn.dataset.memberId;
                 const projectId = btn.dataset.projectId;
                 const assignmentId = btn.dataset.assignmentId;
-                console.log(`Expand details clicked for member: ${memberId}, project: ${projectId}, assignment: ${assignmentId}`);
                 await this.toggleAllocationDetails(memberId, projectId, assignmentId);
                 return;
             }
@@ -5583,7 +5528,6 @@ class CapacityManager extends BaseComponent {
                 e.preventDefault();
                 const btn = e.target.closest('.edit-assignment-btn') || e.target.closest('.edit-allocation-btn');
                 const assignmentId = btn.dataset.assignmentId;
-                console.log(`Edit assignment clicked for assignment: ${assignmentId}`);
                 await this.showEditAssignmentModal(assignmentId);
                 return;
             }
@@ -5593,7 +5537,6 @@ class CapacityManager extends BaseComponent {
                 e.preventDefault();
                 const btn = e.target.closest('.duplicate-assignment-btn') || e.target.closest('.duplicate-allocation-btn');
                 const assignmentId = btn.dataset.assignmentId;
-                console.log(`Duplicate assignment clicked for assignment: ${assignmentId}`);
                 await this.duplicateAssignment(assignmentId);
                 return;
             }
@@ -5603,7 +5546,6 @@ class CapacityManager extends BaseComponent {
                 e.preventDefault();
                 const btn = e.target.closest('.delete-assignment-btn') || e.target.closest('.delete-allocation-btn');
                 const assignmentId = btn.dataset.assignmentId;
-                console.log(`Delete assignment clicked for assignment: ${assignmentId}`);
                 await this.deleteAssignment(assignmentId);
                 return;
             }
@@ -5815,7 +5757,6 @@ class CapacityManager extends BaseComponent {
      * Update capacity overview when filters change
      */
     async updateCapacityOverview() {
-        console.log('Updating capacity overview with current filter settings');
         await this.generateCapacityOverview();
     }
 
@@ -5886,7 +5827,6 @@ class CapacityManager extends BaseComponent {
         const tableHTML = await this.buildCapacityOverviewTable(teamMembers, months, currentDate);
         overviewContainer.innerHTML = tableHTML;
         
-        console.log('Capacity overview generated for', teamMembers.length, 'resources across', months.length, 'months');
     }
 
     /**
@@ -5901,7 +5841,6 @@ class CapacityManager extends BaseComponent {
         let filteredMembers = teamMembers;
         if (selectedMemberId && selectedMemberId.trim() !== '') {
             filteredMembers = teamMembers.filter(member => member.id === selectedMemberId);
-            console.log(`Filtering by member ${selectedMemberId}:`, filteredMembers.length, 'members found');
         }
         
         // Generate month headers with correct classes
@@ -6097,7 +6036,6 @@ class CapacityManager extends BaseComponent {
             }
             
             projectsFilter.innerHTML = options;
-            console.log('Project options loaded for filters:', projects?.length || 0, 'projects');
             
         } catch (error) {
             console.error('Error loading project options for filter:', error);
@@ -6406,7 +6344,6 @@ class CapacityManager extends BaseComponent {
      * Show add team member modal
      */
     showAddTeamMemberModal() {
-        console.log('Show add team member modal');
         // This would open the team member modal
         // For now, just log the action
         NotificationManager.info('Add Team Member: Feature in development');
@@ -6418,14 +6355,12 @@ class CapacityManager extends BaseComponent {
     async showAddAssignmentModal(mode = 'create', assignmentData = null) {
         // Prevent multiple simultaneous calls to this method
         if (this._showingAssignmentModal) {
-            console.log('Assignment modal already being shown, ignoring duplicate call');
             return;
         }
         
         this._showingAssignmentModal = true;
         
         try {
-            console.log(`Show assignment modal in ${mode} mode`);
             
             // Check if modal already exists
             let modal = document.getElementById('assignment-modal');
@@ -6547,11 +6482,9 @@ class CapacityManager extends BaseComponent {
             // CRITICAL FIX: Only set editingAssignmentId for edit mode, NOT for duplicate mode
             if (mode === 'edit' && assignmentData) {
                 modal.dataset.editingAssignmentId = assignmentData.id;
-                console.log(`Edit mode: Set editingAssignmentId to ${assignmentData.id}`);
             } else {
                 // For create and duplicate modes, ensure no editingAssignmentId is set
                 delete modal.dataset.editingAssignmentId;
-                console.log(`${mode} mode: Cleared editingAssignmentId`);
             }
 
             // Update modal title and button text based on mode
@@ -6732,23 +6665,16 @@ class CapacityManager extends BaseComponent {
                 // Usa i calculationData dalla versione più recente se disponibili
                 if (latestVersion.projectSnapshot?.calculationData) {
                     completeProjectData.calculationData = latestVersion.projectSnapshot.calculationData;
-
-                    console.log('  - Version calculationData.vendorCosts length:', 
-                        latestVersion.projectSnapshot.calculationData.vendorCosts?.length || 0);
                 } else {
-                    console.log('  - Latest version has no calculationData in projectSnapshot');
                 }
             } else {
-                console.log('  - Project has no versions, will use direct calculationData or generate dynamically');
             }
 
             if (completeProjectData?.calculationData?.vendorCosts) {
-                console.log('  - Available vendor costs in loaded project:');
                 completeProjectData.calculationData.vendorCosts.forEach((cost, index) => {
 
                 });
             } else {
-                console.log('  - CRITICAL: calculationData missing, generating dynamically...');
                 
                 // CRITICAL FIX: Generate calculationData if missing
                 // Temporarily set this project as current to trigger vendor costs calculation
@@ -6765,8 +6691,6 @@ class CapacityManager extends BaseComponent {
                             vendorCosts: JSON.parse(JSON.stringify(this.vendorCosts)),
                             timestamp: new Date().toISOString()
                         };
-                        console.log('  - Successfully generated calculationData with', completeProjectData.calculationData.vendorCosts.length, 'vendor costs');
-                        console.log('  - Generated vendor costs:');
                         completeProjectData.calculationData.vendorCosts.forEach((cost, index) => {
 
                         });
@@ -6803,7 +6727,6 @@ class CapacityManager extends BaseComponent {
     getVendorName(teamMember) {
 
         if (!teamMember.vendorId) {
-            console.log('Missing vendorId, returning Unknown');
             return 'Unknown';
         }
         
@@ -6811,7 +6734,6 @@ class CapacityManager extends BaseComponent {
         let configManager = this.app?.managers?.configuration;
         
         if (!configManager) {
-            console.log('Configuration manager not available, checking alternative sources...');
             
             // Try alternative access paths
             configManager = this.app?.managers?.config || 
@@ -6819,7 +6741,6 @@ class CapacityManager extends BaseComponent {
                            window.configManager;
 
             if (!configManager) {
-                console.log('No configuration manager available, returning Unknown');
                 return 'Unknown';
             }
         }
@@ -6847,7 +6768,6 @@ class CapacityManager extends BaseComponent {
             }
         }
         
-        console.log('No matching vendor found, returning Unknown');
         return 'Unknown';
     }
     
@@ -6923,12 +6843,10 @@ class CapacityManager extends BaseComponent {
     async populateAssignmentModalDropdowns(mode = 'create') {
         // Prevent multiple simultaneous calls
         if (this._populatingDropdowns) {
-            console.log('Dropdown population already in progress, skipping...');
             return;
         }
         
         this._populatingDropdowns = true;
-        console.log(`Starting dropdown population for mode: ${mode}`);
         
         try {
             // Populate team members
@@ -6970,7 +6888,6 @@ class CapacityManager extends BaseComponent {
                 // THEN apply mode-specific restrictions
                 if (mode === 'edit') {
                     // In edit mode, make project selection visually disabled but keep value
-                    console.log('Making project dropdown readonly for edit mode');
                     
                     // Don't use disabled=true as it prevents the value from being submitted
                     // Instead, use pointer-events:none and visual styling
@@ -6997,7 +6914,6 @@ class CapacityManager extends BaseComponent {
                     }
                 } else {
                     // In create/duplicate mode, enable project selection with filtering
-                    console.log(`Enabling project dropdown for ${mode} mode`);
                     projectSelect.style.backgroundColor = '';
                     projectSelect.style.cursor = '';
                     projectSelect.style.pointerEvents = '';
@@ -7098,7 +7014,6 @@ class CapacityManager extends BaseComponent {
             projectSelect.appendChild(option);
         }
 
-        console.log(`Filtered projects for team member ${teamMemberId}: ${availableProjects.length} available, ${existingProjectIds.size} already assigned`);
     }
 
     /**
@@ -7135,7 +7050,6 @@ class CapacityManager extends BaseComponent {
      */
     async populateAssignmentForm(assignmentData, mode) {
         try {
-            console.log(`Populating form for ${mode} mode with assignment:`, assignmentData);
             
             // Populate team member
             const teamMemberSelect = document.getElementById('assignment-team-member');
@@ -7171,7 +7085,6 @@ class CapacityManager extends BaseComponent {
                 // But prevent multiple simultaneous calls
                 if ((mode === 'edit' || mode === 'duplicate') && !this._loadingProjectForAssignment) {
                     this._loadingProjectForAssignment = true;
-                    console.log(`Loading project data for ${mode} mode...`);
                     await this.loadProjectForAssignment(assignmentData.projectId);
                     this._loadingProjectForAssignment = false;
                 }
@@ -7196,7 +7109,6 @@ class CapacityManager extends BaseComponent {
                 // Wait longer for the project data to be fully loaded and UI updated
                 // Increased timeout to reduce race conditions with HTML regeneration
                 setTimeout(() => {
-                    console.log('Populating phase schedule data for edit mode:', assignmentData.phaseSchedule);
                     this.populatePhaseScheduleData(assignmentData.phaseSchedule);
                     
                     // Also populate budget info if available
@@ -7216,7 +7128,6 @@ class CapacityManager extends BaseComponent {
                 }, 500);
             }
 
-            console.log(`Form populated for ${mode} mode with assignment ${assignmentData.id}`);
         } catch (error) {
             console.error('Error populating assignment form:', error);
         }
@@ -7256,19 +7167,13 @@ class CapacityManager extends BaseComponent {
             let finalMDs = 0;
 
             if (completeProject.calculationData?.vendorCosts) {
-                console.log('  - Available vendor costs in project:');
                 completeProject.calculationData.vendorCosts.forEach((cost, index) => {
-                    console.log(`    [${index}] vendorId: ${cost.vendorId}, role: ${cost.role}, vendor: ${cost.vendor}, finalMDs: ${cost.finalMDs}`);
                 });
                 
-                console.log('  - Searching for match with:');
-                console.log(`    selectedMember.vendorId: ${selectedMember.vendorId}`);
-                console.log(`    memberRole: ${memberRole}`);
 
                 const vendorCost = completeProject.calculationData.vendorCosts.find(cost => {
                     const vendorIdMatch = cost.vendorId === selectedMember.vendorId;
                     const roleMatch = cost.role === memberRole;
-                    console.log(`    Checking: vendorId ${cost.vendorId} === ${selectedMember.vendorId} (${vendorIdMatch}), role ${cost.role} === ${memberRole} (${roleMatch})`);
                     return vendorIdMatch && roleMatch;
                 });
 
@@ -7276,9 +7181,7 @@ class CapacityManager extends BaseComponent {
                     finalMDs = vendorCost.finalMDs || 0;
 
                 } else {
-                    console.log('  - ISSUE: No matching vendor cost found!');
 
-                    console.log('  - Available combinations:');
                     completeProject.calculationData.vendorCosts.forEach((cost, index) => {
 
                     });
@@ -7287,7 +7190,6 @@ class CapacityManager extends BaseComponent {
                 console.error('  - CRITICAL: No calculationData.vendorCosts found in project');
             }
             
-            console.log('  - Final result: finalMDs =', finalMDs);
 
             document.getElementById('total-final-mds').textContent = `${finalMDs.toFixed(1)} MDs`;
             document.getElementById('budget-context').textContent = `Budget for ${vendorName} - ${memberRole} in this project`;
@@ -7387,7 +7289,6 @@ class CapacityManager extends BaseComponent {
             if (editingAssignmentId) {
                 const assignment = this.manualAssignments.find(a => a.id === editingAssignmentId);
                 if (assignment?.phaseSchedule) {
-                    console.log('Re-populating phase dates after HTML regeneration in edit mode');
                     // Use setTimeout to ensure DOM is fully updated
                     setTimeout(() => {
                         this.populatePhaseScheduleData(assignment.phaseSchedule);
@@ -7832,7 +7733,6 @@ class CapacityManager extends BaseComponent {
             const editingAssignmentId = modal?.dataset.editingAssignmentId;
             const isEditing = !!editingAssignmentId;
             
-            console.log(`Processing assignment in ${isEditing ? 'edit' : 'create'} mode, assignmentId: ${editingAssignmentId || 'new'}`);
             
             let teamMemberId = formData.get('teamMember');
             let projectId = formData.get('project');
@@ -7846,7 +7746,6 @@ class CapacityManager extends BaseComponent {
                     teamMemberId = teamMemberId || existingAssignment.teamMemberId;
                     projectId = projectId || existingAssignment.projectId;
                     
-                    console.log(`Edit mode: Using teamMemberId=${teamMemberId}, projectId=${projectId} from existing assignment`);
                 } else {
                     throw new Error('Assignment to edit not found');
                 }
@@ -7958,7 +7857,6 @@ class CapacityManager extends BaseComponent {
 
                 // Save assignment - NO duplicate checking, user manages duplicates manually
                 this.manualAssignments.push(assignment);
-                console.log(`Created new assignment ${assignment.id} for ${teamMemberId} on ${projectId}`);
                 
                 // Clear all caches to ensure fresh data
                 this._teamMembersCache = null;
@@ -8038,7 +7936,6 @@ class CapacityManager extends BaseComponent {
      * This ensures the main form reflects the latest phase dates from assignments
      */
     synchronizeMainFormPhaseDates(phaseSchedule) {
-        console.log('Synchronizing main form phase dates with assignment data:', phaseSchedule);
         
         phaseSchedule.forEach(phase => {
             // Find the main form phase inputs for this phase
@@ -8051,7 +7948,6 @@ class CapacityManager extends BaseComponent {
             // Update start date input
             const startDateInput = mainFormPhaseElement.querySelector('.phase-start-date');
             if (startDateInput && phase.startDate) {
-                console.log(`Updating main form start date for ${phase.phaseId}: ${startDateInput.value} -> ${phase.startDate}`);
                 startDateInput.value = phase.startDate;
                 startDateInput.setAttribute('value', phase.startDate);
             }
@@ -8059,13 +7955,11 @@ class CapacityManager extends BaseComponent {
             // Update end date input
             const endDateInput = mainFormPhaseElement.querySelector('.phase-end-date');
             if (endDateInput && phase.endDate) {
-                console.log(`Updating main form end date for ${phase.phaseId}: ${endDateInput.value} -> ${phase.endDate}`);
                 endDateInput.value = phase.endDate;
                 endDateInput.setAttribute('value', phase.endDate);
             }
         });
         
-        console.log('Main form phase dates synchronized successfully');
     }
     
     /**
@@ -8132,7 +8026,6 @@ class CapacityManager extends BaseComponent {
                 }
             }
 
-            console.log('Budget info populated:', budgetInfo);
         } catch (error) {
             console.error('Error populating budget info:', error);
         }
@@ -8173,7 +8066,6 @@ class CapacityManager extends BaseComponent {
     async _doRefreshAllCapacitySections() {
         // Prevent multiple simultaneous refreshes - return existing promise if already running
         if (this._refreshInProgress) {
-            console.log('Refresh already in progress, returning existing promise...');
             return this._currentRefreshPromise || Promise.resolve();
         }
         
@@ -8182,13 +8074,11 @@ class CapacityManager extends BaseComponent {
         // Store the current refresh promise to return to subsequent calls
         this._currentRefreshPromise = (async () => {
         try {
-            console.log('Refreshing all capacity sections after assignment change...');
             
             // Show loading state
             this.showCapacityLoadingState();
             
             // IMPORTANT: Clear all caches to ensure fresh data after assignment changes
-            console.log('Clearing all caches for fresh data...');
             this._teamMembersCache = null;
             this._teamMembersCacheTime = null;
             this._cacheIsDirty = false; // Reset dirty flag after clearing cache
@@ -8196,12 +8086,6 @@ class CapacityManager extends BaseComponent {
             this._loadingCapacityTable = false;
             
             // Log current manual assignments state for debugging (only if debugging enabled)
-            if (console.debug && this.manualAssignments) {
-                console.debug(`Current manual assignments count: ${this.manualAssignments.length}`);
-                this.manualAssignments.forEach(a => {
-                    console.debug(`  - Assignment ${a.id}: ${a.teamMemberId} -> ${a.projectId}`);
-                });
-            }
             
             // Save expanded details state before refresh
             this._saveExpandedDetailsState();
@@ -8254,7 +8138,6 @@ class CapacityManager extends BaseComponent {
             // Restore expanded details state after refresh
             await this._restoreExpandedDetailsState();
             
-            console.log(`Capacity refresh completed in ${(endTime - startTime).toFixed(2)}ms`);
             NotificationManager.success('Capacity views updated');
             
         } catch (error) {
@@ -8413,15 +8296,9 @@ class CapacityManager extends BaseComponent {
             const allocations = {};
             
             // Use the new auto-distribution algorithm for better allocation
-            console.log('calculatePhaseBasedAllocation: autoDistribution available:', !!this.autoDistribution);
-            console.log('calculatePhaseBasedAllocation: teamMember:', teamMember.id, teamMember.firstName, teamMember.lastName);
-            console.log('calculatePhaseBasedAllocation: phaseSchedule:', phaseSchedule.length, 'phases');
             
             if (this.autoDistribution) {
-                console.log('calculatePhaseBasedAllocation: using phase-by-phase distribution');
-                console.log('calculatePhaseBasedAllocation: teamMember:', teamMember.id, teamMember.firstName, teamMember.lastName);
-                console.log('calculatePhaseBasedAllocation: phaseSchedule:', phaseSchedule.length, 'phases');
-                
+                        
                 // Set current team member for the adapter
                 this._currentTeamMember = teamMember;
                 
@@ -8429,14 +8306,12 @@ class CapacityManager extends BaseComponent {
                 // The order matters for allocation priority, not the dates
                 const sortedPhases = phaseSchedule; // Keep original order
                 
-                console.log('Using phases in predefined order:', sortedPhases.map(p => `${p.phaseName}: ${p.startDate}`));
                 
                 // Distribute phase by phase, tracking existing allocations
                 const existingAllocations = {}; // Track accumulated allocations per month
                 const projectName = completeProject.project.name;
                 
                 for (const phase of sortedPhases) {
-                    console.log(`Processing phase: ${phase.phaseName} (${phase.estimatedMDs} MD, ${phase.startDate} → ${phase.endDate})`);
                     
                     const phaseDistribution = this.autoDistribution.autoDistributeMDs(
                         phase.estimatedMDs,
@@ -8446,7 +8321,6 @@ class CapacityManager extends BaseComponent {
                         existingAllocations
                     );
                     
-                    console.log(`Phase ${phase.phaseName} distribution:`, phaseDistribution);
                     
                     // Merge phase distribution into final allocations
                     this.mergePhaseDistribution(allocations, phaseDistribution, phase, projectName);
@@ -8473,7 +8347,6 @@ class CapacityManager extends BaseComponent {
                         }
                     });
                     
-                    console.log('Updated existing allocations:', existingAllocations);
                 }
             } else {
                 throw new Error('Auto-distribution not available - cannot calculate phase-based allocation');
@@ -8492,7 +8365,6 @@ class CapacityManager extends BaseComponent {
      * Used when auto-distribution fails or is not available
      */
     useLegacyPhaseDistribution(phaseSchedule, allocations, completeProject) {
-        console.log('Using legacy phase distribution method');
         
         try {
             // Simple fallback: distribute phases evenly across time period
@@ -8538,7 +8410,6 @@ class CapacityManager extends BaseComponent {
                 }
             });
             
-            console.log('Legacy distribution completed for', Object.keys(allocations).length, 'months');
             
         } catch (error) {
             console.error('Legacy phase distribution failed:', error);
@@ -8589,15 +8460,12 @@ class CapacityManager extends BaseComponent {
             let phasesArray = [];
 
             if (completeProjectData.phases && typeof completeProjectData.phases === 'object' && !Array.isArray(completeProjectData.phases)) {
-                console.log('Converting phases object to array...');
                 const phaseKeys = Object.keys(completeProjectData.phases);
 
                 const filteredKeys = phaseKeys.filter(key => key !== 'selectedSuppliers');
 
                 phasesArray = filteredKeys.map(phaseKey => {
                     const phaseData = completeProjectData.phases[phaseKey];
-                    console.log(`Processing phase ${phaseKey}:`, phaseData);
-                    console.log(`Phase ${phaseKey} has manDays:`, phaseData && phaseData.manDays);
                     
                     if (phaseData && typeof phaseData === 'object' && phaseData.manDays !== undefined) {
                         const convertedPhase = {
@@ -8605,7 +8473,6 @@ class CapacityManager extends BaseComponent {
                             name: phaseKey,
                             ...phaseData
                         };
-                        console.log(`Converted phase ${phaseKey}:`, convertedPhase);
                         return convertedPhase;
                     }
 
@@ -8621,16 +8488,6 @@ class CapacityManager extends BaseComponent {
                 console.warn('Type:', typeof completeProjectData.phases);
             }
             
-            console.log('Complete project structure:', {
-                name: completeProject.name,
-                code: completeProject.code,
-                originalStartDate: completeProject.startDate,
-                originalEndDate: completeProject.endDate,
-                status: completeProject.status,
-                phases: phasesArray.length,
-                features: completeProject.features?.length || 0
-            });
-            
             // Create project with assignment dates but preserve all other properties
             const projectForCalculation = {
                 ...completeProject,
@@ -8640,17 +8497,6 @@ class CapacityManager extends BaseComponent {
                 status: (completeProject.status && completeProject.status.trim()) ? completeProject.status.trim() : 'pending',
                 phases: phasesArray  // Use converted phases array
             };
-
-            console.log('Validation checks:');
-
-            console.log('Project for calculation:', {
-                name: projectForCalculation.name,
-                startDate: projectForCalculation.startDate,
-                endDate: projectForCalculation.endDate,
-                status: projectForCalculation.status,
-                phases: projectForCalculation.phases?.length || 0,
-                features: projectForCalculation.features?.length || 0
-            });
             
             // Use existing sequential allocation logic with complete project data
             const allocations = this.generateSequentialAllocations(teamMember, memberRole, [projectForCalculation]);
@@ -8658,11 +8504,6 @@ class CapacityManager extends BaseComponent {
             if (Object.keys(allocations).length === 0) {
                 console.warn('No allocations generated - debugging project phases...');
                 if (projectForCalculation.phases && projectForCalculation.phases.length > 0) {
-                    console.log('Project has phases:', projectForCalculation.phases.map(p => ({
-                        name: p.name,
-                        manDays: p.manDays,
-                        effort: p.effort
-                    })));
                 } else {
                     console.error('Project has no phases - this will result in empty allocations');
                 }
@@ -8717,7 +8558,6 @@ class CapacityManager extends BaseComponent {
 
         // If no manual assignments exist, return automatic allocations
         if (!this.manualAssignments || this.manualAssignments.length === 0) {
-            console.log('No manual assignments found, returning automatic allocations only');
             return mergedAllocations;
         }
         
@@ -8825,7 +8665,6 @@ class CapacityManager extends BaseComponent {
             });
         });
         
-        console.log(`Merged allocations result:`, Object.keys(mergedAllocations).length, 'months with allocations');
         
         return mergedAllocations;
     }
@@ -8907,7 +8746,6 @@ class CapacityManager extends BaseComponent {
      */
     async getAvailableProjects() {
         try {
-            console.log('Loading available projects...');
             
             // Try to get projects from DataManager
             const dataManager = this.app?.managers?.data || window.dataManager;
@@ -8954,7 +8792,6 @@ class CapacityManager extends BaseComponent {
             
             // Return only real projects, no mock fallback
             if (availableProjects.length === 0) {
-                console.log('No projects found in configured directory - returning empty list');
                 return [];
             }
             
@@ -9022,7 +8859,6 @@ class CapacityManager extends BaseComponent {
      * Show edit assignment modal with pre-filled data
      */
     async showEditAssignmentModal(assignmentId) {
-        console.log(`showEditAssignmentModal called for assignment: ${assignmentId}`);
         
         // Find the assignment to edit
         const assignment = this.manualAssignments.find(a => a.id === assignmentId);
@@ -9031,7 +8867,6 @@ class CapacityManager extends BaseComponent {
             return;
         }
         
-        console.log('Found assignment to edit:', assignment);
         
         // Use the proper edit mode in showAddAssignmentModal
         await this.showAddAssignmentModal('edit', assignment);
@@ -9073,7 +8908,6 @@ class CapacityManager extends BaseComponent {
      * Populate phase schedule data
      */
     populatePhaseScheduleData(phaseSchedule) {
-        console.log('Populating phase schedule data:', phaseSchedule);
         
         phaseSchedule.forEach(phase => {
             const phaseElement = document.querySelector(`[data-phase-id="${phase.phaseId}"]`);
@@ -9088,7 +8922,6 @@ class CapacityManager extends BaseComponent {
                 startDateInput.value = phase.startDate;
                 // Force update the DOM attribute as well
                 startDateInput.setAttribute('value', phase.startDate);
-                console.log(`Set start date for ${phase.phaseId}: ${phase.startDate}`);
             }
             
             // Fill end date
@@ -9097,14 +8930,12 @@ class CapacityManager extends BaseComponent {
                 endDateInput.value = phase.endDate;
                 // Force update the DOM attribute as well
                 endDateInput.setAttribute('value', phase.endDate);
-                console.log(`Set end date for ${phase.phaseId}: ${phase.endDate}`);
             }
             
             // Fill estimated MDs if available
             const phaseMDsElement = phaseElement.querySelector('.phase-mds');
             if (phaseMDsElement && phase.estimatedMDs !== undefined) {
                 phaseMDsElement.textContent = phase.estimatedMDs.toFixed(1);
-                console.log(`Set estimated MDs for ${phase.phaseId}: ${phase.estimatedMDs}`);
             }
             
             // Calculate availability and overflow for this phase
@@ -9114,7 +8945,6 @@ class CapacityManager extends BaseComponent {
         // Trigger recalculation
         this.updateBudgetBalance();
         
-        console.log('Phase schedule data population completed');
     }
 
     /**
@@ -9143,20 +8973,17 @@ class CapacityManager extends BaseComponent {
     async deleteAssignment(assignmentId) {
         // Reset stuck flag after 5 seconds (failsafe)
         if (this.deletingAssignment && this.deleteStartTime && (Date.now() - this.deleteStartTime > 5000)) {
-            console.log(`Resetting stuck delete flag for assignment: ${this.deletingAssignment}`);
             this.deletingAssignment = null;
             this.deleteStartTime = null;
         }
         
         // Prevent duplicate calls by checking if deletion is already in progress for THE SAME assignment
         if (this.deletingAssignment === assignmentId) {
-            console.log(`Delete operation already in progress for assignment: ${assignmentId}`);
             return;
         }
         
         // If we have a different assignment ID, reset the flag (important for re-rendered buttons)
         if (this.deletingAssignment && this.deletingAssignment !== assignmentId) {
-            console.log(`Resetting flag from old assignment ${this.deletingAssignment} to new ${assignmentId}`);
             this.deletingAssignment = null;
             this.deleteStartTime = null;
         }
@@ -9164,14 +8991,12 @@ class CapacityManager extends BaseComponent {
         try {
             // Check if manual assignments array exists
             if (!this.manualAssignments || !Array.isArray(this.manualAssignments)) {
-                console.log('No manual assignments array found');
                 NotificationManager.info('No assignments to delete');
                 return;
             }
             
             const assignment = this.manualAssignments.find(a => a.id === assignmentId);
             if (!assignment) {
-                console.log(`Assignment ${assignmentId} not found. Available IDs:`, this.manualAssignments.map(a => a.id));
                 NotificationManager.error('Assignment not found - it may have already been deleted');
                 return;
             }
@@ -9215,7 +9040,6 @@ class CapacityManager extends BaseComponent {
             if (index > -1) {
                 // Store removed assignment for logging
                 const removedAssignment = this.manualAssignments.splice(index, 1)[0];
-                console.log(`Removed assignment:`, removedAssignment);
                 
                 // Clear any cached data related to this assignment
                 this._cacheIsDirty = true;
@@ -9244,7 +9068,6 @@ class CapacityManager extends BaseComponent {
      * Mark assignment-related caches as dirty for efficient cache management
      */
     markCacheAsDirty() {
-        console.log('Marking cache as dirty for next refresh...');
         this._cacheIsDirty = true;
         
         // Clear only non-critical caches immediately
@@ -9272,7 +9095,6 @@ class CapacityManager extends BaseComponent {
      * Edit assignment
      */
     async editAssignment(assignmentId) {
-        console.log(`Edit assignment requested for ID: ${assignmentId}`);
         
         // Find the assignment to edit
         const assignment = this.manualAssignments.find(a => a.id === assignmentId);
@@ -9282,7 +9104,6 @@ class CapacityManager extends BaseComponent {
             return;
         }
         
-        console.log('Found assignment to edit:', assignment);
         
         // Open modal in edit mode with the assignment data
         await this.showAddAssignmentModal('edit', assignment);
@@ -9315,7 +9136,6 @@ class CapacityManager extends BaseComponent {
                 expandBtn.className = 'fas fa-chevron-right';
                 // Remove from tracking set
                 this._expandedDetailsRows.delete(rowId);
-                console.log('Collapsed allocation details');
             } else {
                 // Expand: create and insert details row
                 const detailsRow = await this.createAllocationDetailsRow(memberId, projectId, assignmentId);
@@ -9324,7 +9144,6 @@ class CapacityManager extends BaseComponent {
                     expandBtn.className = 'fas fa-chevron-down';
                     // Add to tracking set
                     this._expandedDetailsRows.add(rowId);
-                    console.log('Expanded allocation details');
                 }
             }
         } catch (error) {
@@ -9351,12 +9170,10 @@ class CapacityManager extends BaseComponent {
                 if (memberId && projectId && assignmentId) {
                     const rowId = `${memberId}|${projectId}|${assignmentId}`;
                     this._expandedDetailsRows.add(rowId);
-                    console.log(`Saving expanded row: ${rowId}`);
                 }
             }
         });
         
-        console.log(`Saved ${this._expandedDetailsRows.size} expanded rows state before refresh`);
     }
 
     /**
@@ -9367,13 +9184,11 @@ class CapacityManager extends BaseComponent {
             return; // Nothing to restore
         }
 
-        console.log(`Restoring ${this._expandedDetailsRows.size} expanded rows after refresh`);
         
         // Process each saved expanded row
         for (const rowId of this._expandedDetailsRows) {
             try {
                 const [memberId, projectId, assignmentId] = rowId.split('|');
-                console.log(`Attempting to restore row: memberId=${memberId}, projectId=${projectId}, assignmentId=${assignmentId}`);
                 
                 // Find the row in the DOM
                 const allocationRow = document.querySelector(`#allocations-table .allocation-member-row[data-member="${memberId}"][data-project-id="${projectId}"]`);
@@ -9402,7 +9217,6 @@ class CapacityManager extends BaseComponent {
             }
         }
         
-        console.log('Expanded details state restoration completed');
     }
 
     /**
@@ -9478,7 +9292,6 @@ class CapacityManager extends BaseComponent {
             });
         });
         
-        console.log(`Attached event listeners to ${inputs.length} phase input fields for assignment ${assignmentId}`);
     }
 
     /**
@@ -9491,10 +9304,8 @@ class CapacityManager extends BaseComponent {
             const newValue = parseFloat(input.value) || 0;
             const originalValue = parseFloat(input.dataset.originalValue) || 0;
             
-            console.log(`Phase input changed: ${phaseId} ${month} ${originalValue} → ${newValue}`);
             
             if (newValue === originalValue) {
-                console.log('Value unchanged, no recalculation needed');
                 return; // No change
             }
             
@@ -9524,7 +9335,6 @@ class CapacityManager extends BaseComponent {
                     input.classList.remove('value-updated');
                 }, 300);
                 
-                console.log(`Successfully updated ${phaseId} allocation for ${month}`);
             }
             
         } catch (error) {
@@ -9830,7 +9640,6 @@ class CapacityManager extends BaseComponent {
      * Cleanup method to remove all event listeners to prevent memory leaks
      */
     cleanup() {
-        console.log('Cleaning up CapacityManager event listeners...');
         
         // Remove allocation actions listener
         if (this._allocationActionsHandler) {
@@ -9878,7 +9687,6 @@ class CapacityManager extends BaseComponent {
         this.deleteStartTime = null;
         this._showingAssignmentModal = false;
         
-        console.log('CapacityManager cleanup completed');
     }
 
     /**
@@ -9961,7 +9769,6 @@ class CapacityManager extends BaseComponent {
      */
     async collectCapacityData() {
         try {
-            console.log('Collecting capacity data...');
 
             // Get current data
             const teamMembers = await this.getRealTeamMembers();
@@ -10019,7 +9826,6 @@ class CapacityManager extends BaseComponent {
      */
     async saveCapacityData() {
         try {
-            console.log('Saving capacity data...');
             
             // Show loading state
             const saveBtn = document.getElementById('capacity-save-btn');
@@ -10093,7 +9899,6 @@ class CapacityManager extends BaseComponent {
      */
     async loadCapacityData() {
         try {
-            console.log('Loading capacity data...');
 
             // Get projects path
             const dataManager = this.app?.managers?.data || window.dataManager;
@@ -10110,11 +9915,6 @@ class CapacityManager extends BaseComponent {
 
             if (result.success && result.data) {
                 const capacityData = JSON.parse(result.data);
-                console.log('Capacity data loaded successfully:', {
-                    timestamp: capacityData.metadata?.timestamp,
-                    teamMembers: capacityData.teamMembers?.length || 0,
-                    projects: capacityData.projects?.length || 0
-                });
 
                 // Apply loaded filters if available
                 if (capacityData.filters) {
@@ -10136,7 +9936,6 @@ class CapacityManager extends BaseComponent {
                 return capacityData;
 
             } else {
-                console.log('No existing capacity data file found - this is normal for first use');
                 return null;
             }
 
@@ -10151,7 +9950,6 @@ class CapacityManager extends BaseComponent {
      */
     async exportCapacityData() {
         try {
-            console.log('Exporting capacity data...');
             
             // Show loading state
             const exportBtn = document.getElementById('capacity-export-btn');
@@ -10216,7 +10014,6 @@ class CapacityManager extends BaseComponent {
                 
                 // Handle double-stringified JSON (common issue)
                 if (typeof capacityData === 'string') {
-                    console.log('Detected double-stringified JSON, parsing again...');
                     capacityData = JSON.parse(capacityData);
                 }
             } catch (parseError) {
@@ -10224,15 +10021,6 @@ class CapacityManager extends BaseComponent {
 
                 throw new Error(`Invalid JSON format: ${parseError.message}`);
             }
-
-            console.log('Parsed capacity data structure:', {
-                hasMetadata: !!capacityData.metadata,
-                hasTeamMembers: !!capacityData.teamMembers,
-                hasProjects: !!capacityData.projects,
-                metadataKeys: capacityData.metadata ? Object.keys(capacityData.metadata) : [],
-                teamMembersLength: capacityData.teamMembers?.length,
-                projectsLength: capacityData.projects?.length
-            });
 
             // Validate the loaded data has expected structure
             if (!capacityData.metadata || !capacityData.teamMembers || !capacityData.projects) {
@@ -10267,11 +10055,9 @@ class CapacityManager extends BaseComponent {
             NotificationManager.success(`Capacity data loaded from ${file.name}`);
             
             // Refresh all capacity sections to show loaded data immediately
-            console.log('Refreshing all capacity sections after file load...');
             await this.refreshAllCapacitySections();
             
             // Timeline chart is already rebuilt by destroyAndRebuildTimelineChart()
-            console.log('✅ Timeline chart rebuild completed during capacity data loading');
 
         } catch (error) {
             console.error('Failed to load capacity data from file:', error);
@@ -10292,11 +10078,9 @@ class CapacityManager extends BaseComponent {
      */
     applySavedStatusFromCapacityData(capacityData) {
         if (!capacityData || !capacityData.projects) {
-            console.log('No saved capacity data to apply status from');
             return;
         }
 
-        console.log('Applying saved project status from capacity data...');
         
         let appliedCount = 0;
         
@@ -10315,13 +10099,11 @@ class CapacityManager extends BaseComponent {
                         const oldStatus = currentProject.status;
                         currentProject.status = savedProject.status;
                         appliedCount++;
-                        console.log(`Applied saved status to project "${currentProject.name}": ${oldStatus} → ${savedProject.status}`);
                     }
                 }
             });
         }
 
-        console.log(`Applied ${appliedCount} saved project status values`);
     }
 
     /**
@@ -10342,7 +10124,6 @@ class CapacityManager extends BaseComponent {
      * Refresh capacity data
      */
     refresh() {
-        console.log('Refreshing capacity data...');
         NotificationManager.info('Refreshing capacity planning data...');
         
         // Refresh the capacity dashboard
@@ -10376,7 +10157,6 @@ class CapacityManager extends BaseComponent {
      */
     async updatePhaseAllocation(assignment, phaseId, month, newValue) {
         try {
-            console.log(`Updating phase allocation: ${phaseId} ${month} = ${newValue} MDs`);
             
             // Find the calculated allocation for this assignment
             if (!assignment.calculatedAllocation) {
@@ -10438,7 +10218,6 @@ class CapacityManager extends BaseComponent {
                 ];
             }
             
-            console.log(`Successfully updated allocation for ${phaseId} in ${month}: ${newValue} MDs`);
             return true;
             
         } catch (error) {
@@ -10452,7 +10231,6 @@ class CapacityManager extends BaseComponent {
      */
     async recalculateSubsequentPhases(assignment, changedPhaseId, changedMonth = null, manualValue = null) {
         try {
-            console.log(`Recalculating subsequent phases after change to ${changedPhaseId}`, { changedMonth, manualValue });
             
             // Get the predefined phase order
             const phaseOrder = ['technicalAnalysis', 'development', 'integrationTests', 'uatTests', 'consolidation', 'vapt', 'postGoLive'];
@@ -10474,7 +10252,6 @@ class CapacityManager extends BaseComponent {
             const baseMemberId = assignment.teamMemberId.includes(':') ? 
                 assignment.teamMemberId.split(':')[1] : assignment.teamMemberId;
             
-            console.log(`Looking for team member with ID: ${assignment.teamMemberId}, base ID: ${baseMemberId}`);
             
             // Get all team members and find the one with matching base ID
             const allTeamMembers = await this.getTeamMembers();
@@ -10485,11 +10262,9 @@ class CapacityManager extends BaseComponent {
             
             if (!teamMember) {
                 console.error(`Team member not found for recalculation. Assignment ID: ${assignment.teamMemberId}, Base ID: ${baseMemberId}`);
-                console.log(`Available team members:`, allTeamMembers.map(m => ({ id: m.id, firstName: m.firstName, lastName: m.lastName })));
                 return;
             }
             
-            console.log(`Found team member: ${teamMember.id} (${teamMember.firstName} ${teamMember.lastName})`);
             
             // Set current team member for auto-distribution adapter
             this._currentTeamMember = teamMember;
@@ -10516,7 +10291,6 @@ class CapacityManager extends BaseComponent {
                                 let allocatedValue = phaseAllocation.allocatedMDs;
                                 if (phaseId === changedPhaseId && month === changedMonth && manualValue !== null) {
                                     allocatedValue = manualValue;
-                                    console.log(`Preserving manual edit: ${phaseId} ${month} = ${manualValue} MDs (was ${phaseAllocation.allocatedMDs})`);
                                 }
                                 
                                 existingAllocations[month].push({
@@ -10529,7 +10303,6 @@ class CapacityManager extends BaseComponent {
                 }
             }
             
-            console.log('Existing allocations for subsequent phase recalculation:', existingAllocations);
             
             // Recalculate all subsequent phases using auto-distribution
             for (let i = changedPhaseIndex + 1; i < phaseOrder.length; i++) {
@@ -10537,7 +10310,6 @@ class CapacityManager extends BaseComponent {
                 const phase = assignment.phaseSchedule.find(p => p.phaseId === phaseId);
                 
                 if (phase && phase.estimatedMDs > 0) {
-                    console.log(`Recalculating subsequent phase: ${phase.phaseName} (${phase.estimatedMDs} MDs)`);
                     
                     // Use auto-distribution for this phase
                     const distribution = this.autoDistribution.autoDistributeMDs(
@@ -10581,7 +10353,6 @@ class CapacityManager extends BaseComponent {
                 }
             }
             
-            console.log('Subsequent phases recalculation completed');
             
         } catch (error) {
             console.error('Error recalculating subsequent phases:', error?.message || error);

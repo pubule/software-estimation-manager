@@ -310,17 +310,8 @@ class WorkingDaysCalculator {
     calculateAvailableCapacity(teamMember, monthString, startDate = null, excludeExistingAllocations = false, phaseEndDate = null) {
         const [year, month] = monthString.split('-').map(Number);
         
-        // DEBUG LOGGING - START
-        console.log(`🔍 DEBUG calculateAvailableCapacity for ${monthString}:`);
-        console.log(`  - teamMember.id: ${teamMember?.id}`);
-        console.log(`  - teamMember.country: ${teamMember?.country}`);
-        console.log(`  - startDate: ${startDate ? startDate.toISOString().split('T')[0] : 'null'}`);
-        console.log(`  - phaseEndDate: ${phaseEndDate ? phaseEndDate.toISOString().split('T')[0] : 'null'}`);
-        console.log(`  - excludeExistingAllocations: ${excludeExistingAllocations}`);
-        
         // Calculate base working days for the month
         let baseCapacity = this.calculateWorkingDays(month, year, teamMember.country || 'IT');
-        console.log(`  - baseCapacity (full month): ${baseCapacity}`);
         
         // Handle partial month if start date is provided
         if (startDate) {
@@ -339,27 +330,20 @@ class WorkingDaysCalculator {
                     
                     if (phaseEndYear === year && phaseEndMonth === month) {
                         effectiveEndDate = phaseEndDate;
-                        console.log(`  - Using phase end date instead of month end`);
                     }
                 }
                 
-                console.log(`  - PARTIAL MONTH: ${startDate.toISOString().split('T')[0]} to ${effectiveEndDate.toISOString().split('T')[0]}`);
                 baseCapacity = this.calculateWorkingDaysBetween(startDate, effectiveEndDate);
-                console.log(`  - baseCapacity (partial month): ${baseCapacity}`);
             }
         }
         
         // Subtract team member vacation days if any
         const vacationDays = this._getVacationDays(teamMember.id, monthString);
-        console.log(`  - vacationDays: ${vacationDays}`);
         
         // Subtract existing allocations from other projects only if not excluded
         const existingAllocations = excludeExistingAllocations ? 0 : this._getExistingAllocations(teamMember.id, monthString);
-        console.log(`  - existingAllocations: ${existingAllocations}`);
         
         const finalCapacity = Math.max(0, baseCapacity - vacationDays - existingAllocations);
-        console.log(`  - FINAL CAPACITY: ${finalCapacity} = ${baseCapacity} - ${vacationDays} - ${existingAllocations}`);
-        // DEBUG LOGGING - END
         
         return finalCapacity;
     }
@@ -376,8 +360,6 @@ class WorkingDaysCalculator {
         let workingDays = 0;
         const current = new Date(start);
         
-        console.log(`    🔍 calculateWorkingDaysBetween: ${start.toISOString().split('T')[0]} → ${end.toISOString().split('T')[0]}`);
-        
         while (current <= end) {
             const dayOfWeek = current.getDay();
             const dateString = current.toISOString().split('T')[0];
@@ -390,7 +372,6 @@ class WorkingDaysCalculator {
             current.setDate(current.getDate() + 1);
         }
         
-        console.log(`    🔍 calculateWorkingDaysBetween result: ${workingDays} working days`);
         return workingDays;
     }
 

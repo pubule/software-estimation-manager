@@ -22,8 +22,14 @@ class DefaultConfigManager {
             // Get projects path from main process
             if (window.electronAPI && window.electronAPI.getProjectsPath) {
                 const projectsPath = await window.electronAPI.getProjectsPath();
-                this.configPath = `file://${projectsPath}/config/defaults.json`;
-                console.log('Configuration path:', this.configPath);
+                
+                // Validate and sanitize the path to prevent directory traversal
+                const sanitizedPath = this._sanitizePath(projectsPath);
+                if (!sanitizedPath) {
+                    throw new Error('Invalid projects path - security validation failed');
+                }
+                
+                this.configPath = `file://${sanitizedPath}/config/defaults.json`;
                 return this.configPath;
             } else {
                 // Fallback to relative path for development/testing
@@ -36,6 +42,42 @@ class DefaultConfigManager {
             this.configPath = './config/defaults.json';
             return this.configPath;
         }
+    }
+
+    /**
+     * Sanitize path to prevent directory traversal attacks
+     * @private
+     * @param {string} inputPath - Raw path from external source
+     * @returns {string|null} - Sanitized path or null if invalid
+     */
+    _sanitizePath(inputPath) {
+        if (!inputPath || typeof inputPath !== 'string') {
+            return null;
+        }
+
+        // Remove any path traversal attempts
+        if (inputPath.includes('..') || inputPath.includes('~') || inputPath.includes('$')) {
+            return null;
+        }
+
+        // Normalize path separators and remove dangerous characters
+        const normalized = inputPath
+            .replace(/[\\]+/g, '/')  // Normalize backslashes to forward slashes
+            .replace(/\/+/g, '/')    // Remove multiple consecutive slashes
+            .replace(/[<>:"|?*]/g, '') // Remove potentially dangerous characters
+            .trim();
+
+        // Ensure it's an absolute path (starts with drive letter on Windows or / on Unix)
+        if (!normalized.match(/^([A-Za-z]:|\/)/)) {
+            return null;
+        }
+
+        // Additional validation - path should be a reasonable length
+        if (normalized.length > 260) {
+            return null;
+        }
+
+        return normalized;
     }
 
     /**
@@ -54,8 +96,23 @@ class DefaultConfigManager {
             // Try to load from external config file
             const response = await fetch(configPath);
             if (response.ok) {
-                this.config = await response.json();
-                console.log('Loaded default configuration from external file:', configPath);
+                const rawConfig = await response.json();
+                
+                // Validate configuration structure before using
+                const validatedConfig = this._validateConfiguration(rawConfig);
+                if (!validatedConfig) {
+                    throw new Error('Invalid configuration structure - security validation failed');
+                }
+                
+                this.config = validatedConfig;
+                console.log('Loaded and validated configuration from external file:', configPath);
+                console.log('Configuration contains:', {
+                    phaseDefinitions: validatedConfig.phaseDefinitions?.length || 0,
+                    defaultSuppliers: validatedConfig.defaultSuppliers?.length || 0,
+                    defaultInternalResources: validatedConfig.defaultInternalResources?.length || 0,
+                    defaultCategories: validatedConfig.defaultCategories?.length || 0,
+                    defaultTeams: validatedConfig.defaultTeams?.length || 0
+                });
             } else {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -71,6 +128,133 @@ class DefaultConfigManager {
 
         this.isLoaded = true;
         return this.config;
+    }
+
+    /**
+     * Validate configuration structure and content
+     * @private
+     * @param {Object} config - Raw configuration object
+     * @returns {Object|null} - Validated config or null if invalid
+     */
+    _validateConfiguration(config) {
+        if (!config || typeof config !== 'object') {
+            return null;
+        }
+
+        const validatedConfig = {};
+
+        // Validate phaseDefinitions
+        if (Array.isArray(config.phaseDefinitions)) {
+            validatedConfig.phaseDefinitions = config.phaseDefinitions.filter(phase => 
+                phase && 
+                typeof phase === 'object' && 
+                typeof phase.id === 'string' && 
+                typeof phase.name === 'string' &&
+                phase.id.length <= 50 &&
+                phase.name.length <= 100
+            );
+        } else {
+            validatedConfig.phaseDefinitions = [];
+        }
+
+        // Validate defaultSuppliers
+        if (Array.isArray(config.defaultSuppliers)) {
+            validatedConfig.defaultSuppliers = config.defaultSuppliers.filter(supplier => 
+                supplier && 
+                typeof supplier === 'object' && 
+                typeof supplier.id === 'string' &&
+                typeof supplier.name === 'string' &&
+                typeof supplier.role === 'string' &&
+                supplier.id.length <= 50 &&
+                supplier.name.length <= 100 &&
+                (typeof supplier.realRate === 'number' && supplier.realRate >= 0) ||
+                (typeof supplier.officialRate === 'number' && supplier.officialRate >= 0)
+            );
+        } else {
+            validatedConfig.defaultSuppliers = [];
+        }
+
+        // Validate defaultInternalResources
+        if (Array.isArray(config.defaultInternalResources)) {
+            validatedConfig.defaultInternalResources = config.defaultInternalResources.filter(resource => 
+                resource && 
+                typeof resource === 'object' && 
+                typeof resource.id === 'string' &&
+                typeof resource.name === 'string' &&
+                typeof resource.role === 'string' &&
+                resource.id.length <= 50 &&
+                resource.name.length <= 100 &&
+                (typeof resource.realRate === 'number' && resource.realRate >= 0) ||
+                (typeof resource.officialRate === 'number' && resource.officialRate >= 0)
+            );
+        } else {
+            validatedConfig.defaultInternalResources = [];
+        }
+
+        // Validate defaultCategories
+        if (Array.isArray(config.defaultCategories)) {
+            validatedConfig.defaultCategories = config.defaultCategories.filter(category => 
+                category && 
+                typeof category === 'object' && 
+                typeof category.id === 'string' &&
+                typeof category.name === 'string' &&
+                category.id.length <= 50 &&
+                category.name.length <= 100
+            );
+        } else {
+            validatedConfig.defaultCategories = [];
+        }
+
+        // Validate defaultTeams
+        if (Array.isArray(config.defaultTeams)) {
+            validatedConfig.defaultTeams = config.defaultTeams.map(team => {
+                if (!team || typeof team !== 'object' || 
+                    typeof team.id !== 'string' || 
+                    typeof team.name !== 'string' ||
+                    team.id.length > 50 || 
+                    team.name.length > 200) {
+                    return null;
+                }
+                
+                // Validate team structure
+                const validatedTeam = {
+                    id: team.id,
+                    name: team.name,
+                    description: typeof team.description === 'string' ? team.description : '',
+                    isGlobal: typeof team.isGlobal === 'boolean' ? team.isGlobal : true,
+                    members: []
+                };
+                
+                // Validate team members if present
+                if (Array.isArray(team.members)) {
+                    validatedTeam.members = team.members.filter(member => 
+                        member && 
+                        typeof member === 'object' &&
+                        typeof member.id === 'string' &&
+                        typeof member.firstName === 'string' &&
+                        typeof member.lastName === 'string' &&
+                        member.id.length <= 50 &&
+                        member.firstName.length <= 100 &&
+                        member.lastName.length <= 100
+                    );
+                }
+                
+                return validatedTeam;
+            }).filter(team => team !== null);
+        } else {
+            validatedConfig.defaultTeams = [];
+        }
+
+        // Ensure at least basic structure exists
+        if (validatedConfig.phaseDefinitions.length === 0 && 
+            validatedConfig.defaultSuppliers.length === 0 && 
+            validatedConfig.defaultInternalResources.length === 0 && 
+            validatedConfig.defaultCategories.length === 0 &&
+            validatedConfig.defaultTeams.length === 0) {
+            return null; // Empty or completely invalid configuration
+        }
+
+        return validatedConfig;
     }
 
     /**
