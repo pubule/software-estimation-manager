@@ -94,6 +94,11 @@ module.exports = {
     paths: ['features/bugs-and-known-issues.feature']
   },
   
+  'budget-and-vendor-costs': {
+    ...common,
+    paths: ['features/budget-and-vendor-costs.feature']
+  },
+  
   // Profile for smoke tests (key scenarios only)
   'smoke': {
     ...common,
