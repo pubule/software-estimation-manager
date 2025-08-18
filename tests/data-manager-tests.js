@@ -23,7 +23,7 @@ describe('DataManager - Behavioral Documentation', () => {
             get length() { return localStorageMock.storage.size; }
         };
 
-        // Mock Electron API
+        // Create fresh mock for each test
         mockElectronAPI = {
             saveProjectFile: jest.fn(),
             loadProjectFile: jest.fn(),
@@ -37,8 +37,10 @@ describe('DataManager - Behavioral Documentation', () => {
             openProjectsFolder: jest.fn()
         };
 
+        // Set up mocks globally
         global.localStorage = localStorageMock;
-        global.window = { electronAPI: mockElectronAPI };
+        window.localStorage = localStorageMock;
+        global.window.electronAPI = mockElectronAPI;
 
         dataManager = new DataManager();
     });
@@ -177,10 +179,9 @@ describe('DataManager - Behavioral Documentation', () => {
             expect(consoleSpy).toHaveBeenCalledWith('electronAPI not available, using localStorage fallback');
             expect(result.success).toBe(true);
             expect(result.method).toBe('localStorage');
-            expect(localStorage.setItem).toHaveBeenCalledWith(
-                'software-estimation-project-test',
-                JSON.stringify(projectData)
-            );
+            // Verify localStorage was used by checking the data was stored
+            const storedData = global.localStorage.getItem('software-estimation-project-test');
+            expect(storedData).toBe(JSON.stringify(projectData));
         });
 
         test('BEHAVIOR: Load project updates lastModified timestamp automatically', async () => {

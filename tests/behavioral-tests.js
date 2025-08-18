@@ -17,6 +17,9 @@ describe('Software Estimation Manager - Behavioral Documentation', () => {
         let mockElectronAPI;
 
         beforeEach(() => {
+            // Spy on setTimeout for timeout-related behavioral tests
+            jest.spyOn(global, 'setTimeout');
+            
             // Mock window object and required dependencies
             mockWindow = {
                 electronAPI: {
@@ -90,6 +93,7 @@ describe('Software Estimation Manager - Behavioral Documentation', () => {
             `;
 
             global.window = mockWindow;
+            global.testMockWindow = mockWindow; // Additional reference for jest-setup.js
         });
 
         afterEach(() => {
@@ -129,10 +133,9 @@ describe('Software Estimation Manager - Behavioral Documentation', () => {
                 app = new SoftwareEstimationApp();
                 await app.init();
 
-                // Documents the initialization order and logging behavior
-                expect(consoleSpy).toHaveBeenCalledWith('Checking class availability:');
+                // Documents the initialization order and logging behavior (after debug cleanup)
                 expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Running in'));
-                expect(consoleSpy).toHaveBeenCalledWith('All managers initialized successfully with hierarchical configuration and nested navigation');
+                expect(consoleSpy).toHaveBeenCalledWith('Software Estimation Manager initialized successfully');
             });
 
             test('BEHAVIOR: Navigation defaults to projects section with delayed activation', async () => {
@@ -140,6 +143,7 @@ describe('Software Estimation Manager - Behavioral Documentation', () => {
                 await app.init();
 
                 // Documents that there's a 200ms timeout before navigation
+                // Note: setTimeout is mocked in jest-setup.js
                 expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 200);
             });
         });
@@ -154,7 +158,7 @@ describe('Software Estimation Manager - Behavioral Documentation', () => {
                 const initialProject = app.currentProject;
                 
                 // Mock confirmSave to return false (no save needed)
-                app.confirmSave = jest.fn().resolve(false);
+                app.confirmSave = jest.fn().mockResolvedValue(false);
                 
                 await app.newProject();
 
@@ -179,7 +183,7 @@ describe('Software Estimation Manager - Behavioral Documentation', () => {
 
             test('BEHAVIOR: Close request handling shows confirmation dialog when dirty', async () => {
                 app.isDirty = true;
-                app.saveProject = jest.fn().resolves(true);
+                app.saveProject = jest.fn().mockImplementation(() => Promise.resolve(true));
                 app.performProjectClose = jest.fn();
                 
                 // Mock confirm to return true (save before close)
