@@ -2128,39 +2128,12 @@ class CapacityManager extends BaseComponent {
                 return;
             }
         
-        console.log('Loading timeline chart - container found:', chartContainer);
-        
         // Generate real utilization data based on team member allocations
         const months = await this.calculateRealUtilizationData();
-        console.log('Timeline chart months data:', months.slice(0, 3)); // Log first 3 months
-        
-        // CRITICAL: Check January 2025 IMMEDIATELY after calculateRealUtilizationData returns
-        const jan2025Immediate = months.find(m => m.month.includes('Jan 25'));
-        console.log('🚨 Jan 2025 utilization IMMEDIATELY after calculateRealUtilizationData():', jan2025Immediate?.utilization);
-        
-        // Debug January 2025 data before template
-        const jan2025Data = months.find(m => m.month.includes('Jan 25'));
-        console.log('🔍 Jan 2025 data in months array:', jan2025Data);
-        console.log('🔍 Jan 2025 utilization value BEFORE template:', jan2025Data?.utilization);
-        
-        // DEEP CHECK: Let's verify the object hasn't been corrupted
-        if (jan2025Data) {
-            console.log('🧪 Jan 2025 object type:', typeof jan2025Data.utilization);
-            console.log('🧪 Jan 2025 object toString:', jan2025Data.utilization.toString());
-            console.log('🧪 Jan 2025 object === 0:', jan2025Data.utilization === 0);
-            console.log('🧪 Jan 2025 object === "0":', jan2025Data.utilization === "0");
-        }
         
         const chartHTML = `
             <div class="timeline-chart">
-                ${months.map((data, index) => {
-                    // CRITICAL DEBUG: Log exactly what we're processing
-                    if (data.month.includes('Jan 25')) {
-                        console.log(`🎯 Template processing Jan 25 [index ${index}]:`, data);
-                        console.log(`🎯 utilization type: ${typeof data.utilization}, value: "${data.utilization}"`);
-                        console.log(`🎯 Direct property access: ${data.utilization}`);
-                        console.log(`🎯 JSON.stringify result:`, JSON.stringify(data));
-                    }
+                ${months.map(data => {
                     return `
                     <div class="timeline-month">
                         <div class="month-bar">
@@ -2177,11 +2150,7 @@ class CapacityManager extends BaseComponent {
             </div>
         `;
 
-            console.log('Generated chart HTML length:', chartHTML.length);
-            console.log('Jan 2025 HTML snippet:', chartHTML.substring(chartHTML.indexOf('Jan 25'), chartHTML.indexOf('Jan 25') + 200));
-            
             chartContainer.innerHTML = chartHTML;
-            console.log('✅ Timeline chart successfully loaded with', this.loadedCapacityData ? 'LOADED' : 'SESSION', 'data');
             
         } catch (error) {
             console.error('❌ Error loading timeline chart:', error);
@@ -2206,18 +2175,8 @@ class CapacityManager extends BaseComponent {
             // Use loaded capacity data if available (like in generateRealAlerts)
             let teamMembers;
             if (this.loadedCapacityData) {
-                console.log('🎯 Using loaded capacity data for timeline chart');
                 teamMembers = this.loadedCapacityData.teamMembers || [];
-                console.log('📊 Loaded team members:', teamMembers.length);
-                
-                // Debug team members structure for January 2025
-                teamMembers.forEach(member => {
-                    if (member.allocations && member.allocations['2025-01']) {
-                        console.log(`🔍 Member ${member.firstName} ${member.lastName} has allocations for 2025-01:`, member.allocations['2025-01']);
-                    }
-                });
             } else {
-                console.log('⚠️ Using current session data for timeline chart (should be prevented now)');
                 teamMembers = await this.getRealTeamMembers();
             }
             
@@ -2236,18 +2195,6 @@ class CapacityManager extends BaseComponent {
                 // Fix: Create monthKey without timezone issues
                 const monthKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
                 
-                // Debug month calculation - check ALL months for debugging
-                console.log(`🔍 Loop ${i}: Year=${year}, MonthIndex=${monthIndex}, Object=${month.getMonth()+1}/${month.getFullYear()}, Key="${monthKey}", Str="${monthStr}"`);
-                
-                // Special debug for January 2025
-                if (monthKey === '2025-01') {
-                    console.log(`🎯 FOUND JANUARY 2025 MATCH at loop index: ${i}`);
-                    console.log(`🎯 Year: ${year}, Month Index: ${monthIndex}`);
-                    console.log(`🎯 Month object:`, month);
-                    console.log(`🎯 Actual month from object: ${month.getMonth() + 1}/${month.getFullYear()}`);
-                    console.log(`🎯 Month string: "${monthStr}"`);
-                    console.log(`🎯 Month key: "${monthKey}"`);
-                }
                 
                 // Calculate actual utilization based on team member allocations
                 let totalCapacity = 0;
@@ -2264,39 +2211,12 @@ class CapacityManager extends BaseComponent {
                             return sum + (project.days || 0);
                         }, 0);
                         totalAllocated += memberAllocated;
-                        
-                        // Debug for January 2025
-                        if (monthKey === '2025-01' && memberAllocated > 0) {
-                            console.log(`Timeline calculation ${monthKey}: ${member.firstName} ${member.lastName} allocated ${memberAllocated} days, capacity ${workingDays}`);
-                        }
                     }
                 });
                 
                 const utilization = totalCapacity > 0 ? Math.round((totalAllocated / totalCapacity) * 100) : 0;
                 
-                // Debug for January 2025
-                if (monthKey === '2025-01') {
-                    console.log(`Timeline ${monthKey} totals: allocated=${totalAllocated}, capacity=${totalCapacity}, utilization=${utilization}%`);
-                    console.log(`About to push Jan 2025 with utilization: ${utilization}%`);
-                }
-                
-                // Fix: Create completely immutable object to prevent any reference corruption
-                const immutableMonth = {
-                    month: String(monthStr),
-                    utilization: Number(utilization)
-                };
-                
-                // Deep clone to ensure no reference sharing
-                months.push(JSON.parse(JSON.stringify(immutableMonth)));
-                
-                // Debug what was actually pushed - DETAILED
-                if (monthKey === '2025-01') {
-                    const justPushed = months[months.length - 1];
-                    console.log(`Actually pushed Jan 2025 object:`, justPushed);
-                    console.log(`🔍 Pushed object utilization: ${justPushed.utilization}`);
-                    console.log(`🔍 Pushed object type: ${typeof justPushed.utilization}`);
-                    console.log(`🔍 Pushed object JSON:`, JSON.stringify(justPushed));
-                }
+                months.push({ month: monthStr, utilization });
             }
         } catch (error) {
             console.error('Error calculating utilization data:', error);
@@ -2304,7 +2224,7 @@ class CapacityManager extends BaseComponent {
             for (let i = 0; i < 15; i++) {
                 const month = new Date(currentYear, i, 1);
                 const monthStr = month.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-                months.push({ month: monthStr, utilization: Number(0) });
+                months.push({ month: monthStr, utilization: 0 });
             }
         }
         
@@ -2315,7 +2235,6 @@ class CapacityManager extends BaseComponent {
      * DESTROY & REBUILD timeline chart - clean solution for timeline bug
      */
     async destroyAndRebuildTimelineChart() {
-        console.log('🗑️ Destroying existing timeline chart container...');
         
         // Find the timeline container
         const timelineContainer = document.getElementById('timeline-overview-chart');
@@ -2333,7 +2252,6 @@ class CapacityManager extends BaseComponent {
         
         // Destroy the old container completely
         timelineContainer.remove();
-        console.log('✅ Old timeline container destroyed');
         
         // Create a brand new container
         const newTimelineContainer = document.createElement('div');
@@ -2342,56 +2260,32 @@ class CapacityManager extends BaseComponent {
         
         // Insert the new container in the same position
         parentContainer.appendChild(newTimelineContainer);
-        console.log('✅ New timeline container created');
         
         // Small delay to ensure DOM is updated
         await new Promise(resolve => setTimeout(resolve, 50));
         
         // Now generate the timeline chart with correct data
-        console.log('📊 Generating timeline chart with loaded capacity data...');
         await this.loadTimelineOverviewChart();
-        console.log('🎉 Timeline chart successfully rebuilt!');
     }
 
     /**
      * Validate that loaded capacity data contains expected allocations
      */
     validateCapacityAllocations(capacityData) {
-        console.log('🔍 Validating capacity data structure...');
-        
         const teamMembers = capacityData.teamMembers || [];
-        console.log(`📊 Found ${teamMembers.length} team members in capacity data`);
-        
         let jan2025Allocations = 0;
         let membersWithAllocations = 0;
         
         teamMembers.forEach(member => {
             if (member.allocations) {
                 membersWithAllocations++;
-                
                 if (member.allocations['2025-01']) {
                     jan2025Allocations++;
-                    const jan2025Data = member.allocations['2025-01'];
-                    const totalDays = Object.values(jan2025Data).reduce((sum, project) => sum + (project.days || 0), 0);
-                    
-                    console.log(`✅ ${member.firstName} ${member.lastName} has ${totalDays} days allocated in Jan 2025:`, jan2025Data);
                 }
             }
         });
         
-        console.log(`📈 Validation Summary:`);
-        console.log(`   - Team members with allocations: ${membersWithAllocations}/${teamMembers.length}`);
-        console.log(`   - Members with Jan 2025 allocations: ${jan2025Allocations}`);
-        
-        if (jan2025Allocations === 0) {
-            console.warn('⚠️ No January 2025 allocations found in capacity data!');
-        } else {
-            console.log(`✅ Found January 2025 allocations for ${jan2025Allocations} team members`);
-        }
-        
-        // Additional validation for manual assignments
         const manualAssignments = capacityData.manualAssignments || [];
-        console.log(`📋 Found ${manualAssignments.length} manual assignments in capacity data`);
         
         return {
             teamMembersCount: teamMembers.length,
@@ -10078,7 +9972,6 @@ class CapacityManager extends BaseComponent {
             this.manualAssignments = capacityData.manualAssignments || [];
             
             // DESTROY & REBUILD timeline chart with correct data - do this after setting manualAssignments
-            console.log('🔄 Destroying and rebuilding timeline chart with loaded capacity data...');
             await this.destroyAndRebuildTimelineChart();
             
             // Apply saved status from the loaded capacity data
