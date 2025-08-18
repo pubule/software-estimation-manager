@@ -139,8 +139,9 @@ npm run agents agent configuration-orchestrator --info
 ```bash
 npm run agents agent <agent-id> <task>
 
-# ✨ New analyst tasks:
-npm run agents agent functional-analyst requirements-gathering
+# ✨ Enhanced analyst tasks:
+npm run agents agent functional-analyst requirements-gathering "feature-name"         # Interactive mode
+npm run agents agent functional-analyst requirements-gathering-demo "feature-name"   # Demo mode
 npm run agents agent functional-analyst create-behavioral-tests
 npm run agents agent technical-analyst architecture-analysis
 npm run agents agent technical-analyst plan-step-definitions
