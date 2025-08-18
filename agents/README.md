@@ -103,27 +103,38 @@ node agent-runner.js agent technical-analyst architecture-analysis
 Each agent directory contains:
 - `agent-config.json` - Agent configuration and capabilities
 - `prompts/` - Specialized prompts for the agent's domain
-- `tools/` - Agent-specific tools and utilities (✨ **New: Test generators**)
+- `tools/` - Agent-specific tools and utilities
+  - ✨ **New: Jest Test Generator** - Creates behavioral test suites from requirements
+  - ✨ **New: Cucumber Feature Generator** - Generates Gherkin scenarios
 - `workflows/` - Predefined workflows for common scenarios
+- ✨ **New: Interactive Session Management**
+  - `interactive-session.js` - Real-time requirements gathering system
+  - `demo-session.js` - Automated demonstration mode
+  - `demo-responses.js` - Pre-defined realistic scenarios
 
 ## Integration
 
 Agents integrate with the existing development workflow:
 - Uses existing test infrastructure (Jest, Cucumber, Playwright)
-- ✨ **New: Creates behavioral tests and Cucumber features automatically**
+- ✨ **Enhanced: Creates behavioral tests and Cucumber features automatically from interactive sessions**
+- ✨ **New: Interactive Requirements Gathering** - Real-time business analysis through structured questions
+- ✨ **New: Demo Mode** - Automated demonstrations with realistic responses
+- ✨ **New: Test-First Requirements** - Requirements captured as executable tests
 - Follows established code conventions and patterns
 - Respects the critical script loading order
 - Works with the hierarchical configuration system
-- ✨ **New: Interactive user approval gates**
+- ✨ **Enhanced: Interactive user approval gates with generated test review**
 
 ## Getting Started
 
-### Recommended Approach (Updated)
+### Recommended Approach (Enhanced)
 
-1. **Start with Guided Development**: Use `test-driven-feature` command for new features
-2. **Analyst-First Workflow**: Let functional and technical analysts guide your development
-3. **User Validation**: Review and approve test scenarios before implementation
-4. **TDD Implementation**: Follow the pre-written, validated tests
+1. **Start with Interactive Analysis**: Use functional analyst with interactive requirements gathering
+2. **Demo Mode Available**: Test the system with `requirements-gathering-demo` for demonstrations
+3. **Test-First Development**: Requirements become executable tests before any code is written
+4. **User Validation Gate**: Review and approve generated tests before implementation starts
+5. **Guided TDD Implementation**: Follow the pre-written, user-validated tests
+6. **Living Documentation**: Tests serve as always-current feature documentation
 
 ### Legacy Approach
 
@@ -134,20 +145,26 @@ Agents integrate with the existing development workflow:
 
 ## ✨ Key Benefits of the Enhanced System
 
-- **Test-First Requirements**: Requirements defined through executable tests
-- **User Validation**: Approve behavior through tests before implementation
+- **Interactive Requirements Analysis**: Structured questions ensure comprehensive business understanding
+- **Demo Mode**: Demonstrate capabilities without user input for testing and presentations
+- **Test-First Requirements**: Requirements defined through executable tests before any coding
+- **User Validation Gate**: Approve behavior through generated tests before implementation starts
 - **Clear Success Criteria**: Tests define exactly when feature is "done"
-- **Living Documentation**: Cucumber + Jest create self-documenting code
-- **Reduced Ambiguity**: Tests eliminate requirements ambiguity
-- **Quality from Start**: Quality integrated from analysis phase
+- **Living Documentation**: Cucumber + Jest create self-documenting, always-current code
+- **Reduced Ambiguity**: Interactive questions eliminate requirements interpretation errors
+- **Quality from Start**: Quality and testing integrated from the analysis phase
+- **Realistic Test Scenarios**: Generated tests include real business workflows and edge cases
 
 ## Important Notes
 
-- **✨ New for this codebase**: Functional Analyst creates behavioral tests that serve as requirements
+- **✨ Enhanced for this codebase**: Functional Analyst now provides interactive requirements gathering with real-time test generation
+- **✨ New**: Demo mode available for testing and demonstration without user input
+- **✨ New**: Interactive sessions create comprehensive behavioral tests from business conversations
 - **✨ Enhanced**: Technical Analyst ensures architectural compliance from design phase
 - **Critical for this codebase**: Architecture Guardian Agent prevents "BaseComponent is not defined" errors
 - **App-specific**: Configuration Orchestrator handles the complex hierarchical config system
 - **Platform-aware**: Electron Integration Agent handles cross-platform concerns
+- **✨ New**: Test artifacts generated include Jest behavioral tests and Cucumber features
 
 ## Available Commands
 
@@ -157,7 +174,8 @@ node agent-runner.js test-driven-feature <feature-name>    # Start guided develo
 node agent-runner.js workflow test_driven_feature_development
 
 # Individual analyst commands
-node agent-runner.js agent functional-analyst requirements-gathering
+node agent-runner.js agent functional-analyst requirements-gathering "feature-name"     # Interactive mode
+node agent-runner.js agent functional-analyst requirements-gathering-demo "feature-name" # Demo mode
 node agent-runner.js agent functional-analyst create-behavioral-tests
 node agent-runner.js agent technical-analyst architecture-analysis
 node agent-runner.js agent technical-analyst plan-step-definitions

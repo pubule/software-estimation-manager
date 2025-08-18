@@ -1,8 +1,8 @@
 # AI Agents - Quick Start Guide
 
-## 🚀 Getting Started with Enhanced Guided TDD
+## 🚀 Getting Started with Interactive Requirements & Enhanced Guided TDD
 
-Your AI agent system is now ready with **enhanced guided test-driven development**! Here's how to start using it immediately:
+Your AI agent system is now ready with **interactive requirements gathering and enhanced guided test-driven development**! Here's how to start using it immediately:
 
 ### 1. List Available Agents (Including New Analysts!)
 ```bash
@@ -11,9 +11,15 @@ npm run agents:list
 npm run agents list
 ```
 
-### 2. ✨ Start Guided Feature Development (RECOMMENDED)
+### 2. ✨ Start Interactive Requirements Gathering (HIGHLY RECOMMENDED)
 ```bash
-# New guided approach - Creates tests before implementation
+# Interactive mode - Real-time requirements gathering with user input
+npm run agents agent functional-analyst requirements-gathering "user-authentication"
+
+# Demo mode - Automated demonstration with realistic responses
+npm run agents agent functional-analyst requirements-gathering-demo "user-authentication"
+
+# Complete guided workflow (includes interactive requirements)
 npm run agents test-driven-feature "user-authentication"
 
 # Traditional TDD approach (still available)
@@ -34,15 +40,28 @@ npm run agents:test
 npm run agents test
 ```
 
-## 🎯 Priority 1 - Start Here (Updated!)
+## 🎯 Priority 1 - Start Here (Enhanced!)
 
-### ✨ Functional Analyst (NEW - RECOMMENDED FIRST!)
-**What it does**: Gathers business requirements and creates behavioral tests
+### ✨ Functional Analyst (ENHANCED - START HERE!)
+**What it does**: Interactive business requirements gathering and automatic test generation
 ```bash
 npm run agents agent functional-analyst --info
-npm run agents agent functional-analyst requirements-gathering
-npm run agents test-driven-feature "new-feature"  # Uses functional analyst
+
+# Interactive requirements gathering (RECOMMENDED)
+npm run agents agent functional-analyst requirements-gathering "feature-name"
+
+# Demo mode for testing/demonstration
+npm run agents agent functional-analyst requirements-gathering-demo "user-authentication"
+
+# Complete guided workflow with interactive analysis
+npm run agents test-driven-feature "new-feature"
 ```
+
+**✨ New Features:**
+- **Interactive Sessions**: Real-time business analysis through structured questions
+- **Demo Mode**: Automated demonstrations with realistic responses  
+- **Test Generation**: Automatic Jest behavioral tests and Cucumber features
+- **User Validation**: Review and approve tests before implementation
 
 ### ✨ Technical Analyst (NEW - SECOND!)
 **What it does**: Analyzes architecture and plans step definitions
