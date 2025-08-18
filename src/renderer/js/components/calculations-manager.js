@@ -1432,21 +1432,51 @@ class CapacityManager extends BaseComponent {
                         </div>
                     </div>
 
-                    <!-- Resource Allocation Chart -->
-                    <div class="analytics-card resource-allocation-chart">
+                    <!-- Resource Availability Matrix -->
+                    <div class="analytics-card resource-availability-matrix">
                         <div class="card-header">
-                            <h3><i class="fas fa-chart-pie"></i> Resource Allocation by Project</h3>
+                            <h3><i class="fas fa-users-cog"></i> Resource Availability Matrix</h3>
                             <div class="card-actions">
-                                <select id="allocation-timeframe" class="filter-select">
-                                    <option value="current-month">Current Month</option>
-                                    <option value="next-month">Next Month</option>
-                                    <option value="current-quarter">Current Quarter</option>
-                                </select>
+                                <div class="matrix-filters">
+                                    <select id="matrix-team-filter" class="filter-select">
+                                        <option value="">All Teams</option>
+                                        <option value="vendor-a">Vendor A</option>
+                                        <option value="internal">Internal</option>
+                                    </select>
+                                    <select id="matrix-timeframe" class="filter-select">
+                                        <option value="3">Next 3 Months</option>
+                                        <option value="6">Next 6 Months</option>
+                                        <option value="12">Next 12 Months</option>
+                                    </select>
+                                    <select id="matrix-view-mode" class="filter-select">
+                                        <option value="capacity">Capacity View</option>
+                                        <option value="skills">Skills View</option>
+                                        <option value="projects">Projects View</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div class="card-content">
-                            <div class="allocation-chart-container allocation-chart-scrollable" id="allocation-chart">
-                                <!-- Chart will be generated here -->
+                            <div class="availability-matrix-container" id="availability-matrix">
+                                <!-- Matrix will be generated here -->
+                            </div>
+                            <div class="matrix-legend">
+                                <div class="legend-item">
+                                    <span class="legend-color available"></span>
+                                    <span>Available (&lt; 80%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-color busy"></span>
+                                    <span>Busy (80-100%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-color overloaded"></span>
+                                    <span>Overloaded (&gt; 100%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-color vacation"></span>
+                                    <span>Vacation/Leave</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1474,10 +1504,29 @@ class CapacityManager extends BaseComponent {
             refreshBtn.addEventListener('click', async () => await this.loadDashboardData());
         }
 
-        // Allocation timeframe filter
-        const allocationTimeframe = document.getElementById('allocation-timeframe');
-        if (allocationTimeframe) {
-            allocationTimeframe.addEventListener('change', () => this.updateAllocationChart());
+        // Matrix filters
+        const matrixTeamFilter = document.getElementById('matrix-team-filter');
+        const matrixTimeframe = document.getElementById('matrix-timeframe');
+        const matrixViewMode = document.getElementById('matrix-view-mode');
+        
+        if (matrixTeamFilter) {
+            matrixTeamFilter.addEventListener('change', () => this.loadAvailabilityMatrix());
+        }
+        
+        if (matrixTimeframe) {
+            matrixTimeframe.addEventListener('change', () => this.loadAvailabilityMatrix());
+        }
+        
+        if (matrixViewMode) {
+            matrixViewMode.addEventListener('change', () => this.loadAvailabilityMatrix());
+        }
+        
+        // Matrix cell click events
+        const matrixContainer = document.querySelector('.resource-availability-matrix');
+        if (matrixContainer) {
+            matrixContainer.addEventListener('cellClick', (event) => {
+                this.handleMatrixCellClick(event.detail);
+            });
         }
     }
 
@@ -1498,7 +1547,7 @@ class CapacityManager extends BaseComponent {
         await this.loadAlertsData();
         
         // Load analytics charts
-        this.loadAllocationChart();
+        this.loadAvailabilityMatrix();
         
         // Only load timeline chart if we have capacity data loaded
         // This prevents the problematic first call with empty session data
@@ -1981,122 +2030,432 @@ class CapacityManager extends BaseComponent {
         }
     }
 
-    // Load Allocation Chart
-    async loadAllocationChart() {
-        const chartContainer = document.getElementById('allocation-chart');
+    // Load Availability Matrix
+    async loadAvailabilityMatrix() {
+        const matrixContainer = document.getElementById('availability-matrix');
+        if (!matrixContainer) return;
         
-        // Get real team members and calculate project allocations
+        // Get filters
+        const teamFilter = document.getElementById('matrix-team-filter')?.value || '';
+        const timeframeMonths = parseInt(document.getElementById('matrix-timeframe')?.value) || 3;
+        const viewMode = document.getElementById('matrix-view-mode')?.value || 'capacity';
+        
+        // Get team members data
         const teamMembers = await this.getRealTeamMembers();
-        const currentMonth = '2025-08'; // Could be dynamic based on the filter
+        if (!teamMembers || teamMembers.length === 0) {
+            matrixContainer.innerHTML = '<div class="no-data">No team members data available</div>';
+            return;
+        }
         
-        // Process allocations by project and resource
-        const projectAllocations = {};
+        // Filter team members if needed
+        const filteredMembers = teamFilter ? 
+            teamMembers.filter(member => member.vendor === teamFilter) : 
+            teamMembers;
+        
+        // Generate matrix based on view mode
+        let matrixHTML = '';
+        
+        switch (viewMode) {
+            case 'capacity':
+                matrixHTML = this.generateCapacityMatrix(filteredMembers, timeframeMonths);
+                break;
+            case 'skills':
+                matrixHTML = this.generateSkillsMatrix(filteredMembers, timeframeMonths);
+                break;
+            case 'projects':
+                matrixHTML = this.generateProjectsMatrix(filteredMembers, timeframeMonths);
+                break;
+        }
+        
+        matrixContainer.innerHTML = matrixHTML;
+    }
+    
+    // Generate Capacity Matrix
+    generateCapacityMatrix(teamMembers, timeframeMonths) {
+        // Generate month headers starting from current month
+        const currentDate = new Date();
+        const monthHeaders = [];
+        
+        for (let i = 0; i < timeframeMonths; i++) {
+            const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+            const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+            const monthLabel = monthDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            monthHeaders.push({ key: monthKey, label: monthLabel });
+        }
+        
+        // Generate matrix rows
+        let matrixRows = '';
         
         teamMembers.forEach(member => {
-            const monthAllocations = member.allocations[currentMonth];
-            if (!monthAllocations) return;
+            let memberRow = `
+                <tr class="matrix-row" data-member-id="${member.id}">
+                    <td class="matrix-member-cell">
+                        <div class="member-info">
+                            <div class="member-name">${member.firstName} ${member.lastName}</div>
+                            <div class="member-details">
+                                <span class="member-role">${member.role}</span>
+                                <span class="member-vendor">${member.vendor}</span>
+                            </div>
+                        </div>
+                    </td>
+            `;
             
-            Object.keys(monthAllocations).forEach(projectName => {
-                // Skip non-project items like FERIE, ALLINEAMENTO, etc.
-                if (['FERIE', 'ALLINEAMENTO', 'Training'].includes(projectName)) {
-                    return;
-                }
+            monthHeaders.forEach(({ key: monthKey }) => {
+                const utilization = this.calculateMonthUtilization(member, monthKey);
+                const cellClass = this.getUtilizationClass(utilization);
+                const cellContent = this.getUtilizationContent(member, monthKey, utilization);
                 
-                if (!projectAllocations[projectName]) {
-                    projectAllocations[projectName] = [];
-                }
-                
-                const allocation = monthAllocations[projectName];
-                projectAllocations[projectName].push({
-                    resource: `${member.firstName} ${member.lastName}`,
-                    role: member.role,
-                    vendor: member.vendor,
-                    days: allocation.days,
-                    status: allocation.status,
-                    hasOverflow: allocation.hasOverflow || false,
-                    phases: allocation.phases || []
-                });
-            });
-        });
-
-        // Sort projects by total MDs (descending)
-        const sortedProjects = Object.entries(projectAllocations).sort((a, b) => {
-            const totalA = a[1].reduce((sum, resource) => sum + resource.days, 0);
-            const totalB = b[1].reduce((sum, resource) => sum + resource.days, 0);
-            return totalB - totalA;
-        });
-
-        // Generate HTML table with rowspan for project column
-        let tableRows = '';
-        
-        sortedProjects.forEach(([projectName, resources]) => {
-            const totalDays = resources.reduce((sum, resource) => sum + resource.days, 0);
-            const approvedCount = resources.filter(r => r.status === 'approved').length;
-            const pendingCount = resources.length - approvedCount;
-            const resourceCount = resources.length;
-            const hasAnyOverflow = resources.some(r => r.hasOverflow);
-            
-            resources.forEach((resource, index) => {
-                const isFirstRow = index === 0;
-                
-                tableRows += `
-                    <tr class="allocation-chart-row ${isFirstRow ? 'project-first-row' : ''} ${resource.hasOverflow ? 'overflow-row' : ''}">
-                        ${isFirstRow ? `
-                            <td class="allocation-cell-project" rowspan="${resourceCount}">
-                                <div class="allocation-project-info">
-                                    <span class="allocation-project-name">${projectName}</span>
-                                    <div class="allocation-project-summary">
-                                        <span class="allocation-project-total ${hasAnyOverflow ? 'overflow' : ''}">${totalDays} MDs</span>
-                                        <span class="allocation-project-resources">${resources.length} resources</span>
-                                        <div class="allocation-project-status">
-                                            ${approvedCount > 0 ? `<span class="approved-count">${approvedCount} ✓</span>` : ''}
-                                            ${pendingCount > 0 ? `<span class="pending-count">${pendingCount} ⏳</span>` : ''}
-                                            ${hasAnyOverflow ? `<span class="overflow-indicator">⚠️ Overflow</span>` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                        ` : ''}
-                        <td class="allocation-cell-resource">${resource.resource}</td>
-                        <td class="allocation-cell-role">${resource.role}</td>
-                        <td class="allocation-cell-vendor">${resource.vendor}</td>
-                        <td class="allocation-cell-days">
-                            <span class="allocation-days-value ${resource.status} ${resource.hasOverflow ? 'overflow' : ''}">${resource.days}</span>
-                            ${resource.phases && resource.phases.length > 0 ? 
-                                `<div class="allocation-phases">${resource.phases.map(p => p.phaseName).join(', ')}</div>` : 
-                                ''
-                            }
-                        </td>
-                        <td class="allocation-cell-status">
-                            <span class="allocation-status-badge ${resource.status}">
-                                ${resource.status === 'approved' ? '✓' : '✗'}
-                            </span>
-                            ${resource.hasOverflow ? '<span class="overflow-badge">⚠️</span>' : ''}
-                        </td>
-                    </tr>
+                memberRow += `
+                    <td class="matrix-cell ${cellClass}" 
+                        data-month="${monthKey}" 
+                        data-member="${member.id}"
+                        onclick="this.closest('.resource-availability-matrix').dispatchEvent(new CustomEvent('cellClick', {detail: {memberId: '${member.id}', month: '${monthKey}', utilization: ${utilization.percentage}}}))">
+                        ${cellContent}
+                    </td>
                 `;
             });
+            
+            memberRow += '</tr>';
+            matrixRows += memberRow;
         });
-
-        const chartHTML = `
-            <table class="allocation-chart-table">
+        
+        // Generate table
+        return `
+            <table class="availability-matrix-table">
                 <thead>
                     <tr>
-                        <th class="allocation-header-project">Project</th>
-                        <th class="allocation-header-resource">Resource</th>
-                        <th class="allocation-header-role">Role</th>
-                        <th class="allocation-header-vendor">Vendor</th>
-                        <th class="allocation-header-days">Days</th>
-                        <th class="allocation-header-status">Status</th>
+                        <th class="matrix-header-member">Team Member</th>
+                        ${monthHeaders.map(month => `<th class="matrix-header-month">${month.label}</th>`).join('')}
                     </tr>
                 </thead>
                 <tbody>
-                    ${tableRows}
+                    ${matrixRows}
                 </tbody>
             </table>
         `;
-
-        chartContainer.innerHTML = chartHTML || '<div class="no-data">No project allocations found for the selected period</div>';
+    }
+    
+    // Calculate month utilization for a team member
+    calculateMonthUtilization(member, monthKey) {
+        const allocations = member.allocations?.[monthKey];
+        if (!allocations) {
+            return { percentage: 0, allocated: 0, capacity: member.monthlyCapacity || 22, hasVacation: false };
+        }
+        
+        let totalAllocated = 0;
+        let hasVacation = false;
+        let realMonthCapacity = member.monthlyCapacity || 22; // Default fallback
+        const projects = [];
+        
+        Object.keys(allocations).forEach(projectName => {
+            const allocation = allocations[projectName];
+            
+            if (projectName === 'FERIE') {
+                hasVacation = true;
+            } else {
+                totalAllocated += allocation.days || 0;
+                
+                // Use realCapacityInMonth from the first project allocation if available
+                if (allocation.realCapacityInMonth && !projects.length) {
+                    realMonthCapacity = allocation.realCapacityInMonth;
+                }
+                
+                if (allocation.days > 0) {
+                    projects.push({
+                        name: projectName,
+                        days: allocation.days,
+                        status: allocation.status || 'approved'
+                    });
+                }
+            }
+        });
+        
+        const percentage = Math.round((totalAllocated / realMonthCapacity) * 100);
+        
+        return {
+            percentage,
+            allocated: totalAllocated,
+            capacity: realMonthCapacity,
+            hasVacation,
+            projects
+        };
+    }
+    
+    // Get CSS class based on utilization
+    getUtilizationClass(utilization) {
+        if (utilization.hasVacation) return 'vacation';
+        if (utilization.percentage === 0) return 'available';
+        if (utilization.percentage < 80) return 'available';
+        if (utilization.percentage <= 100) return 'busy';
+        return 'overloaded';
+    }
+    
+    // Get cell content based on utilization
+    getUtilizationContent(member, monthKey, utilization) {
+        if (utilization.hasVacation) {
+            return `
+                <div class="cell-content">
+                    <div class="utilization-text">Vacation</div>
+                </div>
+            `;
+        }
+        
+        if (utilization.percentage === 0) {
+            return `
+                <div class="cell-content">
+                    <div class="utilization-percentage">0%</div>
+                    <div class="utilization-text">Available</div>
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="cell-content">
+                <div class="utilization-percentage">${utilization.percentage}%</div>
+                <div class="utilization-details">${utilization.allocated}/${utilization.capacity} days</div>
+            </div>
+        `;
+    }
+    
+    // Generate Skills Matrix (placeholder)
+    generateSkillsMatrix(teamMembers, timeframeMonths) {
+        // Group by role/skill
+        const roleGroups = {};
+        teamMembers.forEach(member => {
+            if (!roleGroups[member.role]) {
+                roleGroups[member.role] = [];
+            }
+            roleGroups[member.role].push(member);
+        });
+        
+        let skillsHTML = '<div class="skills-matrix">';
+        
+        Object.keys(roleGroups).forEach(role => {
+            const members = roleGroups[role];
+            const availableCount = members.filter(m => {
+                // Check if member has availability in next 3 months
+                const nextMonth = new Date().getMonth() + 1;
+                const year = new Date().getFullYear();
+                const monthKey = `${year}-${String(nextMonth).padStart(2, '0')}`;
+                const util = this.calculateMonthUtilization(m, monthKey);
+                return util.percentage < 80;
+            }).length;
+            
+            skillsHTML += `
+                <div class="skill-group">
+                    <div class="skill-header">
+                        <h4>${role}</h4>
+                        <span class="skill-availability">${availableCount}/${members.length} available</span>
+                    </div>
+                    <div class="skill-members">
+                        ${members.map(m => `
+                            <div class="skill-member ${availableCount > 0 ? 'available' : 'busy'}">
+                                ${m.firstName} ${m.lastName} (${m.vendor})
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+        
+        skillsHTML += '</div>';
+        return skillsHTML;
+    }
+    
+    // Generate Projects Matrix (placeholder)
+    generateProjectsMatrix(teamMembers, timeframeMonths) {
+        // Get all projects from allocations
+        const projects = new Set();
+        teamMembers.forEach(member => {
+            Object.keys(member.allocations || {}).forEach(month => {
+                Object.keys(member.allocations[month] || {}).forEach(project => {
+                    if (!['FERIE', 'ALLINEAMENTO', 'Training'].includes(project)) {
+                        projects.add(project);
+                    }
+                });
+            });
+        });
+        
+        let projectsHTML = '<div class="projects-matrix">';
+        
+        Array.from(projects).forEach(project => {
+            const projectMembers = teamMembers.filter(member => {
+                return Object.keys(member.allocations || {}).some(month => 
+                    member.allocations[month][project]?.days > 0
+                );
+            });
+            
+            projectsHTML += `
+                <div class="project-group">
+                    <div class="project-header">
+                        <h4>${project}</h4>
+                        <span class="project-members">${projectMembers.length} members</span>
+                    </div>
+                    <div class="project-team">
+                        ${projectMembers.map(m => `
+                            <div class="project-member">
+                                ${m.firstName} ${m.lastName} (${m.role})
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+        
+        projectsHTML += '</div>';
+        return projectsHTML;
+    }
+    
+    // Handle Matrix Cell Click for drill-down
+    handleMatrixCellClick(details) {
+        const { memberId, month, utilization } = details;
+        
+        // Create and show modal with detailed information
+        this.showMemberDetailModal(memberId, month, utilization);
+    }
+    
+    // Show Member Detail Modal
+    async showMemberDetailModal(memberId, month, utilization) {
+        // Get team member data
+        const teamMembers = await this.getRealTeamMembers();
+        const member = teamMembers.find(m => m.id === memberId);
+        
+        if (!member) {
+            console.error('Member not found:', memberId);
+            return;
+        }
+        
+        // Get utilization details for the month
+        const utilizationData = this.calculateMonthUtilization(member, month);
+        
+        // Create modal content
+        const modalContent = `
+            <div class="member-detail-modal">
+                <div class="member-detail-header">
+                    <div class="member-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="member-info">
+                        <h3>${member.firstName} ${member.lastName}</h3>
+                        <div class="member-meta">
+                            <span class="member-role">${member.role}</span>
+                            <span class="member-vendor">${member.vendor}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="member-detail-content">
+                    <div class="month-summary">
+                        <h4>📅 ${this.formatMonth(month)} Summary</h4>
+                        <div class="summary-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Utilization:</span>
+                                <span class="stat-value ${this.getUtilizationClass(utilizationData)}">${utilizationData.percentage}%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Allocated:</span>
+                                <span class="stat-value">${utilizationData.allocated} days</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Capacity:</span>
+                                <span class="stat-value">${utilizationData.capacity} days</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Available:</span>
+                                <span class="stat-value">${utilizationData.capacity - utilizationData.allocated} days</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${utilizationData.hasVacation ? `
+                        <div class="vacation-notice">
+                            <i class="fas fa-umbrella-beach"></i>
+                            <span>This member has vacation planned for this month</span>
+                        </div>
+                    ` : ''}
+                    
+                    ${utilizationData.projects && utilizationData.projects.length > 0 ? `
+                        <div class="projects-allocation">
+                            <h4>🎯 Project Allocations</h4>
+                            <div class="projects-list">
+                                ${utilizationData.projects.map(project => `
+                                    <div class="project-allocation-item">
+                                        <div class="project-name">${project.name}</div>
+                                        <div class="project-details">
+                                            <span class="project-days">${project.days} days</span>
+                                            <span class="project-status ${project.status}">${project.status}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="no-projects">
+                            <i class="fas fa-calendar-check"></i>
+                            <span>No project allocations for this month</span>
+                        </div>
+                    `}
+                    
+                    <div class="quick-actions">
+                        <h4>⚡ Quick Actions</h4>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" onclick="window.app?.managers?.calculations?.viewMemberCapacity('${memberId}')">
+                                <i class="fas fa-calendar-alt"></i> View Full Calendar
+                            </button>
+                            <button class="btn btn-secondary" onclick="window.app?.managers?.calculations?.editMemberCapacity('${memberId}')">
+                                <i class="fas fa-edit"></i> Edit Capacity
+                            </button>
+                            ${utilizationData.percentage < 80 ? `
+                                <button class="btn btn-primary" onclick="window.app?.managers?.calculations?.assignToProject('${memberId}')">
+                                    <i class="fas fa-plus"></i> Assign to Project
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Show modal using existing modal system
+        if (window.ModalManager) {
+            window.ModalManager.show({
+                title: `${member.firstName} ${member.lastName} - ${this.formatMonth(month)}`,
+                content: modalContent,
+                size: 'large',
+                closeButton: true
+            });
+        } else {
+            // Fallback: simple alert with basic info
+            alert(`${member.firstName} ${member.lastName} - ${this.formatMonth(month)}\n\nUtilization: ${utilizationData.percentage}%\nAllocated: ${utilizationData.allocated}/${utilizationData.capacity} days`);
+        }
+    }
+    
+    // Format month for display
+    formatMonth(monthKey) {
+        const [year, month] = monthKey.split('-');
+        const date = new Date(parseInt(year), parseInt(month) - 1);
+        return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+    
+    // Placeholder functions for quick actions
+    viewMemberCapacity(memberId) {
+        console.log('View member capacity:', memberId);
+        // Navigate to capacity timeline focused on this member
+        if (window.app?.navigationManager) {
+            window.app.navigationManager.navigateTo('capacity-timeline');
+        }
+    }
+    
+    editMemberCapacity(memberId) {
+        console.log('Edit member capacity:', memberId);
+        // Open capacity editing interface
+        alert('Member capacity editing feature would open here');
+    }
+    
+    assignToProject(memberId) {
+        console.log('Assign to project:', memberId);
+        // Open project assignment interface
+        alert('Project assignment interface would open here');
     }
 
     // Load Timeline Overview Chart
@@ -2125,7 +2484,7 @@ class CapacityManager extends BaseComponent {
                     return `
                     <div class="timeline-month">
                         <div class="month-bar">
-                            <div class="month-fill ${this.getUtilizationClass(data.utilization)}" 
+                            <div class="month-fill ${this.getTimelineUtilizationClass(data.utilization)}" 
                                  style="height: ${data.utilization}%;"
                                  title="${data.month}: ${data.utilization}% utilization">
                             </div>
@@ -2312,8 +2671,8 @@ class CapacityManager extends BaseComponent {
         }
     }
 
-    // Get Utilization Class
-    getUtilizationClass(percentage) {
+    // Get Utilization Class (legacy - for timeline chart)
+    getTimelineUtilizationClass(percentage) {
         if (percentage >= 90) return 'over-capacity';
         if (percentage >= 80) return 'high-capacity';
         if (percentage >= 60) return 'normal-capacity';
@@ -2325,7 +2684,7 @@ class CapacityManager extends BaseComponent {
     updateAllocationChart() {
         // For now, just reload the chart
         // In a real implementation, this would fetch different data based on timeframe
-        this.loadAllocationChart();
+        this.loadAvailabilityMatrix();
     }
 
     /**
