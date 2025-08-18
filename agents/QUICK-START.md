@@ -168,30 +168,47 @@ npm run agents agent architecture-guardian validate-all
 
 ## 🔄 Enhanced TDD Workflow Example
 
-### ✨ Recommended Guided Approach (NEW!)
+### ✨ Recommended Interactive Approach (ENHANCED!)
 
-1. **Start guided feature development**:
+1. **Start with interactive requirements gathering**:
    ```bash
+   # Interactive mode - real-time business analysis
+   npm run agents agent functional-analyst requirements-gathering "project-templates"
+   
+   # OR Demo mode - automated demonstration
+   npm run agents agent functional-analyst requirements-gathering-demo "user-authentication"
+   
+   # OR Complete guided workflow
    npm run agents test-driven-feature "project-templates"
    ```
-   This will:
-   - Gather business requirements interactively
-   - Create behavioral tests automatically
-   - Generate Cucumber feature files
-   - Plan technical implementation
-   - **Wait for your approval before coding!**
+   
+   **Interactive Mode Features:**
+   - Real-time structured business questions
+   - Business context analysis
+   - User workflow mapping
+   - Validation rules definition
+   - Integration points identification
+   - Error scenario analysis
+   - **Automatic test generation** (Jest + Cucumber)
+   - **User approval gate** before implementation
 
 2. **Architecture validation** (automatically included in workflow):
    ```bash
    npm run agents validate
    ```
 
-3. **Implementation** (guided by pre-written tests):
-   - Tests are already created and validated
+3. **Review Generated Tests**:
+   - Review Jest behavioral tests
+   - Review Cucumber feature files  
+   - Validate business requirements captured in tests
+   - **Approve before implementation starts**
+
+4. **Implementation** (guided by pre-written, validated tests):
+   - Tests are already created and user-approved
    - Code to make tests pass
    - Automatic architectural compliance checking
 
-4. **Final validation**:
+5. **Final validation**:
    ```bash
    npm run agents test
    ```
@@ -229,32 +246,46 @@ npm run agents list
 # Shows all agents with status indicators (✅ ready, ❌ needs setup)
 ```
 
-## 🚨 Important Notes (Updated!)
+## 🚨 Important Notes (Enhanced!)
 
-1. **✨ Start with Guided Development** - Use `test-driven-feature` for new features
-2. **✨ Analysts Create Tests First** - Requirements become executable tests
-3. **✨ User Approval Required** - You approve tests before any code is written
-4. **Architecture Guardian is CRITICAL** - Run it before any development to prevent component loading errors
-5. **Configuration Orchestrator** - Essential for your hierarchical config system  
-6. **Script Loading Order** - Always validate when modifying HTML files
-7. **Component Inheritance** - Ensure all components extend BaseComponent properly
+1. **✨ Start with Interactive Requirements** - Use `requirements-gathering` for comprehensive business analysis
+2. **✨ Demo Mode Available** - Use `requirements-gathering-demo` for testing and demonstrations
+3. **✨ Test-First Development** - Requirements become executable tests before any coding
+4. **✨ User Approval Gate** - Review and approve generated tests before implementation starts
+5. **✨ Living Documentation** - Generated tests serve as always-current feature documentation
+6. **Architecture Guardian is CRITICAL** - Run it before any development to prevent component loading errors
+7. **Configuration Orchestrator** - Essential for your hierarchical config system  
+8. **Script Loading Order** - Always validate when modifying HTML files
+9. **Component Inheritance** - Ensure all components extend BaseComponent properly
 
 ## 🔧 Integration with Development
 
-### ✨ Before Starting Development (NEW APPROACH)
+### ✨ Before Starting Development (ENHANCED APPROACH)
 ```bash
-npm run agents test-driven-feature "feature-name"  # Guided approach
-# OR
-npm run agents validate  # Traditional validation
+# Interactive requirements gathering (RECOMMENDED)
+npm run agents agent functional-analyst requirements-gathering "feature-name"
+
+# OR Demo mode for testing/demonstration
+npm run agents agent functional-analyst requirements-gathering-demo "feature-name"
+
+# OR Complete guided workflow
+npm run agents test-driven-feature "feature-name"
+
+# OR Traditional validation only
+npm run agents validate
 ```
 
-### ✨ During Guided Development (NEW)
+### ✨ During Interactive Development (ENHANCED)
 ```bash
-# The workflow will guide you through:
-# 1. Requirements gathering (interactive)
-# 2. Test creation (automatic)
-# 3. Your approval (manual checkpoint)
-# 4. Implementation (guided by tests)
+# The interactive workflow guides you through:
+# 1. Business context questions (interactive/demo)
+# 2. User workflow analysis (structured questions)
+# 3. Validation rules definition (comprehensive)
+# 4. Integration points identification (systematic)
+# 5. Error scenario analysis (thorough)
+# 6. Test generation (automatic Jest + Cucumber)
+# 7. Your approval (manual checkpoint with test review)
+# 8. Implementation (guided by validated tests)
 ```
 
 ### During Traditional TDD Development
@@ -277,11 +308,12 @@ npm run agents agent architecture-guardian validate-all
 ## 📚 Next Steps (Updated!)
 
 ### Recommended Learning Path
-1. **Try the Guided Workflow**: `npm run agents test-driven-feature "small-feature"`
-2. **Experience Analyst Interaction**: See how requirements become tests
-3. **Validate at Approval Gate**: Review tests before implementation
-4. **Follow TDD Implementation**: Code guided by pre-written tests
-5. **Integrate into Daily Workflow**: Use guided approach for all new features
+1. **Try Demo Mode First**: `npm run agents agent functional-analyst requirements-gathering-demo "user-authentication"`
+2. **Experience Interactive Requirements**: `npm run agents agent functional-analyst requirements-gathering "small-feature"`
+3. **Review Generated Tests**: See how business conversations become executable tests
+4. **Validate at Approval Gate**: Review and approve tests before implementation
+5. **Follow TDD Implementation**: Code guided by pre-written, validated tests
+6. **Integrate into Daily Workflow**: Use interactive approach for all new features
 
 ### Traditional Path (Still Available)
 1. Start with Priority 1 agents (Architecture Guardian, TDD Developer, Test Creator)
@@ -292,12 +324,15 @@ npm run agents agent architecture-guardian validate-all
 
 ## ✨ Key Benefits You'll Experience
 
-- **Clear Requirements**: Business needs expressed as executable tests
-- **No Ambiguity**: Tests eliminate interpretation errors
-- **User Validation**: You approve behavior before any coding starts
-- **Faster Development**: Implementation guided by validated tests
-- **Better Quality**: Tests created by business analysis, not afterthoughts
-- **Living Documentation**: Tests serve as always-current documentation
+- **Interactive Business Analysis**: Structured questions ensure comprehensive requirements understanding
+- **Demo Mode**: Test and demonstrate capabilities without user input
+- **Clear Requirements**: Business needs expressed as executable tests through conversation
+- **No Ambiguity**: Interactive questions eliminate interpretation errors
+- **User Validation Gate**: You approve generated tests before any coding starts
+- **Faster Development**: Implementation guided by pre-written, validated tests
+- **Better Quality**: Tests created from systematic business analysis, not afterthoughts
+- **Living Documentation**: Generated tests serve as always-current feature documentation
+- **Realistic Scenarios**: Tests include actual business workflows and edge cases
 
 The enhanced agent system transforms requirements analysis into a systematic process that produces executable tests, creating a seamless bridge from business needs to quality implementation!
 
@@ -321,17 +356,25 @@ npm run tdd "feature-name"                          # Legacy TDD approach
 
 ### Usage Examples
 ```bash
-# Start your first guided feature
+# Try demo mode first (no user input required)
+npm run agents agent functional-analyst requirements-gathering-demo "user-authentication"
+
+# Start interactive requirements gathering
+npm run agents agent functional-analyst requirements-gathering "user-profile-editing"
+
+# Start your first guided feature (includes interactive requirements)
 npm run test-driven-feature "user-profile-editing"
 
 # Run the complete guided workflow
 npm run workflow:guided
 
-# Check available agents (now includes analysts)
+# Check available agents (now includes enhanced analysts)
 npm run agents:list
 
 # Get help with any command
 npm run agents
 ```
 
-Ready to transform your development process? Start with: `npm run test-driven-feature "your-feature-name"`! 🚀
+Ready to transform your development process? Start with demo mode: `npm run agents agent functional-analyst requirements-gathering-demo "user-authentication"`! 🚀
+
+Or dive into interactive requirements: `npm run agents agent functional-analyst requirements-gathering "your-feature-name"`! 🎯
