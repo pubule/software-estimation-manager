@@ -252,18 +252,27 @@ ${this.generateEdgeCaseTests(edges)}
     // Helper methods for generating specific code sections
 
     generateArrangeCode(scenario) {
+        if (!scenario.setup) {
+            return `// TODO: Implement test setup for ${scenario.description || 'this scenario'}`;
+        }
         return `// Setup: ${scenario.setup}
-            // TODO: Implement test setup for ${scenario.description}`;
+            // TODO: Implement test setup based on: ${scenario.setup}`;
     }
 
     generateActCode(scenario) {
+        if (!scenario.action) {
+            return `// TODO: Implement test action for ${scenario.description || 'this scenario'}`;
+        }
         return `// Action: ${scenario.action}
-            // TODO: Implement test action for ${scenario.description}`;
+            // TODO: Implement action based on: ${scenario.action}`;
     }
 
     generateAssertCode(scenario) {
+        if (!scenario.expectedOutcome) {
+            return `// TODO: Implement assertions for ${scenario.description || 'this scenario'}`;
+        }
         return `// Verification: ${scenario.expectedOutcome}
-            // TODO: Implement assertions for ${scenario.description}`;
+            // TODO: Verify that: ${scenario.expectedOutcome}`;
     }
 
     generateTestData(rule) {

@@ -4,8 +4,11 @@ This directory contains specialized AI agents designed to support the complete d
 
 ## Agent Architecture
 
-### 🎯 Analyst Agents (New!)
+### 🎯 Analyst Agents (Enhanced!)
 - **`functional-analyst/`** - ✨ **Interactive business requirements analysis and behavioral test creation**
+  - **Interactive Session**: Real-time requirements gathering through structured questions
+  - **Demo Mode**: Automated demonstration with realistic responses for testing
+  - **Test Generation**: Automatic creation of Jest behavioral tests and Cucumber features
 - **`technical-analyst/`** - ✨ **Technical architecture analysis and step definitions planning**
 
 ### Core TDD Agents
@@ -40,10 +43,11 @@ node agent-runner.js workflow test_driven_feature_development
 #### Workflow Phases:
 
 1. **📝 Requirements & Testing** (`functional-analyst`)
-   - Interactive business requirements gathering
-   - Create comprehensive behavioral test suite (Jest)
-   - Generate Cucumber feature files with Gherkin scenarios
-   - User validation of test scenarios
+   - **Interactive Requirements Gathering**: Structured business questions with real-time responses
+   - **Demo Mode**: Automated simulation with realistic scenarios for testing and demonstration
+   - **Behavioral Test Creation**: Comprehensive Jest test suites generated from requirements
+   - **Cucumber Feature Generation**: Gherkin scenarios for E2E testing
+   - **User Validation Gate**: Review and approve test scenarios before implementation
 
 2. **🏗️ Technical Planning** (`technical-analyst`)
    - Review behavioral tests for implementation requirements
@@ -89,7 +93,8 @@ node agent-runner.js list
 node agent-runner.js test-driven-feature "feature-name"
 
 # Run specific analyst tasks
-node agent-runner.js agent functional-analyst requirements-gathering
+node agent-runner.js agent functional-analyst requirements-gathering "feature-name"
+node agent-runner.js agent functional-analyst requirements-gathering-demo "feature-name"  # Demo mode
 node agent-runner.js agent technical-analyst architecture-analysis
 ```
 

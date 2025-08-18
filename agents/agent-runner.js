@@ -190,10 +190,10 @@ For detailed agent information:
                 this.runConfigurationOrchestrator(task);
                 break;
             case 'functional-analyst':
-                this.runFunctionalAnalyst(task);
+                this.runFunctionalAnalyst(task, options);
                 break;
             case 'technical-analyst':
-                this.runTechnicalAnalyst(task);
+                this.runTechnicalAnalyst(task, options);
                 break;
             default:
                 console.log(`⚠️  Agent execution not implemented yet for: ${agentId}`);
@@ -394,7 +394,10 @@ For detailed agent information:
         
         switch (task) {
             case 'requirements-gathering':
-                this.conductRequirementsGathering(options.featureName);
+                this.conductInteractiveRequirementsGathering(options.featureName || 'new-feature', options.demo);
+                break;
+            case 'requirements-gathering-demo':
+                this.conductInteractiveRequirementsGathering(options.featureName || 'new-feature', true);
                 break;
             case 'create-behavioral-tests':
                 this.createBehavioralTests(options);
@@ -408,6 +411,7 @@ For detailed agent information:
             default:
                 console.log('📋 Available Functional Analyst tasks:');
                 console.log('   • requirements-gathering - Interactive business requirements discovery');
+                console.log('   • requirements-gathering-demo - Demo mode with simulated responses');
                 console.log('   • create-behavioral-tests - Generate Jest behavioral test suite');
                 console.log('   • create-cucumber-features - Generate Gherkin feature files');
                 console.log('   • validate-with-user - Validate test scenarios with user');
@@ -439,8 +443,42 @@ For detailed agent information:
         }
     }
 
-    conductRequirementsGathering(featureName) {
-        console.log(`🔍 Conducting requirements gathering for: ${featureName || 'new feature'}\n`);
+    conductInteractiveRequirementsGathering(featureName, demoMode = false) {
+        console.log(`🔍 Starting ${demoMode ? 'DEMO' : 'interactive'} requirements gathering for: ${featureName}\n`);
+        
+        // Choose session type based on demo mode
+        try {
+            if (demoMode) {
+                const DemoSession = require('./functional-analyst/demo-session');
+                const session = new DemoSession(featureName);
+                
+                // Start the demo session
+                session.start().catch(error => {
+                    console.error('❌ Demo session failed:', error.message);
+                    console.log('\n💡 Falling back to basic requirements gathering...');
+                    this.conductBasicRequirementsGathering(featureName);
+                });
+            } else {
+                const InteractiveSession = require('./functional-analyst/interactive-session');
+                const session = new InteractiveSession(featureName);
+                
+                // Start the interactive session
+                session.start().catch(error => {
+                    console.error('❌ Interactive session failed:', error.message);
+                    console.log('\n💡 Falling back to basic requirements gathering...');
+                    this.conductBasicRequirementsGathering(featureName);
+                });
+            }
+            
+        } catch (error) {
+            console.error('❌ Could not start session:', error.message);
+            console.log('\n💡 Falling back to basic requirements gathering...');
+            this.conductBasicRequirementsGathering(featureName);
+        }
+    }
+
+    conductBasicRequirementsGathering(featureName) {
+        console.log(`🔍 Conducting basic requirements gathering for: ${featureName || 'new feature'}\n`);
         console.log('📝 This process will involve:');
         console.log('   1. Structured business questions');
         console.log('   2. User workflow analysis');
@@ -448,7 +486,9 @@ For detailed agent information:
         console.log('   4. Validation rules identification');
         console.log('   5. Integration requirements analysis\n');
         
-        console.log('💡 For full implementation, use the interactive workflow:');
+        console.log('💡 For full interactive experience, ensure dependencies are installed:');
+        console.log(`   npm install readline`);
+        console.log('💡 Or use the complete workflow:');
         console.log(`   node agent-runner.js workflow test_driven_feature_development`);
     }
 
@@ -592,11 +632,13 @@ function main() {
                 return;
             }
             const task = args[2] || 'info';
-            runner.runAgent(subcommand, task, options);
+            const agentFeatureName = args[3]; // Get feature name from command line
+            const agentOptions = { ...options, featureName: agentFeatureName };
+            runner.runAgent(subcommand, task, agentOptions);
             break;
         case 'tdd':
-            const featureName = subcommand || 'new-feature';
-            runner.startTDDWorkflow(featureName);
+            const tddFeatureName = subcommand || 'new-feature';
+            runner.startTDDWorkflow(tddFeatureName);
             break;
         case 'test-driven-feature':
             const newFeatureName = subcommand || 'new-feature';
