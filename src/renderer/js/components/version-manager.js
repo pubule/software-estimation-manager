@@ -397,6 +397,12 @@ class VersionManager {
         // Create a copy of data excluding volatile fields for consistent comparison
         const dataForHashing = JSON.parse(JSON.stringify(data));
         
+        // Normalize structure for backward compatibility
+        // Ensure assumptions array exists for consistent comparison with older versions
+        if (!dataForHashing.assumptions) {
+            dataForHashing.assumptions = [];
+        }
+        
         // Remove volatile timestamp fields that change during save but don't represent actual content changes
         if (dataForHashing.project && dataForHashing.project.lastModified) {
             delete dataForHashing.project.lastModified;
@@ -405,6 +411,31 @@ class VersionManager {
         // Remove calculation data timestamp if it exists
         if (dataForHashing.calculationData && dataForHashing.calculationData.timestamp) {
             delete dataForHashing.calculationData.timestamp;
+        }
+        
+        // Remove volatile timestamp fields from assumptions to avoid false differences
+        if (dataForHashing.assumptions && Array.isArray(dataForHashing.assumptions)) {
+            dataForHashing.assumptions.forEach(assumption => {
+                if (assumption.created) delete assumption.created;
+                if (assumption.modified) delete assumption.modified;
+            });
+        }
+        
+        // Remove volatile timestamp fields from features (existing fix)
+        if (dataForHashing.features && Array.isArray(dataForHashing.features)) {
+            dataForHashing.features.forEach(feature => {
+                if (feature.created) delete feature.created;
+                if (feature.modified) delete feature.modified;
+            });
+        }
+        
+        // Remove volatile lastModified timestamps from phases
+        if (dataForHashing.phases && typeof dataForHashing.phases === 'object') {
+            Object.keys(dataForHashing.phases).forEach(phaseKey => {
+                if (dataForHashing.phases[phaseKey] && dataForHashing.phases[phaseKey].lastModified) {
+                    delete dataForHashing.phases[phaseKey].lastModified;
+                }
+            });
         }
         
         // Simple checksum using JSON string hash
