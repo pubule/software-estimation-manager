@@ -1321,6 +1321,33 @@ class ApplicationController extends BaseComponent {
         });
 
         const features = this.currentProject?.features || [];
+        const projectConfig = this.currentProject?.configuration;
+        
+        // Lookup functions for converting IDs to readable names/descriptions
+        const lookupCategoryName = (categoryId) => {
+            if (!categoryId) return '';
+            const categories = this.managers.config?.getCategories(projectConfig) || [];
+            const category = categories.find(c => c.id === categoryId);
+            return category?.name || categoryId;
+        };
+
+        const lookupSupplierName = (supplierId) => {
+            if (!supplierId) return '';
+            const allSuppliers = [
+                ...(this.managers.config?.getSuppliers(projectConfig) || []),
+                ...(this.managers.config?.getInternalResources(projectConfig) || [])
+            ];
+            const supplier = allSuppliers.find(s => s.id === supplierId);
+            return supplier?.name || supplierId;
+        };
+
+        const lookupFeatureTypeDescription = (categoryId, featureTypeId) => {
+            if (!categoryId || !featureTypeId) return '';
+            const categories = this.managers.config?.getCategories(projectConfig) || [];
+            const category = categories.find(c => c.id === categoryId);
+            const featureType = category?.featureTypes?.find(ft => ft.id === featureTypeId);
+            return featureType?.description || '';
+        };
         
         // Define styles
         const styles = {
@@ -1343,14 +1370,14 @@ class ApplicationController extends BaseComponent {
         };
 
         // Title
-        worksheet.mergeCells('A1:I1');
+        worksheet.mergeCells('A1:J1');
         const titleCell = worksheet.getCell('A1');
         titleCell.value = 'PROJECT FEATURES';
         titleCell.style = styles.title;
         worksheet.getRow(1).height = 30;
 
-        // Headers
-        const headers = ['ID', 'Description', 'Category', 'Supplier', 'Real MD', 'Expertise %', 'Risk %', 'Calculated MD', 'Notes'];
+        // Headers - updated with Feature Type column
+        const headers = ['ID', 'Description', 'Category', 'Feature Type', 'Supplier', 'Real MD', 'Expertise %', 'Risk %', 'Calculated MD', 'Notes'];
         const headerRow = worksheet.getRow(2);
         headers.forEach((header, index) => {
             const cell = headerRow.getCell(index + 1);
@@ -1367,16 +1394,17 @@ class ApplicationController extends BaseComponent {
             
             row.getCell(1).value = feature.id;
             row.getCell(2).value = feature.description;
-            row.getCell(3).value = feature.category || '';
-            row.getCell(4).value = feature.supplier || '';
-            row.getCell(5).value = feature.realManDays || 0;
-            row.getCell(6).value = feature.expertise || 100;
-            row.getCell(7).value = feature.riskMargin || 10;
-            row.getCell(8).value = feature.manDays || 0;
-            row.getCell(9).value = feature.notes || '';
+            row.getCell(3).value = lookupCategoryName(feature.category); // Category name instead of ID
+            row.getCell(4).value = lookupFeatureTypeDescription(feature.category, feature.featureType); // Feature type description
+            row.getCell(5).value = lookupSupplierName(feature.supplier); // Supplier name instead of ID
+            row.getCell(6).value = feature.realManDays || 0;
+            row.getCell(7).value = feature.expertise || 100;
+            row.getCell(8).value = feature.riskMargin || 10;
+            row.getCell(9).value = feature.manDays || 0;
+            row.getCell(10).value = feature.notes || '';
             
             // Apply styles
-            for (let i = 1; i <= 9; i++) {
+            for (let i = 1; i <= 10; i++) {
                 const cell = row.getCell(i);
                 cell.style = {
                     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
@@ -1389,13 +1417,15 @@ class ApplicationController extends BaseComponent {
                 };
                 
                 // Number formatting for numeric columns
-                if (i === 5 || i === 8) {
+                if (i === 6 || i === 9) { // Real MD and Calculated MD
                     cell.numFmt = '#,##0.0';
                     cell.alignment = { horizontal: 'right' };
-                } else if (i === 6 || i === 7) {
+                } else if (i === 7 || i === 8) { // Expertise and Risk percentages
                     cell.numFmt = '0%';
                     cell.value = cell.value / 100; // Convert to percentage
                     cell.alignment = { horizontal: 'right' };
+                } else {
+                    cell.alignment = { vertical: 'top', wrapText: true };
                 }
             }
         });
@@ -1411,27 +1441,28 @@ class ApplicationController extends BaseComponent {
         const totalRealMD = features.reduce((sum, f) => sum + (f.realManDays || 0), 0);
         const totalCalcMD = features.reduce((sum, f) => sum + (f.manDays || 0), 0);
         
-        summaryRow.getCell(5).value = totalRealMD;
-        summaryRow.getCell(5).numFmt = '#,##0.0';
-        summaryRow.getCell(5).style = {
+        summaryRow.getCell(6).value = totalRealMD;
+        summaryRow.getCell(6).numFmt = '#,##0.0';
+        summaryRow.getCell(6).style = {
             font: { bold: true },
             fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } },
             alignment: { horizontal: 'right' }
         };
         
-        summaryRow.getCell(8).value = totalCalcMD;
-        summaryRow.getCell(8).numFmt = '#,##0.0';
-        summaryRow.getCell(8).style = {
+        summaryRow.getCell(9).value = totalCalcMD;
+        summaryRow.getCell(9).numFmt = '#,##0.0';
+        summaryRow.getCell(9).style = {
             font: { bold: true },
             fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } },
             alignment: { horizontal: 'right' }
         };
 
-        // Set column widths
+        // Set column widths - updated for new Feature Type column
         worksheet.columns = [
             { width: 12 }, // ID
             { width: 40 }, // Description
             { width: 15 }, // Category
+            { width: 25 }, // Feature Type (new column)
             { width: 20 }, // Supplier
             { width: 12 }, // Real MD
             { width: 12 }, // Expertise
