@@ -270,6 +270,7 @@ class VersionManager {
             features: snapshot.features?.length || 0,
             totalMDs: snapshot.features?.reduce((sum, f) => sum + (parseFloat(f.manDays) || 0), 0).toFixed(1) || '0.0',
             phases: snapshot.phases ? Object.keys(snapshot.phases).length : 0,
+            assumptions: snapshot.assumptions?.length || 0,
             coverage: snapshot.coverage || 0
         };
     }
@@ -1074,6 +1075,19 @@ class VersionManager {
             });
         }
         
+        // Compare assumptions
+        const assumptionsDiff = parseInt(restoreStats.assumptions) - parseInt(currentStats.assumptions);
+        if (assumptionsDiff !== 0) {
+            changes.push({
+                type: 'assumptions',
+                icon: 'fas fa-clipboard-list',
+                label: 'Assumptions',
+                current: currentStats.assumptions,
+                restore: restoreStats.assumptions,
+                diff: assumptionsDiff
+            });
+        }
+        
         // Compare total MDs
         const mdDiff = parseFloat(restoreStats.totalMDs) - parseFloat(currentStats.totalMDs);
         if (Math.abs(mdDiff) > 0.1) {
@@ -1265,6 +1279,7 @@ class VersionManager {
                         <div class="comparison-sections">
                             ${this.renderProjectComparison(versionToCompare)}
                             ${this.renderFeaturesComparison(versionToCompare)}
+                            ${this.renderAssumptionsComparison(versionToCompare)}
                             ${this.renderConfigurationComparison(versionToCompare)}
                             ${this.renderPhasesComparison(versionToCompare)}
                             ${this.renderCalculationsComparison(versionToCompare)}
@@ -1594,6 +1609,203 @@ class VersionManager {
                                 <i class="fas fa-check-circle"></i>
                                 <span>No feature changes detected</span>
                                 <small>Both versions have identical features</small>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render assumptions comparison
+     */
+    renderAssumptionsComparison(versionToCompare) {
+        const currentAssumptions = this.app.currentProject.assumptions || [];
+        const compareAssumptions = versionToCompare.projectSnapshot.assumptions || [];
+        
+        console.log('🔍 ASSUMPTIONS COMPARE - Current assumptions:', currentAssumptions.map(a => ({
+            id: a.id,
+            description: a.description,
+            type: a.type,
+            impact: a.impact
+        })));
+        
+        console.log('🔍 ASSUMPTIONS COMPARE - Compare assumptions:', compareAssumptions.map(a => ({
+            id: a.id,
+            description: a.description,
+            type: a.type,
+            impact: a.impact
+        })));
+        
+        const currentStats = this.calculateVersionStats(this.app.currentProject);
+        const compareStats = this.calculateVersionStats(versionToCompare.projectSnapshot);
+        
+        console.log('🔍 ASSUMPTIONS COMPARE - Current stats:', currentStats);
+        console.log('🔍 ASSUMPTIONS COMPARE - Compare stats:', compareStats);
+        
+        // Calculate assumption differences
+        const added = currentAssumptions.filter(ca => !compareAssumptions.find(va => va.id === ca.id));
+        const removed = compareAssumptions.filter(va => !currentAssumptions.find(ca => ca.id === va.id));
+        const modified = currentAssumptions.filter(ca => {
+            const va = compareAssumptions.find(a => a.id === ca.id);
+            return va && JSON.stringify(ca) !== JSON.stringify(va);
+        });
+        
+        console.log('🔍 ASSUMPTIONS COMPARE - Added assumptions:', added.map(a => ({ id: a.id, type: a.type, impact: a.impact })));
+        console.log('🔍 ASSUMPTIONS COMPARE - Removed assumptions:', removed.map(a => ({ id: a.id, type: a.type, impact: a.impact })));
+        console.log('🔍 ASSUMPTIONS COMPARE - Modified assumptions:', modified.map(a => {
+            const va = compareAssumptions.find(ca => ca.id === a.id);
+            return {
+                id: a.id,
+                currentImpact: a.impact,
+                compareImpact: va?.impact,
+                currentType: a.type,
+                compareType: va?.type
+            };
+        }));
+        
+        const totalChanges = added.length + removed.length + modified.length;
+        
+        return `
+            <div class="comp-section comp-assumptions">
+                <div class="comp-section-header">
+                    <h5><i class="fas fa-clipboard-list"></i> Assumptions Comparison</h5>
+                    <small>${totalChanges} change${totalChanges !== 1 ? 's' : ''} detected</small>
+                </div>
+                <div class="comp-section-body">
+                    <!-- Statistics Overview -->
+                    <div class="comp-assumptions-stats">
+                        <div class="comp-stats-header">
+                            <h6><i class="fas fa-chart-bar"></i> Statistics Overview</h6>
+                        </div>
+                        <div class="comp-stats-grid">
+                            <div class="comp-stat-item">
+                                <div class="comp-stat-label">Total Assumptions</div>
+                                <div class="comp-stat-values">
+                                    <div class="comp-stat-value comp-current">${currentStats.assumptions}</div>
+                                    <div class="comp-stat-separator">→</div>
+                                    <div class="comp-stat-value comp-compare">${compareStats.assumptions}</div>
+                                    <div class="comp-stat-diff ${currentStats.assumptions - compareStats.assumptions > 0 ? 'comp-positive' : currentStats.assumptions - compareStats.assumptions < 0 ? 'comp-negative' : 'comp-neutral'}">
+                                        ${currentStats.assumptions - compareStats.assumptions > 0 ? '+' : ''}${currentStats.assumptions - compareStats.assumptions}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Assumption Changes -->
+                    <div class="comp-assumptions-changes">
+                        ${added.length > 0 ? `
+                            <div class="comp-assumption-change-group comp-added">
+                                <div class="comp-change-header">
+                                    <h6><i class="fas fa-plus-circle"></i> Added Assumptions</h6>
+                                    <span class="comp-change-count">${added.length}</span>
+                                </div>
+                                <div class="comp-assumption-list">
+                                    ${added.map(a => `
+                                        <div class="comp-assumption-item comp-added">
+                                            <div class="comp-assumption-id">${a.id}</div>
+                                            <div class="comp-assumption-info">
+                                                <div class="comp-assumption-desc" title="${a.description}">${this.truncateText(a.description, 50)}</div>
+                                                <div class="comp-assumption-meta">
+                                                    <span class="comp-assumption-type">${a.type}</span>
+                                                    <span class="comp-assumption-impact impact-${a.impact?.toLowerCase()}">${a.impact}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${removed.length > 0 ? `
+                            <div class="comp-assumption-change-group comp-removed">
+                                <div class="comp-change-header">
+                                    <h6><i class="fas fa-minus-circle"></i> Removed Assumptions</h6>
+                                    <span class="comp-change-count">${removed.length}</span>
+                                </div>
+                                <div class="comp-assumption-list">
+                                    ${removed.map(a => `
+                                        <div class="comp-assumption-item comp-removed">
+                                            <div class="comp-assumption-id">${a.id}</div>
+                                            <div class="comp-assumption-info">
+                                                <div class="comp-assumption-desc" title="${a.description}">${this.truncateText(a.description, 50)}</div>
+                                                <div class="comp-assumption-meta">
+                                                    <span class="comp-assumption-type">${a.type}</span>
+                                                    <span class="comp-assumption-impact impact-${a.impact?.toLowerCase()}">${a.impact}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${modified.length > 0 ? `
+                            <div class="comp-assumption-change-group comp-modified">
+                                <div class="comp-change-header">
+                                    <h6><i class="fas fa-edit"></i> Modified Assumptions</h6>
+                                    <span class="comp-change-count">${modified.length}</span>
+                                </div>
+                                <div class="comp-assumption-list">
+                                    ${modified.map(a => {
+                                        const va = compareAssumptions.find(ca => ca.id === a.id);
+                                        const typeChanged = a.type !== va?.type;
+                                        const impactChanged = a.impact !== va?.impact;
+                                        const descChanged = a.description !== va?.description;
+                                        const notesChanged = a.notes !== va?.notes;
+                                        
+                                        return `
+                                            <div class="comp-assumption-item comp-modified">
+                                                <div class="comp-assumption-id">${a.id}</div>
+                                                <div class="comp-assumption-info">
+                                                    <div class="comp-assumption-desc" title="${a.description}">${this.truncateText(a.description, 40)}</div>
+                                                    <div class="comp-assumption-changes">
+                                                        ${typeChanged ? `
+                                                            <div class="comp-assumption-change">
+                                                                <span class="comp-change-label">Type:</span>
+                                                                <span class="comp-change-value">
+                                                                    <span class="comp-old">${va?.type || 'N/A'}</span>
+                                                                    <span class="comp-arrow">→</span>
+                                                                    <span class="comp-new">${a.type}</span>
+                                                                </span>
+                                                            </div>
+                                                        ` : ''}
+                                                        ${impactChanged ? `
+                                                            <div class="comp-assumption-change">
+                                                                <span class="comp-change-label">Impact:</span>
+                                                                <span class="comp-change-value">
+                                                                    <span class="comp-old">${va?.impact || 'N/A'}</span>
+                                                                    <span class="comp-arrow">→</span>
+                                                                    <span class="comp-new">${a.impact}</span>
+                                                                </span>
+                                                            </div>
+                                                        ` : ''}
+                                                        ${descChanged ? `
+                                                            <div class="comp-assumption-change">
+                                                                <span class="comp-change-label">Description modified</span>
+                                                            </div>
+                                                        ` : ''}
+                                                        ${notesChanged ? `
+                                                            <div class="comp-assumption-change">
+                                                                <span class="comp-change-label">Notes modified</span>
+                                                            </div>
+                                                        ` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${totalChanges === 0 ? `
+                            <div class="comp-no-data">
+                                <i class="fas fa-check-circle"></i>
+                                <span>No assumption changes detected</span>
+                                <small>Both versions have identical assumptions</small>
                             </div>
                         ` : ''}
                     </div>
