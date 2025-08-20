@@ -1182,6 +1182,19 @@ class CalculationsManager {
             elapsedTime = `${totalMonths.toFixed(1)} months`;
         }
 
+        // Get project assumptions
+        const assumptions = currentProject.assumptions || [];
+        let assumptionsSection = '';
+        
+        if (assumptions.length > 0) {
+            assumptionsSection = '\nAssumptions and out of scopes:\n';
+            assumptions.forEach(assumption => {
+                if (assumption.description) {
+                    assumptionsSection += `- ${assumption.description}\n`;
+                }
+            });
+        }
+
         // Email template
         const emailTemplate = `Dear colleagues,
 
@@ -1194,9 +1207,7 @@ This includes all necessary activities such as technical analysis, development, 
 Overall Required time is: ${elapsedTime}.
 
 Phase:
-${phasesList}
-
-Assumptions and out of scopes:`;
+${phasesList}${assumptionsSection}`;
 
         // Copy email template to clipboard
         if (navigator.clipboard) {
