@@ -114,6 +114,11 @@
                                     <span>Calculations</span>
                                 </div>
 
+                                <div class="nav-child disabled" data-section="assumptions">
+                                    <i class="fas fa-clipboard-list"></i>
+                                    <span>Assumptions</span>
+                                </div>
+
                                 <div class="nav-child disabled" data-section="history">
                                     <i class="fas fa-history"></i>
                                     <span>Version History</span>
@@ -405,6 +410,88 @@
                 </div>
             </div>
 
+            <!-- Assumptions Page -->
+            <div id="assumptions-page" class="page">
+                <div class="page-header">
+                    <h2>Project Assumptions</h2>
+                    <div class="page-actions">
+                        <button class="btn btn-primary" id="add-assumption-btn">
+                            <i class="fas fa-plus"></i> Add Assumption
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="search-bar">
+                    <div class="search-group">
+                        <label>Search:</label>
+                        <input type="text" id="assumptions-search-input" placeholder="Search assumptions...">
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters-bar">
+                    <div class="filter-group">
+                        <label>Type:</label>
+                        <select id="assumption-type-filter">
+                            <option value="">All Types</option>
+                            <option value="Technical">Technical</option>
+                            <option value="Business">Business</option>
+                            <option value="Resource">Resource</option>
+                            <option value="Timeline">Timeline</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Impact:</label>
+                        <select id="assumption-impact-filter">
+                            <option value="">All Impacts</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Assumptions Table -->
+                <div class="table-container">
+                    <table id="assumptions-table" class="data-table">
+                        <thead>
+                        <tr>
+                            <th data-sort="id">ID <i class="fas fa-sort"></i></th>
+                            <th data-sort="description">Description <i class="fas fa-sort"></i></th>
+                            <th data-sort="type">Type <i class="fas fa-sort"></i></th>
+                            <th data-sort="impact">Impact <i class="fas fa-sort"></i></th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="assumptions-tbody">
+                        <!-- Assumptions will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Assumptions Summary -->
+                <div class="summary-bar">
+                    <div class="summary-item">
+                        <label>Total Assumptions:</label>
+                        <span id="total-assumptions">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <label>High Impact:</label>
+                        <span id="high-impact-assumptions">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <label>Medium Impact:</label>
+                        <span id="medium-impact-assumptions">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <label>Low Impact:</label>
+                        <span id="low-impact-assumptions">0</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Configuration Page -->
             <div id="configuration-page" class="page">
                 <div class="page-header">
@@ -670,6 +757,55 @@
     </div>
 </div>
 
+<!-- Modal for Assumption Form -->
+<div id="assumption-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="assumption-modal-title" class="modal-title">Add Assumption</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="assumption-form">
+                <div class="form-group">
+                    <label for="assumption-id">ID:</label>
+                    <input type="text" id="assumption-id" name="id" class="validation-tooltip required" required>
+                </div>
+                <div class="form-group">
+                    <label for="assumption-description">Description:</label>
+                    <textarea id="assumption-description" name="description" class="validation-tooltip required" required rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="assumption-type">Type:</label>
+                    <select id="assumption-type" name="type" class="validation-tooltip required" required>
+                        <option value="">Select Type</option>
+                        <option value="Technical">Technical</option>
+                        <option value="Business">Business</option>
+                        <option value="Resource">Resource</option>
+                        <option value="Timeline">Timeline</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="assumption-impact">Impact:</label>
+                    <select id="assumption-impact" name="impact" class="validation-tooltip required" required>
+                        <option value="">Select Impact</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="assumption-notes">Notes:</label>
+                    <textarea id="assumption-notes" name="notes" rows="3"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-cancel" id="cancel-assumption-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-submit" id="save-assumption-btn">Save</button>
+        </div>
+    </div>
+</div>
+
 <!-- Loading Overlay -->
 <div id="loading-overlay" class="overlay">
     <div class="spinner"></div>
@@ -721,6 +857,9 @@
 
 <!-- Feature management (depends on data-manager and configuration-manager) -->
 <script src="js/components/feature-manager.js"></script>
+
+<!-- Assumptions management (depends on data-manager) -->
+<script src="js/components/assumptions-manager.js"></script>
 
 <!-- Calculations management (depends on data-manager and configuration-manager) -->
 <script src="js/components/calculations-manager.js"></script>

@@ -167,6 +167,10 @@ class ApplicationController extends BaseComponent {
         }
         await this.managers.feature.init();
         
+        // Assumptions manager
+        this.managers.assumptions = new AssumptionsManager();
+        await this.managers.assumptions.init();
+        
         // Calculations manager
         this.managers.calculations = new CalculationsManager(this, this.managers.config);
         
@@ -308,6 +312,14 @@ class ApplicationController extends BaseComponent {
         if (addFeatureBtn) {
             this.addEventListener(addFeatureBtn, 'click', () => {
                 this.managers.feature?.showAddFeatureModal();
+            });
+        }
+
+        // Add assumption button
+        const addAssumptionBtn = this.getElement('add-assumption-btn');
+        if (addAssumptionBtn) {
+            this.addEventListener(addAssumptionBtn, 'click', () => {
+                this.managers.assumptions?.showAddAssumptionModal();
             });
         }
 
@@ -604,11 +616,15 @@ class ApplicationController extends BaseComponent {
             const featuresSheet = this.createFeaturesSheet();
             XLSX.utils.book_append_sheet(workbook, featuresSheet, 'Features');
 
-            // Sheet 2: Phases Data
+            // Sheet 2: Assumptions Data
+            const assumptionsSheet = this.createAssumptionsSheet();
+            XLSX.utils.book_append_sheet(workbook, assumptionsSheet, 'Assumptions');
+
+            // Sheet 3: Phases Data
             const phasesSheet = this.createPhasesSheet();
             XLSX.utils.book_append_sheet(workbook, phasesSheet, 'Phases');
 
-            // Sheet 3: Calculations Data
+            // Sheet 4: Calculations Data
             const calculationsSheet = this.createCalculationsSheet();
             XLSX.utils.book_append_sheet(workbook, calculationsSheet, 'Calculations');
 
@@ -740,6 +756,55 @@ class ApplicationController extends BaseComponent {
             {wch: 12}, {wch: 12}, {wch: 12}, {wch: 12}, {wch: 15}
         ];
         worksheet['!cols'] = columnWidths;
+
+        return worksheet;
+    }
+
+    /**
+     * Create Excel sheet for assumptions data
+     */
+    createAssumptionsSheet() {
+        const assumptions = this.currentProject?.assumptions || [];
+        
+        // Create headers
+        const headers = [
+            'ID',
+            'Description',
+            'Type',
+            'Impact',
+            'Notes',
+            'Created',
+            'Modified'
+        ];
+
+        // Convert data
+        const data = [
+            headers,
+            ...assumptions.map(assumption => [
+                assumption.id || '',
+                assumption.description || '',
+                assumption.type || '',
+                assumption.impact || '',
+                assumption.notes || '',
+                assumption.created ? new Date(assumption.created).toLocaleDateString() : '',
+                assumption.modified ? new Date(assumption.modified).toLocaleDateString() : ''
+            ])
+        ];
+
+        // Create worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet(data);
+        
+        // Set column widths
+        const colWidths = [
+            { wch: 10 }, // ID
+            { wch: 50 }, // Description
+            { wch: 15 }, // Type
+            { wch: 10 }, // Impact
+            { wch: 30 }, // Notes
+            { wch: 12 }, // Created
+            { wch: 12 }  // Modified
+        ];
+        worksheet['!cols'] = colWidths;
 
         return worksheet;
     }
@@ -996,6 +1061,7 @@ class ApplicationController extends BaseComponent {
         this.updateProjectInfo();
         this.updateProjectStatus();
         this.managers.feature?.refreshTable();
+        this.managers.assumptions?.refreshTable();
         this.updateSummary();
         this.updateConfigurationStatus();
         
