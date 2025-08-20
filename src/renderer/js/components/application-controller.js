@@ -813,23 +813,146 @@ class ApplicationController extends BaseComponent {
      * Create Excel sheet for calculations data
      */
     createCalculationsSheet() {
-        // Create basic calculations sheet
+        // Get calculations manager data
+        const calcManager = this.managers.calculations;
+        
+        // Ensure vendor costs are calculated
+        if (calcManager) {
+            calcManager.calculateVendorCosts();
+        }
+        
+        const vendorCosts = calcManager?.vendorCosts || [];
+        const kpiData = calcManager?.kpiData || {};
+        
+        // Create basic header
         const data = [
-            ['PROJECT CALCULATIONS', '', '', '', ''],
-            ['Project Name', this.currentProject?.project?.name || '', '', '', ''],
-            ['Export Date', new Date().toLocaleDateString(), '', '', ''],
-            ['', '', '', '', ''], // Empty row
-            ['FEATURES SUMMARY', '', '', '', ''],
-            ['Total Features', this.currentProject?.features?.length || 0, '', '', ''],
-            ['Total Man Days', this.currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0)?.toFixed(1) || '0.0', '', '', '']
+            ['PROJECT CALCULATIONS', '', '', '', '', '', '', ''],
+            ['Project Name', this.currentProject?.project?.name || '', '', '', '', '', '', ''],
+            ['Export Date', new Date().toLocaleDateString(), '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''], // Empty row
+            
+            // Features Summary
+            ['FEATURES SUMMARY', '', '', '', '', '', '', ''],
+            ['Total Features', this.currentProject?.features?.length || 0, '', '', '', '', '', ''],
+            ['Total Man Days', this.currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0)?.toFixed(1) || '0.0', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''], // Empty row
         ];
+
+        // Add Vendor Costs Breakdown
+        data.push(['VENDOR COSTS BREAKDOWN', '', '', '', '', '', '', '']);
+        data.push(['Vendor', 'Role', 'Department', 'Man Days', 'Rate (€)', 'Cost (€)', 'Final MDs', 'Final Cost (€)']);
+        
+        if (vendorCosts.length > 0) {
+            vendorCosts.forEach(cost => {
+                const finalCost = cost.finalMDs ? (cost.finalMDs * cost.officialRate) : cost.cost;
+                data.push([
+                    cost.vendor || '',
+                    cost.role || '',
+                    cost.department || '',
+                    cost.manDays?.toFixed(1) || '0.0',
+                    cost.officialRate?.toFixed(0) || '0',
+                    cost.cost?.toFixed(0) || '0',
+                    cost.finalMDs?.toFixed(1) || cost.manDays?.toFixed(1) || '0.0',
+                    finalCost?.toFixed(0) || '0'
+                ]);
+            });
+            
+            // Add totals row
+            const totalManDays = vendorCosts.reduce((sum, c) => sum + (c.manDays || 0), 0);
+            const totalCost = vendorCosts.reduce((sum, c) => sum + (c.cost || 0), 0);
+            const totalFinalMDs = vendorCosts.reduce((sum, c) => sum + (c.finalMDs || c.manDays || 0), 0);
+            const totalFinalCost = vendorCosts.reduce((sum, c) => {
+                const finalCost = c.finalMDs ? (c.finalMDs * c.officialRate) : c.cost;
+                return sum + (finalCost || 0);
+            }, 0);
+            
+            data.push(['TOTAL', '', '', 
+                totalManDays.toFixed(1), 
+                '', 
+                totalCost.toFixed(0),
+                totalFinalMDs.toFixed(1),
+                totalFinalCost.toFixed(0)
+            ]);
+        } else {
+            data.push(['No vendor costs calculated', '', '', '', '', '', '', '']);
+        }
+        
+        data.push(['', '', '', '', '', '', '', '']); // Empty row
+        
+        // Add KPI Summary
+        data.push(['KPI SUMMARY', '', '', '', '', '', '', '']);
+        data.push(['Category', 'Internal (€)', 'External (€)', 'Total (€)', '', '', '', '']);
+        
+        const gtoInternal = kpiData.gto?.internal || 0;
+        const gtoExternal = kpiData.gto?.external || 0;
+        const gtoTotal = kpiData.gto?.total || 0;
+        
+        const gdsInternal = kpiData.gds?.internal || 0;
+        const gdsExternal = kpiData.gds?.external || 0;
+        const gdsTotal = kpiData.gds?.total || 0;
+        
+        data.push(['GTO (Technical)', gtoInternal.toFixed(0), gtoExternal.toFixed(0), gtoTotal.toFixed(0), '', '', '', '']);
+        data.push(['GDS (Management)', gdsInternal.toFixed(0), gdsExternal.toFixed(0), gdsTotal.toFixed(0), '', '', '', '']);
+        data.push(['TOTAL', 
+            (gtoInternal + gdsInternal).toFixed(0),
+            (gtoExternal + gdsExternal).toFixed(0),
+            (gtoTotal + gdsTotal).toFixed(0),
+            '', '', '', ''
+        ]);
+        
+        data.push(['', '', '', '', '', '', '', '']); // Empty row
+        
+        // Add Summary by Vendor
+        data.push(['SUMMARY BY VENDOR', '', '', '', '', '', '', '']);
+        data.push(['Vendor', 'Total Man Days', 'Total Cost (€)', '', '', '', '', '']);
+        
+        // Group costs by vendor
+        const vendorSummary = {};
+        vendorCosts.forEach(cost => {
+            if (!vendorSummary[cost.vendor]) {
+                vendorSummary[cost.vendor] = {
+                    manDays: 0,
+                    cost: 0
+                };
+            }
+            vendorSummary[cost.vendor].manDays += cost.finalMDs || cost.manDays || 0;
+            const finalCost = cost.finalMDs ? (cost.finalMDs * cost.officialRate) : cost.cost;
+            vendorSummary[cost.vendor].cost += finalCost || 0;
+        });
+        
+        // Add vendor summary rows
+        Object.entries(vendorSummary).forEach(([vendor, summary]) => {
+            data.push([
+                vendor,
+                summary.manDays.toFixed(1),
+                summary.cost.toFixed(0),
+                '', '', '', '', ''
+            ]);
+        });
+        
+        // Add grand total
+        const grandTotalMDs = Object.values(vendorSummary).reduce((sum, s) => sum + s.manDays, 0);
+        const grandTotalCost = Object.values(vendorSummary).reduce((sum, s) => sum + s.cost, 0);
+        
+        data.push(['GRAND TOTAL', 
+            grandTotalMDs.toFixed(1),
+            grandTotalCost.toFixed(0),
+            '', '', '', '', ''
+        ]);
 
         // Create worksheet
         const worksheet = XLSX.utils.aoa_to_sheet(data);
 
         // Set column widths
         worksheet['!cols'] = [
-            {wch: 25}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}
+            {wch: 25}, // Vendor
+            {wch: 12}, // Role
+            {wch: 15}, // Department
+            {wch: 12}, // Man Days
+            {wch: 12}, // Rate
+            {wch: 12}, // Cost
+            {wch: 12}, // Final MDs
+            {wch: 15}  // Final Cost
         ];
 
         return worksheet;
