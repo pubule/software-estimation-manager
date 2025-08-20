@@ -927,8 +927,26 @@ class FeatureManager extends BaseComponent {
      */
     generateFeatureId() {
         const currentProject = window.app?.currentProject;
-        if (!currentProject?.features) return 'BR-001';
+        if (!currentProject?.features || currentProject.features.length === 0) {
+            return 'BR-001';
+        }
 
+        // Get the last feature added (last in the array)
+        const lastFeature = currentProject.features[currentProject.features.length - 1];
+        
+        if (!lastFeature?.id) {
+            return 'BR-001';
+        }
+
+        // Extract the numeric part from the last feature ID
+        const match = lastFeature.id.match(/BR-(\d+)/);
+        if (match) {
+            const lastNumber = parseInt(match[1], 10);
+            const nextNumber = lastNumber + 1;
+            return `BR-${nextNumber.toString().padStart(3, '0')}`;
+        }
+
+        // If the last ID doesn't match the expected format, fall back to finding the first available
         const existingIds = currentProject.features.map(f => f.id);
         let counter = 1;
         let newId;
