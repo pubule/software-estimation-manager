@@ -604,49 +604,51 @@ class ApplicationController extends BaseComponent {
      */
     async exportExcel(filename) {
         try {
-            // Check if XLSX library is available
-            if (typeof XLSX === 'undefined') {
-                throw new Error('XLSX library not available');
+            // Check if ExcelJS library is available
+            if (typeof ExcelJS === 'undefined') {
+                // Try to load ExcelJS dynamically
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+                document.head.appendChild(script);
+                
+                // Wait for script to load
+                await new Promise((resolve, reject) => {
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error('Failed to load ExcelJS'));
+                    setTimeout(() => reject(new Error('ExcelJS load timeout')), 5000);
+                });
             }
 
-            // Create new workbook
-            const workbook = XLSX.utils.book_new();
+            // Create new workbook with ExcelJS
+            const workbook = new ExcelJS.Workbook();
+            
+            // Set workbook properties
+            workbook.creator = 'Software Estimation Manager';
+            workbook.lastModifiedBy = 'Software Estimation Manager';
+            workbook.created = new Date();
+            workbook.modified = new Date();
 
-            // Sheet 1: Features Data
-            const featuresSheet = this.createFeaturesSheet();
-            XLSX.utils.book_append_sheet(workbook, featuresSheet, 'Features');
+            // Create sheets with styling
+            await this.createFeaturesSheetExcelJS(workbook);
+            await this.createAssumptionsSheetExcelJS(workbook);
+            await this.createPhasesSheetExcelJS(workbook);
+            await this.createCalculationsSheetExcelJS(workbook);
 
-            // Sheet 2: Assumptions Data
-            const assumptionsSheet = this.createAssumptionsSheet();
-            XLSX.utils.book_append_sheet(workbook, assumptionsSheet, 'Assumptions');
-
-            // Sheet 3: Phases Data
-            const phasesSheet = this.createPhasesSheet();
-            XLSX.utils.book_append_sheet(workbook, phasesSheet, 'Phases');
-
-            // Sheet 4: Calculations Data
-            const calculationsSheet = this.createCalculationsSheet();
-            XLSX.utils.book_append_sheet(workbook, calculationsSheet, 'Calculations');
-
-            // Generate Excel file
-            const excelBuffer = XLSX.write(workbook, { 
-                bookType: 'xlsx', 
-                type: 'array',
-                bookSST: false
-            });
+            // Generate Excel buffer
+            const buffer = await workbook.xlsx.writeBuffer();
 
             // Save file
             if (window.electronAPI && window.electronAPI.saveFileBuffer) {
                 const result = await window.electronAPI.saveFileBuffer(
                     `${filename}.xlsx`,
-                    excelBuffer
+                    buffer
                 );
                 if (!result.success && !result.canceled) {
                     throw new Error(result.error || 'Failed to save Excel file');
                 }
             } else {
                 // Fallback for web mode
-                const blob = new Blob([excelBuffer], { 
+                const blob = new Blob([buffer], { 
                     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
                 });
                 const url = URL.createObjectURL(blob);
@@ -956,6 +958,729 @@ class ApplicationController extends BaseComponent {
         ];
 
         return worksheet;
+    }
+
+    /**
+     * Create styled calculations sheet using ExcelJS
+     */
+    async createCalculationsSheetExcelJS(workbook) {
+        const worksheet = workbook.addWorksheet('Calculations', {
+            properties: { tabColor: { argb: 'FF0066CC' } },
+            views: [{ state: 'frozen', ySplit: 1 }]
+        });
+
+        // Get calculations manager data
+        const calcManager = this.managers.calculations;
+        if (calcManager) {
+            calcManager.calculateVendorCosts();
+        }
+        
+        const vendorCosts = calcManager?.vendorCosts || [];
+        const kpiData = calcManager?.kpiData || {};
+        
+        // Define styles
+        const styles = {
+            title: {
+                font: { name: 'Calibri', size: 16, bold: true, color: { argb: 'FFFFFFFF' } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0066CC' } },
+                alignment: { horizontal: 'center', vertical: 'middle' }
+            },
+            header: {
+                font: { name: 'Calibri', size: 12, bold: true, color: { argb: 'FFFFFFFF' } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } },
+                alignment: { horizontal: 'left', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FF000000' } },
+                    left: { style: 'thin', color: { argb: 'FF000000' } },
+                    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                    right: { style: 'thin', color: { argb: 'FF000000' } }
+                }
+            },
+            sectionHeader: {
+                font: { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF0066CC' } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6E6' } },
+                alignment: { horizontal: 'left', vertical: 'middle' }
+            },
+            tableHeader: {
+                font: { name: 'Calibri', size: 11, bold: true },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E2F3' } },
+                alignment: { horizontal: 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FF000000' } },
+                    left: { style: 'thin', color: { argb: 'FF000000' } },
+                    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                    right: { style: 'thin', color: { argb: 'FF000000' } }
+                }
+            },
+            dataCell: {
+                font: { name: 'Calibri', size: 11 },
+                alignment: { horizontal: 'left', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                }
+            },
+            numberCell: {
+                font: { name: 'Calibri', size: 11 },
+                alignment: { horizontal: 'right', vertical: 'middle' },
+                numFmt: '#,##0.0',
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                }
+            },
+            currencyCell: {
+                font: { name: 'Calibri', size: 11 },
+                alignment: { horizontal: 'right', vertical: 'middle' },
+                numFmt: '€ #,##0',
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                }
+            },
+            totalRow: {
+                font: { name: 'Calibri', size: 11, bold: true },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } },
+                border: {
+                    top: { style: 'double', color: { argb: 'FF000000' } },
+                    bottom: { style: 'thin', color: { argb: 'FF000000' } }
+                }
+            }
+        };
+
+        let row = 1;
+
+        // Title
+        worksheet.mergeCells(`A${row}:H${row}`);
+        const titleCell = worksheet.getCell(`A${row}`);
+        titleCell.value = 'PROJECT CALCULATIONS';
+        titleCell.style = styles.title;
+        worksheet.getRow(row).height = 30;
+        row++;
+
+        // Project info
+        worksheet.mergeCells(`A${row}:B${row}`);
+        worksheet.getCell(`A${row}`).value = 'Project Name:';
+        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+        worksheet.mergeCells(`C${row}:H${row}`);
+        worksheet.getCell(`C${row}`).value = this.currentProject?.project?.name || '';
+        row++;
+
+        worksheet.mergeCells(`A${row}:B${row}`);
+        worksheet.getCell(`A${row}`).value = 'Export Date:';
+        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+        worksheet.mergeCells(`C${row}:H${row}`);
+        worksheet.getCell(`C${row}`).value = new Date().toLocaleDateString();
+        row++;
+        row++; // Empty row
+
+        // Features Summary Section
+        worksheet.mergeCells(`A${row}:H${row}`);
+        const featuresHeaderCell = worksheet.getCell(`A${row}`);
+        featuresHeaderCell.value = 'FEATURES SUMMARY';
+        featuresHeaderCell.style = styles.sectionHeader;
+        row++;
+
+        worksheet.getCell(`A${row}`).value = 'Total Features:';
+        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+        worksheet.getCell(`B${row}`).value = this.currentProject?.features?.length || 0;
+        row++;
+
+        worksheet.getCell(`A${row}`).value = 'Total Man Days:';
+        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+        const totalMD = this.currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0) || 0;
+        worksheet.getCell(`B${row}`).value = totalMD;
+        worksheet.getCell(`B${row}`).style = styles.numberCell;
+        row++;
+        row++; // Empty row
+
+        // Vendor Costs Breakdown Section
+        worksheet.mergeCells(`A${row}:H${row}`);
+        const vendorHeaderCell = worksheet.getCell(`A${row}`);
+        vendorHeaderCell.value = 'VENDOR COSTS BREAKDOWN';
+        vendorHeaderCell.style = styles.sectionHeader;
+        row++;
+
+        // Table headers
+        const headers = ['Vendor', 'Role', 'Department', 'Man Days', 'Rate (€)', 'Cost (€)', 'Final MDs', 'Final Cost (€)'];
+        headers.forEach((header, index) => {
+            const cell = worksheet.getCell(row, index + 1);
+            cell.value = header;
+            cell.style = styles.tableHeader;
+        });
+        row++;
+
+        // Vendor costs data
+        if (vendorCosts.length > 0) {
+            vendorCosts.forEach((cost, index) => {
+                const finalCost = cost.finalMDs ? (cost.finalMDs * cost.officialRate) : cost.cost;
+                
+                // Alternate row colors
+                const rowStyle = index % 2 === 0 ? 
+                    { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9F9F9' } } } : {};
+                
+                worksheet.getCell(row, 1).value = cost.vendor || '';
+                worksheet.getCell(row, 1).style = { ...styles.dataCell, ...rowStyle };
+                
+                worksheet.getCell(row, 2).value = cost.role || '';
+                worksheet.getCell(row, 2).style = { ...styles.dataCell, ...rowStyle };
+                
+                worksheet.getCell(row, 3).value = cost.department || '';
+                worksheet.getCell(row, 3).style = { ...styles.dataCell, ...rowStyle };
+                
+                worksheet.getCell(row, 4).value = cost.manDays || 0;
+                worksheet.getCell(row, 4).style = { ...styles.numberCell, ...rowStyle };
+                
+                worksheet.getCell(row, 5).value = cost.officialRate || 0;
+                worksheet.getCell(row, 5).style = { ...styles.currencyCell, ...rowStyle };
+                
+                worksheet.getCell(row, 6).value = cost.cost || 0;
+                worksheet.getCell(row, 6).style = { ...styles.currencyCell, ...rowStyle };
+                
+                worksheet.getCell(row, 7).value = cost.finalMDs || cost.manDays || 0;
+                worksheet.getCell(row, 7).style = { ...styles.numberCell, ...rowStyle };
+                
+                worksheet.getCell(row, 8).value = finalCost || 0;
+                worksheet.getCell(row, 8).style = { ...styles.currencyCell, ...rowStyle };
+                
+                row++;
+            });
+            
+            // Totals row
+            const totalManDays = vendorCosts.reduce((sum, c) => sum + (c.manDays || 0), 0);
+            const totalCost = vendorCosts.reduce((sum, c) => sum + (c.cost || 0), 0);
+            const totalFinalMDs = vendorCosts.reduce((sum, c) => sum + (c.finalMDs || c.manDays || 0), 0);
+            const totalFinalCost = vendorCosts.reduce((sum, c) => {
+                const finalCost = c.finalMDs ? (c.finalMDs * c.officialRate) : c.cost;
+                return sum + (finalCost || 0);
+            }, 0);
+            
+            worksheet.getCell(row, 1).value = 'TOTAL';
+            worksheet.getCell(row, 1).style = { ...styles.totalRow, font: { bold: true } };
+            worksheet.getCell(row, 2).style = styles.totalRow;
+            worksheet.getCell(row, 3).style = styles.totalRow;
+            
+            worksheet.getCell(row, 4).value = totalManDays;
+            worksheet.getCell(row, 4).style = { ...styles.numberCell, ...styles.totalRow };
+            
+            worksheet.getCell(row, 5).style = styles.totalRow;
+            
+            worksheet.getCell(row, 6).value = totalCost;
+            worksheet.getCell(row, 6).style = { ...styles.currencyCell, ...styles.totalRow };
+            
+            worksheet.getCell(row, 7).value = totalFinalMDs;
+            worksheet.getCell(row, 7).style = { ...styles.numberCell, ...styles.totalRow };
+            
+            worksheet.getCell(row, 8).value = totalFinalCost;
+            worksheet.getCell(row, 8).style = { ...styles.currencyCell, ...styles.totalRow };
+            row++;
+        } else {
+            worksheet.mergeCells(`A${row}:H${row}`);
+            worksheet.getCell(`A${row}`).value = 'No vendor costs calculated';
+            worksheet.getCell(`A${row}`).style = { font: { italic: true }, alignment: { horizontal: 'center' } };
+            row++;
+        }
+        row++; // Empty row
+
+        // KPI Summary Section
+        worksheet.mergeCells(`A${row}:H${row}`);
+        const kpiHeaderCell = worksheet.getCell(`A${row}`);
+        kpiHeaderCell.value = 'KPI SUMMARY';
+        kpiHeaderCell.style = { ...styles.sectionHeader, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } } };
+        row++;
+
+        // KPI table headers
+        ['Category', 'Internal (€)', 'External (€)', 'Total (€)'].forEach((header, index) => {
+            const cell = worksheet.getCell(row, index + 1);
+            cell.value = header;
+            cell.style = styles.tableHeader;
+        });
+        worksheet.mergeCells(`D${row}:H${row}`);
+        row++;
+
+        // KPI data
+        const gtoInternal = kpiData.gto?.internal || 0;
+        const gtoExternal = kpiData.gto?.external || 0;
+        const gtoTotal = kpiData.gto?.total || 0;
+        
+        const gdsInternal = kpiData.gds?.internal || 0;
+        const gdsExternal = kpiData.gds?.external || 0;
+        const gdsTotal = kpiData.gds?.total || 0;
+
+        // GTO row
+        worksheet.getCell(row, 1).value = 'GTO (Technical)';
+        worksheet.getCell(row, 1).style = { ...styles.dataCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6FF' } } };
+        worksheet.getCell(row, 2).value = gtoInternal;
+        worksheet.getCell(row, 2).style = styles.currencyCell;
+        worksheet.getCell(row, 3).value = gtoExternal;
+        worksheet.getCell(row, 3).style = styles.currencyCell;
+        worksheet.getCell(row, 4).value = gtoTotal;
+        worksheet.getCell(row, 4).style = { ...styles.currencyCell, font: { bold: true } };
+        row++;
+
+        // GDS row
+        worksheet.getCell(row, 1).value = 'GDS (Management)';
+        worksheet.getCell(row, 1).style = { ...styles.dataCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4EC' } } };
+        worksheet.getCell(row, 2).value = gdsInternal;
+        worksheet.getCell(row, 2).style = styles.currencyCell;
+        worksheet.getCell(row, 3).value = gdsExternal;
+        worksheet.getCell(row, 3).style = styles.currencyCell;
+        worksheet.getCell(row, 4).value = gdsTotal;
+        worksheet.getCell(row, 4).style = { ...styles.currencyCell, font: { bold: true } };
+        row++;
+
+        // Total row
+        worksheet.getCell(row, 1).value = 'TOTAL';
+        worksheet.getCell(row, 1).style = { ...styles.totalRow, font: { bold: true } };
+        worksheet.getCell(row, 2).value = gtoInternal + gdsInternal;
+        worksheet.getCell(row, 2).style = { ...styles.currencyCell, ...styles.totalRow };
+        worksheet.getCell(row, 3).value = gtoExternal + gdsExternal;
+        worksheet.getCell(row, 3).style = { ...styles.currencyCell, ...styles.totalRow };
+        worksheet.getCell(row, 4).value = gtoTotal + gdsTotal;
+        worksheet.getCell(row, 4).style = { ...styles.currencyCell, ...styles.totalRow, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } } };
+        row++;
+        row++; // Empty row
+
+        // Summary by Vendor Section
+        worksheet.mergeCells(`A${row}:H${row}`);
+        const summaryHeaderCell = worksheet.getCell(`A${row}`);
+        summaryHeaderCell.value = 'SUMMARY BY VENDOR';
+        summaryHeaderCell.style = styles.sectionHeader;
+        row++;
+
+        // Summary headers
+        ['Vendor', 'Total Man Days', 'Total Cost (€)'].forEach((header, index) => {
+            const cell = worksheet.getCell(row, index + 1);
+            cell.value = header;
+            cell.style = styles.tableHeader;
+        });
+        row++;
+
+        // Group costs by vendor
+        const vendorSummary = {};
+        vendorCosts.forEach(cost => {
+            if (!vendorSummary[cost.vendor]) {
+                vendorSummary[cost.vendor] = {
+                    manDays: 0,
+                    cost: 0
+                };
+            }
+            vendorSummary[cost.vendor].manDays += cost.finalMDs || cost.manDays || 0;
+            const finalCost = cost.finalMDs ? (cost.finalMDs * cost.officialRate) : cost.cost;
+            vendorSummary[cost.vendor].cost += finalCost || 0;
+        });
+
+        // Add vendor summary rows
+        Object.entries(vendorSummary).forEach(([vendor, summary]) => {
+            worksheet.getCell(row, 1).value = vendor;
+            worksheet.getCell(row, 1).style = styles.dataCell;
+            worksheet.getCell(row, 2).value = summary.manDays;
+            worksheet.getCell(row, 2).style = styles.numberCell;
+            worksheet.getCell(row, 3).value = summary.cost;
+            worksheet.getCell(row, 3).style = styles.currencyCell;
+            row++;
+        });
+
+        // Grand total
+        const grandTotalMDs = Object.values(vendorSummary).reduce((sum, s) => sum + s.manDays, 0);
+        const grandTotalCost = Object.values(vendorSummary).reduce((sum, s) => sum + s.cost, 0);
+        
+        worksheet.getCell(row, 1).value = 'GRAND TOTAL';
+        worksheet.getCell(row, 1).style = { ...styles.totalRow, font: { bold: true, size: 12 } };
+        worksheet.getCell(row, 2).value = grandTotalMDs;
+        worksheet.getCell(row, 2).style = { ...styles.numberCell, ...styles.totalRow };
+        worksheet.getCell(row, 3).value = grandTotalCost;
+        worksheet.getCell(row, 3).style = { ...styles.currencyCell, ...styles.totalRow, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } } };
+
+        // Set column widths
+        worksheet.columns = [
+            { width: 25 }, // Vendor
+            { width: 12 }, // Role
+            { width: 15 }, // Department
+            { width: 12 }, // Man Days
+            { width: 12 }, // Rate
+            { width: 12 }, // Cost
+            { width: 12 }, // Final MDs
+            { width: 15 }  // Final Cost
+        ];
+    }
+
+    /**
+     * Create styled features sheet using ExcelJS
+     */
+    async createFeaturesSheetExcelJS(workbook) {
+        const worksheet = workbook.addWorksheet('Features', {
+            properties: { tabColor: { argb: 'FF00B050' } },
+            views: [{ state: 'frozen', ySplit: 1 }]
+        });
+
+        const features = this.currentProject?.features || [];
+        
+        // Define styles
+        const styles = {
+            title: {
+                font: { name: 'Calibri', size: 16, bold: true, color: { argb: 'FFFFFFFF' } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00B050' } },
+                alignment: { horizontal: 'center', vertical: 'middle' }
+            },
+            header: {
+                font: { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF70AD47' } },
+                alignment: { horizontal: 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FF000000' } },
+                    left: { style: 'thin', color: { argb: 'FF000000' } },
+                    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                    right: { style: 'thin', color: { argb: 'FF000000' } }
+                }
+            }
+        };
+
+        // Title
+        worksheet.mergeCells('A1:I1');
+        const titleCell = worksheet.getCell('A1');
+        titleCell.value = 'PROJECT FEATURES';
+        titleCell.style = styles.title;
+        worksheet.getRow(1).height = 30;
+
+        // Headers
+        const headers = ['ID', 'Description', 'Category', 'Supplier', 'Real MD', 'Expertise %', 'Risk %', 'Calculated MD', 'Notes'];
+        const headerRow = worksheet.getRow(2);
+        headers.forEach((header, index) => {
+            const cell = headerRow.getCell(index + 1);
+            cell.value = header;
+            cell.style = styles.header;
+        });
+
+        // Data rows
+        features.forEach((feature, index) => {
+            const row = worksheet.getRow(index + 3);
+            
+            // Alternate row colors
+            const fillColor = index % 2 === 0 ? 'FFF2F2F2' : 'FFFFFFFF';
+            
+            row.getCell(1).value = feature.id;
+            row.getCell(2).value = feature.description;
+            row.getCell(3).value = feature.category || '';
+            row.getCell(4).value = feature.supplier || '';
+            row.getCell(5).value = feature.realManDays || 0;
+            row.getCell(6).value = feature.expertise || 100;
+            row.getCell(7).value = feature.riskMargin || 10;
+            row.getCell(8).value = feature.manDays || 0;
+            row.getCell(9).value = feature.notes || '';
+            
+            // Apply styles
+            for (let i = 1; i <= 9; i++) {
+                const cell = row.getCell(i);
+                cell.style = {
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
+                    border: {
+                        top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                    }
+                };
+                
+                // Number formatting for numeric columns
+                if (i === 5 || i === 8) {
+                    cell.numFmt = '#,##0.0';
+                    cell.alignment = { horizontal: 'right' };
+                } else if (i === 6 || i === 7) {
+                    cell.numFmt = '0%';
+                    cell.value = cell.value / 100; // Convert to percentage
+                    cell.alignment = { horizontal: 'right' };
+                }
+            }
+        });
+
+        // Summary row
+        const summaryRow = worksheet.getRow(features.length + 4);
+        summaryRow.getCell(1).value = 'TOTAL';
+        summaryRow.getCell(1).style = {
+            font: { bold: true },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } }
+        };
+        
+        const totalRealMD = features.reduce((sum, f) => sum + (f.realManDays || 0), 0);
+        const totalCalcMD = features.reduce((sum, f) => sum + (f.manDays || 0), 0);
+        
+        summaryRow.getCell(5).value = totalRealMD;
+        summaryRow.getCell(5).numFmt = '#,##0.0';
+        summaryRow.getCell(5).style = {
+            font: { bold: true },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } },
+            alignment: { horizontal: 'right' }
+        };
+        
+        summaryRow.getCell(8).value = totalCalcMD;
+        summaryRow.getCell(8).numFmt = '#,##0.0';
+        summaryRow.getCell(8).style = {
+            font: { bold: true },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } },
+            alignment: { horizontal: 'right' }
+        };
+
+        // Set column widths
+        worksheet.columns = [
+            { width: 12 }, // ID
+            { width: 40 }, // Description
+            { width: 15 }, // Category
+            { width: 20 }, // Supplier
+            { width: 12 }, // Real MD
+            { width: 12 }, // Expertise
+            { width: 10 }, // Risk
+            { width: 12 }, // Calculated MD
+            { width: 30 }  // Notes
+        ];
+    }
+
+    /**
+     * Create styled assumptions sheet using ExcelJS
+     */
+    async createAssumptionsSheetExcelJS(workbook) {
+        const worksheet = workbook.addWorksheet('Assumptions', {
+            properties: { tabColor: { argb: 'FFFFC000' } },
+            views: [{ state: 'frozen', ySplit: 1 }]
+        });
+
+        const assumptions = this.currentProject?.assumptions || [];
+        
+        // Define styles
+        const styles = {
+            title: {
+                font: { name: 'Calibri', size: 16, bold: true, color: { argb: 'FFFFFFFF' } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC000' } },
+                alignment: { horizontal: 'center', vertical: 'middle' }
+            },
+            header: {
+                font: { name: 'Calibri', size: 11, bold: true },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE699' } },
+                alignment: { horizontal: 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FF000000' } },
+                    left: { style: 'thin', color: { argb: 'FF000000' } },
+                    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                    right: { style: 'thin', color: { argb: 'FF000000' } }
+                }
+            }
+        };
+
+        // Title
+        worksheet.mergeCells('A1:E1');
+        const titleCell = worksheet.getCell('A1');
+        titleCell.value = 'PROJECT ASSUMPTIONS';
+        titleCell.style = styles.title;
+        worksheet.getRow(1).height = 30;
+
+        // Headers
+        const headers = ['ID', 'Description', 'Type', 'Impact', 'Notes'];
+        const headerRow = worksheet.getRow(2);
+        headers.forEach((header, index) => {
+            const cell = headerRow.getCell(index + 1);
+            cell.value = header;
+            cell.style = styles.header;
+        });
+
+        // Data rows
+        assumptions.forEach((assumption, index) => {
+            const row = worksheet.getRow(index + 3);
+            
+            row.getCell(1).value = assumption.id;
+            row.getCell(2).value = assumption.description;
+            row.getCell(3).value = assumption.type || '';
+            row.getCell(4).value = assumption.impact || '';
+            row.getCell(5).value = assumption.notes || '';
+            
+            // Apply styles and impact colors
+            for (let i = 1; i <= 5; i++) {
+                const cell = row.getCell(i);
+                
+                // Alternate row colors
+                const fillColor = index % 2 === 0 ? 'FFF9F9F9' : 'FFFFFFFF';
+                
+                cell.style = {
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
+                    border: {
+                        top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                        right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                    },
+                    alignment: { vertical: 'top', wrapText: true }
+                };
+                
+                // Special formatting for impact column
+                if (i === 4) {
+                    let impactColor = 'FFFFFFFF';
+                    if (assumption.impact === 'High') {
+                        impactColor = 'FFFFCCCC';
+                    } else if (assumption.impact === 'Medium') {
+                        impactColor = 'FFFFE599';
+                    } else if (assumption.impact === 'Low') {
+                        impactColor = 'FFD4EDDA';
+                    }
+                    cell.style.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: impactColor } };
+                    cell.style.alignment = { horizontal: 'center', vertical: 'middle' };
+                    cell.style.font = { bold: true };
+                }
+            }
+        });
+
+        // Summary
+        const summaryRow = worksheet.getRow(assumptions.length + 4);
+        summaryRow.getCell(1).value = `Total Assumptions: ${assumptions.length}`;
+        summaryRow.getCell(1).style = { font: { bold: true } };
+        
+        const highImpact = assumptions.filter(a => a.impact === 'High').length;
+        const mediumImpact = assumptions.filter(a => a.impact === 'Medium').length;
+        const lowImpact = assumptions.filter(a => a.impact === 'Low').length;
+        
+        summaryRow.getCell(3).value = `High: ${highImpact}, Medium: ${mediumImpact}, Low: ${lowImpact}`;
+        summaryRow.getCell(3).style = { font: { italic: true } };
+
+        // Set column widths
+        worksheet.columns = [
+            { width: 12 }, // ID
+            { width: 50 }, // Description
+            { width: 15 }, // Type
+            { width: 12 }, // Impact
+            { width: 40 }  // Notes
+        ];
+    }
+
+    /**
+     * Create styled phases sheet using ExcelJS
+     */
+    async createPhasesSheetExcelJS(workbook) {
+        const worksheet = workbook.addWorksheet('Phases', {
+            properties: { tabColor: { argb: 'FF7030A0' } },
+            views: [{ state: 'frozen', ySplit: 1 }]
+        });
+
+        const phases = this.currentProject?.phases || {};
+        
+        // Define styles
+        const styles = {
+            title: {
+                font: { name: 'Calibri', size: 16, bold: true, color: { argb: 'FFFFFFFF' } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7030A0' } },
+                alignment: { horizontal: 'center', vertical: 'middle' }
+            },
+            header: {
+                font: { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8E7CC3' } },
+                alignment: { horizontal: 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FF000000' } },
+                    left: { style: 'thin', color: { argb: 'FF000000' } },
+                    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                    right: { style: 'thin', color: { argb: 'FF000000' } }
+                }
+            }
+        };
+
+        // Title
+        worksheet.mergeCells('A1:F1');
+        const titleCell = worksheet.getCell('A1');
+        titleCell.value = 'PROJECT PHASES';
+        titleCell.style = styles.title;
+        worksheet.getRow(1).height = 30;
+
+        // Phase definitions (should match ProjectPhasesManager)
+        const phaseDefinitions = [
+            { id: 'requirements', name: 'Requirements Analysis' },
+            { id: 'technicalAnalysis', name: 'Technical Analysis' },
+            { id: 'development', name: 'Development' },
+            { id: 'testing', name: 'Testing (SIT)' },
+            { id: 'uat', name: 'UAT Support' },
+            { id: 'deployment', name: 'Deployment' },
+            { id: 'documentation', name: 'Documentation' },
+            { id: 'postGoLive', name: 'Post Go-Live Support' }
+        ];
+
+        // Headers
+        const headers = ['Phase', 'Man Days', 'Calculation Method', 'Percentage', 'Selected Resources', 'Notes'];
+        const headerRow = worksheet.getRow(2);
+        headers.forEach((header, index) => {
+            const cell = headerRow.getCell(index + 1);
+            cell.value = header;
+            cell.style = styles.header;
+        });
+
+        // Data rows
+        let rowIndex = 3;
+        let totalManDays = 0;
+        
+        phaseDefinitions.forEach((phaseDef, index) => {
+            const phaseData = phases[phaseDef.id];
+            if (phaseData && phaseData.manDays > 0) {
+                const row = worksheet.getRow(rowIndex);
+                
+                row.getCell(1).value = phaseDef.name;
+                row.getCell(2).value = phaseData.manDays || 0;
+                row.getCell(3).value = phaseData.calculationMethod || 'manual';
+                row.getCell(4).value = phaseData.percentage ? `${phaseData.percentage}%` : '';
+                row.getCell(5).value = phaseData.selectedResources ? 
+                    Object.entries(phaseData.selectedResources).map(([k, v]) => `${k}: ${v}`).join(', ') : '';
+                row.getCell(6).value = phaseData.notes || '';
+                
+                totalManDays += phaseData.manDays || 0;
+                
+                // Apply styles
+                const fillColor = index % 2 === 0 ? 'FFE6E0EC' : 'FFFFFFFF';
+                for (let i = 1; i <= 6; i++) {
+                    const cell = row.getCell(i);
+                    cell.style = {
+                        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
+                        border: {
+                            top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                            left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                            bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                            right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                        }
+                    };
+                    
+                    if (i === 2) {
+                        cell.numFmt = '#,##0.0';
+                        cell.alignment = { horizontal: 'right' };
+                    }
+                }
+                
+                rowIndex++;
+            }
+        });
+
+        // Total row
+        const totalRow = worksheet.getRow(rowIndex + 1);
+        totalRow.getCell(1).value = 'TOTAL';
+        totalRow.getCell(1).style = {
+            font: { bold: true },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D2E9' } }
+        };
+        totalRow.getCell(2).value = totalManDays;
+        totalRow.getCell(2).numFmt = '#,##0.0';
+        totalRow.getCell(2).style = {
+            font: { bold: true },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D2E9' } },
+            alignment: { horizontal: 'right' }
+        };
+
+        // Set column widths
+        worksheet.columns = [
+            { width: 25 }, // Phase
+            { width: 12 }, // Man Days
+            { width: 18 }, // Calculation Method
+            { width: 12 }, // Percentage
+            { width: 30 }, // Selected Resources
+            { width: 30 }  // Notes
+        ];
     }
 
     /**

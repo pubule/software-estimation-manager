@@ -882,44 +882,51 @@
 <!-- Version management (depends on other managers) -->
 <script src="js/components/version-manager.js"></script>
 
-<!-- XLSX library for Excel export -->
+<!-- ExcelJS library for Excel export with styling support -->
 <script>
-// Try to load XLSX library with multiple fallbacks
+// Try to load ExcelJS library with multiple fallbacks
 (function() {
     function loadScript(src, callback) {
         const script = document.createElement('script');
         script.src = src;
         script.onload = callback;
         script.onerror = () => {
-            console.warn('Failed to load XLSX from:', src);
+            console.warn('Failed to load ExcelJS from:', src);
             callback(false);
         };
         document.head.appendChild(script);
     }
 
-    // Try local copy first
-    loadScript('js/xlsx.full.min.js', (success) => {
+    // Try CDN first for ExcelJS
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js', (success) => {
         if (success) {
-            console.log('XLSX loaded from local copy');
+            console.log('ExcelJS loaded from CDN');
             return;
         }
         
-        // Fallback to CDN
-        loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', (success) => {
+        // Fallback to alternative CDN
+        loadScript('https://unpkg.com/exceljs@4.4.0/dist/exceljs.min.js', (success) => {
             if (success) {
-                console.log('XLSX loaded from CDN');
+                console.log('ExcelJS loaded from alternative CDN');
             } else {
-                console.error('Failed to load XLSX library from all sources');
-                // Create a mock XLSX object to prevent errors
-                window.XLSX = {
-                    utils: {
-                        book_new: () => ({ SheetNames: [], Sheets: {} }),
-                        aoa_to_sheet: () => ({}),
-                        book_append_sheet: () => {},
-                        encode_cell: () => 'A1',
-                        decode_range: () => ({ s: {r:0,c:0}, e: {r:0,c:0} })
-                    },
-                    write: () => new ArrayBuffer(0)
+                console.error('Failed to load ExcelJS library from all sources');
+                // Create a mock ExcelJS object to prevent errors
+                window.ExcelJS = {
+                    Workbook: function() {
+                        this.creator = '';
+                        this.lastModifiedBy = '';
+                        this.created = new Date();
+                        this.modified = new Date();
+                        this.addWorksheet = () => ({
+                            getCell: () => ({ value: '', style: {} }),
+                            getRow: () => ({ getCell: () => ({ value: '', style: {} }) }),
+                            mergeCells: () => {},
+                            columns: []
+                        });
+                        this.xlsx = {
+                            writeBuffer: () => Promise.resolve(new ArrayBuffer(0))
+                        };
+                    }
                 };
             }
         });
