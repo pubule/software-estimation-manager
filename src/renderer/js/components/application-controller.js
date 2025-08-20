@@ -1564,7 +1564,22 @@ class ApplicationController extends BaseComponent {
             views: [{ state: 'frozen', ySplit: 1 }]
         });
 
-        const phases = this.currentProject?.phases || {};
+        // Check if phases manager and project are available
+        if (!this.managers.projectPhases || !this.currentProject) {
+            // Create a simple message sheet
+            worksheet.mergeCells('A1:K1');
+            const messageCell = worksheet.getCell('A1');
+            messageCell.value = 'No phases data available';
+            messageCell.style = {
+                font: { name: 'Calibri', size: 14, italic: true },
+                alignment: { horizontal: 'center', vertical: 'middle' }
+            };
+            return;
+        }
+
+        const phases = this.managers.projectPhases.getProjectPhases() || [];
+        const phaseDefinitions = this.managers.projectPhases.phaseDefinitions || this.managers.projectPhases.createFallbackPhaseDefinitions();
+        const selectedSuppliers = this.managers.projectPhases.selectedSuppliers || {};
         
         // Define styles
         const styles = {
@@ -1572,6 +1587,11 @@ class ApplicationController extends BaseComponent {
                 font: { name: 'Calibri', size: 16, bold: true, color: { argb: 'FFFFFFFF' } },
                 fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7030A0' } },
                 alignment: { horizontal: 'center', vertical: 'middle' }
+            },
+            sectionHeader: {
+                font: { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF7030A0' } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6E6' } },
+                alignment: { horizontal: 'left', vertical: 'middle' }
             },
             header: {
                 font: { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } },
@@ -1583,103 +1603,257 @@ class ApplicationController extends BaseComponent {
                     bottom: { style: 'thin', color: { argb: 'FF000000' } },
                     right: { style: 'thin', color: { argb: 'FF000000' } }
                 }
+            },
+            dataCell: {
+                font: { name: 'Calibri', size: 11 },
+                alignment: { vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                }
+            },
+            numberCell: {
+                font: { name: 'Calibri', size: 11 },
+                alignment: { horizontal: 'right', vertical: 'middle' },
+                numFmt: '#,##0.0',
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                }
+            },
+            currencyCell: {
+                font: { name: 'Calibri', size: 11 },
+                alignment: { horizontal: 'right', vertical: 'middle' },
+                numFmt: '€ #,##0',
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                    right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+                }
+            },
+            totalRow: {
+                font: { name: 'Calibri', size: 11, bold: true },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D2E9' } },
+                border: {
+                    top: { style: 'double', color: { argb: 'FF000000' } },
+                    bottom: { style: 'thin', color: { argb: 'FF000000' } }
+                }
             }
         };
 
+        let row = 1;
+
         // Title
-        worksheet.mergeCells('A1:F1');
-        const titleCell = worksheet.getCell('A1');
+        worksheet.mergeCells(`A${row}:L${row}`);
+        const titleCell = worksheet.getCell(`A${row}`);
         titleCell.value = 'PROJECT PHASES';
         titleCell.style = styles.title;
-        worksheet.getRow(1).height = 30;
+        worksheet.getRow(row).height = 30;
+        row++;
 
-        // Phase definitions (should match ProjectPhasesManager)
-        const phaseDefinitions = [
-            { id: 'requirements', name: 'Requirements Analysis' },
-            { id: 'technicalAnalysis', name: 'Technical Analysis' },
-            { id: 'development', name: 'Development' },
-            { id: 'testing', name: 'Testing (SIT)' },
-            { id: 'uat', name: 'UAT Support' },
-            { id: 'deployment', name: 'Deployment' },
-            { id: 'documentation', name: 'Documentation' },
-            { id: 'postGoLive', name: 'Post Go-Live Support' }
+        // Project info
+        worksheet.mergeCells(`A${row}:B${row}`);
+        worksheet.getCell(`A${row}`).value = 'Project Name:';
+        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+        worksheet.mergeCells(`C${row}:L${row}`);
+        worksheet.getCell(`C${row}`).value = this.currentProject?.project?.name || '';
+        row++;
+        row++; // Empty row
+
+        // Phase Details Section
+        worksheet.mergeCells(`A${row}:L${row}`);
+        const detailsHeaderCell = worksheet.getCell(`A${row}`);
+        detailsHeaderCell.value = 'PHASES BREAKDOWN';
+        detailsHeaderCell.style = styles.sectionHeader;
+        row++;
+
+        // Headers for detailed breakdown
+        const headers = [
+            'Phase', 'Type', 'Total MDs', 'G1 (MDs)', 'G2 (MDs)', 'TA (MDs)', 'PM (MDs)',
+            'G1 Cost', 'G2 Cost', 'TA Cost', 'PM Cost', 'Total Cost'
         ];
-
-        // Headers
-        const headers = ['Phase', 'Man Days', 'Calculation Method', 'Percentage', 'Selected Resources', 'Notes'];
-        const headerRow = worksheet.getRow(2);
+        
         headers.forEach((header, index) => {
-            const cell = headerRow.getCell(index + 1);
+            const cell = worksheet.getCell(row, index + 1);
             cell.value = header;
             cell.style = styles.header;
         });
+        row++;
 
-        // Data rows
-        let rowIndex = 3;
+        // Phase data rows
         let totalManDays = 0;
+        let totalCost = 0;
         
-        phaseDefinitions.forEach((phaseDef, index) => {
-            const phaseData = phases[phaseDef.id];
-            if (phaseData && phaseData.manDays > 0) {
-                const row = worksheet.getRow(rowIndex);
+        phases.forEach((phase, index) => {
+            if (phase.manDays > 0) {
+                // Get phase definition for type info
+                const phaseDef = phaseDefinitions.find(pd => pd.id === phase.id);
                 
-                row.getCell(1).value = phaseDef.name;
-                row.getCell(2).value = phaseData.manDays || 0;
-                row.getCell(3).value = phaseData.calculationMethod || 'manual';
-                row.getCell(4).value = phaseData.percentage ? `${phaseData.percentage}%` : '';
-                row.getCell(5).value = phaseData.selectedResources ? 
-                    Object.entries(phaseData.selectedResources).map(([k, v]) => `${k}: ${v}`).join(', ') : '';
-                row.getCell(6).value = phaseData.notes || '';
+                // Calculate resource breakdown
+                const manDaysByResource = this.managers.projectPhases.calculateManDaysByResource(phase.manDays, phase.effort) || {};
+                const costByResource = this.managers.projectPhases.calculateCostByResource(manDaysByResource, phase) || {};
+                const phaseTotalCost = Object.values(costByResource).reduce((sum, cost) => sum + (cost || 0), 0);
                 
-                totalManDays += phaseData.manDays || 0;
-                
-                // Apply styles
+                totalManDays += phase.manDays || 0;
+                totalCost += phaseTotalCost;
+
+                // Alternate row colors
                 const fillColor = index % 2 === 0 ? 'FFE6E0EC' : 'FFFFFFFF';
-                for (let i = 1; i <= 6; i++) {
-                    const cell = row.getCell(i);
-                    cell.style = {
-                        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
-                        border: {
-                            top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
-                            left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
-                            bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
-                            right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
-                        }
-                    };
-                    
-                    if (i === 2) {
-                        cell.numFmt = '#,##0.0';
-                        cell.alignment = { horizontal: 'right' };
-                    }
-                }
                 
-                rowIndex++;
+                // Phase name
+                worksheet.getCell(row, 1).value = phase.name || '';
+                worksheet.getCell(row, 1).style = { ...styles.dataCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
+                
+                // Phase type
+                worksheet.getCell(row, 2).value = phaseDef?.type || '';
+                worksheet.getCell(row, 2).style = { ...styles.dataCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
+                
+                // Total Man Days
+                worksheet.getCell(row, 3).value = phase.manDays || 0;
+                worksheet.getCell(row, 3).style = { ...styles.numberCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
+                
+                // Man Days by resource
+                worksheet.getCell(row, 4).value = manDaysByResource.G1 || 0;
+                worksheet.getCell(row, 4).style = { ...styles.numberCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
+                
+                worksheet.getCell(row, 5).value = manDaysByResource.G2 || 0;
+                worksheet.getCell(row, 5).style = { ...styles.numberCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
+                
+                worksheet.getCell(row, 6).value = manDaysByResource.TA || 0;
+                worksheet.getCell(row, 6).style = { ...styles.numberCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
+                
+                worksheet.getCell(row, 7).value = manDaysByResource.PM || 0;
+                worksheet.getCell(row, 7).style = { ...styles.numberCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
+                
+                // Costs by resource
+                worksheet.getCell(row, 8).value = costByResource.G1 || 0;
+                worksheet.getCell(row, 8).style = { ...styles.currencyCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
+                
+                worksheet.getCell(row, 9).value = costByResource.G2 || 0;
+                worksheet.getCell(row, 9).style = { ...styles.currencyCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
+                
+                worksheet.getCell(row, 10).value = costByResource.TA || 0;
+                worksheet.getCell(row, 10).style = { ...styles.currencyCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
+                
+                worksheet.getCell(row, 11).value = costByResource.PM || 0;
+                worksheet.getCell(row, 11).style = { ...styles.currencyCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
+                
+                // Total cost
+                worksheet.getCell(row, 12).value = phaseTotalCost;
+                worksheet.getCell(row, 12).style = { ...styles.currencyCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } }, font: { bold: true } };
+                
+                row++;
             }
         });
 
         // Total row
-        const totalRow = worksheet.getRow(rowIndex + 1);
-        totalRow.getCell(1).value = 'TOTAL';
-        totalRow.getCell(1).style = {
-            font: { bold: true },
-            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D2E9' } }
+        worksheet.getCell(row, 1).value = 'TOTAL';
+        worksheet.getCell(row, 1).style = { ...styles.totalRow, font: { bold: true } };
+        worksheet.getCell(row, 2).style = styles.totalRow;
+        
+        worksheet.getCell(row, 3).value = totalManDays;
+        worksheet.getCell(row, 3).style = { ...styles.numberCell, ...styles.totalRow };
+        
+        // Calculate resource totals
+        let totalG1MD = 0, totalG2MD = 0, totalTAMD = 0, totalPMMD = 0;
+        let totalG1Cost = 0, totalG2Cost = 0, totalTACost = 0, totalPMCost = 0;
+        
+        phases.forEach(phase => {
+            if (phase.manDays > 0) {
+                const manDaysByResource = this.managers.projectPhases.calculateManDaysByResource(phase.manDays, phase.effort) || {};
+                const costByResource = this.managers.projectPhases.calculateCostByResource(manDaysByResource, phase) || {};
+                
+                totalG1MD += manDaysByResource.G1 || 0;
+                totalG2MD += manDaysByResource.G2 || 0;
+                totalTAMD += manDaysByResource.TA || 0;
+                totalPMMD += manDaysByResource.PM || 0;
+                
+                totalG1Cost += costByResource.G1 || 0;
+                totalG2Cost += costByResource.G2 || 0;
+                totalTACost += costByResource.TA || 0;
+                totalPMCost += costByResource.PM || 0;
+            }
+        });
+        
+        worksheet.getCell(row, 4).value = totalG1MD;
+        worksheet.getCell(row, 4).style = { ...styles.numberCell, ...styles.totalRow };
+        worksheet.getCell(row, 5).value = totalG2MD;
+        worksheet.getCell(row, 5).style = { ...styles.numberCell, ...styles.totalRow };
+        worksheet.getCell(row, 6).value = totalTAMD;
+        worksheet.getCell(row, 6).style = { ...styles.numberCell, ...styles.totalRow };
+        worksheet.getCell(row, 7).value = totalPMMD;
+        worksheet.getCell(row, 7).style = { ...styles.numberCell, ...styles.totalRow };
+        
+        worksheet.getCell(row, 8).value = totalG1Cost;
+        worksheet.getCell(row, 8).style = { ...styles.currencyCell, ...styles.totalRow };
+        worksheet.getCell(row, 9).value = totalG2Cost;
+        worksheet.getCell(row, 9).style = { ...styles.currencyCell, ...styles.totalRow };
+        worksheet.getCell(row, 10).value = totalTACost;
+        worksheet.getCell(row, 10).style = { ...styles.currencyCell, ...styles.totalRow };
+        worksheet.getCell(row, 11).value = totalPMCost;
+        worksheet.getCell(row, 11).style = { ...styles.currencyCell, ...styles.totalRow };
+        
+        worksheet.getCell(row, 12).value = totalCost;
+        worksheet.getCell(row, 12).style = { 
+            ...styles.currencyCell, 
+            ...styles.totalRow,
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } }
         };
-        totalRow.getCell(2).value = totalManDays;
-        totalRow.getCell(2).numFmt = '#,##0.0';
-        totalRow.getCell(2).style = {
-            font: { bold: true },
-            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D2E9' } },
-            alignment: { horizontal: 'right' }
-        };
+        row++;
+        row++; // Empty row
+
+        // Selected Suppliers Section
+        worksheet.mergeCells(`A${row}:L${row}`);
+        const suppliersHeaderCell = worksheet.getCell(`A${row}`);
+        suppliersHeaderCell.value = 'SELECTED SUPPLIERS';
+        suppliersHeaderCell.style = styles.sectionHeader;
+        row++;
+
+        // Suppliers table headers
+        ['Resource Type', 'Selected Supplier'].forEach((header, index) => {
+            const cell = worksheet.getCell(row, index + 1);
+            cell.value = header;
+            cell.style = styles.header;
+        });
+        row++;
+
+        // List selected suppliers
+        Object.entries(selectedSuppliers).forEach(([resourceType, supplierId]) => {
+            if (supplierId) {
+                // Get supplier name from configuration
+                const allSuppliers = [
+                    ...(this.managers.config?.globalConfig?.suppliers || []),
+                    ...(this.managers.config?.globalConfig?.internalResources || [])
+                ];
+                const supplier = allSuppliers.find(s => s.id === supplierId);
+                
+                worksheet.getCell(row, 1).value = resourceType;
+                worksheet.getCell(row, 1).style = styles.dataCell;
+                worksheet.getCell(row, 2).value = supplier?.name || supplierId;
+                worksheet.getCell(row, 2).style = styles.dataCell;
+                row++;
+            }
+        });
 
         // Set column widths
         worksheet.columns = [
             { width: 25 }, // Phase
-            { width: 12 }, // Man Days
-            { width: 18 }, // Calculation Method
-            { width: 12 }, // Percentage
-            { width: 30 }, // Selected Resources
-            { width: 30 }  // Notes
+            { width: 12 }, // Type
+            { width: 12 }, // Total MDs
+            { width: 10 }, // G1 MDs
+            { width: 10 }, // G2 MDs
+            { width: 10 }, // TA MDs
+            { width: 10 }, // PM MDs
+            { width: 12 }, // G1 Cost
+            { width: 12 }, // G2 Cost
+            { width: 12 }, // TA Cost
+            { width: 12 }, // PM Cost
+            { width: 15 }  // Total Cost
         ];
     }
 
