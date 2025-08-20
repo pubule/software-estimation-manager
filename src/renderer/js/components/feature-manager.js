@@ -40,7 +40,8 @@ class FeatureManager extends BaseComponent {
     async initializeModal() {
         this.modal = new FeatureModal('feature-modal', {
             manager: this,
-            configManager: this.configManager
+            configManager: this.configManager,
+            closeOnOutsideClick: false
         });
         
         await this.modal.init();
