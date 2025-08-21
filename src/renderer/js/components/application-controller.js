@@ -2004,6 +2004,7 @@ class ApplicationController extends BaseComponent {
         
         this.refreshDropdowns();
         this.updateUI();
+        this.updateProjectStatus();
 
         // Reset phases after UI updates
         setTimeout(() => {
@@ -2188,6 +2189,24 @@ class ApplicationController extends BaseComponent {
             statusEl.className = this.isDirty ? 'unsaved' : 'saved';
             statusEl.textContent = this.isDirty ? '●' : '○';
         }
+
+        // Update last saved timestamp
+        const lastSavedEl = this.getElement('last-saved');
+        if (lastSavedEl) {
+            if (this.currentProject && this.currentProject.project && this.currentProject.project.lastModified) {
+                const date = new Date(this.currentProject.project.lastModified);
+                const formatted = date.toLocaleString('it-IT', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                lastSavedEl.textContent = `Last saved: ${formatted}`;
+            } else {
+                lastSavedEl.textContent = 'Last saved: Never';
+            }
+        }
     }
 
     /**
@@ -2352,6 +2371,7 @@ class ApplicationController extends BaseComponent {
                 this.phasesManager = this.managers.projectPhases; // Legacy reference
                 this.updateNavigationState();
                 this.refreshDropdowns();
+                this.updateProjectStatus();
             }
 
             // Restore navigation state
