@@ -2202,10 +2202,20 @@ class ApplicationController extends BaseComponent {
         const averageManDays = totalFeatures > 0 ? (totalManDays / totalFeatures).toFixed(1) : 0;
         const defaultCoverage = (totalManDays * 0.3).toFixed(1);
 
+        // Calculate filtered man days
+        let filteredManDays = 0;
+        if (this.managers.feature && this.managers.feature.state && this.managers.feature.state.filteredFeatures) {
+            filteredManDays = this.managers.feature.state.filteredFeatures.reduce((sum, feature) => sum + (feature.manDays || 0), 0);
+        } else {
+            // If no filters applied, filtered equals total
+            filteredManDays = totalManDays;
+        }
+
         // Update display elements
         this.updateElementContent('total-features', totalFeatures);
         this.updateElementContent('total-man-days', totalManDays.toFixed(1));
         this.updateElementContent('average-man-days', averageManDays);
+        this.updateElementContent('filtered-man-days', filteredManDays.toFixed(1));
         
         // Update coverage
         this.updateCoverage(defaultCoverage);

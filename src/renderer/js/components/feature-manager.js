@@ -533,6 +533,7 @@ class FeatureManager extends BaseComponent {
         if (!currentProject?.features) {
             this.state.filteredFeatures = [];
             this.renderTable();
+            this.updateProjectSummary();
             return;
         }
 
@@ -546,6 +547,7 @@ class FeatureManager extends BaseComponent {
 
         this.state.filteredFeatures = features;
         this.renderTable();
+        this.updateProjectSummary();
     }
 
     /**
