@@ -973,6 +973,7 @@ class ApplicationController extends BaseComponent {
         const calcManager = this.managers.calculations;
         if (calcManager) {
             calcManager.calculateVendorCosts();
+            calcManager.calculateKPIs();
         }
         
         const vendorCosts = calcManager?.vendorCosts || [];
@@ -1244,6 +1245,64 @@ class ApplicationController extends BaseComponent {
         worksheet.getCell(row, 3).style = { ...styles.currencyCell, ...styles.totalRow };
         worksheet.getCell(row, 4).value = gtoTotal + gdsTotal;
         worksheet.getCell(row, 4).style = { ...styles.currencyCell, ...styles.totalRow, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } } };
+        row++;
+        row++; // Empty row
+
+        // Percentages Section
+        worksheet.mergeCells(`A${row}:H${row}`);
+        const percentagesHeaderCell = worksheet.getCell(`A${row}`);
+        percentagesHeaderCell.value = 'PERCENTUALI KPI';
+        percentagesHeaderCell.style = { ...styles.sectionHeader, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDF2E9' } } };
+        row++;
+
+        // Percentages table headers
+        ['Descrizione', 'Percentuale'].forEach((header, index) => {
+            const cell = worksheet.getCell(row, index + 1);
+            cell.value = header;
+            cell.style = styles.tableHeader;
+        });
+        worksheet.mergeCells(`C${row}:H${row}`);
+        row++;
+
+        // Percentage style
+        const percentageStyle = {
+            font: { name: 'Calibri', size: 11, bold: true },
+            alignment: { horizontal: 'right', vertical: 'middle' },
+            numFmt: '0.0%',
+            border: {
+                top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+                right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+            }
+        };
+
+        // 1. GTO interni / totale GTO
+        worksheet.getCell(row, 1).value = 'GTO Interni / Totale GTO';
+        worksheet.getCell(row, 1).style = { ...styles.dataCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6FF' } } };
+        worksheet.getCell(row, 2).value = (kpiData.gto?.internalPercentage || 0) / 100;
+        worksheet.getCell(row, 2).style = { ...percentageStyle, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6FF' } } };
+        row++;
+
+        // 2. GDS esterni / totale GDS
+        worksheet.getCell(row, 1).value = 'GDS Esterni / Totale GDS';
+        worksheet.getCell(row, 1).style = { ...styles.dataCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4EC' } } };
+        worksheet.getCell(row, 2).value = (kpiData.gds?.externalPercentage || 0) / 100;
+        worksheet.getCell(row, 2).style = { ...percentageStyle, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4EC' } } };
+        row++;
+
+        // 3. Totale interni / progetto
+        worksheet.getCell(row, 1).value = 'Totale Interni / Progetto';
+        worksheet.getCell(row, 1).style = { ...styles.dataCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E8' } } };
+        worksheet.getCell(row, 2).value = (kpiData.totalInternalPercentage || 0) / 100;
+        worksheet.getCell(row, 2).style = { ...percentageStyle, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E8' } } };
+        row++;
+
+        // 4. Totale esterni / progetto
+        worksheet.getCell(row, 1).value = 'Totale Esterni / Progetto';
+        worksheet.getCell(row, 1).style = { ...styles.dataCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEAA7' } } };
+        worksheet.getCell(row, 2).value = (kpiData.totalExternalPercentage || 0) / 100;
+        worksheet.getCell(row, 2).style = { ...percentageStyle, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEAA7' } } };
         row++;
         row++; // Empty row
 

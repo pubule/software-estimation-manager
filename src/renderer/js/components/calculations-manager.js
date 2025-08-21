@@ -399,6 +399,11 @@ class CalculationsManager {
             .reduce((sum, vc) => sum + ((vc.finalMDs || 0) * vc.officialRate), 0);
 
         const gdsTotal = gdsInternal + gdsExternal;
+        const totalProject = gtoTotal + gdsTotal;
+
+        // Calculate project-level percentages
+        const totalInternalAmount = gtoInternal + gdsInternal;
+        const totalExternalAmount = gtoExternal + gdsExternal;
 
         this.kpiData = {
             gto: {
@@ -415,7 +420,10 @@ class CalculationsManager {
                 internalPercentage: gdsTotal > 0 ? (gdsInternal / gdsTotal) * 100 : 0,
                 externalPercentage: gdsTotal > 0 ? (gdsExternal / gdsTotal) * 100 : 0
             },
-            totalProject: gtoTotal + gdsTotal
+            totalProject: totalProject,
+            // Project-level percentages
+            totalInternalPercentage: totalProject > 0 ? (totalInternalAmount / totalProject) * 100 : 0,
+            totalExternalPercentage: totalProject > 0 ? (totalExternalAmount / totalProject) * 100 : 0
         };
     }
 
