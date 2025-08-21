@@ -1065,20 +1065,6 @@ class ApplicationController extends BaseComponent {
         worksheet.getRow(row).height = 30;
         row++;
 
-        // Project info
-        worksheet.mergeCells(`A${row}:B${row}`);
-        worksheet.getCell(`A${row}`).value = 'Project Name:';
-        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
-        worksheet.mergeCells(`C${row}:H${row}`);
-        worksheet.getCell(`C${row}`).value = this.currentProject?.project?.name || '';
-        row++;
-
-        worksheet.mergeCells(`A${row}:B${row}`);
-        worksheet.getCell(`A${row}`).value = 'Export Date:';
-        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
-        worksheet.mergeCells(`C${row}:H${row}`);
-        worksheet.getCell(`C${row}`).value = new Date().toLocaleDateString();
-        row++;
         row++; // Empty row
 
         // Features Summary Section
@@ -1744,14 +1730,6 @@ class ApplicationController extends BaseComponent {
         titleCell.value = 'PROJECT PHASES';
         titleCell.style = styles.title;
         worksheet.getRow(row).height = 30;
-        row++;
-
-        // Project info
-        worksheet.mergeCells(`A${row}:B${row}`);
-        worksheet.getCell(`A${row}`).value = 'Project Name:';
-        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
-        worksheet.mergeCells(`C${row}:L${row}`);
-        worksheet.getCell(`C${row}`).value = this.currentProject?.project?.name || '';
         row++;
         row++; // Empty row
 
