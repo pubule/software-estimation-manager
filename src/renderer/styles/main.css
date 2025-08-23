@@ -450,6 +450,20 @@
     color: var(--text-muted);
 }
 
+/* Fix empty-state in table cells with colspan */
+.data-table td.empty-state {
+    width: 100% !important;
+    min-width: 100% !important;
+    text-align: center !important;
+    display: table-cell !important;
+}
+
+/* Ensure table allows proper colspan expansion */
+.data-table {
+    table-layout: auto !important;
+    width: 100%;
+}
+
 .empty-state-icon {
     font-size: 48px;
     margin-bottom: var(--spacing-md);
