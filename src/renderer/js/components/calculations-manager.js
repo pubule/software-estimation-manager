@@ -6492,8 +6492,14 @@ class CapacityManager extends BaseComponent {
                 });
             }
 
-            // Reset flags before setting up new modal
-            this.resetAssignmentModal();
+            // Reset modal based on mode
+            if (mode === 'edit') {
+                // For edit mode, use partial reset to preserve data
+                this.partialResetModal();
+            } else {
+                // For create/duplicate modes, do full reset
+                this.resetAssignmentModal();
+            }
 
             // Set modal mode and data
             modal.dataset.mode = mode;
@@ -6605,6 +6611,32 @@ class CapacityManager extends BaseComponent {
         
         // Reset form
         document.getElementById('assignment-form').reset();
+    }
+
+    /**
+     * Partial reset for edit mode - preserves form data but clears dynamic content
+     */
+    partialResetModal() {
+        // Hide dynamic sections
+        document.getElementById('budget-section').style.display = 'none';
+        document.getElementById('phases-section').style.display = 'none';
+        
+        // Clear dynamic content
+        document.getElementById('member-role-info').textContent = '';
+        document.getElementById('total-final-mds').textContent = '-';
+        document.getElementById('total-allocated-mds').textContent = '0.0';
+        document.getElementById('budget-balance').textContent = '-';
+        document.getElementById('budget-context').textContent = '';
+        document.getElementById('phases-list').innerHTML = '';
+        
+        // Reset internal flags to prevent loops
+        this._duplicateFormPopulating = false;
+        this._loadingProjectForAssignment = false;
+        this._phaseDataPopulated = false;
+        
+        // DON'T reset form data in edit mode - that's the key difference
+        // DON'T clear modal title/button text - will be set by calling function
+        // DON'T remove editingAssignmentId - will be set by calling function
     }
     
     /**
