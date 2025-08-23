@@ -140,6 +140,22 @@ Feature: Capacity Planning
     And validation should prevent over-allocation conflicts
     And the timeline should update to show the modified allocation
 
+  Scenario: Edit assignment modal preserves existing data
+    Given I have a saved manual assignment with:
+      | Property      | Value                              |
+      | teamMemberId  | team-fullstack:member-fullstack-1  |
+      | projectId     | proj_1755202129997_rbqfx9x9x       |
+      | notes         | Important assignment notes         |
+      | phaseSchedule | Complex multi-phase schedule       |
+    When I open the assignment modal to edit this assignment
+    Then the modal should use partial reset mode preserving form data
+    And the team member dropdown should show the correct selection
+    And the project dropdown should show the correct selection
+    And the notes field should contain "Important assignment notes"
+    And the phase schedule should be populated with existing data
+    And the budget information should be recalculated and displayed
+    And no form data should be lost during modal initialization
+
   # Data Visualization and Analytics
 
   Scenario: Monthly allocation percentage calculation

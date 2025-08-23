@@ -506,3 +506,258 @@ Then('user interaction should be prevented during loading', async function() {
   
   this.log('✅ User interaction prevented during loading');
 });
+
+// Empty state table layout functionality
+Then('the empty state should be rendered as a table row', async function() {
+  this.log('Verifying empty state is rendered as table row');
+  
+  const result = await this.executeScript(`
+    const emptyStateRow = document.querySelector('tr td.empty-state');
+    const parentRow = emptyStateRow?.parentElement;
+    
+    return {
+      emptyStateExists: !!emptyStateRow,
+      isInTableRow: parentRow?.tagName === 'TR',
+      cellTagName: emptyStateRow?.tagName
+    };
+  `);
+  
+  assert(result.emptyStateExists, 'Empty state cell should exist');
+  assert(result.isInTableRow, 'Empty state should be in a table row');
+  assert.strictEqual(result.cellTagName, 'TD', 'Empty state should be a table cell (TD)');
+  
+  this.log('✅ Empty state rendered as table row');
+});
+
+Then('the empty state cell should have colspan={string} to span all columns', async function(expectedColspan) {
+  this.log(`Verifying empty state has colspan="${expectedColspan}"`);
+  
+  const result = await this.executeScript(`
+    const emptyStateCell = document.querySelector('td.empty-state');
+    
+    return {
+      cellExists: !!emptyStateCell,
+      colspan: emptyStateCell?.getAttribute('colspan') || emptyStateCell?.colSpan,
+      expectedColspan: '${expectedColspan}',
+      // Also verify we have exactly 7 columns in features table
+      tableColumnCount: document.querySelectorAll('#features-table thead th').length
+    };
+  `);
+  
+  assert(result.cellExists, 'Empty state cell should exist');
+  assert.strictEqual(result.colspan.toString(), expectedColspan, 
+    `Empty state should have colspan="${expectedColspan}"`);
+  assert.strictEqual(result.tableColumnCount, 7, 
+    'Features table should have exactly 7 columns (expand, ID, Description, Supplier, Real MD, Calc MD, Actions)');
+  
+  this.log('✅ Empty state cell has correct colspan matching table columns');
+});
+
+Then('the empty state should expand across the full table width', async function() {
+  this.log('Verifying empty state expands across full table width');
+  
+  const result = await this.executeScript(`
+    const emptyStateCell = document.querySelector('td.empty-state');
+    const table = emptyStateCell?.closest('table');
+    
+    if (!emptyStateCell || !table) {
+      return { canVerify: false };
+    }
+    
+    const cellRect = emptyStateCell.getBoundingClientRect();
+    const tableRect = table.getBoundingClientRect();
+    
+    // Allow small margin for borders/padding
+    const widthDiff = Math.abs(cellRect.width - tableRect.width);
+    const isFullWidth = widthDiff < 20; // Allow 20px tolerance
+    
+    return {
+      canVerify: true,
+      cellWidth: cellRect.width,
+      tableWidth: tableRect.width,
+      isFullWidth: isFullWidth,
+      widthDiff: widthDiff
+    };
+  `);
+  
+  if (!result.canVerify) {
+    this.log('⚠️ Cannot verify width - empty state or table not found');
+    return;
+  }
+  
+  assert(result.isFullWidth, 
+    `Empty state should span full table width. Cell: ${result.cellWidth}px, Table: ${result.tableWidth}px`);
+  
+  this.log('✅ Empty state expands across full table width');
+});
+
+Then('the empty state should not appear {string} in the first column', async function(appearance) {
+  this.log(`Verifying empty state does not appear "${appearance}"`);
+  
+  const result = await this.executeScript(`
+    const emptyStateCell = document.querySelector('td.empty-state');
+    
+    if (!emptyStateCell) {
+      return { canVerify: false };
+    }
+    
+    const cellRect = emptyStateCell.getBoundingClientRect();
+    const computedStyle = getComputedStyle(emptyStateCell);
+    
+    // Check if it looks compressed (very narrow compared to expected)
+    const isCompressed = cellRect.width < 100; // Less than 100px suggests compression
+    const hasFullWidth = computedStyle.width === '100%' || computedStyle.minWidth === '100%';
+    
+    return {
+      canVerify: true,
+      cellWidth: cellRect.width,
+      isCompressed: isCompressed,
+      hasFullWidth: hasFullWidth,
+      computedWidth: computedStyle.width,
+      computedMinWidth: computedStyle.minWidth
+    };
+  `);
+  
+  if (!result.canVerify) {
+    this.log('⚠️ Cannot verify compression - empty state not found');
+    return;
+  }
+  
+  assert(!result.isCompressed, 
+    `Empty state should not appear compressed. Width: ${result.cellWidth}px`);
+  
+  this.log('✅ Empty state does not appear compressed');
+});
+
+Then('the table should have table-layout: auto to allow proper colspan expansion', async function() {
+  this.log('Verifying table has table-layout: auto');
+  
+  const result = await this.executeScript(`
+    const table = document.querySelector('.data-table, #features-table, table');
+    
+    if (!table) {
+      return { canVerify: false };
+    }
+    
+    const computedStyle = getComputedStyle(table);
+    const tableLayout = computedStyle.tableLayout;
+    
+    return {
+      canVerify: true,
+      tableExists: !!table,
+      tableLayout: tableLayout,
+      isAutoLayout: tableLayout === 'auto'
+    };
+  `);
+  
+  if (!result.canVerify) {
+    this.log('⚠️ Cannot verify table layout - table not found');
+    return;
+  }
+  
+  assert(result.tableExists, 'Table should exist');
+  assert(result.isAutoLayout, 
+    `Table should have table-layout: auto, got: ${result.tableLayout}`);
+  
+  this.log('✅ Table has table-layout: auto');
+});
+
+Then('the empty state should be visually centered within the table', async function() {
+  this.log('Verifying empty state is visually centered');
+  
+  const result = await this.executeScript(`
+    const emptyStateCell = document.querySelector('td.empty-state');
+    
+    if (!emptyStateCell) {
+      return { canVerify: false };
+    }
+    
+    const computedStyle = getComputedStyle(emptyStateCell);
+    const textAlign = computedStyle.textAlign;
+    
+    return {
+      canVerify: true,
+      cellExists: !!emptyStateCell,
+      textAlign: textAlign,
+      isCentered: textAlign === 'center'
+    };
+  `);
+  
+  if (!result.canVerify) {
+    this.log('⚠️ Cannot verify centering - empty state not found');
+    return;
+  }
+  
+  assert(result.cellExists, 'Empty state cell should exist');
+  assert(result.isCentered, 
+    `Empty state should be text-aligned center, got: ${result.textAlign}`);
+  
+  this.log('✅ Empty state is visually centered');
+});
+
+Then('the empty state should display the message {string}', async function(expectedMessage) {
+  this.log(`Verifying empty state displays message: "${expectedMessage}"`);
+  
+  const result = await this.executeScript(`
+    const emptyStateCell = document.querySelector('td.empty-state');
+    const messageDiv = emptyStateCell?.querySelector('.empty-state-message');
+    
+    const actualMessage = messageDiv?.textContent || emptyStateCell?.textContent || '';
+    
+    return {
+      cellExists: !!emptyStateCell,
+      messageExists: !!messageDiv,
+      actualMessage: actualMessage.trim(),
+      expectedMessage: '${expectedMessage}',
+      messageMatches: actualMessage.trim().includes('${expectedMessage}')
+    };
+  `);
+  
+  assert(result.cellExists, 'Empty state cell should exist');
+  assert(result.messageMatches, 
+    `Empty state should contain message "${expectedMessage}", got: "${result.actualMessage}"`);
+  
+  this.log('✅ Empty state displays correct message');
+});
+
+Then('the empty state icon should be properly displayed and centered', async function() {
+  this.log('Verifying empty state icon is displayed and centered');
+  
+  const result = await this.executeScript(`
+    const emptyStateCell = document.querySelector('td.empty-state');
+    const iconDiv = emptyStateCell?.querySelector('.empty-state-icon');
+    const icon = iconDiv?.querySelector('i') || iconDiv?.querySelector('.fas');
+    
+    if (!emptyStateCell) {
+      return { canVerify: false };
+    }
+    
+    const iconExists = !!icon;
+    let iconCentered = false;
+    
+    if (iconDiv) {
+      const computedStyle = getComputedStyle(iconDiv);
+      iconCentered = computedStyle.textAlign === 'center' || 
+                    computedStyle.display === 'flex' ||
+                    emptyStateCell.style.textAlign === 'center';
+    }
+    
+    return {
+      canVerify: true,
+      iconExists: iconExists,
+      iconCentered: iconCentered,
+      iconDivExists: !!iconDiv,
+      iconClasses: icon?.className || 'none'
+    };
+  `);
+  
+  if (!result.canVerify) {
+    this.log('⚠️ Cannot verify icon - empty state not found');
+    return;
+  }
+  
+  assert(result.iconExists, 'Empty state icon should exist');
+  assert(result.iconCentered, 'Empty state icon should be centered');
+  
+  this.log('✅ Empty state icon properly displayed and centered');
+});

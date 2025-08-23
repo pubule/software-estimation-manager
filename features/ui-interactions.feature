@@ -151,6 +151,18 @@ Feature: UI Interactions
     Then the table should be sorted in descending order
     And a visual indicator should show the current sort column and direction
 
+  Scenario: Empty state displays correctly across full table width
+    Given I have a project with no features
+    When the features table is displayed
+    Then the empty state should be rendered as a table row
+    And the empty state cell should have colspan="7" to span all columns
+    And the empty state should expand across the full table width
+    And the empty state should not appear "compressed" in the first column
+    And the table should have table-layout: auto to allow proper colspan expansion
+    And the empty state should be visually centered within the table
+    And the empty state should display the message "No features found. Click 'Add Feature' to get started."
+    And the empty state icon should be properly displayed and centered
+
   # Form Interactions
 
   Scenario: Auto-complete and dropdown population

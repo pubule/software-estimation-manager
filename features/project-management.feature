@@ -49,6 +49,18 @@ Feature: Project Management
     And the title bar status indicator should have "saved" CSS class
     And the title bar status indicator should use success color (green)
 
+  Scenario: Save project updates "Last saved" timestamp display
+    Given I have a project with unsaved changes
+    When I request to save the project
+    Then the project should be saved successfully
+    And the "Last saved" element should be updated with current timestamp
+    And the timestamp should be formatted in Italian locale (DD/MM/YYYY HH:MM)
+    And the timestamp should reflect the actual save time
+    When I load an existing project
+    Then the "Last saved" element should display the project lastModified timestamp
+    When I create a new project
+    Then the "Last saved" element should display "Last saved: Never"
+
   Scenario: Handle save request for missing project
     Given no project is currently loaded
     When I attempt to save the project
@@ -86,6 +98,15 @@ Feature: Project Management
     Then the coverage should be restored to 10.5 man days
     And the coverage should be marked as auto-calculated
     And the coverage reset button should be hidden
+
+  Scenario: Project creation involves multiple timed operations
+    Given I initiate a new project creation
+    When the project creation process begins
+    Then the system should execute phase reset after 100ms timeout
+    And the system should create initial version after 600ms timeout
+    And the project should be properly initialized after all timeouts complete
+    And the timing should ensure proper component initialization sequence
+    And any race conditions should be prevented by the timeout structure
 
   Scenario: Load corrupted project data with graceful fallback
     Given a corrupted project file exists
