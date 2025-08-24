@@ -8951,12 +8951,52 @@ class CapacityManager extends BaseComponent {
                 
                 const existingAssignment = this.manualAssignments[existingIndex];
                 
+                // 🔥 CRITICAL FIX: Populate monthlyAllocations for updated assignment too
+                console.log('🔄 Populating monthlyAllocations for updated assignment...');
+                const enrichedPhaseSchedule = phaseSchedule.map(phase => {
+                    const enrichedPhase = { ...phase };
+                    
+                    // Initialize monthlyAllocations if not exists
+                    if (!enrichedPhase.monthlyAllocations) {
+                        enrichedPhase.monthlyAllocations = {};
+                    }
+                    
+                    // Calculate monthly distribution for this phase
+                    if (phase.startDate && phase.endDate && phase.estimatedMDs) {
+                        const startDate = new Date(phase.startDate);
+                        const endDate = new Date(phase.endDate);
+                        const totalMDs = parseFloat(phase.estimatedMDs) || 0;
+                        
+                        // Generate months between start and end
+                        const months = [];
+                        const currentDate = new Date(startDate);
+                        while (currentDate <= endDate) {
+                            const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+                            if (!months.includes(monthKey)) {
+                                months.push(monthKey);
+                            }
+                            currentDate.setMonth(currentDate.getMonth() + 1);
+                        }
+                        
+                        // Distribute MDs evenly across months (simple approach)
+                        const mdsPerMonth = months.length > 0 ? totalMDs / months.length : 0;
+                        
+                        months.forEach(monthKey => {
+                            enrichedPhase.monthlyAllocations[monthKey] = mdsPerMonth;
+                        });
+                        
+                        console.log(`📊 Updated Phase ${phase.phaseName}: ${totalMDs} MDs distributed across ${months.length} months (${mdsPerMonth.toFixed(1)} MD/month)`);
+                    }
+                    
+                    return enrichedPhase;
+                });
+                
                 // Update assignment with new data
                 const updatedAssignment = {
                     ...existingAssignment,
                     teamMemberId: teamMemberId,
                     projectId: projectId,
-                    phaseSchedule: phaseSchedule,
+                    phaseSchedule: enrichedPhaseSchedule, // Use enriched phases with monthlyAllocations
                     budgetInfo: budgetInfo,
                     calculatedAllocation: calculatedAllocation,
                     notes: notes,
@@ -8984,12 +9024,55 @@ class CapacityManager extends BaseComponent {
                 
             } else {
                 console.log('🔄 Creating new assignment...');
+                
+                // 🔥 CRITICAL FIX: Populate monthlyAllocations for each phase for proper breakdown rendering
+                console.log('🔄 Populating monthlyAllocations for phase breakdown...');
+                const enrichedPhaseSchedule = phaseSchedule.map(phase => {
+                    const enrichedPhase = { ...phase };
+                    
+                    // Initialize monthlyAllocations if not exists
+                    if (!enrichedPhase.monthlyAllocations) {
+                        enrichedPhase.monthlyAllocations = {};
+                    }
+                    
+                    // Calculate monthly distribution for this phase
+                    if (phase.startDate && phase.endDate && phase.estimatedMDs) {
+                        const startDate = new Date(phase.startDate);
+                        const endDate = new Date(phase.endDate);
+                        const totalMDs = parseFloat(phase.estimatedMDs) || 0;
+                        
+                        // Generate months between start and end
+                        const months = [];
+                        const currentDate = new Date(startDate);
+                        while (currentDate <= endDate) {
+                            const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+                            if (!months.includes(monthKey)) {
+                                months.push(monthKey);
+                            }
+                            currentDate.setMonth(currentDate.getMonth() + 1);
+                        }
+                        
+                        // Distribute MDs evenly across months (simple approach)
+                        const mdsPerMonth = months.length > 0 ? totalMDs / months.length : 0;
+                        
+                        months.forEach(monthKey => {
+                            enrichedPhase.monthlyAllocations[monthKey] = mdsPerMonth;
+                        });
+                        
+                        console.log(`📊 Phase ${phase.phaseName}: ${totalMDs} MDs distributed across ${months.length} months (${mdsPerMonth.toFixed(1)} MD/month)`);
+                    }
+                    
+                    return enrichedPhase;
+                });
+                
+                console.log('✅ Phase monthlyAllocations populated for breakdown rendering');
+                
                 // Create new assignment with a unique, stable ID
                 const assignment = {
                     id: this.generateId('assignment-'),
                     teamMemberId: teamMemberId,
                     projectId: projectId,
-                    phaseSchedule: phaseSchedule,
+                    phaseSchedule: enrichedPhaseSchedule, // Use enriched phases with monthlyAllocations
                     budgetInfo: budgetInfo,
                     calculatedAllocation: calculatedAllocation,
                     originalCalculatedAllocation: JSON.parse(JSON.stringify(calculatedAllocation)), // Save original for reset
@@ -10544,24 +10627,31 @@ class CapacityManager extends BaseComponent {
                     monthlyAllocations: {}
                 };
 
-                // Extract phase allocations from calculatedAllocation
-                for (const [month, monthData] of Object.entries(calculatedAllocation)) {
-                    if (Array.isArray(monthData)) {
-                        // New format: array of phase allocations
-                        const phaseAllocation = monthData.find(a => a.phaseId === phase.phaseId);
-                        if (phaseAllocation && phaseAllocation.allocatedMDs > 0) {
-                            phaseData.monthlyAllocations[month] = phaseAllocation.allocatedMDs;
-                        }
-                    } else if (monthData && monthData[projectName]) {
-                        // Legacy format: project-based structure
-                        const projectData = monthData[projectName];
-                        
-                        // Find this phase in the month's phases array
-                        if (projectData.phases && Array.isArray(projectData.phases)) {
-                            const phaseInMonth = projectData.phases.find(p => p.phaseName === phase.phaseName);
+                // 🔥 CRITICAL FIX: Use saved monthlyAllocations if they exist from manual assignment
+                if (phase.monthlyAllocations && typeof phase.monthlyAllocations === 'object') {
+                    console.log(`✅ Using saved monthlyAllocations for phase ${phase.phaseName}:`, phase.monthlyAllocations);
+                    phaseData.monthlyAllocations = { ...phase.monthlyAllocations };
+                } else {
+                    // Fallback: Extract phase allocations from calculatedAllocation
+                    console.log(`⚠️ No saved monthlyAllocations found for phase ${phase.phaseName}, using calculatedAllocation`);
+                    for (const [month, monthData] of Object.entries(calculatedAllocation)) {
+                        if (Array.isArray(monthData)) {
+                            // New format: array of phase allocations
+                            const phaseAllocation = monthData.find(a => a.phaseId === phase.phaseId);
+                            if (phaseAllocation && phaseAllocation.allocatedMDs > 0) {
+                                phaseData.monthlyAllocations[month] = phaseAllocation.allocatedMDs;
+                            }
+                        } else if (monthData && monthData[projectName]) {
+                            // Legacy format: project-based structure
+                            const projectData = monthData[projectName];
                             
-                            if (phaseInMonth && phaseInMonth.phaseDays > 0) {
-                                phaseData.monthlyAllocations[month] = phaseInMonth.phaseDays;
+                            // Find this phase in the month's phases array
+                            if (projectData.phases && Array.isArray(projectData.phases)) {
+                                const phaseInMonth = projectData.phases.find(p => p.phaseName === phase.phaseName);
+                                
+                                if (phaseInMonth && phaseInMonth.phaseDays > 0) {
+                                    phaseData.monthlyAllocations[month] = phaseInMonth.phaseDays;
+                                }
                             }
                         }
                     }
