@@ -328,7 +328,6 @@ class EnhancedNavigationManager extends NavigationManager {
         if (sectionName === 'projects') {
             // Always navigate to Projects page
             this.navigateTo('projects');
-
             // Then expand section if project is loaded
             if (this.store && this.store.getState) {
                 const state = this.store.getState();
@@ -338,6 +337,12 @@ class EnhancedNavigationManager extends NavigationManager {
                     this.updateProjectsExpansion();
                 }
             }
+        } else if (sectionName === 'capacity') {
+            // Always navigate to main Capacity Planning page
+            this.navigateTo('capacity');
+            // Then expand capacity section automatically
+            this.capacityExpanded = true;
+            this.updateCapacityExpansion();
         } else {
             this.navigateTo(sectionName);
         }
@@ -545,10 +550,8 @@ class EnhancedNavigationManager extends NavigationManager {
                 break;
                 
             case 'capacity':
-                // Default to main capacity page
-                if (!this.isCapacitySubSection(this.currentSection) && this.currentSection !== 'capacity') {
-                    this.navigateTo('capacity');
-                }
+                // Always navigate to main capacity page when clicking capacity icon
+                this.navigateTo('capacity');
                 break;
                 
             case 'configuration':
@@ -873,7 +876,51 @@ class EnhancedNavigationManager extends NavigationManager {
 
             // Initialize capacity manager if not exists
             if (!this.app.capacityManager) {
-                this.app.capacityManager = new CapacityManager(this.app, this.configManager);
+                // Check if CapacityManager class is available
+                if (typeof CapacityManager !== 'undefined') {
+                    this.app.capacityManager = new CapacityManager(this.app, this.configManager);
+                } else {
+                    console.warn('CapacityManager class not available - capacity features will be limited');
+                    // Create a mock capacity manager to prevent errors
+                    this.app.capacityManager = {
+                        render: () => {
+                            const content = document.getElementById('capacity-content');
+                            if (content) {
+                                content.innerHTML = `
+                                    <div class="capacity-placeholder">
+                                        <h3>Capacity Planning</h3>
+                                        <p>Capacity management features are currently not available.</p>
+                                        <p>This feature is planned for a future release.</p>
+                                    </div>
+                                `;
+                            }
+                        },
+                        renderResourceOverview: () => {
+                            const content = document.getElementById('resource-overview-content');
+                            if (content) {
+                                content.innerHTML = `
+                                    <div class="capacity-placeholder">
+                                        <h3>Resource Capacity Overview</h3>
+                                        <p>Resource overview features are currently not available.</p>
+                                        <p>This feature is planned for a future release.</p>
+                                    </div>
+                                `;
+                            }
+                        },
+                        renderCapacityTimeline: () => {
+                            const content = document.getElementById('capacity-timeline-content');
+                            if (content) {
+                                content.innerHTML = `
+                                    <div class="capacity-placeholder">
+                                        <h3>Capacity Planning Timeline</h3>
+                                        <p>Timeline features are currently not available.</p>
+                                        <p>This feature is planned for a future release.</p>
+                                    </div>
+                                `;
+                            }
+                        }
+                    };
+                }
             }
 
             // Render capacity content
@@ -884,6 +931,11 @@ class EnhancedNavigationManager extends NavigationManager {
 
         // Store current section
         this.currentSection = 'capacity';
+        
+        // Update store with current section
+        if (this.store && this.store.getState().setSection) {
+            this.store.getState().setSection('capacity');
+        }
 
         console.log('Navigated to capacity planning page');
     }
@@ -920,7 +972,51 @@ class EnhancedNavigationManager extends NavigationManager {
             
             // Initialize capacity manager if not exists
             if (!this.app.capacityManager) {
-                this.app.capacityManager = new CapacityManager(this.app, this.configManager);
+                // Check if CapacityManager class is available
+                if (typeof CapacityManager !== 'undefined') {
+                    this.app.capacityManager = new CapacityManager(this.app, this.configManager);
+                } else {
+                    console.warn('CapacityManager class not available - capacity features will be limited');
+                    // Create a mock capacity manager to prevent errors
+                    this.app.capacityManager = {
+                        render: () => {
+                            const content = document.getElementById('capacity-content');
+                            if (content) {
+                                content.innerHTML = `
+                                    <div class="capacity-placeholder">
+                                        <h3>Capacity Planning</h3>
+                                        <p>Capacity management features are currently not available.</p>
+                                        <p>This feature is planned for a future release.</p>
+                                    </div>
+                                `;
+                            }
+                        },
+                        renderResourceOverview: () => {
+                            const content = document.getElementById('resource-overview-content');
+                            if (content) {
+                                content.innerHTML = `
+                                    <div class="capacity-placeholder">
+                                        <h3>Resource Capacity Overview</h3>
+                                        <p>Resource overview features are currently not available.</p>
+                                        <p>This feature is planned for a future release.</p>
+                                    </div>
+                                `;
+                            }
+                        },
+                        renderCapacityTimeline: () => {
+                            const content = document.getElementById('capacity-timeline-content');
+                            if (content) {
+                                content.innerHTML = `
+                                    <div class="capacity-placeholder">
+                                        <h3>Capacity Planning Timeline</h3>
+                                        <p>Timeline features are currently not available.</p>
+                                        <p>This feature is planned for a future release.</p>
+                                    </div>
+                                `;
+                            }
+                        }
+                    };
+                }
             }
             
             // Render resource overview content
@@ -960,7 +1056,51 @@ class EnhancedNavigationManager extends NavigationManager {
             
             // Initialize capacity manager if not exists
             if (!this.app.capacityManager) {
-                this.app.capacityManager = new CapacityManager(this.app, this.configManager);
+                // Check if CapacityManager class is available
+                if (typeof CapacityManager !== 'undefined') {
+                    this.app.capacityManager = new CapacityManager(this.app, this.configManager);
+                } else {
+                    console.warn('CapacityManager class not available - capacity features will be limited');
+                    // Create a mock capacity manager to prevent errors
+                    this.app.capacityManager = {
+                        render: () => {
+                            const content = document.getElementById('capacity-content');
+                            if (content) {
+                                content.innerHTML = `
+                                    <div class="capacity-placeholder">
+                                        <h3>Capacity Planning</h3>
+                                        <p>Capacity management features are currently not available.</p>
+                                        <p>This feature is planned for a future release.</p>
+                                    </div>
+                                `;
+                            }
+                        },
+                        renderResourceOverview: () => {
+                            const content = document.getElementById('resource-overview-content');
+                            if (content) {
+                                content.innerHTML = `
+                                    <div class="capacity-placeholder">
+                                        <h3>Resource Capacity Overview</h3>
+                                        <p>Resource overview features are currently not available.</p>
+                                        <p>This feature is planned for a future release.</p>
+                                    </div>
+                                `;
+                            }
+                        },
+                        renderCapacityTimeline: () => {
+                            const content = document.getElementById('capacity-timeline-content');
+                            if (content) {
+                                content.innerHTML = `
+                                    <div class="capacity-placeholder">
+                                        <h3>Capacity Planning Timeline</h3>
+                                        <p>Timeline features are currently not available.</p>
+                                        <p>This feature is planned for a future release.</p>
+                                    </div>
+                                `;
+                            }
+                        }
+                    };
+                }
             }
             
             // Render capacity timeline content

@@ -1410,7 +1410,7 @@
     opacity: 1;
 }
 
-.nav-child {
+.nav-child, .nav-capacity-child {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
@@ -5489,4 +5489,83 @@
         align-self: flex-end;
         margin-top: var(--spacing-sm);
     }
+}
+
+/* Capacity navigation child elements inherit from nav-child styles */
+.nav-capacity-child:hover,
+.nav-capacity-child.active,
+.nav-capacity-child.disabled,
+.nav-capacity-child.disabled:hover,
+.nav-capacity-child i,
+.nav-capacity-child.disabled::after,
+.nav-capacity-child.disabled:hover::after,
+.nav-capacity-child.loading,
+.nav-capacity-child.loading::before,
+.nav-capacity-child::before,
+.nav-capacity-child.active::before,
+.nav-capacity-child:not(.disabled):hover,
+.nav-capacity-child:not(.disabled):active,
+.nav-capacity-child:focus,
+.nav-capacity-child .context-menu,
+.nav-capacity-child:hover .context-menu,
+.nav-capacity-child .nav-badge,
+.nav-capacity-child.disabled .nav-badge {
+    /* Inherit all styles from corresponding .nav-child rules */
+}
+
+/* Apply nav-child hover styles to nav-capacity-child */
+.nav-capacity-child:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+    border-left-color: var(--text-accent);
+}
+
+/* Apply nav-child active styles to nav-capacity-child */
+.nav-capacity-child.active {
+    background-color: var(--bg-selected);
+    color: var(--text-primary);
+    border-left-color: var(--accent-primary);
+    font-weight: 500;
+}
+
+/* Apply nav-child disabled styles to nav-capacity-child */
+.nav-capacity-child.disabled {
+    color: var(--text-disabled);
+    cursor: not-allowed;
+    opacity: 0.6;
+    position: relative;
+}
+
+/* Apply nav-child icon styles to nav-capacity-child */
+.nav-capacity-child i {
+    font-size: var(--font-size-sm);
+    width: 16px;
+    text-align: center;
+    color: inherit;
+}
+
+/* Capacity placeholder styles */
+.capacity-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    text-align: center;
+    color: var(--text-secondary);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    margin: var(--spacing-md);
+}
+
+.capacity-placeholder h3 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-lg);
+}
+
+.capacity-placeholder p {
+    margin: var(--spacing-xs) 0;
+    line-height: 1.5;
 }
