@@ -62,7 +62,8 @@
       "Bash(sed:*)",
       "mcp__serena__list_memories",
       "Bash(timeout 15s npm start)",
-      "Bash(timeout 10s npm start)"
+      "Bash(timeout 10s npm start)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

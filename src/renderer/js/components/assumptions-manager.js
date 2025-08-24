@@ -81,17 +81,9 @@ class AssumptionsManager extends BaseComponent {
     setupDelegatedAssumptionsHandler() {
         // Single click handler for ALL assumption interactions
         document.addEventListener('click', (e) => {
-            // METHOD 1: Handle main action buttons by ID
-            const buttonAction = this.assumptionsActionMap[e.target.id];
-            if (buttonAction && this.element.contains(e.target)) {
-                e.preventDefault();
-                buttonAction();
-                return;
-            }
-
             // METHOD 2: Handle table sorting via data-sort
             const sortElement = e.target.closest('[data-sort]');
-            if (sortElement && this.element.contains(sortElement)) {
+            if (sortElement && this.isAssumptionsManagerEvent(sortElement)) {
                 e.preventDefault();
                 const sortField = sortElement.dataset.sort;
                 this.dispatchAssumptionsAction('sort', { field: sortField });
@@ -100,7 +92,7 @@ class AssumptionsManager extends BaseComponent {
 
             // METHOD 3: Handle assumption actions via data-action
             const actionElement = e.target.closest('[data-action]');
-            if (actionElement && this.element.contains(actionElement)) {
+            if (actionElement && this.isAssumptionsManagerEvent(actionElement)) {
                 e.preventDefault();
                 const action = actionElement.dataset.action;
                 const assumptionId = actionElement.dataset.assumptionId;
@@ -108,7 +100,46 @@ class AssumptionsManager extends BaseComponent {
                 this.dispatchAssumptionsAction(action, { assumptionId });
                 return;
             }
+
+            // METHOD 4: Handle main action buttons (add-assumption, etc.)
+            const buttonAction = this.assumptionsActionMap[e.target.id];
+            if (buttonAction && this.isAssumptionsManagerEvent(e.target)) {
+                e.preventDefault();
+                buttonAction();
+                return;
+            }
         });
+    }
+
+    /**
+     * Helper to determine if an event belongs to this AssumptionsManager instance
+     */
+    isAssumptionsManagerEvent(element) {
+        // Check if element is within assumptions page or assumptions table
+        const assumptionsPage = document.getElementById('assumptions-page');
+        const assumptionsTable = document.getElementById('assumptions-table');
+        
+        if (assumptionsPage && assumptionsPage.contains(element)) {
+            return true;
+        }
+        
+        if (assumptionsTable && assumptionsTable.contains(element)) {
+            return true;
+        }
+        
+        // Check if element is within add-assumption button or related UI
+        const addAssumptionBtn = document.getElementById('add-assumption');
+        if (addAssumptionBtn && (element === addAssumptionBtn || addAssumptionBtn.contains(element))) {
+            return true;
+        }
+        
+        // Check if it's an assumption-related element by data attributes
+        if (element.closest('[data-assumption-id]') || element.closest('[data-action]')) {
+            const parentPage = element.closest('.page');
+            return parentPage && parentPage.id === 'assumptions-page';
+        }
+        
+        return false;
     }
 
     /**
@@ -117,7 +148,7 @@ class AssumptionsManager extends BaseComponent {
     setupReactiveAssumptionsFilters() {
         // Single event delegation for all filter inputs
         document.addEventListener('input', (e) => {
-            if (!this.element.contains(e.target)) return;
+            if (!this.isAssumptionsManagerEvent(e.target)) return;
             
             const filterInputs = ['assumptions-search-input'];
             if (filterInputs.includes(e.target.id)) {
@@ -126,7 +157,7 @@ class AssumptionsManager extends BaseComponent {
         });
 
         document.addEventListener('change', (e) => {
-            if (!this.element.contains(e.target)) return;
+            if (!this.isAssumptionsManagerEvent(e.target)) return;
             
             const filterSelects = ['assumption-type-filter', 'assumption-impact-filter'];
             if (filterSelects.includes(e.target.id)) {

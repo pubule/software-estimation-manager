@@ -1225,7 +1225,7 @@ class VersionManager {
             restoredData.versions.push(restoreVersion);
 
             // 🚨 PURE STATE MANAGER: Use store action instead of direct mutation
-            (window.appStore || window.AppStore).getState().updateCurrentProject(restoredData);
+            (window.appStore || window.AppStore).getState().setProject(restoredData);
             
             // Update title bar
             this.updateTitleBar();
@@ -1275,7 +1275,7 @@ class VersionManager {
             this.render();
             
             // 🚨 PURE STATE MANAGER: Mark as dirty using store action
-            (window.appStore || window.AppStore).getState().markProjectDirty();
+            (window.appStore || window.AppStore).getState().markDirty();
             
             // Force save the project with restored data (use app reference for save method)
             if (this.app && typeof this.app.saveProject === 'function') {

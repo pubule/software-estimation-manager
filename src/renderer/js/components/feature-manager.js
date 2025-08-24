@@ -227,7 +227,7 @@ class FeatureManager extends BaseComponent {
         document.addEventListener('click', (e) => {
             // METHOD 1: Handle table sorting via data-sort
             const sortElement = e.target.closest('[data-sort]');
-            if (sortElement && this.element.contains(sortElement)) {
+            if (sortElement && this.isFeatureManagerEvent(sortElement)) {
                 e.preventDefault();
                 const sortField = sortElement.dataset.sort;
                 this.sortFeatures(sortField);
@@ -236,7 +236,7 @@ class FeatureManager extends BaseComponent {
 
             // METHOD 2: Handle feature actions via data-action
             const actionElement = e.target.closest('[data-action]');
-            if (actionElement && this.element.contains(actionElement)) {
+            if (actionElement && this.isFeatureManagerEvent(actionElement)) {
                 e.preventDefault();
                 const action = actionElement.dataset.action;
                 const featureId = actionElement.dataset.featureId;
@@ -247,7 +247,7 @@ class FeatureManager extends BaseComponent {
 
             // METHOD 3: Handle expand button (legacy support)
             const expandBtn = e.target.closest('.expand-btn');
-            if (expandBtn && this.element.contains(expandBtn)) {
+            if (expandBtn && this.isFeatureManagerEvent(expandBtn)) {
                 e.preventDefault();
                 const featureId = expandBtn.dataset.featureId;
                 this.dispatchAction('expand', { featureId });
@@ -256,7 +256,7 @@ class FeatureManager extends BaseComponent {
 
             // METHOD 4: Handle main action buttons (add-feature, etc.)
             const buttonAction = this.actionMap[e.target.id];
-            if (buttonAction && this.element.contains(e.target)) {
+            if (buttonAction && this.isFeatureManagerEvent(e.target)) {
                 e.preventDefault();
                 buttonAction();
                 return;
@@ -265,12 +265,43 @@ class FeatureManager extends BaseComponent {
     }
 
     /**
+     * Helper to determine if an event belongs to this FeatureManager instance
+     */
+    isFeatureManagerEvent(element) {
+        // Check if element is within features page or features table
+        const featuresPage = document.getElementById('features-page');
+        const featuresTable = document.getElementById('features-table');
+        
+        if (featuresPage && featuresPage.contains(element)) {
+            return true;
+        }
+        
+        if (featuresTable && featuresTable.contains(element)) {
+            return true;
+        }
+        
+        // Check if element is within add-feature button or related UI
+        const addFeatureBtn = document.getElementById('add-feature');
+        if (addFeatureBtn && (element === addFeatureBtn || addFeatureBtn.contains(element))) {
+            return true;
+        }
+        
+        // Check if it's a feature-related element by data attributes
+        if (element.closest('[data-feature-id]') || element.closest('[data-action]')) {
+            const parentPage = element.closest('.page');
+            return parentPage && parentPage.id === 'features-page';
+        }
+        
+        return false;
+    }
+
+    /**
      * Setup reactive filters with single event delegation
      */
     setupReactiveFilters() {
         // Single event delegation for all filter inputs
         document.addEventListener('input', (e) => {
-            if (!this.element.contains(e.target)) return;
+            if (!this.isFeatureManagerEvent(e.target)) return;
             
             const filterInputs = ['search-input', 'category-filter', 'supplier-filter', 'feature-type-filter'];
             if (filterInputs.includes(e.target.id)) {
@@ -279,7 +310,7 @@ class FeatureManager extends BaseComponent {
         });
 
         document.addEventListener('change', (e) => {
-            if (!this.element.contains(e.target)) return;
+            if (!this.isFeatureManagerEvent(e.target)) return;
             
             const filterSelects = ['category-filter', 'supplier-filter', 'feature-type-filter'];
             if (filterSelects.includes(e.target.id)) {
@@ -1026,6 +1057,18 @@ class FeatureManager extends BaseComponent {
      * Render empty state
      */
     renderEmptyState(tbody) {
+        // If tbody not provided, try to get it from DOM
+        if (!tbody) {
+            tbody = this.getElement('features-tbody');
+            if (!tbody) {
+                console.warn('Features table body not found - cannot render empty state');
+                return;
+            }
+        }
+
+        // Clear existing content
+        tbody.innerHTML = '';
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td colspan="7" class="empty-state">

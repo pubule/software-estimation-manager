@@ -1945,6 +1945,7 @@ class CapacityManager extends BaseComponent {
                 this.manualAssignments = manualAssignments;
             } else {
                 teamMembers = await this.getRealTeamMembers();
+                // 🚨 FIX: getAvailableProjects() returns flattened structure compatible with getProjectNameById
                 projects = await this.getAvailableProjects();
                 manualAssignments = this.manualAssignments || [];
             }
@@ -6918,13 +6919,30 @@ class CapacityManager extends BaseComponent {
         try {
             // Get project data
             const projects = await this.getAvailableProjects();
-            const project = projects.find(p => p.id === projectId);
+            
+            // 🔧 CRITICAL FIX: Handle both ID and filePath-based lookup
+            // The dropdown uses filePath as value, but sometimes we get project ID
+            let project = projects.find(p => p.id === projectId);
+            if (!project) {
+                // If not found by ID, try to find by filePath (dropdown uses filePath as value)
+                project = projects.find(p => p.filePath === projectId);
+            }
             
             if (!project || !project.filePath) {
+                console.error('❌ Project not found:', {
+                    projectId,
+                    searchedByType: projectId.includes('/') ? 'filePath' : 'id',
+                    availableProjects: projects.map(p => ({ 
+                        id: p.id, 
+                        name: p.name, 
+                        filePath: p.filePath,
+                        hasFilePath: !!p.filePath 
+                    }))
+                });
                 throw new Error('Project data not found');
             }
             
-            // Load complete project data
+            // Load complete project data using the correct filePath
             const dataManager = this.app?.managers?.data || window.dataManager;
             const completeProjectData = await dataManager.loadProject(project.filePath);
 
@@ -6959,7 +6977,7 @@ class CapacityManager extends BaseComponent {
                 const originalCurrentProject = StateSelectors.getCurrentProject();
                 
                 // Temporarily update store with the complete project data
-                (window.appStore || window.AppStore).getState().updateCurrentProject(completeProjectData);
+                (window.appStore || window.AppStore).getState().setProject(completeProjectData);
                 
                 try {
                     // Trigger vendor costs calculation
@@ -6982,7 +7000,7 @@ class CapacityManager extends BaseComponent {
                 } finally {
                     // 🚨 PURE STATE MANAGER: Restore original current project using store action
                     if (originalCurrentProject) {
-                        (window.appStore || window.AppStore).getState().updateCurrentProject(originalCurrentProject);
+                        (window.appStore || window.AppStore).getState().setProject(originalCurrentProject);
                     }
                 }
             }
@@ -7427,7 +7445,7 @@ class CapacityManager extends BaseComponent {
             }
             
             // 🚨 PURE STATE MANAGER: Use store action instead of direct mutation
-            (window.appStore || window.AppStore).getState().updateCurrentProject(projectData);
+            (window.appStore || window.AppStore).getState().setProject(projectData);
             console.log('🔄 Temporarily set project as current for calculation');
             
             // 🚨 CRITICAL FIX: Access CalculationsManager from app.managers
@@ -7487,12 +7505,12 @@ class CapacityManager extends BaseComponent {
             const calculationsManager = this.app?.managers?.calculations || this.app?.calculationsManager;
             
             if (originalCurrentProject && calculationsManager) {
-                (window.appStore || window.AppStore).getState().updateCurrentProject(originalCurrentProject);
+                (window.appStore || window.AppStore).getState().setProject(originalCurrentProject);
                 calculationsManager.calculateVendorCosts();
                 console.log('🔄 Restored original project state');
             } else if (calculationsManager) {
                 // Clear the project state using store action
-                (window.appStore || window.AppStore).getState().clearCurrentProject();
+                (window.appStore || window.AppStore).getState().newProject();
                 calculationsManager.vendorCosts = [];
                 console.log('🔄 Cleared current project state');
             }
@@ -7711,7 +7729,11 @@ class CapacityManager extends BaseComponent {
                 console.log('🔄 No project data provided, attempting to load project for budget calculation');
                 // Try to load the selected project
                 const projects = await this.getAvailableProjects();
-                const selectedProject = projects.find(p => p.id === projectSelect.value);
+                // 🔧 CONSISTENT FIX: Handle both ID and filePath-based lookup
+                let selectedProject = projects.find(p => p.id === projectSelect.value);
+                if (!selectedProject) {
+                    selectedProject = projects.find(p => p.filePath === projectSelect.value);
+                }
                 
                 if (selectedProject && selectedProject.filePath) {
                     const dataManager = this.app?.managers?.data || window.dataManager;
@@ -7729,7 +7751,10 @@ class CapacityManager extends BaseComponent {
                         }
                     }
                 } else {
-                    console.warn('🚨 Cannot load project data for budget calculation');
+                    console.warn('🚨 Cannot load project data for budget calculation', {
+                        projectSelect: projectSelect.value,
+                        availableProjects: projects.map(p => ({ id: p.id, name: p.name, hasFilePath: !!p.filePath }))
+                    });
                     document.getElementById('total-final-mds').textContent = '-';
                     document.getElementById('budget-context').textContent = 'Project data not available';
                     this.updateBudgetBalance();
@@ -8367,7 +8392,11 @@ class CapacityManager extends BaseComponent {
             const projects = await this.getAvailableProjects();
             
             const teamMember = teamMembers.find(m => m.id === teamMemberId);
-            const project = projects.find(p => p.id === projectId);
+            // 🔧 CONSISTENT FIX: Handle both ID and filePath-based lookup like in loadProjectForAssignment
+            let project = projects.find(p => p.id === projectId);
+            if (!project) {
+                project = projects.find(p => p.filePath === projectId);
+            }
             
             if (!teamMember || !project) {
                 NotificationManager.error('Invalid team member or project selection');
@@ -9606,7 +9635,11 @@ class CapacityManager extends BaseComponent {
                 
                 // Get project data to show name instead of ID
                 const projects = await this.getAvailableProjects();
-                const project = projects.find(p => p.id === assignment.projectId);
+                // 🔧 CONSISTENT FIX: Handle both ID and filePath-based lookup
+                let project = projects.find(p => p.id === assignment.projectId);
+                if (!project) {
+                    project = projects.find(p => p.filePath === assignment.projectId);
+                }
                 if (project) {
                     projectName = project.name || project.id;
                 }
