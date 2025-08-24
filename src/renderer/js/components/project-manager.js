@@ -6,12 +6,112 @@
 class ProjectManager {
     constructor(app) {
         this.app = app;
+        
+        // Connect to global state store (may not be available immediately)
+        this.store = window.appStore;
+        this.storeUnsubscribe = null;
+        
         this.recentProjects = [];
         this.savedProjects = [];
         this.maxRecentProjects = 10;
         this.selectedFile = null;
 
         this.init();
+        this.setupStoreSubscription();
+        
+        // If store wasn't available during construction, try to connect when it becomes available
+        if (!this.store) {
+            console.log('Store not available during ProjectManager construction, will attempt to connect later');
+            this.connectToStoreWhenReady();
+        }
+    }
+    /**
+     * Setup store subscription for reactive project updates
+     */
+    setupStoreSubscription() {
+        if (!this.store) {
+            console.warn('Store not available for ProjectManager');
+            return;
+        }
+
+        this.storeUnsubscribe = this.store.subscribe((state, prevState) => {
+            // React to project changes
+            if (state.currentProject !== prevState.currentProject) {
+                this.handleProjectChange(state.currentProject, prevState.currentProject);
+            }
+
+            // React to dirty state changes
+            if (state.isDirty !== prevState.isDirty) {
+                this.handleDirtyStateChange(state.isDirty);
+            }
+        });
+    }
+
+    /**
+     * Attempt to connect to store when it becomes available
+     */
+    connectToStoreWhenReady() {
+        // Check periodically for store availability
+        const checkForStore = () => {
+            if (window.appStore && !this.store) {
+                console.log('Store now available, connecting ProjectManager...');
+                this.store = window.appStore;
+                this.setupStoreSubscription();
+                return;
+            }
+            
+            // Keep checking every 100ms for up to 5 seconds
+            if (!this.store && (this.storeCheckAttempts || 0) < 50) {
+                this.storeCheckAttempts = (this.storeCheckAttempts || 0) + 1;
+                setTimeout(checkForStore, 100);
+            } else if (!this.store) {
+                console.warn('ProjectManager: Store not available after 5 seconds, will operate without store integration');
+            }
+        };
+        
+        setTimeout(checkForStore, 100);
+    }
+    
+    /**
+     * Handle project changes from global state
+     */
+    handleProjectChange(newProject, previousProject) {
+        console.log('ProjectManager: Project changed', {
+            hasNew: !!newProject,
+            hasPrevious: !!previousProject,
+            newProjectName: newProject?.project?.name,
+            previousProjectName: previousProject?.project?.name
+        });
+
+        // Update UI based on project state
+        this.updateCurrentProjectUI();
+        
+        if (newProject) {
+            // Project loaded/changed
+            this.updateUI();
+        } else {
+            // Project closed  
+            this.clearProjectUI();
+        }
+    }
+
+    /**
+     * Handle dirty state changes from global state
+     */
+    handleDirtyStateChange(isDirty) {
+        console.log('ProjectManager: Dirty state changed', isDirty);
+        // Update UI indicators for dirty state
+        this.updateCurrentProjectUI();
+    }
+
+    /**
+     * Cleanup store subscription
+     */
+    destroy() {
+        if (this.storeUnsubscribe) {
+            this.storeUnsubscribe();
+            this.storeUnsubscribe = null;
+        }
     }
 
     init() {
@@ -198,8 +298,10 @@ class ProjectManager {
      */
     async createNewProject(formData) {
         try {
+            const currentState = this.store.getState();
+            
             // Check if current project needs saving
-            if (this.app.isDirty) {
+            if (currentState.isDirty) {
                 const save = await this.confirmSave();
                 if (save === null) return; // User cancelled
                 if (save) await this.app.saveProject();
@@ -233,11 +335,13 @@ class ProjectManager {
             // CLEANUP: Clear all previous project data before setting new project
             await this.cleanupPreviousProjectData();
 
-            // Set as current project
-            this.app.currentProject = newProject;
-            this.app.isDirty = true;
+            // Set as current project using global state
+            this.store.getState().setProject(newProject);
+            
+            // Mark as dirty since it's a new project
+            this.store.getState().markDirty();
 
-            // Notifica il navigation manager che un progetto è stato caricato
+            // Notify navigation manager that a project was loaded
             this.app.navigationManager.onProjectLoaded();
 
             // AUTO-SAVE: Save new project automatically
@@ -245,11 +349,9 @@ class ProjectManager {
             const saveResult = await this.app.dataManager.saveProject(newProject);
 
             if (saveResult.success) {
-                this.app.isDirty = false;
+                // Mark as clean after successful save
+                this.store.getState().markClean();
                 this.app.dataManager.currentProjectPath = saveResult.filePath;
-
-                // Aggiorna lo stato dirty del navigation manager
-                this.app.navigationManager.onProjectDirty(false);
 
                 // Add to recent projects with the saved file path
                 this.addToRecentProjects(newProject.project, saveResult.filePath);
@@ -268,9 +370,9 @@ class ProjectManager {
 
             this.app.refreshDropdowns();
 
-            // Update UI
-            this.app.updateUI();
-            this.updateCurrentProjectUI();
+            // Update UI - handled by store subscription
+            // this.app.updateUI();
+            // this.updateCurrentProjectUI();
 
             // Reset all phase data to ensure clean state FIRST
             if (this.app.projectPhasesManager) {
@@ -281,11 +383,12 @@ class ProjectManager {
             await new Promise(resolve => setTimeout(resolve, 200));
 
             // Verify project is clean before creating initial version
+            const currentProject = this.store.getState().currentProject;
             console.log('🔍 Verifying project state before initial version:', {
-                features: this.app.currentProject.features?.length || 0,
-                developmentManDays: this.app.currentProject.phases?.development?.manDays || 'N/A',
-                selectedSuppliers: this.app.currentProject.phases?.selectedSuppliers || 'N/A',
-                projectName: this.app.currentProject.project?.name
+                features: currentProject.features?.length || 0,
+                developmentManDays: currentProject.phases?.development?.manDays || 'N/A',
+                selectedSuppliers: currentProject.phases?.selectedSuppliers || 'N/A',
+                projectName: currentProject.project?.name
             });
 
             // Create initial version ONLY after everything is completely clean
@@ -670,9 +773,7 @@ class ProjectManager {
             // Close modal
             this.closeLoadModal();
 
-            // Navigate to features
-            this.app.navigationManager.navigateTo('features');
-
+            // Navigation to features happens inside loadProjectData after setup
             NotificationManager.success(`Project "${this.selectedFile.data.project.name}" loaded successfully`);
 
         } catch (error) {
@@ -685,80 +786,114 @@ class ProjectManager {
      * FIXED: Load project data into application
      */
     async loadProjectData(projectData, filePath = null) {
-        // Set project data
-        this.app.currentProject = projectData;
-        this.app.isDirty = false;
+        return await withLoading(
+            LoadingOperations.PROJECT_LOAD,
+            async () => {
+                // Check if store is available before accessing
+                if (!this.store || !this.store.getState) {
+                    console.warn('Store not available for ProjectManager.loadProjectData, using fallback behavior');
+                    // Fallback to direct app controller call
+                    if (this.app && this.app.loadProject) {
+                        this.app.loadProject(projectData);
+                    }
+                } else {
+                    // Use global state instead of direct property manipulation
+                    this.store.getState().setProject(projectData);
+                }
 
-        // Mark as loaded project (not just created)
-        if (filePath) {
-            this.app.dataManager.currentProjectPath = filePath;
-        }
+                // Mark as loaded project (not just created)
+                if (filePath) {
+                    this.app.dataManager.currentProjectPath = filePath;
+                }
 
-        // Update title bar with version info
-        if (this.app.versionManager) {
-            this.app.versionManager.updateTitleBar();
-        }
+                // Update title bar with version info
+                if (this.app.versionManager) {
+                    this.app.versionManager.updateTitleBar();
+                }
 
-        // Synchronize phases with loaded project features
-        if (this.app.projectPhasesManager) {
-            this.app.projectPhasesManager.synchronizeWithProject();
-        }
+                // Synchronize phases with loaded project features
+                if (this.app.projectPhasesManager) {
+                    this.app.projectPhasesManager.synchronizeWithProject();
+                }
 
-        // Ensure phases are properly initialized - create phasesManager reference for calculations
-        this.app.phasesManager = this.app.projectPhasesManager;
+                // Ensure phases are properly initialized - create phasesManager reference for calculations
+                this.app.phasesManager = this.app.projectPhasesManager;
 
-        // Initialize calculations data so it's available for version comparisons
-        if (this.app.calculationsManager) {
-            this.app.calculationsManager.calculateVendorCosts();
-        }
+                // Initialize calculations data so it's available for version comparisons
+                if (this.app.calculationsManager) {
+                    this.app.calculationsManager.calculateVendorCosts();
+                }
 
-        this.app.navigationManager.onProjectLoaded();
+                this.app.navigationManager.onProjectLoaded();
 
-        // FIXED: Update dropdowns through refreshDropdowns instead of populateDropdowns
-        this.app.refreshDropdowns();
+                // FIXED: Update dropdowns through refreshDropdowns instead of populateDropdowns
+                this.app.refreshDropdowns();
 
-        // Update all UI components
-        this.app.updateUI();
-        this.updateCurrentProjectUI();
+                // Update all UI components - handled by store subscription
+                // this.app.updateUI();
+                // this.updateCurrentProjectUI();
 
-        // Refresh all sections
-        if (this.app.featureManager) {
-            this.app.featureManager.refreshTable();
-        }
+                // Refresh all sections
+                if (this.app.featureManager) {
+                    this.app.featureManager.refreshTable();
+                }
+                
+                // FIXED: Navigate to features INSIDE loadProjectData after all setup is complete
+                // This ensures hasProject is correctly updated before navigation check
+                console.log('🧭 Navigating to features after project load complete');
+                this.app.navigationManager.navigateTo('features');
+                
+                return projectData;
+            },
+            {
+                showModal: true,
+                message: 'Loading project...',
+                modalOptions: { closable: false }
+            }
+        );
     }
 
     /**
      * Save current project
      */
     async saveCurrentProject() {
-        try {
-            if (!this.app.currentProject) {
-                throw new Error('No project to save');
+        return await withLoading(
+            LoadingOperations.PROJECT_SAVE,
+            async () => {
+                const currentProject = this.store.getState().currentProject;
+                if (!currentProject) {
+                    throw new Error('No project to save');
+                }
+
+                const result = await this.app.dataManager.saveProject(currentProject);
+
+                if (result.success) {
+                    // Mark as clean using global state
+                    this.store.getState().markClean();
+
+                    // Update current project path if it's a new save
+                    this.app.dataManager.currentProjectPath = result.filePath;
+
+                    // Add to recent projects
+                    this.addToRecentProjects(currentProject.project, result.filePath);
+
+                    // UI updates handled by store subscription
+                    // this.updateCurrentProjectUI();
+
+                    // AUTO-REFRESH: Refresh saved projects list every time we save
+                    await this.loadSavedProjects();
+                    this.renderSavedProjects();
+
+                    NotificationManager.success(`Project saved: ${result.fileName || 'Success'}`);
+                    return result;
+                }
+            },
+            {
+                showModal: true,
+                message: 'Saving project...',
+                modalOptions: { closable: false }
             }
-
-            const result = await this.app.dataManager.saveProject(this.app.currentProject);
-
-            if (result.success) {
-                this.app.isDirty = false;
-
-                // Update current project path if it's a new save
-                this.app.dataManager.currentProjectPath = result.filePath;
-
-                // Add to recent projects
-                this.addToRecentProjects(this.app.currentProject.project, result.filePath);
-
-                this.updateCurrentProjectUI();
-
-                // AUTO-REFRESH: Refresh saved projects list every time we save
-                await this.loadSavedProjects();
-                this.renderSavedProjects();
-
-                NotificationManager.success(`Project saved: ${result.fileName || 'Success'}`);
-            }
-        } catch (error) {
-            console.error('Save failed:', error);
-            NotificationManager.error(`Failed to save project: ${error.message}`);
-        }
+        );
     }
 
     /**
@@ -766,23 +901,27 @@ class ProjectManager {
      */
     async closeCurrentProject() {
         try {
+            const currentState = this.store.getState();
+            
             // Check if project needs saving
-            if (this.app.isDirty) {
+            if (currentState.isDirty) {
                 const save = await this.confirmSave();
                 if (save === null) return; // User cancelled
                 if (save) await this.app.saveProject();
             }
 
-            // Reset to empty project
-            this.app.currentProject = await this.app.createNewProject();
-            this.app.isDirty = false;
+            // Reset to empty project using global state
+            const newProject = await this.app.createNewProject();
+            this.store.getState().setProject(newProject);
 
-            // Notifica il navigation manager che il progetto è stato chiuso
+            // Notify navigation manager that project was closed
             this.app.navigationManager.onProjectClosed();
 
             this.app.refreshDropdowns();
-            this.app.updateUI();
-            this.updateCurrentProjectUI();
+            
+            // UI updates handled by store subscription
+            // this.app.updateUI();
+            // this.updateCurrentProjectUI();
 
             NotificationManager.info('Project closed');
 
@@ -888,24 +1027,35 @@ class ProjectManager {
     }
 
     /**
-     * Load saved projects (from file system)
+     * Load saved projects (from file system) - WITH LOADING INDICATOR
      */
     async loadSavedProjects() {
-        try {
-            const projects = await this.app.dataManager.listProjects();
-            this.savedProjects = projects.map(project => ({
-                filePath: project.filePath,
-                fileName: project.fileName,
-                project: project.project,
-                fileSize: project.fileSize,
-                lastModified: project.lastModified
-            }));
+        return await withLoading(
+            'projects-list-load',
+            async () => {
+                try {
+                    const projects = await this.app.dataManager.listProjects();
+                    this.savedProjects = projects.map(project => ({
+                        filePath: project.filePath,
+                        fileName: project.fileName,
+                        project: project.project,
+                        fileSize: project.fileSize,
+                        lastModified: project.lastModified
+                    }));
 
-            console.log(`Loaded ${this.savedProjects.length} saved projects`);
-        } catch (error) {
-            console.error('Failed to load saved projects:', error);
-            this.savedProjects = [];
-        }
+                    console.log(`Loaded ${this.savedProjects.length} saved projects`);
+                    return this.savedProjects;
+                } catch (error) {
+                    console.error('Failed to load saved projects:', error);
+                    this.savedProjects = [];
+                    throw error;
+                }
+            },
+            {
+                showModal: false, // Use GlobalLoadingIndicator instead of modal
+                message: 'Loading projects...'
+            }
+        );
     }
 
     /**
@@ -919,22 +1069,32 @@ class ProjectManager {
     }
 
     /**
-     * Refresh projects lists
+     * Refresh projects lists - WITH LOADING INDICATOR
      */
     async refreshProjects() {
-        try {
-            this.loadRecentProjects();
-            await this.loadSavedProjects();
+        return await withLoading(
+            'projects-refresh',
+            async () => {
+                try {
+                    this.loadRecentProjects();
+                    await this.loadSavedProjects();
 
-            // AUTO-UPDATE: Update both UIs
-            this.updateRecentProjectsUI();
-            this.renderSavedProjects();
+                    // AUTO-UPDATE: Update both UIs
+                    this.updateRecentProjectsUI();
+                    this.renderSavedProjects();
 
-            NotificationManager.info(`Found ${this.savedProjects.length} saved projects`);
-        } catch (error) {
-            console.error('Failed to refresh projects:', error);
-            NotificationManager.error('Failed to refresh projects list');
-        }
+                    NotificationManager.info(`Found ${this.savedProjects.length} saved projects`);
+                } catch (error) {
+                    console.error('Failed to refresh projects:', error);
+                    NotificationManager.error('Failed to refresh projects list');
+                    throw error;
+                }
+            },
+            {
+                showModal: false, // Use GlobalLoadingIndicator
+                message: 'Refreshing projects...'
+            }
+        );
     }
 
     /**
@@ -1253,8 +1413,8 @@ class ProjectManager {
 
             await this.loadProjectData(projectData);
             this.addToRecentProjects(projectData.project, recentProject.filePath);
-            this.app.navigationManager.navigateTo('features');
-
+            
+            // Navigation to features happens inside loadProjectData after setup
             NotificationManager.success(`Project "${projectData.project.name}" loaded`);
 
         } catch (error) {
@@ -1295,8 +1455,8 @@ class ProjectManager {
 
             // Add to recent projects
             this.addToRecentProjects(projectData.project, filePath);
-            this.app.navigationManager.navigateTo('features');
-
+            
+            // Navigation to features happens inside loadProjectData after setup
             NotificationManager.success(`Project "${projectData.project.name}" loaded`);
 
         } catch (error) {

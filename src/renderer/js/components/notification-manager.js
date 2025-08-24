@@ -5,12 +5,165 @@
 
 class NotificationManager {
     constructor() {
-        this.notifications = new Map();
+        // Connect to global state store (may not be available immediately)
+        this.store = window.appStore;
+        this.storeUnsubscribe = null;
+        
+        // Local maps for DOM elements and timers (not suitable for global state)
+        this.notificationElements = new Map(); // DOM elements and timers by ID
         this.container = null;
-        this.defaultDuration = 500; // 5 seconds
+        this.defaultDuration = 5000; // 5 seconds (was 500, probably a typo)
         this.maxNotifications = 5;
 
         this.init();
+        this.setupStoreSubscription();
+        
+        // If store wasn't available during construction, try to connect when it becomes available
+        if (!this.store) {
+            console.log('Store not available during NotificationManager construction, will attempt to connect later');
+            this.connectToStoreWhenReady();
+        }
+    }
+    /**
+     * Setup store subscription for reactive notification updates
+     */
+    setupStoreSubscription() {
+        if (!this.store) {
+            console.warn('Store not available for NotificationManager');
+            return;
+        }
+
+        this.storeUnsubscribe = this.store.subscribe((state, prevState) => {
+            // React to notifications changes
+            if (state.notifications !== prevState.notifications) {
+                this.syncWithGlobalState(state.notifications, prevState.notifications);
+            }
+        });
+    }
+
+    /**
+     * Sync local DOM elements with global state notifications
+     */
+    syncWithGlobalState(currentNotifications, previousNotifications) {
+        // Find notifications that were added
+        const currentIds = new Set(currentNotifications.map(n => n.id));
+        const previousIds = new Set((previousNotifications || []).map(n => n.id));
+
+        // Add new notifications to DOM
+        for (const notification of currentNotifications) {
+            if (!previousIds.has(notification.id) && !this.notificationElements.has(notification.id)) {
+                this.renderNotification(notification);
+            }
+        }
+
+        // Remove notifications that were deleted from global state
+        for (const prevNotification of (previousNotifications || [])) {
+            if (!currentIds.has(prevNotification.id) && this.notificationElements.has(prevNotification.id)) {
+                this.removeNotificationElement(prevNotification.id);
+            }
+        }
+    }
+
+    /**
+     * Render a notification from global state to DOM
+     */
+    renderNotification(notificationConfig) {
+        // Create notification element
+        const notificationEl = this.createNotificationElement(notificationConfig);
+
+        // Add to container
+        this.container.appendChild(notificationEl);
+
+        // Store local element and timer info
+        this.notificationElements.set(notificationConfig.id, {
+            element: notificationEl,
+            config: notificationConfig,
+            timer: null
+        });
+
+        // Auto-remove after duration (if not persistent)
+        if (!notificationConfig.persistent && notificationConfig.duration > 0) {
+            const elementInfo = this.notificationElements.get(notificationConfig.id);
+            elementInfo.timer = setTimeout(() => {
+                // Check if store is available before removing
+                if (this.store && this.store.getState) {
+                    // Remove from global state (will trigger sync)
+                    this.store.getState().removeNotification(notificationConfig.id);
+                } else {
+                    console.warn('Store not available for auto-remove notification, using direct DOM removal');
+                    this.removeNotificationElement(notificationConfig.id);
+                }
+            }, notificationConfig.duration);
+        }
+
+        // Trigger entrance animation
+        requestAnimationFrame(() => {
+            notificationEl.classList.add('show');
+        });
+    }
+
+    /**
+     * Remove notification element from DOM
+     */
+    removeNotificationElement(id) {
+        const elementInfo = this.notificationElements.get(id);
+        if (!elementInfo) return;
+
+        // Clear timer
+        if (elementInfo.timer) {
+            clearTimeout(elementInfo.timer);
+        }
+
+        // Trigger exit animation
+        elementInfo.element.classList.add('removing');
+
+        // Call onClose callback
+        if (elementInfo.config.onClose) {
+            elementInfo.config.onClose(elementInfo.config);
+        }
+
+        // Remove after animation
+        setTimeout(() => {
+            if (elementInfo.element.parentNode) {
+                elementInfo.element.parentNode.removeChild(elementInfo.element);
+            }
+            this.notificationElements.delete(id);
+        }, 300);
+    }
+
+    /**
+     * Attempt to connect to store when it becomes available
+     */
+    connectToStoreWhenReady() {
+        // Check periodically for store availability
+        const checkForStore = () => {
+            if (window.appStore && !this.store) {
+                console.log('Store now available, connecting NotificationManager...');
+                this.store = window.appStore;
+                this.setupStoreSubscription();
+                return;
+            }
+            
+            // Keep checking every 100ms for up to 5 seconds
+            if (!this.store && (this.storeCheckAttempts || 0) < 50) {
+                this.storeCheckAttempts = (this.storeCheckAttempts || 0) + 1;
+                setTimeout(checkForStore, 100);
+            } else if (!this.store) {
+                console.warn('NotificationManager: Store not available after 5 seconds, will operate in fallback mode');
+            }
+        };
+        
+        setTimeout(checkForStore, 100);
+    }
+    
+    /**
+     * Cleanup store subscription
+     */
+    destroy() {
+        if (this.storeUnsubscribe) {
+            this.storeUnsubscribe();
+            this.storeUnsubscribe = null;
+        }
     }
 
     init() {
@@ -54,40 +207,47 @@ class NotificationManager {
             persistent: options.persistent || false,
             actions: options.actions || [],
             onClick: options.onClick || null,
-            onClose: options.onClose || null
+            onClose: options.onClose || null,
+            timestamp: new Date()
         };
 
+        // Check if store is available
+        if (!this.store || !this.store.getState) {
+            console.warn('Store not available for NotificationManager, falling back to direct DOM');
+            // Fallback to direct DOM manipulation
+            if (!this.notificationElements) {
+                this.notificationElements = new Map();
+            }
+            
+            // Remove oldest if at limit
+            if (this.notificationElements.size >= this.maxNotifications) {
+                const oldestId = this.notificationElements.keys().next().value;
+                this.remove(oldestId);
+            }
+            
+            this.notificationElements.set(config.id, { element: null, config: config, timer: null });
+            const element = this.createNotificationElement(config);
+            this.container.appendChild(element);
+            
+            // Auto-dismiss if not persistent
+            if (config.duration > 0) {
+                setTimeout(() => this.remove(config.id), config.duration);
+            }
+            
+            return config.id;
+        }
+
+        // Use global state if available
+        const currentNotifications = this.store.getState().notifications;
+        
         // Remove oldest notification if we're at the limit
-        if (this.notifications.size >= this.maxNotifications) {
-            const oldestId = this.notifications.keys().next().value;
-            this.remove(oldestId);
+        if (currentNotifications.length >= this.maxNotifications) {
+            const oldestNotification = currentNotifications[0];
+            this.store.getState().removeNotification(oldestNotification.id);
         }
 
-        // Create notification element
-        const notificationEl = this.createNotificationElement(config);
-
-        // Add to container
-        this.container.appendChild(notificationEl);
-
-        // Store notification
-        this.notifications.set(config.id, {
-            element: notificationEl,
-            config: config,
-            timer: null
-        });
-
-        // Auto-remove after duration (if not persistent)
-        if (!config.persistent && config.duration > 0) {
-            const notification = this.notifications.get(config.id);
-            notification.timer = setTimeout(() => {
-                this.remove(config.id);
-            }, config.duration);
-        }
-
-        // Trigger entrance animation
-        requestAnimationFrame(() => {
-            notificationEl.classList.add('show');
-        });
+        // Add to global state (will trigger sync to DOM via subscription)
+        this.store.getState().addNotification(config);
 
         return config.id;
     }
@@ -189,7 +349,7 @@ class NotificationManager {
             let pauseStart = 0;
 
             element.addEventListener('mouseenter', () => {
-                const notification = this.notifications.get(config.id);
+                const notification = this.notificationElements.get(config.id);
                 if (notification && notification.timer) {
                     pauseStart = Date.now();
                     clearTimeout(notification.timer);
@@ -198,7 +358,7 @@ class NotificationManager {
             });
 
             element.addEventListener('mouseleave', () => {
-                const notification = this.notifications.get(config.id);
+                const notification = this.notificationElements.get(config.id);
                 if (notification && !notification.timer) {
                     pausedTime += Date.now() - pauseStart;
                     const remainingTime = config.duration - pausedTime;
@@ -213,6 +373,8 @@ class NotificationManager {
                 }
             });
         }
+        
+        return element;
     }
 
     /**
@@ -220,37 +382,38 @@ class NotificationManager {
      * @param {string} id - Notification ID
      */
     remove(id) {
-        const notification = this.notifications.get(id);
-        if (!notification) return;
-
-        // Clear timer
-        if (notification.timer) {
-            clearTimeout(notification.timer);
-        }
-
-        // Trigger exit animation
-        notification.element.classList.add('removing');
-
-        // Call onClose callback
-        if (notification.config.onClose) {
-            notification.config.onClose(notification.config);
-        }
-
-        // Remove after animation
-        setTimeout(() => {
-            if (notification.element.parentNode) {
-                notification.element.parentNode.removeChild(notification.element);
+        // Check if store is available
+        if (!this.store || !this.store.getState) {
+            console.warn('Store not available for NotificationManager.remove, using direct DOM removal');
+            // Fallback to direct DOM removal
+            if (this.notificationElements) {
+                this.notificationElements.delete(id);
             }
-            this.notifications.delete(id);
-        }, 300);
+            this.removeNotificationElement(id);
+            return;
+        }
+        
+        // Use global state instead of local notifications map
+        // The removal will trigger sync via store subscription
+        this.store.getState().removeNotification(id);
     }
 
     /**
      * Remove all notifications
      */
     removeAll() {
-        const ids = Array.from(this.notifications.keys());
-        ids.forEach(id => this.remove(id));
+        // Check if store is available
+        if (!this.store || !this.store.getState) {
+            console.warn('Store not available for NotificationManager.removeAll, clearing local elements only');
+            // Fallback to clearing local elements
+            this.notificationElements.forEach((elementInfo, id) => {
+                this.removeNotificationElement(id);
+            });
+            return;
+        }
+        
+        // Use global state instead of local notifications map
+        this.store.getState().clearNotifications();
     }
 
     /**
@@ -259,32 +422,84 @@ class NotificationManager {
      * @param {Object} updates - Updates to apply
      */
     update(id, updates) {
-        const notification = this.notifications.get(id);
-        if (!notification) return false;
+        // Check if store is available
+        if (!this.store || !this.store.getState) {
+            console.warn('Store not available for NotificationManager.update, updating DOM directly');
+            // Fallback to direct DOM update only
+            const elementInfo = this.notificationElements.get(id);
+            if (elementInfo) {
+                const { element } = elementInfo;
+                
+                // Update element content directly
+                const titleEl = element.querySelector('.notification-title');
+                const messageEl = element.querySelector('.notification-message');
 
-        // Update config
-        Object.assign(notification.config, updates);
+                if (updates.title && titleEl) {
+                    titleEl.textContent = updates.title;
+                }
 
-        // Update element content
-        const titleEl = notification.element.querySelector('.notification-title');
-        const messageEl = notification.element.querySelector('.notification-message');
+                if (updates.message && messageEl) {
+                    messageEl.textContent = updates.message;
+                }
 
-        if (updates.title && titleEl) {
-            titleEl.textContent = updates.title;
+                if (updates.type) {
+                    // Update type class
+                    element.className = `notification ${updates.type}`;
+
+                    // Update icon
+                    const iconEl = element.querySelector('.notification-icon i');
+                    if (iconEl) {
+                        iconEl.className = this.getIconClass(updates.type);
+                    }
+                }
+                
+                return true;
+            }
+            return false;
         }
+        
+        // Find notification in global state
+        const state = this.store.getState();
+        const notificationIndex = state.notifications.findIndex(n => n.id === id);
+        if (notificationIndex === -1) return false;
 
-        if (updates.message && messageEl) {
-            messageEl.textContent = updates.message;
-        }
+        // Update in global state - this will trigger sync to DOM
+        const updatedNotifications = [...state.notifications];
+        updatedNotifications[notificationIndex] = {
+            ...updatedNotifications[notificationIndex],
+            ...updates,
+            timestamp: new Date() // Update timestamp on change
+        };
 
-        if (updates.type) {
-            // Update type class
-            notification.element.className = `notification ${updates.type}`;
+        // Update global state (will trigger DOM updates via subscription)
+        this.store.setState({ notifications: updatedNotifications });
 
-            // Update icon
-            const iconEl = notification.element.querySelector('.notification-icon i');
-            if (iconEl) {
-                iconEl.className = this.getIconClass(updates.type);
+        // Also directly update DOM element for immediate feedback
+        const elementInfo = this.notificationElements.get(id);
+        if (elementInfo) {
+            const { element } = elementInfo;
+            
+            // Update element content
+            const titleEl = element.querySelector('.notification-title');
+            const messageEl = element.querySelector('.notification-message');
+
+            if (updates.title && titleEl) {
+                titleEl.textContent = updates.title;
+            }
+
+            if (updates.message && messageEl) {
+                messageEl.textContent = updates.message;
+            }
+
+            if (updates.type) {
+                // Update type class
+                element.className = `notification ${updates.type}`;
+
+                // Update icon
+                const iconEl = element.querySelector('.notification-icon i');
+                if (iconEl) {
+                    iconEl.className = this.getIconClass(updates.type);
+                }
             }
         }
 
@@ -495,7 +710,7 @@ class NotificationManager {
      * Get notification count
      */
     static getCount() {
-        return window.notificationManager?.notifications.size || 0;
+        return window.appStore?.getState().notifications.length || 0;
     }
 
     /**
@@ -503,7 +718,8 @@ class NotificationManager {
      * @param {string} id - Notification ID
      */
     static exists(id) {
-        return window.notificationManager?.notifications.has(id) || false;
+        const notifications = window.appStore?.getState().notifications || [];
+        return notifications.some(n => n.id === id);
     }
 }
 

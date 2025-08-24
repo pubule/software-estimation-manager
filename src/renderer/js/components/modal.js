@@ -5,11 +5,133 @@
 
 class ModalManager {
     constructor() {
+        // Connect to global state store
+        this.store = window.appStore;
+        this.storeUnsubscribe = null;
+        
         this.activeModals = new Set();
         this.modalStack = [];
         this.escapeKeyHandler = this.handleEscapeKey.bind(this);
 
         this.init();
+        this.setupStoreSubscription();
+    }
+    /**
+     * Setup store subscription for reactive modal state
+     */
+    setupStoreSubscription() {
+        if (!this.store) {
+            console.warn('Store not available for ModalManager');
+            return;
+        }
+
+        this.storeUnsubscribe = this.store.subscribe((state, prevState) => {
+            // Sync local modal state with global state
+            if (state.modalsOpen !== prevState.modalsOpen) {
+                this.syncWithGlobalState(state.modalsOpen);
+            }
+        });
+    }
+
+    /**
+     * Sync local modal state with global state
+     */
+    syncWithGlobalState(globalModalsOpen) {
+        // Convert Set to Array for easier comparison
+        const globalArray = Array.from(globalModalsOpen);
+        const localArray = Array.from(this.activeModals);
+
+        // Find modals that should be opened (in global but not local)
+        const toOpen = globalArray.filter(id => !this.activeModals.has(id));
+        
+        // Find modals that should be closed (in local but not global) 
+        const toClose = localArray.filter(id => !globalModalsOpen.has(id));
+
+        // Open modals that are in global state but not local
+        toOpen.forEach(modalId => {
+            console.log('ModalManager: Syncing modal open from global state:', modalId);
+            this.showModalDOM(modalId); // Show DOM without updating global state
+        });
+
+        // Close modals that are local but not in global state
+        toClose.forEach(modalId => {
+            console.log('ModalManager: Syncing modal close from global state:', modalId);
+            this.closeModalDOM(modalId); // Close DOM without updating global state
+        });
+    }
+
+    /**
+     * Show modal DOM without updating global state (for sync)
+     */
+    showModalDOM(modalId, options = {}) {
+        const modal = document.getElementById(modalId);
+        if (!modal) {
+            console.error(`Modal with ID '${modalId}' not found`);
+            return false;
+        }
+
+        // Only update local state (don't update global state to avoid loops)
+        if (!this.activeModals.has(modalId)) {
+            this.activeModals.add(modalId);
+            this.modalStack.push(modalId);
+
+            // Show modal DOM
+            modal.classList.add('active');
+            document.body.classList.add('modal-open');
+
+            // Set focus to first focusable element
+            this.setInitialFocus(modal, options.focusElement);
+
+            // Setup modal-specific handlers
+            this.setupModalHandlers(modal, options);
+
+            // Trigger callback
+            if (options.onShow) {
+                options.onShow(modal);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Close modal DOM without updating global state (for sync)
+     */
+    closeModalDOM(modalId, options = {}) {
+        const modal = document.getElementById(modalId);
+        if (!modal || !this.activeModals.has(modalId)) {
+            return false;
+        }
+
+        // Only update local state (don't update global state to avoid loops)
+        this.activeModals.delete(modalId);
+
+        // Remove from stack
+        const stackIndex = this.modalStack.indexOf(modalId);
+        if (stackIndex > -1) {
+            this.modalStack.splice(stackIndex, 1);
+        }
+
+        // Hide modal DOM
+        modal.classList.remove('active');
+
+        // Remove body class if no more modals
+        if (this.activeModals.size === 0) {
+            document.body.classList.remove('modal-open');
+        }
+
+        // Restore focus to previous element
+        this.restoreFocus(modal);
+
+        // Clean up modal handlers
+        this.cleanupModalHandlers(modal);
+
+        // Trigger callback
+        if (options.onClose) {
+            options.onClose(modal);
+        }
+
+        return true;
     }
 
     init() {
@@ -41,23 +163,30 @@ class ModalManager {
             this.closeAllModals();
         }
 
-        // Add to active modals
-        this.activeModals.add(modalId);
-        this.modalStack.push(modalId);
+        // Update global state first (will trigger sync)
+        if (this.store) {
+            this.store.getState().openModal(modalId);
+        }
 
-        // Show modal
-        modal.classList.add('active');
-        document.body.classList.add('modal-open');
+        // Add to local active modals (if not already added by sync)
+        if (!this.activeModals.has(modalId)) {
+            this.activeModals.add(modalId);
+            this.modalStack.push(modalId);
 
-        // Set focus to first focusable element
-        this.setInitialFocus(modal, options.focusElement);
+            // Show modal DOM
+            modal.classList.add('active');
+            document.body.classList.add('modal-open');
 
-        // Setup modal-specific handlers
-        this.setupModalHandlers(modal, options);
+            // Set focus to first focusable element
+            this.setInitialFocus(modal, options.focusElement);
 
-        // Trigger callback
-        if (options.onShow) {
-            options.onShow(modal);
+            // Setup modal-specific handlers
+            this.setupModalHandlers(modal, options);
+
+            // Trigger callback
+            if (options.onShow) {
+                options.onShow(modal);
+            }
         }
 
         return true;
@@ -82,32 +211,39 @@ class ModalManager {
             }
         }
 
-        // Remove from active modals
-        this.activeModals.delete(modalId);
-
-        // Remove from stack
-        const stackIndex = this.modalStack.indexOf(modalId);
-        if (stackIndex > -1) {
-            this.modalStack.splice(stackIndex, 1);
+        // Update global state first (will trigger sync)
+        if (this.store) {
+            this.store.getState().closeModal(modalId);
         }
 
-        // Hide modal
-        modal.classList.remove('active');
+        // Remove from local active modals (if not already removed by sync)
+        if (this.activeModals.has(modalId)) {
+            this.activeModals.delete(modalId);
 
-        // Remove body class if no more modals
-        if (this.activeModals.size === 0) {
-            document.body.classList.remove('modal-open');
-        }
+            // Remove from stack
+            const stackIndex = this.modalStack.indexOf(modalId);
+            if (stackIndex > -1) {
+                this.modalStack.splice(stackIndex, 1);
+            }
 
-        // Restore focus to previous element
-        this.restoreFocus(modal);
+            // Hide modal DOM
+            modal.classList.remove('active');
 
-        // Clean up modal handlers
-        this.cleanupModalHandlers(modal);
+            // Remove body class if no more modals
+            if (this.activeModals.size === 0) {
+                document.body.classList.remove('modal-open');
+            }
 
-        // Trigger callback
-        if (options.onClose) {
-            options.onClose(modal);
+            // Restore focus to previous element
+            this.restoreFocus(modal);
+
+            // Clean up modal handlers
+            this.cleanupModalHandlers(modal);
+
+            // Trigger callback
+            if (options.onClose) {
+                options.onClose(modal);
+            }
         }
 
         return true;
@@ -577,6 +713,12 @@ class ModalManager {
 
         // Remove event listeners
         document.removeEventListener('keydown', this.escapeKeyHandler);
+
+        // Cleanup store subscription
+        if (this.storeUnsubscribe) {
+            this.storeUnsubscribe();
+            this.storeUnsubscribe = null;
+        }
 
         // Clear collections
         this.activeModals.clear();

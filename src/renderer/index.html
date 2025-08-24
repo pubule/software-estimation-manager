@@ -828,6 +828,83 @@
 <!-- Additional utilities -->
 <script src="js/utils/error-handler.js"></script>
 <script src="js/utils/performance-optimizer.js"></script>
+<script src="js/utils/loading-helpers.js"></script>
+<script src="js/utils/state-selectors.js"></script>
+
+<!-- State Management -->
+<script>
+// Load Zustand library with fallbacks, then load app store
+(function() {
+    function loadScript(src, callback) {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = callback;
+        script.onerror = () => {
+            console.warn('Failed to load from:', src);
+            callback(false);
+        };
+        document.head.appendChild(script);
+    }
+
+    function loadAppStore() {
+        loadScript('js/store/app-store.js', (success) => {
+            if (success) {
+                console.log('App Store loaded successfully');
+                // Ensure store is available before other components try to access it
+                if (window.appStore) {
+                    console.log('Store verified and available');
+                    // Dispatch a custom event to let components know store is ready
+                    window.dispatchEvent(new CustomEvent('storeReady'));
+                } else {
+                    console.error('Store not available after loading');
+                }
+            } else {
+                console.error('Failed to load app store');
+            }
+        });
+    }
+
+    // Create a simplified store implementation
+    console.log('Creating simplified state store');
+    window.zustand = {
+        createStore: (storeInitializer) => {
+            let state = {};
+            const listeners = new Set();
+            
+            const setState = (partial, replace) => {
+                const nextState = replace ? partial : { ...state, ...partial };
+                if (nextState !== state) {
+                    const previousState = state;
+                    state = nextState;
+                    listeners.forEach((listener) => listener(state, previousState));
+                }
+            };
+            
+            const getState = () => state;
+            
+            const subscribe = (listener) => {
+                listeners.add(listener);
+                return () => listeners.delete(listener);
+            };
+            
+            const destroy = () => listeners.clear();
+            
+            // Initialize the state
+            state = storeInitializer(setState, getState);
+            
+            return {
+                getState,
+                setState,
+                subscribe,
+                destroy
+            };
+        }
+    };
+    
+    console.log('Simplified store created, loading app store');
+    loadAppStore();
+})();
+</script>
 
 <!-- Data layer -->
 <script src="js/data-manager.js"></script>
@@ -836,6 +913,7 @@
 <script src="js/components/notification-manager.js"></script>
 <script src="js/components/modal.js"></script>
 <script src="js/components/scroll-manager.js"></script>
+<script src="js/components/global-loading-indicator.js"></script>
 
 <!-- Configuration system (depends on data-manager) -->
 <script src="js/components/configuration-ui-manager.js"></script>

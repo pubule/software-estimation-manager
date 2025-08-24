@@ -7,10 +7,11 @@ class ApplicationController extends BaseComponent {
     constructor() {
         super('ApplicationController');
         
-        // Application state
-        this.currentProject = null;
-        this.isDirty = false;
-        this.currentPage = 'projects';
+        // Connect to the application store (available globally)
+        this.store = window.appStore;
+        
+        // Store subscription for reactive updates
+        this.storeUnsubscribe = null;
         
         // Component managers
         this.managers = {
@@ -31,6 +32,130 @@ class ApplicationController extends BaseComponent {
         this.handleCloseRequest = this.handleCloseRequest.bind(this);
         this.markDirty = this.markDirty.bind(this);
         this.updateUI = this.updateUI.bind(this);
+        
+        // Initialize store connection
+        this.initializeStoreConnection();
+    }
+    /**
+     * Initialize store connection and subscriptions
+     */
+    initializeStoreConnection() {
+        // Check if store is available
+        if (!this.store || !this.store.subscribe) {
+            console.warn('Store not available for ApplicationController, will retry when storeReady event fires');
+            
+            // Listen for store ready event
+            window.addEventListener('storeReady', () => {
+                console.log('Store ready event received, initializing connection');
+                this.store = window.appStore;
+                this.initializeStoreConnection();
+            }, { once: true });
+            
+            return;
+        }
+        
+        console.log('Initializing ApplicationController store subscription');
+        
+        // Subscribe to store changes for reactive updates
+        this.storeUnsubscribe = this.store.subscribe((state, prevState) => {
+            // React to project changes
+            if (state.currentProject !== prevState.currentProject) {
+                this.onProjectChanged(state.currentProject, prevState.currentProject);
+            }
+            
+            // React to dirty state changes
+            if (state.isDirty !== prevState.isDirty) {
+                this.onDirtyStateChanged(state.isDirty);
+            }
+            
+            // React to navigation changes
+            if (state.currentSection !== prevState.currentSection) {
+                this.onSectionChanged(state.currentSection, prevState.currentSection);
+            }
+        });
+        
+        console.log('🏪 Store connection initialized');
+    }
+
+    /**
+     * Handle project changes from store
+     */
+    onProjectChanged(currentProject, previousProject) {
+        if (currentProject !== previousProject) {
+            console.log('🏪 Project changed in store, updating UI');
+            this.managers.version?.onProjectChanged(currentProject);
+            this.refreshDropdowns();
+            this.updateUI();
+            this.updateNavigationState();
+        }
+    }
+
+    /**
+     * Handle dirty state changes from store
+     */
+    onDirtyStateChanged(isDirty) {
+        console.log('🏪 Dirty state changed:', isDirty);
+        this.managers.navigation?.onProjectDirty(isDirty);
+        this.updateProjectStatus();
+        
+        // Update phases if needed
+        if (isDirty && this.managers.projectPhases) {
+            this.managers.projectPhases.calculateDevelopmentPhase();
+            
+            if (this.store.getState().currentSection === 'phases') {
+                const phasesPage = this.getElement('phases-page');
+                if (phasesPage?.classList.contains('active')) {
+                    this.managers.projectPhases.updateCalculations();
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle section changes from store
+     */
+    onSectionChanged(currentSection, previousSection) {
+        console.log('🏪 Section changed:', previousSection, '→', currentSection);
+        
+        // Update section-specific managers
+        if (currentSection === 'phases' && this.managers.projectPhases) {
+            this.managers.projectPhases.refreshFromFeatures();
+        }
+        if (currentSection === 'calculations' && this.managers.calculations) {
+            this.managers.calculations.refresh();
+        }
+    }
+
+    /**
+     * Getter for current project (maps to store)
+     */
+    get currentProject() {
+        // Use StateSelectors for consistency
+        return StateSelectors.getCurrentProject();
+    }
+
+    /**
+     * Setter for current project (updates store)
+     */
+    set currentProject(project) {
+        this.store.getState().setProject(project);
+    }
+
+    /**
+     * Getter for dirty state (maps to store)
+     */
+    get isDirty() {
+        // Use StateSelectors for consistency  
+        return StateSelectors.isProjectDirty();
+    }
+
+    /**
+     * Method to mark project as dirty (updates store)
+     */
+    markDirty() {
+        // Use StateSelectors for consistency
+        StateSelectors.markProjectDirty();
+        // The store subscription will handle the UI updates
     }
 
     async onInit() {
@@ -1997,7 +2122,7 @@ class ApplicationController extends BaseComponent {
         }
 
         this.currentProject = await this.createNewProject();
-        this.isDirty = false;
+        StateSelectors.markProjectClean();
 
         this.managers.navigation.onProjectLoaded();
         this.managers.version?.onProjectChanged(this.currentProject);
@@ -2048,7 +2173,7 @@ class ApplicationController extends BaseComponent {
             // Save through data manager
             await this.managers.data.saveProject(this.currentProject);
 
-            this.isDirty = false;
+            StateSelectors.markProjectClean();
             this.managers.navigation.onProjectDirty(false);
             this.updateProjectStatus();
 
@@ -2128,7 +2253,8 @@ class ApplicationController extends BaseComponent {
      * Mark project as dirty
      */
     markDirty() {
-        this.isDirty = true;
+        // Use StateSelectors to mark dirty in store
+        StateSelectors.markProjectDirty();
         this.managers.navigation.onProjectDirty(true);
         this.updateProjectStatus();
 
@@ -2156,8 +2282,8 @@ class ApplicationController extends BaseComponent {
         this.updateSummary();
         this.updateConfigurationStatus();
         
-        // Update section-specific managers
-        const currentSection = this.managers.navigation?.currentSection;
+        // Update section-specific managers using global state selectors
+        const currentSection = StateSelectors.getCurrentSection();
         if (currentSection === 'phases' && this.managers.projectPhases) {
             this.managers.projectPhases.refreshFromFeatures();
         }
@@ -2173,11 +2299,9 @@ class ApplicationController extends BaseComponent {
         const projectNameEl = this.getElement('title-project-name');
         if (!projectNameEl) return;
 
-        if (this.currentProject && this.currentProject.project && this.currentProject.project.name) {
-            projectNameEl.textContent = this.currentProject.project.name;
-        } else {
-            projectNameEl.textContent = 'No Project';
-        }
+        // Use global state selector instead of direct property access
+        const projectName = StateSelectors.getProjectName();
+        projectNameEl.textContent = projectName;
     }
 
     /**
@@ -2213,11 +2337,13 @@ class ApplicationController extends BaseComponent {
      * Update summary calculations
      */
     updateSummary() {
-        if (!this.currentProject) return;
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) return;
 
-        const features = this.currentProject.features;
-        const totalFeatures = features.length;
-        const totalManDays = features.reduce((sum, feature) => sum + (feature.manDays || 0), 0);
+        // Use global state selectors instead of direct property access
+        const features = StateSelectors.getProjectFeatures();
+        const totalFeatures = StateSelectors.getFeatureCount();
+        const totalManDays = StateSelectors.getTotalManDays();
         const averageManDays = totalFeatures > 0 ? (totalManDays / totalFeatures).toFixed(1) : 0;
         const defaultCoverage = (totalManDays * 0.3).toFixed(1);
 
@@ -2475,7 +2601,7 @@ class ApplicationController extends BaseComponent {
      */
     async performProjectClose() {
         this.currentProject = await this.createNewProject();
-        this.isDirty = false;
+        StateSelectors.markProjectClean();
         
         this.managers.version?.onProjectChanged(null);
         this.managers.projectPhases?.resetAllPhaseData();

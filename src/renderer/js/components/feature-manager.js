@@ -10,6 +10,10 @@ class FeatureManager extends BaseComponent {
         this.dataManager = dataManager;
         this.configManager = configManager;
         
+        // Connect to global state store (may not be available immediately)
+        this.store = window.appStore;
+        this.storeUnsubscribe = null;
+        
         // State management
         this.state = {
             currentSort: { field: 'id', direction: 'asc' },
@@ -24,6 +28,107 @@ class FeatureManager extends BaseComponent {
         // Throttled methods for performance
         this.updateCalculatedManDays = this.throttle(this._updateCalculatedManDays, 100);
         this.filterFeatures = this.debounce(this._filterFeatures, 300);
+        
+        this.setupStoreSubscription();
+        
+        // If store wasn't available during construction, try to connect when it becomes available
+        if (!this.store) {
+            console.log('Store not available during FeatureManager construction, will attempt to connect later');
+            this.connectToStoreWhenReady();
+        }
+    }
+    /**
+     * Attempt to connect to store when it becomes available
+     */
+    connectToStoreWhenReady() {
+        // Check periodically for store availability
+        const checkForStore = () => {
+            if (window.appStore && !this.store) {
+                console.log('Store now available, connecting FeatureManager...');
+                this.store = window.appStore;
+                this.setupStoreSubscription();
+                return;
+            }
+            
+            // Keep checking every 100ms for up to 5 seconds
+            if (!this.store && (this.storeCheckAttempts || 0) < 50) {
+                this.storeCheckAttempts = (this.storeCheckAttempts || 0) + 1;
+                setTimeout(checkForStore, 100);
+            } else if (!this.store) {
+                console.warn('FeatureManager: Store not available after 5 seconds, will operate without store integration');
+            }
+        };
+        
+        setTimeout(checkForStore, 100);
+    }
+    
+    /**
+     * Setup store subscription for reactive feature updates
+     */
+    setupStoreSubscription() {
+        if (!this.store) {
+            console.warn('Store not available for FeatureManager');
+            return;
+        }
+
+        this.storeUnsubscribe = this.store.subscribe((state, prevState) => {
+            // React to project changes  
+            if (state.currentProject !== prevState.currentProject) {
+                this.handleProjectChange(state.currentProject);
+            }
+
+            // React to feature changes within the same project
+            if (state.currentProject && prevState.currentProject && 
+                state.currentProject.features !== prevState.currentProject.features) {
+                this.handleFeaturesChange(state.currentProject.features);
+            }
+        });
+    }
+
+    /**
+     * Handle project changes from global state
+     */
+    handleProjectChange(newProject) {
+        console.log('FeatureManager: Project changed', !!newProject);
+        
+        if (newProject) {
+            // Project loaded - refresh UI with new features
+            this.refreshTable();
+            this.populateFilterDropdowns();
+            this.updateProjectSummary();
+        } else {
+            // Project closed - clear UI
+            this.renderEmptyState();
+        }
+    }
+
+    /**
+     * Handle feature changes within current project
+     */
+    handleFeaturesChange(newFeatures) {
+        console.log('FeatureManager: Features changed', newFeatures?.length || 0);
+        
+        // Refresh UI to reflect feature changes
+        this.refreshTable();
+        this.populateFilterDropdowns();  
+        this.updateProjectSummary();
+        
+        // Emit event for other components
+        this.emit('features-changed', { features: newFeatures });
+    }
+
+    /**
+     * Cleanup store subscription
+     */
+    destroy() {
+        if (this.storeUnsubscribe) {
+            this.storeUnsubscribe();
+            this.storeUnsubscribe = null;
+        }
+        
+        if (super.destroy) {
+            super.destroy();
+        }
     }
 
     async onInit() {
@@ -206,70 +311,97 @@ class FeatureManager extends BaseComponent {
      * Save feature to current project
      */
     async saveFeatureToProject(featureData) {
-        const currentProject = window.app?.currentProject;
-        if (!currentProject) {
-            throw new Error('No project loaded');
-        }
+        return await withLoading(
+            LoadingOperations.FEATURE_SAVE,
+            async () => {
+                // Check if store is available
+                if (!this.store || !this.store.getState) {
+                    console.warn('Store not available for FeatureManager.saveFeatureToProject, aborting operation');
+                    throw new Error('Store not available');
+                }
+                
+                const state = this.store.getState();
+                const currentProject = state.currentProject;
+                if (!currentProject) {
+                    throw new Error('No project loaded');
+                }
 
-        // Ensure features array exists
-        if (!Array.isArray(currentProject.features)) {
-            currentProject.features = [];
-        }
+                // Ensure features array exists
+                if (!Array.isArray(currentProject.features)) {
+                    currentProject.features = [];
+                }
 
-        // SAFETY: Ensure unique ID (backup protection against edge cases)
-        if (!this.state.editingFeature) {
-            const existingIds = currentProject.features.map(f => f.id);
-            if (existingIds.includes(featureData.id)) {
-                console.warn('ID conflict detected (should not happen), generating new ID for feature:', featureData.id);
-                featureData.id = this.generateFeatureId();
-                console.log('New ID generated:', featureData.id);
+                // SAFETY: Ensure unique ID (backup protection against edge cases)
+                if (!this.state.editingFeature) {
+                    const existingIds = currentProject.features.map(f => f.id);
+                    if (existingIds.includes(featureData.id)) {
+                        console.warn('ID conflict detected (should not happen), generating new ID for feature:', featureData.id);
+                        featureData.id = this.generateFeatureId();
+                        console.log('New ID generated:', featureData.id);
+                    }
+                }
+
+                // Validate for duplicates (excluding current feature being edited)
+                console.log('Validating feature ID:', {
+                    featureDataId: featureData.id,
+                    editingFeature: this.state.editingFeature,
+                    existingFeatureIds: currentProject.features.map(f => f.id)
+                });
+                
+                const isDuplicate = currentProject.features.some(f => 
+                    f.id === featureData.id && 
+                    (!this.state.editingFeature || f.id !== this.state.editingFeature.id)
+                );
+
+                console.log('Duplicate check result:', {
+                    isDuplicate,
+                    matchingFeatures: currentProject.features.filter(f => f.id === featureData.id)
+                });
+
+                if (isDuplicate) {
+                    throw new Error('Feature ID already exists');
+                }
+
+                // Use global state updateProject action instead of direct manipulation
+                state.updateProject(project => {
+                    const updatedProject = { ...project };
+                    
+                    if (!Array.isArray(updatedProject.features)) {
+                        updatedProject.features = [];
+                    }
+
+                    if (this.state.editingFeature) {
+                        // Update existing feature
+                        const index = updatedProject.features.findIndex(f => 
+                            f.id === this.state.editingFeature.id
+                        );
+                        
+                        if (index !== -1) {
+                            updatedProject.features[index] = featureData;
+                        } else {
+                            updatedProject.features.push(featureData);
+                        }
+                    } else {
+                        // Add new feature
+                        updatedProject.features.push(featureData);
+                    }
+
+                    return updatedProject;
+                });
+
+                // Global state automatically marks as dirty via updateProject action
+                // Save project via ApplicationController
+                if (window.app && window.app.saveProject) {
+                    return await window.app.saveProject();
+                }
+
+                return true;
+            },
+            {
+                showModal: false, // Features save quickly, no modal needed
+                message: 'Saving feature...'
             }
-        }
-
-        // Validate for duplicates (excluding current feature being edited)
-        console.log('Validating feature ID:', {
-            featureDataId: featureData.id,
-            editingFeature: this.state.editingFeature,
-            existingFeatureIds: currentProject.features.map(f => f.id)
-        });
-        
-        const isDuplicate = currentProject.features.some(f => 
-            f.id === featureData.id && 
-            (!this.state.editingFeature || f.id !== this.state.editingFeature.id)
         );
-
-        console.log('Duplicate check result:', {
-            isDuplicate,
-            matchingFeatures: currentProject.features.filter(f => f.id === featureData.id)
-        });
-
-        if (isDuplicate) {
-            throw new Error('Feature ID already exists');
-        }
-
-        if (this.state.editingFeature) {
-            // Update existing feature
-            const index = currentProject.features.findIndex(f => 
-                f.id === this.state.editingFeature.id
-            );
-            
-            if (index !== -1) {
-                currentProject.features[index] = featureData;
-            } else {
-                currentProject.features.push(featureData);
-            }
-        } else {
-            // Add new feature
-            currentProject.features.push(featureData);
-        }
-
-        // Mark project as dirty and save
-        if (window.app) {
-            window.app.markDirty();
-            return await window.app.saveProject();
-        }
-
-        return true;
     }
 
     /**
@@ -280,35 +412,57 @@ class FeatureManager extends BaseComponent {
             return;
         }
 
-        try {
-            const currentProject = window.app?.currentProject;
-            if (!currentProject) {
-                throw new Error('No project loaded');
+        return await withLoading(
+            LoadingOperations.FEATURE_DELETE,
+            async () => {
+                // Check if store is available
+                if (!this.store || !this.store.getState) {
+                    console.warn('Store not available for FeatureManager.deleteFeature, aborting operation');
+                    throw new Error('Store not available');
+                }
+                
+                const state = this.store.getState();
+                const currentProject = state.currentProject;
+                if (!currentProject) {
+                    throw new Error('No project loaded');
+                }
+
+                const index = currentProject.features.findIndex(f => f.id === featureId);
+                if (index === -1) {
+                    throw new Error('Feature not found');
+                }
+
+                const feature = currentProject.features[index];
+
+                // Use global state updateProject action instead of direct manipulation
+                state.updateProject(project => {
+                    const updatedProject = { ...project };
+                    updatedProject.features = [...updatedProject.features];
+                    updatedProject.features.splice(index, 1);
+                    return updatedProject;
+                });
+
+                // Global state automatically marks as dirty via updateProject action
+                // Save project via ApplicationController
+                if (window.app && window.app.saveProject) {
+                    await window.app.saveProject();
+                }
+
+                // UI updates will be handled by store subscription
+                // No need to manually call refreshTable(), updateProjectSummary()
+                
+                // Still emit event for other components
+                this.emit('features-changed', { deletedFeature: feature });
+
+                NotificationManager.show(`Feature "${feature.description}" deleted`, 'success');
+                
+                return feature;
+            },
+            {
+                showModal: false, // Delete operations are quick
+                message: 'Deleting feature...'
             }
-
-            const index = currentProject.features.findIndex(f => f.id === featureId);
-            if (index === -1) {
-                throw new Error('Feature not found');
-            }
-
-            const feature = currentProject.features[index];
-            currentProject.features.splice(index, 1);
-
-            // Mark project as dirty and save
-            if (window.app) {
-                window.app.markDirty();
-                await window.app.saveProject();
-            }
-
-            this.refreshTable();
-            this.updateProjectSummary();
-            this.emit('features-changed', { deletedFeature: feature });
-
-            NotificationManager.show(`Feature "${feature.description}" deleted`, 'success');
-
-        } catch (error) {
-            this.handleError('Delete feature failed', error);
-        }
+        );
     }
 
     /**
