@@ -78,6 +78,11 @@ class TeamsConfigManager {
                 console.log('Default teams initialized successfully');
             } else {
                 console.log('Teams already exist, skipping initialization');
+                // 🏪 Ensure existing teams are in state store even if skipping initialization
+                if (window.appStore && globalConfig) {
+                    window.appStore.getState().setGlobalConfig(globalConfig);
+                    console.log('✅ Existing teams config synchronized with state store');
+                }
             }
         } catch (error) {
             console.error('Failed to ensure default teams:', error);

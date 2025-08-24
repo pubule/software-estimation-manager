@@ -3575,11 +3575,38 @@ class CapacityManager extends BaseComponent {
      * Calculate sequential timeline for project phases
      */
     calculateProjectPhaseTimeline(project, startDate) {
-        if (!project.phases || project.phases.length === 0) {
+        // 🚨 CRITICAL FIX: Handle both array and object phases structures
+        let phasesArray = [];
+        
+        if (!project.phases) {
             return [];
         }
-
-        const phases = [...project.phases].sort((a, b) => (a.order || 0) - (b.order || 0));
+        
+        // Convert phases object to array if needed
+        if (Array.isArray(project.phases)) {
+            phasesArray = project.phases;
+        } else if (typeof project.phases === 'object') {
+            // Convert object phases to array
+            phasesArray = Object.keys(project.phases)
+                .filter(key => key !== 'selectedSuppliers' && project.phases[key])
+                .map(key => ({
+                    id: key,
+                    name: key,
+                    manDays: project.phases[key].manDays || project.phases[key].totalMDs || 0,
+                    effort: project.phases[key].effort || {},
+                    order: this.getPhaseOrder(key), // Get standard phase order
+                    ...project.phases[key]
+                }));
+        }
+        
+        if (phasesArray.length === 0) {
+            console.log(`🔍 DEBUG: No valid phases found for project ${project.name || project.project?.name}`);
+            return [];
+        }
+        
+        console.log(`🔍 DEBUG: Processing ${phasesArray.length} phases for timeline:`, phasesArray.map(p => `${p.name}(${p.manDays}MD)`));
+        
+        const phases = phasesArray.sort((a, b) => (a.order || 0) - (b.order || 0));
         const timeline = [];
         let currentDate = new Date(startDate);
         
@@ -3606,6 +3633,38 @@ class CapacityManager extends BaseComponent {
         });
         
         return timeline;
+    }
+
+    /**
+     * Get standard phase order for sorting
+     */
+    getPhaseOrder(phaseName) {
+        const phaseOrders = {
+            'analysis': 1,
+            'design': 2,
+            'development': 3,
+            'testing': 4,
+            'deployment': 5,
+            'launch': 6,
+            'maintenance': 7,
+            'support': 8
+        };
+        
+        // Try exact match first
+        if (phaseOrders[phaseName]) {
+            return phaseOrders[phaseName];
+        }
+        
+        // Try partial matches (case insensitive)
+        const lowerPhaseName = phaseName.toLowerCase();
+        for (const [key, order] of Object.entries(phaseOrders)) {
+            if (lowerPhaseName.includes(key) || key.includes(lowerPhaseName)) {
+                return order;
+            }
+        }
+        
+        // Default order for unknown phases
+        return 999;
     }
 
     /**
@@ -3735,9 +3794,9 @@ class CapacityManager extends BaseComponent {
 
     /**
      * Generate sequential allocations based on project phases
-     * 🚨 CRITICAL FIX: Use modern auto-distribution algorithm instead of legacy broken method
+     * 🚨 CRITICAL FIX: Use modern auto-distribution algorithm for single target project
      */
-    async generateSequentialAllocations(member, memberRole, projects) {
+    async generateSequentialAllocations(member, memberRole, targetProject) {
         const allocations = {};
         
         // 🔥 ULTRA THINK FIX: Use the working auto-distribution system that correctly handles February
@@ -3749,84 +3808,162 @@ class CapacityManager extends BaseComponent {
         
         console.log(`✅ DEBUG: Auto-distribution available for ${member.firstName} ${member.lastName}`);
         
-        // Process projects sequentially to track existing allocations properly
-        console.log(`🔍 DEBUG: Processing ${projects.length} projects for ${member.firstName} ${member.lastName}`);
+        // Process the single target project
+        console.log(`🔍 DEBUG: Processing target project: ${targetProject.project?.name} for ${member.firstName} ${member.lastName}`);
         
-        for (const project of projects) {
+        const project = targetProject;
             
-            console.log(`🔍 DEBUG: Processing project: ${project.name}, startDate: ${project.startDate}, phases: ${project.phases?.length || 0}`);
+            // 🎯 USER GUIDANCE: "se può aiutarti nei progetti con assignment, la project.startDate è la startDate della prima fase mentre le project.endDate è la endDate dell'ultima fase"
+            // 🚨 CRITICAL FIX: Access dates from correct nested structure
+            let projectStartDate = project.startDate || project.project?.startDate; // Assignment start date (if exists)
+            let projectEndDate = project.endDate || project.project?.endDate;     // Assignment end date (if exists)
+            const projectName = project.name || project.project?.name;
+            
+            // 🔥 CRITICAL FIX: Calculate project dates from phases when missing
+            if (!projectStartDate || !projectEndDate) {
+                console.log(`🔍 DEBUG: Project ${projectName} missing dates, calculating from phases...`);
+                
+                // Get phases from project
+                const phases = project.phases || {};
+                const phaseKeys = Object.keys(phases).filter(key => key !== 'selectedSuppliers');
+                
+                console.log(`🔍 PHASE DEBUG: Project ${projectName} has ${phaseKeys.length} phases:`, phaseKeys);
+                
+                if (phaseKeys.length > 0) {
+                    const phasesWithDates = [];
+                    
+                    // Collect phases with valid dates
+                    phaseKeys.forEach(phaseKey => {
+                        const phase = phases[phaseKey];
+                        console.log(`🔍 PHASE DEBUG: Phase ${phaseKey}:`, {
+                            exists: !!phase,
+                            hasStartDate: !!phase?.startDate,
+                            hasEndDate: !!phase?.endDate,
+                            startDate: phase?.startDate,
+                            endDate: phase?.endDate,
+                            fullPhase: phase
+                        });
+                        
+                        if (phase && phase.startDate && phase.endDate) {
+                            phasesWithDates.push({
+                                name: phaseKey,
+                                startDate: new Date(phase.startDate),
+                                endDate: new Date(phase.endDate)
+                            });
+                        }
+                    });
+                    
+                    console.log(`🔍 PHASE DEBUG: Found ${phasesWithDates.length} phases with dates:`, phasesWithDates);
+                    
+                    if (phasesWithDates.length > 0) {
+                        // Sort phases by start date
+                        phasesWithDates.sort((a, b) => a.startDate - b.startDate);
+                        
+                        // project.startDate = first phase's startDate
+                        projectStartDate = phasesWithDates[0].startDate.toISOString().split('T')[0];
+                        
+                        // project.endDate = last phase's endDate
+                        projectEndDate = phasesWithDates[phasesWithDates.length - 1].endDate.toISOString().split('T')[0];
+                        
+                        console.log(`✅ CALCULATED: Project ${projectName} dates from phases: ${projectStartDate} to ${projectEndDate}`);
+                    } else {
+                        console.log(`❌ NO VALID PHASES: Project ${projectName} - no phases with valid startDate/endDate found`);
+                        // 🚨 FALLBACK: Use current date as start if no phase dates available
+                        if (!projectStartDate) {
+                            projectStartDate = new Date().toISOString().split('T')[0];
+                            console.log(`🔧 FALLBACK: Using current date as startDate for ${projectName}: ${projectStartDate}`);
+                        }
+                    }
+                } else {
+                    console.log(`❌ NO PHASES: Project ${projectName} - no phases found`);
+                    // 🚨 FALLBACK: Use current date as start if no phases available
+                    if (!projectStartDate) {
+                        projectStartDate = new Date().toISOString().split('T')[0];
+                        console.log(`🔧 FALLBACK: Using current date as startDate for ${projectName}: ${projectStartDate}`);
+                    }
+                }
+            }
+            
+            // 🚨 FINAL FALLBACK: Ensure we have an endDate
+            if (!projectEndDate && projectStartDate) {
+                // Default to 3 months from start date
+                const startDate = new Date(projectStartDate);
+                const endDate = new Date(startDate);
+                endDate.setMonth(endDate.getMonth() + 3);
+                projectEndDate = endDate.toISOString().split('T')[0];
+                console.log(`🔧 FALLBACK: Using 3-month duration for ${projectName}, endDate: ${projectEndDate}`);
+            }
+            
+            console.log(`🔍 DEBUG: Processing project: ${projectName}, startDate: ${projectStartDate}, endDate: ${projectEndDate}, phases: ${project.phases?.length || Object.keys(project.phases || {}).length}`);
             
             // Skip projects without required data - more robust check
-            if (!project.startDate || !project.name) {
-                console.warn(`❌ SKIP: Project ${project.name || 'UNNAMED'} - missing required data:`);
-                console.warn('Missing data:', { 
-                    name: project.name, 
-                    startDate: project.startDate
+            if (!projectStartDate || !projectName) {
+                console.warn(`❌ SKIP: Project ${projectName || 'UNNAMED'} - missing required assignment data:`, { 
+                    name: projectName, 
+                    startDate: projectStartDate,
+                    endDate: projectEndDate
                 });
-                continue;
+                return {};
             }
             
-            // Note: phases check removed - phases will be loaded later in calculateProjectPhaseTimeline()
-
-            try {
-                // Build phase schedule for this project
-                const phaseTimeline = this.calculateProjectPhaseTimeline(project, project.startDate);
-                const phaseSchedule = [];
+        try {
+            // Build phase schedule for this project using assignment dates
+            const phaseTimeline = this.calculateProjectPhaseTimeline(project, projectStartDate);
+            const phaseSchedule = [];
                 
-                phaseTimeline.forEach(phase => {
-                    const participation = this.getRoleParticipationInPhase(phase, memberRole);
+            phaseTimeline.forEach(phase => {
+                const participation = this.getRoleParticipationInPhase(phase, memberRole);
 
-                    if (participation.participates && participation.roleMDs > 0) {
-                        phaseSchedule.push({
-                            phaseId: phase.phaseId || phase.phaseName,
-                            phaseName: phase.phaseName,
-                            startDate: phase.startDate,
-                            endDate: phase.endDate,
-                            estimatedMDs: participation.roleMDs
-                        });
-                    }
-                });
-
-                if (phaseSchedule.length === 0) {
-                    console.log(`No participating phases for ${member.name} in ${project.name}`);
-                    continue;
+                if (participation.participates && participation.roleMDs > 0) {
+                    phaseSchedule.push({
+                        phaseId: phase.phaseId || phase.phaseName,
+                        phaseName: phase.phaseName,
+                        startDate: phase.startDate,
+                        endDate: phase.endDate,
+                        estimatedMDs: participation.roleMDs
+                    });
                 }
+            });
 
-                // 🚨 CRITICAL: Use the working calculatePhaseBasedAllocation method
-                const projectAllocations = await this.calculatePhaseBasedAllocation(member, project, phaseSchedule);
-                
-                // 🔥 ULTRA DEBUG: Log what calculatePhaseBasedAllocation returns
-                console.log(`🔍 DEBUG: Project allocations for ${member.firstName} ${member.lastName} in ${project.name}:`, projectAllocations);
-                
-                // Merge project allocations into main allocations
-                Object.entries(projectAllocations).forEach(([month, monthData]) => {
-                    if (!allocations[month]) allocations[month] = {};
-                    
-                    // 🔥 ULTRA DEBUG: Log monthData structure
-                    console.log(`🔍 DEBUG: Month ${month} data:`, monthData);
-                    
-                    // Combine allocations if project already exists in the month
-                    if (allocations[month][project.name]) {
-                        allocations[month][project.name].days += monthData.days;
-                        allocations[month][project.name].phases.push(...monthData.phases);
-                    } else {
-                        allocations[month][project.name] = {
-                            days: monthData.days,
-                            hasOverflow: monthData.hasOverflow || false,
-                            overflowAmount: monthData.overflowAmount || 0,
-                            phases: monthData.phases || []
-                        };
-                    }
-                    
-                    // 🔥 ULTRA DEBUG: Log final allocation structure
-                    console.log(`🔍 DEBUG: Final allocation for ${month}/${project.name}:`, allocations[month][project.name]);
-                });
-
-            } catch (error) {
-                console.error(`Error processing allocations for project ${project.name}:`, error);
-                // Continue with other projects instead of breaking the entire calculation
-                continue;
+            if (phaseSchedule.length === 0) {
+                console.log(`No participating phases for ${member.firstName} ${member.lastName} in ${projectName}`);
+                return {};
             }
+
+            // 🚨 CRITICAL: Use the working calculatePhaseBasedAllocation method
+            const projectAllocations = await this.calculatePhaseBasedAllocation(member, project, phaseSchedule);
+            
+            // 🔥 ULTRA DEBUG: Log what calculatePhaseBasedAllocation returns
+            console.log(`🔍 DEBUG: Project allocations for ${member.firstName} ${member.lastName} in ${projectName}:`, projectAllocations);
+            
+            // Merge project allocations into main allocations
+            Object.entries(projectAllocations).forEach(([month, monthData]) => {
+                if (!allocations[month]) allocations[month] = {};
+                
+                // 🔥 ULTRA DEBUG: Log monthData structure
+                console.log(`🔍 DEBUG: Month ${month} data:`, monthData);
+                
+                // Combine allocations if project already exists in the month
+                if (allocations[month][projectName]) {
+                    allocations[month][projectName].days += monthData.days;
+                    allocations[month][projectName].phases.push(...monthData.phases);
+                } else {
+                    allocations[month][projectName] = {
+                        days: monthData.days,
+                        hasOverflow: monthData.hasOverflow || false,
+                        overflowAmount: monthData.overflowAmount || 0,
+                        phases: monthData.phases || []
+                    };
+                }
+                
+                // 🔥 ULTRA DEBUG: Log final allocation structure
+                console.log(`🔍 DEBUG: Final allocation for ${month}/${projectName}:`, allocations[month][projectName]);
+            });
+
+        } catch (error) {
+            console.error(`Error processing allocations for project ${projectName}:`, error);
+            // Return empty allocations if processing fails
+            return {};
         }
         
         // 🔥 ULTRA DEBUG: Log final allocations structure before returning
@@ -3947,8 +4084,13 @@ class CapacityManager extends BaseComponent {
 
     /**
      * MAIN METHOD: Get real team members from Teams configuration
+     * @param {Object} targetProject - The project for which to calculate allocations (optional for compatibility)
      */
-    async getRealTeamMembers() {
+    async getRealTeamMembers(targetProject = null) {
+        // For compatibility with existing code that doesn't need project-specific allocations
+        if (!targetProject) {
+            return await this.getRealTeamMembersWithoutAllocations();
+        }
         // Check cache first to avoid repeated calculations
         if (this._teamMembersCache && this._teamMembersCacheTime && 
             (Date.now() - this._teamMembersCacheTime < 30000) && !this._cacheIsDirty) { // 30 second cache
@@ -4057,130 +4199,9 @@ class CapacityManager extends BaseComponent {
                 }
             }
 
-            // Load real projects - cache projects too for better performance
-            let projects = [];
-            console.log(`🔍 DEBUG: Cache check - cache exists: ${!!this._projectsCache}, cache size: ${this._projectsCache?.length || 0}, cache age: ${this._projectsCacheTime ? Date.now() - this._projectsCacheTime : 'N/A'}ms`);
-            
-            // 🚨 FORCE RELOAD: Bypass cache to debug project loading
-            if (true || !this._projectsCache || !this._projectsCacheTime || 
-                (Date.now() - this._projectsCacheTime > 60000)) { // 1 minute cache for projects
-                
-                const dataManager = this.app?.managers?.data || window.dataManager;
-                if (!dataManager) {
-                    console.warn('Data manager not available, using empty projects list');
-                } else {
-                    try {
-                        const projectsList = await dataManager.listProjects() || [];
-                        
-                        // 🚨 CRITICAL ARCHITECTURE FIX: Load COMPLETE project data for proper allocation
-                        // Instead of loading partial metadata, load full projects with phases
-                        console.log(`🔍 DEBUG: Loading ${projectsList.length} complete projects for allocation...`);
-                        
-                        const projectPromises = projectsList.map(async (projectItem, index) => {
-                            console.log(`🔍 DEBUG: Processing project ${index}: ${projectItem?.project?.name}`);
-                            
-                            if (projectItem && projectItem.project && projectItem.filePath) {
-                                try {
-                                    // Load complete project data including phases
-                                    const completeProject = await dataManager.loadProject(projectItem.filePath);
-                                    console.log(`🔍 DEBUG: Project ${index} load result:`, {
-                                        success: completeProject.success,
-                                        hasData: !!completeProject.data,
-                                        dataKeys: completeProject.data ? Object.keys(completeProject.data) : null
-                                    });
-                                    
-                                    if (completeProject.success && completeProject.data) {
-                                        const finalProject = {
-                                            ...completeProject.data,  // Complete project with phases
-                                            filePath: projectItem.filePath,
-                                            fileName: projectItem.fileName
-                                        };
-                                        
-                                        // 🚨 CRITICAL FIX: Initialize phases if missing
-                                        if (!finalProject.phases || Object.keys(finalProject.phases).length === 0) {
-                                            console.log(`🔧 Initializing phases for project: ${finalProject.project?.name}`);
-                                            finalProject.phases = this.createProjectPhases(finalProject);
-                                        }
-                                        
-                                        console.log(`✅ DEBUG: Project ${index} processed successfully: ${finalProject.project?.name} (phases: ${Object.keys(finalProject.phases).length})`);
-                                        return finalProject;
-                                    } else {
-                                        console.warn(`❌ DEBUG: Project ${index} failed - success: ${completeProject.success}, hasData: ${!!completeProject.data}`);
-                                        return null;
-                                    }
-                                } catch (error) {
-                                    console.warn(`❌ DEBUG: Exception loading project ${index} (${projectItem.project.name}):`, error);
-                                    return null;
-                                }
-                            } else {
-                                console.warn(`❌ DEBUG: Project ${index} invalid structure:`, {
-                                    hasProjectItem: !!projectItem,
-                                    hasProject: !!projectItem?.project,
-                                    hasFilePath: !!projectItem?.filePath
-                                });
-                                return null;
-                            }
-                        });
-                        
-                        // Wait for all projects to load
-                        const loadedProjects = await Promise.all(projectPromises);
-                        projects = loadedProjects.filter(project => project !== null);
-                        
-                        console.log(`✅ DEBUG: Loaded ${projects.length} complete projects`);
-                        if (projects.length === 0) {
-                            console.error(`❌ CRITICAL: No projects were loaded! All ${projectsList.length} failed to load.`);
-                        } else {
-                            console.log(`🔍 DEBUG: Sample project structure:`, {
-                                name: projects[0].project?.name,
-                                hasPhases: !!(projects[0].phases),
-                                phasesLength: projects[0].phases?.length,
-                                phasesType: typeof projects[0].phases
-                            });
-                        }
-                        
-                        // Filter projects based on completeness and validity
-                        console.log(`🔍 DEBUG: Projects before filtering (${projects.length}):`, projects.map(p => ({
-                            name: p.project?.name || 'UNKNOWN', 
-                            hasPhases: !!(p.phases && Object.keys(p.phases).length > 0),
-                            status: p.project?.status,
-                            startDate: p.project?.startDate,
-                            endDate: p.project?.endDate
-                        })));
-                        
-                        const projectsForAutoAllocation = projects.filter(project => {
-                            // Must have project metadata and phases
-                            const hasBasicData = project.project && project.project.name;
-                            const hasPhases = project.phases && Object.keys(project.phases).length > 0;
-                            const hasValidStatus = !project.project?.status || project.project.status !== 'cancelled';
-                            
-                            const isValid = hasBasicData && hasPhases && hasValidStatus;
-                            console.log(`🔍 DEBUG: Project ${project.project?.name}:`);
-                            console.log(`  - hasBasicData: ${hasBasicData}`);
-                            console.log(`  - hasPhases: ${hasPhases} (phases: ${project.phases ? Object.keys(project.phases).length : 'null'} items)`);
-                            console.log(`  - phases content:`, project.phases);
-                            console.log(`  - hasValidStatus: ${hasValidStatus} (status: ${project.project?.status})`);
-                            console.log(`  - passed: ${isValid}`);
-                            
-                            return isValid;
-                        });
-
-                        console.log(`🔍 DEBUG: Projects after filtering: ${projects.length} → ${projectsForAutoAllocation.length}`);
-                        
-                        // Use filtered projects for automatic allocations
-                        projects = projectsForAutoAllocation;
-                        
-                        // Cache projects
-                        this._projectsCache = projects;
-                        this._projectsCacheTime = Date.now();
-                        
-                    } catch (error) {
-                        console.warn('Error loading projects:', error);
-                        projects = [];
-                    }
-                }
-            } else {
-                projects = this._projectsCache;
-            }
+            // Use the provided target project directly - no need to load all projects
+            console.log(`🔍 DEBUG: Using target project: ${targetProject.project?.name}`);
+            const projects = [targetProject];
 
             // Generate real team members - process sequentially for async operations
             const realTeamMembers = [];
@@ -4191,7 +4212,7 @@ class CapacityManager extends BaseComponent {
                     const vendor = this.resolveVendorName(member);
                     
                     // 🚨 CRITICAL: Generate sequential allocations based on project phases (now async)
-                    const automaticAllocations = await this.generateSequentialAllocations(member, memberRole, projects);
+                    const automaticAllocations = await this.generateSequentialAllocations(member, memberRole, targetProject);
                     
                     // CRITICAL FIX: Create unique composite ID BEFORE merging manual assignments
                     const uniqueId = `${team.id}:${member.id}`;
@@ -4250,6 +4271,70 @@ class CapacityManager extends BaseComponent {
         } catch (error) {
             console.error('Error generating real team members:', error);
             console.warn('Error generating team members, returning empty array');
+            return [];
+        }
+    }
+
+    /**
+     * Compatibility method for UI components that need team members without specific project context
+     * This method provides backward compatibility for dropdowns and filters
+     */
+    async getRealTeamMembersWithoutAllocations() {
+        try {
+            console.log('🔄 Getting team members for UI components (without project-specific allocations)');
+            
+            // 🏪 Use state manager to get global configuration
+            const store = window.appStore;
+            if (!store) {
+                console.warn('App store not available');
+                return [];
+            }
+
+            const state = store.getState();
+            const globalConfig = state.globalConfig;
+            
+            if (!globalConfig?.teams) {
+                console.warn('No teams configuration found in state');
+                return [];
+            }
+
+            const teams = globalConfig.teams || [];
+            
+            if (teams.length === 0) {
+                console.warn('No teams found in configuration');
+                return [];
+            }
+
+            const realTeamMembers = [];
+
+            // Iterate through teams and their members
+            teams.forEach(team => {
+                (team.members || []).forEach(member => {
+                    const memberRole = team.role; // Role comes from team configuration
+                    const uniqueId = `${team.vendorId || 'unknown'}_${team.id}_${member.id}`;
+                    
+                    // Add basic member info without allocations for UI display
+                    realTeamMembers.push({
+                        ...member,
+                        id: uniqueId,
+                        originalId: member.id,
+                        teamId: team.id,
+                        role: memberRole,
+                        vendor: { id: team.vendorId || 'unknown', name: team.vendorName || 'Unknown' },
+                        // Basic capacity info for UI display
+                        maxCapacity: 22, // Standard working days
+                        currentUtilization: 0, // Not calculated in this method
+                        allocations: {}, // Empty for UI purposes
+                        _isUIOnly: true // Flag to indicate this is for UI display only
+                    });
+                });
+            });
+
+            console.log(`✅ Retrieved ${realTeamMembers.length} team members for UI components`);
+            return realTeamMembers;
+
+        } catch (error) {
+            console.error('Error getting team members for UI:', error);
             return [];
         }
     }
@@ -4466,13 +4551,49 @@ class CapacityManager extends BaseComponent {
      * These methods can be replaced with real API calls in the future
      */
     
+    /**
+     * Load a specific project by file path for auto-distribution
+     * @param {string} projectFilePath - The file path of the project to load
+     * @returns {Promise<Object>} The loaded project with full data
+     */
+    async loadSpecificProject(projectFilePath) {
+        if (!projectFilePath) {
+            throw new Error('Project file path is required');
+        }
+        
+        const dataManager = this.app?.managers?.data || window.dataManager;
+        if (!dataManager) {
+            throw new Error('Data manager not available');
+        }
+        
+        try {
+            console.log(`🔍 DEBUG: Loading specific project: ${projectFilePath}`);
+            const projectData = await dataManager.loadProject(projectFilePath);
+            
+            if (!projectData || !projectData.project) {
+                throw new Error('Failed to load project data');
+            }
+            
+            console.log(`✅ DEBUG: Successfully loaded project: ${projectData.project.name}`);
+            return projectData;
+        } catch (error) {
+            console.error(`❌ ERROR: Failed to load specific project ${projectFilePath}:`, error);
+            throw error;
+        }
+    }
+
     // === TEAM DATA SERVICES ===
     /**
-     * Get all team members - abstraction layer for future API integration
+     * Get all team members for a specific target project
+     * @param {Object} targetProject - The project for which to get team members
      */
-    async getTeamMembers() {
+    async getTeamMembers(targetProject) {
+        if (!targetProject) {
+            throw new Error('Target project is required for getTeamMembers');
+        }
+        
         // Return real team members from Teams configuration
-        return await this.getRealTeamMembers();
+        return await this.getRealTeamMembers(targetProject);
     }
     
     /**
@@ -8627,8 +8748,11 @@ class CapacityManager extends BaseComponent {
                 return;
             }
             
-            // Get team member and project data
-            const teamMembers = await this.getRealTeamMembers();
+            // Load the specific project for team member allocation calculation
+            const targetProject = await this.loadSpecificProject(projectId);
+            
+            // Get team member data for this specific project
+            const teamMembers = await this.getRealTeamMembers(targetProject);
             const projects = await this.getAvailableProjects();
             
             const teamMember = teamMembers.find(m => m.id === teamMemberId);

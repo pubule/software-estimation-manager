@@ -44,9 +44,21 @@ class ConfigurationManager extends BaseComponent {
             const settings = await this.dataManager.getSettings();
             this.globalConfig = settings.globalConfig || await this.createDefaultGlobalConfig();
             this.cache.invalidate(); // Clear cache when global config changes
+            
+            // 🏪 Save to state store for UI components
+            if (window.appStore && this.globalConfig) {
+                window.appStore.getState().setGlobalConfig(this.globalConfig);
+                console.log('✅ Global config saved to state store');
+            }
         } catch (error) {
             this.handleError('Failed to load global config', error);
             this.globalConfig = await this.createDefaultGlobalConfig();
+            
+            // 🏪 Save fallback config to state store
+            if (window.appStore && this.globalConfig) {
+                window.appStore.getState().setGlobalConfig(this.globalConfig);
+                console.log('✅ Fallback global config saved to state store');
+            }
         }
     }
 
@@ -63,6 +75,12 @@ class ConfigurationManager extends BaseComponent {
 
             this.cache.invalidate();
             this.emit('global-config-changed', { config: this.globalConfig });
+
+            // 🏪 Update state store after save
+            if (window.appStore && this.globalConfig) {
+                window.appStore.getState().setGlobalConfig(this.globalConfig);
+                console.log('✅ Global config updated in state store after save');
+            }
 
             return { success: true };
         } catch (error) {
