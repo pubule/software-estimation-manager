@@ -163,7 +163,8 @@ class ProjectManager {
             console.log(`Loaded ${this.savedProjects.length} saved projects at startup`);
         });
 
-        this.setupEventListeners();
+        // 🚀 REACTIVE ACTION DISPATCHER PATTERN - Replace setupEventListeners
+        this.setupReactiveActions();
 
         // Delay initial UI update to ensure DOM is ready
         setTimeout(() => {
@@ -171,72 +172,245 @@ class ProjectManager {
         }, 100);
     }
 
-    setupEventListeners() {
-        // Main project actions
-        document.getElementById('new-project-btn')?.addEventListener('click', () => {
-            this.showNewProjectModal();
-        });
+    setupReactiveActions() {
+        // 🚀 REACTIVE ACTION DISPATCHER PATTERN
+        // Replace traditional event listeners with declarative action binding
+        
+        this.setupActionDispatcher();
+        this.setupReactiveUI();
+    }
 
-        document.getElementById('load-project-btn')?.addEventListener('click', () => {
-            this.showLoadProjectModal();
-        });
+    /**
+     * 🎯 REACTIVE ACTION DISPATCHER - Maps DOM events to store actions
+     */
+    setupActionDispatcher() {
+        // Define reactive action mappings
+        this.actionMap = {
+            // Main project actions
+            'new-project-btn': () => this.dispatchAction('showNewProjectModal'),
+            'load-project-btn': () => this.dispatchAction('showLoadProjectModal'),
+            'save-current-project-btn': () => this.dispatchAction('saveCurrentProject'),
+            'close-current-project-btn': () => this.dispatchAction('closeCurrentProject'),
+            
+            // Recent projects actions
+            'clear-recent-btn': () => this.dispatchAction('clearRecentProjects'),
+            'refresh-projects-btn': () => this.dispatchAction('refreshProjects'),
+            
+            // New Project Modal actions
+            'create-project-btn': () => this.dispatchAction('createNewProjectFromModal'),
+            'cancel-new-project-btn': () => this.dispatchAction('closeNewProjectModal'),
+            
+            // Load Project Modal actions
+            'select-file-btn': () => this.dispatchAction('selectFile'),
+            'load-selected-project-btn': () => this.dispatchAction('loadSelectedProject'),
+            'cancel-load-btn': () => this.dispatchAction('closeLoadModal')
+        };
 
-        document.getElementById('save-current-project-btn')?.addEventListener('click', () => {
-            this.saveCurrentProject();
-        });
+        // Setup single delegated event handler
+        this.setupDelegatedEventHandler();
+        
+        // Setup form handlers (special case)
+        this.setupFormHandlers();
+        
+        // Setup modal close handlers  
+        this.setupModalHandlers();
+    }
 
-        document.getElementById('close-current-project-btn')?.addEventListener('click', async () => {
-            await this.closeCurrentProject();
-        });
+    /**
+     * 🔥 DELEGATED EVENT HANDLER - Single event listener for all actions
+     */
+    setupDelegatedEventHandler() {
+        document.addEventListener('click', (e) => {
+            // 🎯 METHOD 1: Handle ID-based actions (main buttons)
+            const actionHandler = this.actionMap[e.target.id];
+            if (actionHandler) {
+                e.preventDefault();
+                actionHandler();
+                return;
+            }
 
-        // Recent projects actions
-        document.getElementById('clear-recent-btn')?.addEventListener('click', () => {
-            this.clearRecentProjects();
+            // 🎯 METHOD 2: Handle data-action based events (dynamic content)
+            const actionElement = e.target.closest('[data-action]');
+            if (actionElement) {
+                e.preventDefault();
+                const action = actionElement.dataset.action;
+                const filePath = actionElement.dataset.filePath;
+                const projectId = actionElement.dataset.projectId;
+                
+                this.dispatchAction(action, { filePath, projectId });
+                return;
+            }
         });
+    }
 
-        document.getElementById('refresh-projects-btn')?.addEventListener('click', () => {
-            this.refreshProjects();
-        });
+    /**
+     * 🎯 ACTION DISPATCHER - Executes actions and updates store
+     */
+    dispatchAction(actionType, payload = null) {
+        console.log(`🚀 ProjectManager Action: ${actionType}`, payload);
+        
+        // Execute the corresponding method
+        switch (actionType) {
+            // Main project actions
+            case 'showNewProjectModal':
+                this.showNewProjectModal();
+                break;
+            case 'showLoadProjectModal':
+                this.showLoadProjectModal();
+                break;
+            case 'saveCurrentProject':
+                this.saveCurrentProject();
+                break;
+            case 'closeCurrentProject':
+                this.closeCurrentProject();
+                break;
+            case 'clearRecentProjects':
+                this.clearRecentProjects();
+                break;
+            case 'refreshProjects':
+                this.refreshProjects();
+                break;
+            case 'createNewProjectFromModal':
+                this.createNewProjectFromModal();
+                break;
+            case 'closeNewProjectModal':
+                this.closeNewProjectModal();
+                break;
+            case 'selectFile':
+                document.getElementById('project-file-input')?.click();
+                break;
+            case 'loadSelectedProject':
+                this.loadSelectedProject();
+                break;
+            case 'closeLoadModal':
+                this.closeLoadModal();
+                break;
+                
+            // 🎯 REACTIVE SAVED PROJECTS ACTIONS
+            case 'loadSavedProject':
+                if (payload?.filePath) {
+                    this.loadSavedProject(payload.filePath);
+                }
+                break;
+            case 'exportSavedProject':
+                if (payload?.filePath) {
+                    this.exportSavedProject(payload.filePath);
+                }
+                break;
+            case 'deleteSavedProject':
+                if (payload?.filePath) {
+                    this.deleteSavedProject(payload.filePath);
+                }
+                break;
+                
+            // 🎯 REACTIVE RECENT PROJECTS ACTIONS  
+            case 'loadRecentProject':
+                if (payload?.projectId) {
+                    this.loadRecentProject(payload.projectId);
+                }
+                break;
+            case 'removeRecentProject':
+                if (payload?.projectId) {
+                    this.removeRecentProject(payload.projectId);
+                }
+                break;
+            case 'loadRecentModal':
+                if (payload?.projectId) {
+                    this.loadRecentProject(payload.projectId);
+                    this.closeLoadModal();
+                }
+                break;
+                
+            default:
+                console.warn(`Unknown action: ${actionType}`, payload);
+        }
+    }
 
-        // New Project Modal
-        document.getElementById('create-project-btn')?.addEventListener('click', () => {
-            this.createNewProjectFromModal();
-        });
+    /**
+     * 🎯 REACTIVE UI UPDATES - Button states driven by store
+     */
+    setupReactiveUI() {
+        // Update UI based on store state changes
+        if (this.store) {
+            this.store.subscribe((state, prevState) => {
+                // Reactive button state updates
+                this.updateButtonStates(state);
+                
+                // Reactive UI updates
+                if (state.currentProject !== prevState.currentProject) {
+                    this.updateCurrentProjectUI();
+                }
+                
+                if (state.isDirty !== prevState.isDirty) {
+                    this.updateSaveButtonState(state.isDirty);
+                }
+            });
+        }
+    }
 
-        document.getElementById('cancel-new-project-btn')?.addEventListener('click', () => {
-            this.closeNewProjectModal();
-        });
+    /**
+     * 🎯 REACTIVE BUTTON STATES - Automatically enable/disable based on state
+     */
+    updateButtonStates(state) {
+        const hasProject = !!state.currentProject;
+        const isDirty = state.isDirty;
+        
+        // Enable/disable buttons reactively
+        const saveBtn = document.getElementById('save-current-project-btn');
+        const closeBtn = document.getElementById('close-current-project-btn');
+        
+        if (saveBtn) saveBtn.disabled = !hasProject || !isDirty;
+        if (closeBtn) closeBtn.disabled = !hasProject;
+    }
 
+    /**
+     * 🎯 REACTIVE SAVE BUTTON STATE
+     */
+    updateSaveButtonState(isDirty) {
+        const saveBtn = document.getElementById('save-current-project-btn');
+        if (saveBtn) {
+            saveBtn.disabled = !isDirty;
+            saveBtn.classList.toggle('btn-primary', isDirty);
+            saveBtn.classList.toggle('btn-secondary', !isDirty);
+        }
+    }
+
+    /**
+     * 🎯 FORM HANDLERS - Special reactive form handling
+     */
+    setupFormHandlers() {
+        // New project form - reactive submission
+        const newProjectForm = document.getElementById('new-project-form');
+        if (newProjectForm) {
+            newProjectForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.dispatchAction('createNewProjectFromModal');
+            });
+        }
+
+        // File input - reactive file selection
+        const fileInput = document.getElementById('project-file-input');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files?.length > 0) {
+                    this.handleFileSelection(e);
+                }
+            });
+        }
+    }
+
+    /**
+     * 🎯 MODAL HANDLERS - Reactive modal close actions
+     */
+    setupModalHandlers() {
+        // New project modal close
         document.querySelector('#new-project-modal .modal-close')?.addEventListener('click', () => {
-            this.closeNewProjectModal();
+            this.dispatchAction('closeNewProjectModal');
         });
 
-        // New project form submission
-        document.getElementById('new-project-form')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.createNewProjectFromModal();
-        });
-
-        // Load Project Modal actions
-        document.getElementById('select-file-btn')?.addEventListener('click', () => {
-            document.getElementById('project-file-input')?.click();
-        });
-
-        document.getElementById('project-file-input')?.addEventListener('change', (e) => {
-            this.handleFileSelection(e);
-        });
-
-        document.getElementById('load-selected-project-btn')?.addEventListener('click', () => {
-            this.loadSelectedProject();
-        });
-
-        document.getElementById('cancel-load-btn')?.addEventListener('click', () => {
-            this.closeLoadModal();
-        });
-
-        // Modal close
+        // Load project modal close
         document.querySelector('#project-load-modal .modal-close')?.addEventListener('click', () => {
-            this.closeLoadModal();
+            this.dispatchAction('closeLoadModal');
         });
     }
 
@@ -1174,40 +1348,21 @@ class ProjectManager {
                     </div>
                 </div>
                 <div class="project-actions">
-                    <button class="btn btn-icon btn-primary load-saved-project" data-file-path="${item.filePath}" title="Load Project">
+                    <button class="btn btn-icon btn-primary" data-action="loadSavedProject" data-file-path="${item.filePath}" title="Load Project">
                         <i class="fas fa-folder-open"></i>
                     </button>
-                    <button class="btn btn-icon btn-secondary export-saved-project" data-file-path="${item.filePath}" title="Export Project">
+                    <button class="btn btn-icon btn-secondary" data-action="exportSavedProject" data-file-path="${item.filePath}" title="Export Project">
                         <i class="fas fa-download"></i>
                     </button>
-                    <button class="btn btn-icon btn-danger delete-saved-project" data-file-path="${item.filePath}" title="Delete Project">
+                    <button class="btn btn-icon btn-danger" data-action="deleteSavedProject" data-file-path="${item.filePath}" title="Delete Project">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
         `).join('');
 
-        // Add event listeners
-        container.querySelectorAll('.load-saved-project').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const filePath = e.target.closest('[data-file-path]').dataset.filePath;
-                this.loadSavedProject(filePath);
-            });
-        });
-
-        container.querySelectorAll('.export-saved-project').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const filePath = e.target.closest('[data-file-path]').dataset.filePath;
-                this.exportSavedProject(filePath);
-            });
-        });
-
-        container.querySelectorAll('.delete-saved-project').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const filePath = e.target.closest('[data-file-path]').dataset.filePath;
-                this.deleteSavedProject(filePath);
-            });
-        });
+        // 🚀 REACTIVE DELEGATED EVENTS - No individual listeners needed!
+        // Actions handled by setupDelegatedEventHandler() automatically
     }
 
     /**
@@ -1301,30 +1456,18 @@ class ProjectManager {
                     </div>
                 </div>
                 <div class="project-actions">
-                    <button class="btn btn-icon btn-primary load-recent-project" data-project-id="${project.id}" title="Load Project">
+                    <button class="btn btn-icon btn-primary" data-action="loadRecentProject" data-project-id="${project.id}" title="Load Project">
                         <i class="fas fa-folder-open"></i>
                     </button>
-                    <button class="btn btn-icon btn-danger remove-recent-project" data-project-id="${project.id}" title="Remove from Recent">
+                    <button class="btn btn-icon btn-danger" data-action="removeRecentProject" data-project-id="${project.id}" title="Remove from Recent">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
             </div>
         `).join('');
 
-        // Add event listeners
-        container.querySelectorAll('.load-recent-project').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const projectId = e.target.closest('[data-project-id]').dataset.projectId;
-                this.loadRecentProject(projectId);
-            });
-        });
-
-        container.querySelectorAll('.remove-recent-project').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const projectId = e.target.closest('[data-project-id]').dataset.projectId;
-                this.removeRecentProject(projectId);
-            });
-        });
+        // 🚀 REACTIVE DELEGATED EVENTS - No individual listeners needed!
+        // Actions handled by setupDelegatedEventHandler() automatically
     }
 
     /**
@@ -1402,20 +1545,14 @@ class ProjectManager {
                     <span class="project-name">${Helpers.escapeHtml(project.name)}</span>
                     <span class="project-date">${Helpers.formatDate(project.lastOpened)}</span>
                 </div>
-                <button class="btn btn-small btn-primary load-recent-modal" data-project-id="${project.id}">
+                <button class="btn btn-small btn-primary" data-action="loadRecentModal" data-project-id="${project.id}">
                     Load
                 </button>
             </div>
         `).join('');
 
-        // Add event listeners
-        container.querySelectorAll('.load-recent-modal').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const projectId = e.target.dataset.projectId;
-                this.loadRecentProject(projectId);
-                this.closeLoadModal();
-            });
-        });
+        // 🚀 REACTIVE DELEGATED EVENTS - No individual listeners needed!
+        // Actions handled by setupDelegatedEventHandler() automatically
     }
 
     /**

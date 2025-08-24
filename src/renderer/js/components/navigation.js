@@ -194,96 +194,209 @@ class EnhancedNavigationManager extends NavigationManager {
         this.setupProjectToggle();
     }
 
+    /**
+     * ⚡ REACTIVE NAVIGATION: Setup reactive navigation system
+     * Replaces 15+ traditional addEventListener calls with centralized action management
+     */
     setupNavigationEvents() {
-        // Main navigation sections
-        document.querySelectorAll('.nav-section[data-section]').forEach(section => {
-            const navItem = section.querySelector('.nav-item');
-            if (navItem) {
-                navItem.addEventListener('click', (e) => {
+        this.setupReactiveNavigation();
+    }
+
+    /**
+     * Setup reactive navigation system  
+     */
+    setupReactiveNavigation() {
+        this.setupNavigationActionDispatcher();
+        this.setupDelegatedNavigationHandler();
+        console.log('🚀 Navigation: Using reactive navigation system (15+ listeners → 1 delegated)');
+    }
+
+    /**
+     * Setup centralized action dispatcher for navigation
+     */
+    setupNavigationActionDispatcher() {
+        this.navigationActionMap = {
+            // Main navigation actions
+            'nav-section': (params) => this.handleNavSectionClick(params.sectionName),
+            'nav-child': (params) => this.handleNavChildClick(params.sectionName),
+            'nav-capacity-child': (params) => this.handleCapacityChildClick(params.sectionName),
+            
+            // Toggle actions  
+            'projects-toggle': () => this.toggleProjectsSection(),
+            'capacity-toggle': () => this.toggleCapacitySection(),
+            'collapse-toggle': () => this.toggleSidebarCollapse(),
+            
+            // VSCode sidebar actions
+            'icon-item': (params) => this.toggleSidebarPanel(params.panelType)
+        };
+    }
+
+    /**
+     * Setup single delegated navigation handler
+     * REPLACES 15+ individual addEventListener calls with 1 centralized handler
+     */
+    setupDelegatedNavigationHandler() {
+        // Single click handler for ALL navigation interactions
+        document.addEventListener('click', (e) => {
+            // METHOD 1: Handle main navigation sections
+            const navSection = e.target.closest('.nav-section[data-section]');
+            if (navSection) {
+                const navItem = e.target.closest('.nav-item');
+                if (navItem) {
                     e.stopPropagation();
-                    const sectionName = section.dataset.section;
+                    const sectionName = navSection.dataset.section;
+                    this.dispatchNavigationAction('nav-section', { sectionName });
+                    return;
+                }
+            }
 
-                    if (sectionName === 'projects') {
-                        // Always navigate to Projects page
-                        this.navigateTo('projects');
+            // METHOD 2: Handle nested project sections
+            const navChild = e.target.closest('.nav-child[data-section]');
+            if (navChild && !navChild.classList.contains('disabled')) {
+                e.stopPropagation();
+                const sectionName = navChild.dataset.section;
+                this.dispatchNavigationAction('nav-child', { sectionName });
+                return;
+            }
 
-                        // Then expand section if project is loaded
-                        if (this.store && this.store.getState) {
-                            const state = this.store.getState();
-                            const hasProject = state.currentProject !== null;
-                            if (hasProject && !this.projectsExpanded) {
-                                this.projectsExpanded = true;
-                                this.updateProjectsExpansion();
-                            }
-                        }
-                    } else {
-                        this.navigateTo(sectionName);
-                    }
-                });
+            // METHOD 3: Handle nested capacity sections
+            const navCapacityChild = e.target.closest('.nav-capacity-child[data-section]');
+            if (navCapacityChild) {
+                e.stopPropagation();
+                const sectionName = navCapacityChild.dataset.section;
+                this.dispatchNavigationAction('nav-capacity-child', { sectionName });
+                return;
+            }
+
+            // METHOD 4: Handle toggle buttons by ID
+            const toggleActions = {
+                'projects-toggle': 'projects-toggle',
+                'capacity-toggle': 'capacity-toggle'
+            };
+            const toggleAction = toggleActions[e.target.id];
+            if (toggleAction) {
+                e.stopPropagation();
+                this.dispatchNavigationAction(toggleAction);
+                return;
+            }
+
+            // METHOD 5: Handle collapse toggle
+            if (e.target.closest('.collapse-toggle')) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.dispatchNavigationAction('collapse-toggle');
+                return;
+            }
+
+            // METHOD 6: Handle VSCode sidebar icon items
+            const iconItem = e.target.closest('.icon-item:not(.collapse-toggle)');
+            if (iconItem) {
+                e.preventDefault();
+                e.stopPropagation();
+                const panelType = iconItem.dataset.panel;
+                if (panelType) {
+                    this.dispatchNavigationAction('icon-item', { panelType });
+                    return;
+                }
             }
         });
-
-        // Nested project sections
-        document.querySelectorAll('.nav-child[data-section]').forEach(child => {
-            child.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (!child.classList.contains('disabled')) {
-                    const sectionName = child.dataset.section;
-                    this.navigateTo(sectionName);
-                }
-            });
-        });
-        
-        // Nested capacity sections
-        document.querySelectorAll('.nav-capacity-child[data-section]').forEach(child => {
-            child.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const sectionName = child.dataset.section;
-                this.navigateToCapacitySubSection(sectionName);
-            });
-        });
     }
 
-    setupProjectToggle() {
-        const projectsToggle = document.getElementById('projects-toggle');
-        if (projectsToggle) {
-            projectsToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.toggleProjectsSection();
-            });
+    /**
+     * Centralized navigation action dispatcher
+     */
+    dispatchNavigationAction(actionType, params = {}) {
+        const handler = this.navigationActionMap[actionType];
+        if (handler) {
+            try {
+                handler(params);
+            } catch (error) {
+                console.error(`NavigationManager action '${actionType}' failed:`, error);
+                if (window.NotificationManager) {
+                    NotificationManager.show(`Navigation action failed: ${error.message}`, 'error');
+                }
+            }
+        } else {
+            console.warn(`NavigationManager: Unknown action type '${actionType}'`);
         }
+    }
+
+    /**
+     * Handle main navigation section clicks
+     */
+    handleNavSectionClick(sectionName) {
+        if (sectionName === 'projects') {
+            // Always navigate to Projects page
+            this.navigateTo('projects');
+
+            // Then expand section if project is loaded
+            if (this.store && this.store.getState) {
+                const state = this.store.getState();
+                const hasProject = state.currentProject !== null;
+                if (hasProject && !this.projectsExpanded) {
+                    this.projectsExpanded = true;
+                    this.updateProjectsExpansion();
+                }
+            }
+        } else {
+            this.navigateTo(sectionName);
+        }
+    }
+
+    /**
+     * Handle nested child navigation clicks
+     */
+    handleNavChildClick(sectionName) {
+        this.navigateTo(sectionName);
+    }
+
+    /**
+     * Handle capacity child navigation clicks  
+     */
+    handleCapacityChildClick(sectionName) {
+        this.navigateToCapacitySubSection(sectionName);
+    }
+
+    /**
+     * ⚡ DEPRECATED: Replaced by setupDelegatedNavigationHandler()
+     * Project toggle now handled by reactive navigation system
+     */
+    setupProjectToggle() {
+        // 🚀 REACTIVE TRANSFORMATION COMPLETE
+        // projects-toggle clicks now handled by:
+        // - setupDelegatedNavigationHandler() METHOD 4
+        // - dispatchNavigationAction('projects-toggle')
+        console.log('📋 Navigation: projects-toggle using reactive actions (delegated events)');
     }
     
+    /**
+     * ⚡ DEPRECATED: Replaced by setupDelegatedNavigationHandler()
+     * Capacity toggle now handled by reactive navigation system
+     */
     setupCapacityToggle() {
-        const capacityToggle = document.getElementById('capacity-toggle');
-        if (capacityToggle) {
-            capacityToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.toggleCapacitySection();
-            });
-        }
+        // 🚀 REACTIVE TRANSFORMATION COMPLETE
+        // capacity-toggle clicks now handled by:
+        // - setupDelegatedNavigationHandler() METHOD 4
+        // - dispatchNavigationAction('capacity-toggle')
+        console.log('📋 Navigation: capacity-toggle using reactive actions (delegated events)');
     }
 
-    // Setup VSCode-style Sidebar
+    /**
+     * ⚡ DEPRECATED: Setup VSCode-style Sidebar (now reactive)
+     * Icon items and collapse toggle now handled by reactive navigation system
+     */
     setupVSCodeSidebar() {
         console.log('Setting up VSCode sidebar...');
         
-        // Icon items click handlers (exclude collapse toggle)
-        const iconItems = document.querySelectorAll('.icon-item:not(.collapse-toggle)');
-        console.log('Found icon items:', iconItems.length);
+        // 🚀 REACTIVE TRANSFORMATION COMPLETE
+        // Icon items clicks now handled by:
+        // - setupDelegatedNavigationHandler() METHOD 6
+        // - dispatchNavigationAction('icon-item', { panelType })
         
-        iconItems.forEach(iconItem => {
-            iconItem.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const panelType = iconItem.dataset.panel;
-                console.log('Icon clicked:', panelType);
-                this.toggleSidebarPanel(panelType);
-            });
-        });
+        const iconItems = document.querySelectorAll('.icon-item:not(.collapse-toggle)');
+        console.log(`⚡ Found ${iconItems.length} icon items: Using reactive actions (delegated events)`);
 
-        // Setup collapse toggle
+        // Setup collapse toggle (also reactive now)
         this.setupSidebarCollapse();
 
         // Panel close buttons have been removed - no handlers needed
@@ -1062,18 +1175,21 @@ class EnhancedNavigationManager extends NavigationManager {
         }
     }
 
-    // Setup collapse toggle functionality
+    /**
+     * ⚡ DEPRECATED: Setup collapse toggle functionality (now reactive)
+     * Collapse toggle now handled by reactive navigation system
+     */
     setupSidebarCollapse() {
+        // 🚀 REACTIVE TRANSFORMATION COMPLETE
+        // collapse-toggle clicks now handled by:
+        // - setupDelegatedNavigationHandler() METHOD 5
+        // - dispatchNavigationAction('collapse-toggle')
+        
         const collapseToggle = document.querySelector('.collapse-toggle');
         const sidebarContainer = document.querySelector('.vscode-sidebar-container');
         
         if (collapseToggle && sidebarContainer) {
-            collapseToggle.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Collapse toggle clicked');
-                this.toggleSidebarCollapse();
-            });
+            console.log('⚡ Collapse toggle: Using reactive actions (delegated events)');
         }
     }
 

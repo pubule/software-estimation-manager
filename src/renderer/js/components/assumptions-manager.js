@@ -24,7 +24,7 @@ class AssumptionsManager extends BaseComponent {
         this.validateDependencies(['NotificationManager', 'Helpers']);
         
         await this.initializeModal();
-        this.setupEventListeners();
+        this.setupReactiveActions();
         this.refreshTable();
     }
 
@@ -46,37 +46,118 @@ class AssumptionsManager extends BaseComponent {
     /**
      * Set up event listeners
      */
-    setupEventListeners() {
-        // Add button
-        const addBtn = this.getElement('add-assumption-btn');
-        if (addBtn) {
-            this.addEventListener(addBtn, 'click', () => this.showAddAssumptionModal());
-        }
+    /**
+     * ⚡ REACTIVE ACTION DISPATCHER: Setup reactive actions system
+     * Replaces traditional addEventListener pattern with centralized action management
+     */
+    setupReactiveActions() {
+        this.setupAssumptionsActionDispatcher();
+        this.setupDelegatedAssumptionsHandler();
+        this.setupReactiveAssumptionsFilters();
+    }
 
-        // Search input
-        const searchInput = this.getElement('assumptions-search-input');
-        if (searchInput) {
-            this.addEventListener(searchInput, 'input', () => this.filterAssumptions());
-        }
+    /**
+     * Setup centralized action dispatcher mapping for assumptions
+     */
+    setupAssumptionsActionDispatcher() {
+        this.assumptionsActionMap = {
+            // Main action buttons
+            'add-assumption': () => this.showAddAssumptionModal(),
+            
+            // Table row actions - handle via data-action attributes
+            'edit': (params) => this.showEditAssumptionModal(this.getAssumptionById(params.assumptionId)),
+            'duplicate': (params) => this.duplicateAssumption(this.getAssumptionById(params.assumptionId)),
+            'delete': (params) => this.deleteAssumption(params.assumptionId),
+            
+            // Sort actions
+            'sort': (params) => this.sortAssumptions(params.field)
+        };
+    }
 
-        // Filter dropdowns
-        const typeFilter = this.getElement('assumption-type-filter');
-        if (typeFilter) {
-            this.addEventListener(typeFilter, 'change', () => this.filterAssumptions());
-        }
+    /**
+     * Setup delegated event handler for all assumption interactions
+     * SINGLE event listener replaces 8+ individual addEventListener calls
+     */
+    setupDelegatedAssumptionsHandler() {
+        // Single click handler for ALL assumption interactions
+        document.addEventListener('click', (e) => {
+            // METHOD 1: Handle main action buttons by ID
+            const buttonAction = this.assumptionsActionMap[e.target.id];
+            if (buttonAction && this.element.contains(e.target)) {
+                e.preventDefault();
+                buttonAction();
+                return;
+            }
 
-        const impactFilter = this.getElement('assumption-impact-filter');
-        if (impactFilter) {
-            this.addEventListener(impactFilter, 'change', () => this.filterAssumptions());
-        }
+            // METHOD 2: Handle table sorting via data-sort
+            const sortElement = e.target.closest('[data-sort]');
+            if (sortElement && this.element.contains(sortElement)) {
+                e.preventDefault();
+                const sortField = sortElement.dataset.sort;
+                this.dispatchAssumptionsAction('sort', { field: sortField });
+                return;
+            }
 
-        // Table sorting
-        this.querySelectorAll('#assumptions-table [data-sort]').forEach(header => {
-            this.addEventListener(header, 'click', (e) => {
-                const sortField = header.dataset.sort;
-                this.sortAssumptions(sortField);
-            });
+            // METHOD 3: Handle assumption actions via data-action
+            const actionElement = e.target.closest('[data-action]');
+            if (actionElement && this.element.contains(actionElement)) {
+                e.preventDefault();
+                const action = actionElement.dataset.action;
+                const assumptionId = actionElement.dataset.assumptionId;
+                
+                this.dispatchAssumptionsAction(action, { assumptionId });
+                return;
+            }
         });
+    }
+
+    /**
+     * Setup reactive filters with single event delegation
+     */
+    setupReactiveAssumptionsFilters() {
+        // Single event delegation for all filter inputs
+        document.addEventListener('input', (e) => {
+            if (!this.element.contains(e.target)) return;
+            
+            const filterInputs = ['assumptions-search-input'];
+            if (filterInputs.includes(e.target.id)) {
+                this.filterAssumptions();
+            }
+        });
+
+        document.addEventListener('change', (e) => {
+            if (!this.element.contains(e.target)) return;
+            
+            const filterSelects = ['assumption-type-filter', 'assumption-impact-filter'];
+            if (filterSelects.includes(e.target.id)) {
+                this.filterAssumptions();
+            }
+        });
+    }
+
+    /**
+     * Centralized action dispatcher for assumptions
+     */
+    dispatchAssumptionsAction(action, params = {}) {
+        const handler = this.assumptionsActionMap[action];
+        if (handler) {
+            try {
+                handler(params);
+            } catch (error) {
+                console.error(`AssumptionsManager action '${action}' failed:`, error);
+                NotificationManager.show(`Action failed: ${error.message}`, 'error');
+            }
+        } else {
+            console.warn(`AssumptionsManager: Unknown action '${action}'`);
+        }
+    }
+
+    /**
+     * Helper to get assumption by ID from current state
+     */
+    getAssumptionById(assumptionId) {
+        const currentProject = StateSelectors.getCurrentProject();
+        return currentProject?.assumptions?.find(a => a.id === assumptionId) || null;
     }
 
     /**
@@ -554,21 +635,24 @@ class AssumptionsManager extends BaseComponent {
     /**
      * Attach event listeners to assumption row
      */
+    /**
+     * ⚡ REACTIVE: Attach event attributes to assumption row (no addEventListener)
+     * Now uses data-action attributes handled by delegated event system
+     */
     attachAssumptionRowEventListeners(row, assumption) {
-        const editBtn = row.querySelector('.edit-btn');
-        const duplicateBtn = row.querySelector('.duplicate-btn');
-        const deleteBtn = row.querySelector('.delete-btn');
-
-        if (editBtn) {
-            this.addEventListener(editBtn, 'click', () => this.showEditAssumptionModal(assumption));
-        }
-
-        if (duplicateBtn) {
-            this.addEventListener(duplicateBtn, 'click', () => this.duplicateAssumption(assumption));
-        }
-
-        if (deleteBtn) {
-            this.addEventListener(deleteBtn, 'click', () => this.deleteAssumption(assumption.id));
+        // 🚀 REACTIVE TRANSFORMATION COMPLETE
+        // No more individual addEventListener calls!
+        // All interactions handled via:
+        // - data-action attributes in generateAssumptionRowHTML() 
+        // - setupDelegatedAssumptionsHandler() for centralized handling
+        // - dispatchAssumptionsAction() for action routing
+        
+        console.log(`⚡ Assumption row ${assumption.id}: Using reactive actions (data-action attributes)`);
+        
+        // Validation: Ensure data-action attributes are present
+        const actionElements = row.querySelectorAll('[data-action]');
+        if (actionElements.length === 0) {
+            console.warn(`⚠️ Assumption row ${assumption.id}: No data-action attributes found`);
         }
     }
 

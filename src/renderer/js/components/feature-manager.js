@@ -186,8 +186,131 @@ class FeatureManager extends BaseComponent {
         this.validateDependencies(['NotificationManager', 'Helpers']);
         
         await this.initializeModal();
-        this.setupTableEventListeners();
-        this.setupFilterEventListeners();
+        this.setupReactiveActions();
+    }
+
+    /**
+     * ⚡ REACTIVE ACTION DISPATCHER: Setup reactive actions system
+     * Replaces traditional addEventListener pattern with centralized action management
+     */
+    setupReactiveActions() {
+        this.setupActionDispatcher();
+        this.setupDelegatedEventHandler();
+        this.setupReactiveFilters();
+    }
+
+    /**
+     * Setup centralized action dispatcher mapping
+     */
+    setupActionDispatcher() {
+        this.actionMap = {
+            // Table sorting actions - handle via data-sort attributes
+            // Filter actions - handle via reactive filter setup
+            
+            // Feature actions - handle via data-action attributes in table rows
+            'edit': (params) => this.showEditFeatureModal(this.getFeatureById(params.featureId)),
+            'duplicate': (params) => this.duplicateFeature(this.getFeatureById(params.featureId)),
+            'delete': (params) => this.deleteFeature(params.featureId),
+            'expand': (params) => this.toggleFeatureDetails(params.featureId),
+            
+            // Modal trigger actions
+            'add-feature': () => this.showAddFeatureModal()
+        };
+    }
+
+    /**
+     * Setup delegated event handler for all feature interactions
+     * SINGLE event listener replaces 20+ individual addEventListener calls
+     */
+    setupDelegatedEventHandler() {
+        // Single click handler for ALL feature interactions
+        document.addEventListener('click', (e) => {
+            // METHOD 1: Handle table sorting via data-sort
+            const sortElement = e.target.closest('[data-sort]');
+            if (sortElement && this.element.contains(sortElement)) {
+                e.preventDefault();
+                const sortField = sortElement.dataset.sort;
+                this.sortFeatures(sortField);
+                return;
+            }
+
+            // METHOD 2: Handle feature actions via data-action
+            const actionElement = e.target.closest('[data-action]');
+            if (actionElement && this.element.contains(actionElement)) {
+                e.preventDefault();
+                const action = actionElement.dataset.action;
+                const featureId = actionElement.dataset.featureId;
+                
+                this.dispatchAction(action, { featureId });
+                return;
+            }
+
+            // METHOD 3: Handle expand button (legacy support)
+            const expandBtn = e.target.closest('.expand-btn');
+            if (expandBtn && this.element.contains(expandBtn)) {
+                e.preventDefault();
+                const featureId = expandBtn.dataset.featureId;
+                this.dispatchAction('expand', { featureId });
+                return;
+            }
+
+            // METHOD 4: Handle main action buttons (add-feature, etc.)
+            const buttonAction = this.actionMap[e.target.id];
+            if (buttonAction && this.element.contains(e.target)) {
+                e.preventDefault();
+                buttonAction();
+                return;
+            }
+        });
+    }
+
+    /**
+     * Setup reactive filters with single event delegation
+     */
+    setupReactiveFilters() {
+        // Single event delegation for all filter inputs
+        document.addEventListener('input', (e) => {
+            if (!this.element.contains(e.target)) return;
+            
+            const filterInputs = ['search-input', 'category-filter', 'supplier-filter', 'feature-type-filter'];
+            if (filterInputs.includes(e.target.id)) {
+                this.filterFeatures();
+            }
+        });
+
+        document.addEventListener('change', (e) => {
+            if (!this.element.contains(e.target)) return;
+            
+            const filterSelects = ['category-filter', 'supplier-filter', 'feature-type-filter'];
+            if (filterSelects.includes(e.target.id)) {
+                this.filterFeatures();
+            }
+        });
+    }
+
+    /**
+     * Centralized action dispatcher
+     */
+    dispatchAction(action, params = {}) {
+        const handler = this.actionMap[action];
+        if (handler) {
+            try {
+                handler(params);
+            } catch (error) {
+                console.error(`FeatureManager action '${action}' failed:`, error);
+                NotificationManager.show(`Action failed: ${error.message}`, 'error');
+            }
+        } else {
+            console.warn(`FeatureManager: Unknown action '${action}'`);
+        }
+    }
+
+    /**
+     * Helper to get feature by ID from current state
+     */
+    getFeatureById(featureId) {
+        const currentProject = StateSelectors.getCurrentProject();
+        return currentProject?.features?.find(f => f.id === featureId) || null;
     }
 
     /**
@@ -209,36 +332,33 @@ class FeatureManager extends BaseComponent {
     /**
      * Set up table event listeners
      */
+    /**
+     * ⚡ DEPRECATED: Replaced by setupReactiveActions()
+     * Legacy table event listeners - now handled by delegated event system
+     */
     setupTableEventListeners() {
-        // Table sorting
-        this.querySelectorAll('[data-sort]').forEach(header => {
-            this.addEventListener(header, 'click', (e) => {
-                const sortField = header.dataset.sort;
-                this.sortFeatures(sortField);
-            });
-        });
-
-        // Action buttons are handled by table row rendering
+        // 🚀 REACTIVE TRANSFORMATION COMPLETE
+        // This method is deprecated - all table interactions now handled by:
+        // - setupDelegatedEventHandler() for clicks
+        // - setupReactiveFilters() for input changes
+        // - data-action attributes in HTML
+        console.log('📋 FeatureManager: Using reactive table actions (delegated events)');
     }
 
     /**
      * Set up filter event listeners
      */
+    /**
+     * ⚡ DEPRECATED: Replaced by setupReactiveFilters()
+     * Legacy filter event listeners - now handled by reactive filter system
+     */
     setupFilterEventListeners() {
-        const filterInputs = [
-            'search-input',
-            'category-filter', 
-            'supplier-filter',
-            'feature-type-filter'
-        ];
-
-        filterInputs.forEach(inputId => {
-            const input = this.getElement(inputId);
-            if (input) {
-                const eventType = input.tagName === 'SELECT' ? 'change' : 'input';
-                this.addEventListener(input, eventType, () => this.filterFeatures());
-            }
-        });
+        // 🚀 REACTIVE TRANSFORMATION COMPLETE
+        // This method is deprecated - all filter interactions now handled by:
+        // - setupReactiveFilters() using single event delegation
+        // - Automatic debouncing via filterFeatures()
+        // - Unified input/change event handling
+        console.log('🔍 FeatureManager: Using reactive filters (delegated events)');
     }
 
     /**
@@ -944,7 +1064,7 @@ class FeatureManager extends BaseComponent {
     generateFeatureRowHTML(feature, categoryName, supplierName) {
         return `
             <td class="expand-col">
-                <button class="expand-btn" data-feature-id="${feature.id}" title="Expand details">
+                <button class="expand-btn" data-action="expand" data-feature-id="${feature.id}" title="Expand details">
                     <i class="fas fa-chevron-right"></i>
                 </button>
             </td>
@@ -977,26 +1097,24 @@ class FeatureManager extends BaseComponent {
     /**
      * Attach event listeners to feature row
      */
+    /**
+     * ⚡ REACTIVE: Attach event attributes to feature row (no addEventListener)
+     * Now uses data-action attributes handled by delegated event system
+     */
     attachFeatureRowEventListeners(row, feature) {
-        const editBtn = row.querySelector('.edit-btn');
-        const duplicateBtn = row.querySelector('.duplicate-btn');
-        const deleteBtn = row.querySelector('.delete-btn');
-        const expandBtn = row.querySelector('.expand-btn');
-
-        if (editBtn) {
-            this.addEventListener(editBtn, 'click', () => this.showEditFeatureModal(feature));
-        }
-
-        if (duplicateBtn) {
-            this.addEventListener(duplicateBtn, 'click', () => this.duplicateFeature(feature));
-        }
-
-        if (deleteBtn) {
-            this.addEventListener(deleteBtn, 'click', () => this.deleteFeature(feature.id));
-        }
-
-        if (expandBtn) {
-            this.addEventListener(expandBtn, 'click', () => this.toggleFeatureDetails(feature.id));
+        // 🚀 REACTIVE TRANSFORMATION COMPLETE
+        // No more individual addEventListener calls!
+        // All interactions handled via:
+        // - data-action attributes in generateFeatureRowHTML() 
+        // - setupDelegatedEventHandler() for centralized handling
+        // - dispatchAction() for action routing
+        
+        console.log(`⚡ Feature row ${feature.id}: Using reactive actions (data-action attributes)`);
+        
+        // Validation: Ensure data-action attributes are present
+        const actionElements = row.querySelectorAll('[data-action]');
+        if (actionElements.length === 0) {
+            console.warn(`⚠️ Feature row ${feature.id}: No data-action attributes found`);
         }
     }
 
@@ -1265,48 +1383,96 @@ class FeatureModal extends ModalManagerBase {
 
     async onInit() {
         await super.onInit();
-        this.setupCalculationListeners();
-        this.setupDependentDropdowns();
+        this.setupReactiveModalActions();
     }
 
     /**
-     * Set up calculation event listeners
+     * ⚡ REACTIVE MODAL ACTIONS: Setup reactive system for modal interactions
      */
-    setupCalculationListeners() {
-        const calculationFields = [
-            'feature-real-man-days',
-            'feature-expertise', 
-            'feature-risk-margin'
-        ];
+    setupReactiveModalActions() {
+        this.setupModalActionDispatcher();
+        this.setupReactiveCalculations();
+        this.setupReactiveDependencies();
+    }
 
-        calculationFields.forEach(fieldId => {
-            const field = this.getElement(fieldId);
-            if (field) {
-                this.addEventListener(field, 'input', () => {
-                    this.manager.updateCalculatedManDays();
-                });
+    /**
+     * Setup modal-specific action dispatcher
+     */
+    setupModalActionDispatcher() {
+        this.modalActionMap = {
+            'category-change': () => {
+                const categorySelect = this.getElement('feature-category');
+                this.populateFeatureTypeDropdown(categorySelect.value);
+                this.clearRealManDays();
+            },
+            'feature-type-change': () => {
+                const featureTypeSelect = this.getElement('feature-type');
+                this.updateRealManDaysFromFeatureType(featureTypeSelect);
+            },
+            'calculation-update': () => {
+                this.manager.updateCalculatedManDays();
+            }
+        };
+    }
+
+    /**
+     * Setup reactive calculations with single event delegation
+     */
+    setupReactiveCalculations() {
+        const calculationFields = ['feature-real-man-days', 'feature-expertise', 'feature-risk-margin'];
+        
+        document.addEventListener('input', (e) => {
+            if (!this.element || !this.element.contains(e.target)) return;
+            
+            if (calculationFields.includes(e.target.id)) {
+                this.modalActionMap['calculation-update']();
             }
         });
     }
 
     /**
+     * Setup reactive dropdown dependencies
+     */
+    setupReactiveDependencies() {
+        document.addEventListener('change', (e) => {
+            if (!this.element || !this.element.contains(e.target)) return;
+            
+            if (e.target.id === 'feature-category') {
+                this.modalActionMap['category-change']();
+            } else if (e.target.id === 'feature-type') {
+                this.modalActionMap['feature-type-change']();
+            }
+        });
+    }
+
+    /**
+     * Set up calculation event listeners
+     */
+    /**
+     * ⚡ DEPRECATED: Replaced by setupReactiveCalculations()
+     * Legacy calculation listeners - now handled by reactive system
+     */
+    setupCalculationListeners() {
+        // 🚀 REACTIVE TRANSFORMATION COMPLETE
+        // This method is deprecated - calculation updates now handled by:
+        // - setupReactiveCalculations() using single event delegation
+        // - modalActionMap['calculation-update'] for centralized handling
+        console.log('🧮 FeatureModal: Using reactive calculations (delegated events)');
+    }
+
+    /**
      * Set up dependent dropdown behavior
      */
+    /**
+     * ⚡ DEPRECATED: Replaced by setupReactiveDependencies()
+     * Legacy dropdown listeners - now handled by reactive system
+     */
     setupDependentDropdowns() {
-        const categorySelect = this.getElement('feature-category');
-        if (categorySelect) {
-            this.addEventListener(categorySelect, 'change', (e) => {
-                this.populateFeatureTypeDropdown(e.target.value);
-                this.clearRealManDays();
-            });
-        }
-
-        const featureTypeSelect = this.getElement('feature-type');
-        if (featureTypeSelect) {
-            this.addEventListener(featureTypeSelect, 'change', (e) => {
-                this.updateRealManDaysFromFeatureType(e.target);
-            });
-        }
+        // 🚀 REACTIVE TRANSFORMATION COMPLETE
+        // This method is deprecated - dropdown dependencies now handled by:
+        // - setupReactiveDependencies() using single event delegation
+        // - modalActionMap for category/feature-type change handling
+        console.log('📋 FeatureModal: Using reactive dropdowns (delegated events)');
     }
 
     /**

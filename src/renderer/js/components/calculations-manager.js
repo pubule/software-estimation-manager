@@ -114,8 +114,149 @@ class CalculationsManager {
         }
     }
 
+    /**
+     * ⚡ REACTIVE ACTION DISPATCHER: Enhanced reactive event system
+     * Optimizes existing bounded handlers with centralized action management  
+     */
     initializeEventListeners() {
-        // Filter event listeners will be added after render
+        this.setupReactiveCalculationsActions();
+    }
+
+    /**
+     * Setup enhanced reactive actions system for calculations
+     */
+    setupReactiveCalculationsActions() {
+        this.setupCalculationsActionDispatcher();
+        this.setupEnhancedBoundedHandlers();
+        this.setupGlobalCalculationsListeners();
+    }
+
+    /**
+     * Setup centralized action dispatcher for calculations
+     */
+    setupCalculationsActionDispatcher() {
+        this.calculationsActionMap = {
+            // Filter actions
+            'filter-chip-click': (target) => this.handleFilterChipClick(target),
+            'vendor-filter-change': (target) => this.handleVendorFilterChange(target),  
+            'role-filter-change': (target) => this.handleRoleFilterChange(target),
+            
+            // Action buttons
+            'share-calculations': () => this.shareByEmail(),
+            'refresh-capacity': () => this.refresh(),
+            'export-capacity': () => this.exportCapacityData(),
+            'export-table': () => this.exportCapacityTable(),
+            'add-assignment': () => this.showAddAssignmentModal(),
+            
+            // Table interactions
+            'table-blur': (target) => this.handleTableBlur(target),
+            'table-click': (target) => this.handleTableClick(target)
+        };
+    }
+
+    /**
+     * Enhanced bounded handlers with action dispatch
+     */
+    setupEnhancedBoundedHandlers() {
+        // Maintain existing bounded handlers for backward compatibility
+        // but enhance with centralized dispatch
+        const originalBoundHandlers = this.boundHandlers;
+        
+        this.boundHandlers = {
+            ...originalBoundHandlers,
+            
+            // Enhanced dispatchers
+            filterChipClick: (e) => this.dispatchCalculationsAction('filter-chip-click', e.target),
+            vendorFilterChange: (e) => this.dispatchCalculationsAction('vendor-filter-change', e.target),
+            roleFilterChange: (e) => this.dispatchCalculationsAction('role-filter-change', e.target),
+            shareClick: () => this.dispatchCalculationsAction('share-calculations'),
+            tableBlur: (e) => this.dispatchCalculationsAction('table-blur', e.target),
+            tableClick: (e) => this.dispatchCalculationsAction('table-click', e.target)
+        };
+    }
+
+    /**
+     * Setup global reactive listeners for calculations sections
+     */
+    setupGlobalCalculationsListeners() {
+        // Single global click handler for all calculations actions
+        document.addEventListener('click', (e) => {
+            // Handle main action buttons by ID
+            const buttonActions = {
+                'refresh-btn': 'refresh-capacity',
+                'export-btn': 'export-capacity', 
+                'export-table-btn': 'export-table',
+                'add-assignment-btn': 'add-assignment',
+                'add-timeline-assignment-btn': 'add-assignment',
+                'refresh-timeline-btn': 'refresh-capacity',
+                'create-first-row-btn': 'add-assignment'
+            };
+            
+            const actionType = buttonActions[e.target.id];
+            if (actionType && this.isCalculationsElement(e.target)) {
+                e.preventDefault();
+                this.dispatchCalculationsAction(actionType);
+                return;
+            }
+            
+            // Handle data-action attributes
+            const actionElement = e.target.closest('[data-action]');
+            if (actionElement && this.isCalculationsElement(actionElement)) {
+                e.preventDefault();
+                const action = actionElement.dataset.action;
+                this.dispatchCalculationsAction(action, actionElement);
+                return;
+            }
+        });
+
+        // Single global change handler for filters and inputs
+        document.addEventListener('change', (e) => {
+            const filterActions = {
+                'matrix-team-filter': 'matrix-filter-change',
+                'matrix-timeframe': 'matrix-filter-change',
+                'matrix-view-mode': 'matrix-filter-change',
+                'overview-member-filter': 'overview-filter-change',
+                'overview-status-filter': 'overview-filter-change',
+                'team-filter': 'team-filter-change',
+                'projects-filter': 'projects-filter-change',
+                'status-filter': 'status-filter-change'
+            };
+            
+            const actionType = filterActions[e.target.id];
+            if (actionType && this.isCalculationsElement(e.target)) {
+                this.dispatchCalculationsAction(actionType, e.target);
+                return;
+            }
+        });
+    }
+
+    /**
+     * Centralized action dispatcher for calculations
+     */
+    dispatchCalculationsAction(actionType, ...params) {
+        const handler = this.calculationsActionMap[actionType];
+        if (handler) {
+            try {
+                handler(...params);
+            } catch (error) {
+                console.error(`CalculationsManager action '${actionType}' failed:`, error);
+                if (window.NotificationManager) {
+                    NotificationManager.show(`Calculation action failed: ${error.message}`, 'error');
+                }
+            }
+        } else {
+            console.warn(`CalculationsManager: Unknown action type '${actionType}'`);
+        }
+    }
+
+    /**
+     * Check if element belongs to calculations manager
+     */
+    isCalculationsElement(element) {
+        return element.closest('.calculations-content') || 
+               element.closest('.capacity-section') ||
+               element.id?.includes('calculation') ||
+               element.id?.includes('capacity');
     }
 
     /**
@@ -6818,7 +6959,7 @@ class CapacityManager extends BaseComponent {
                 const originalCurrentProject = StateSelectors.getCurrentProject();
                 
                 // Temporarily update store with the complete project data
-                AppStore.getState().updateCurrentProject(completeProjectData);
+                (window.appStore || window.AppStore).getState().updateCurrentProject(completeProjectData);
                 
                 try {
                     // Trigger vendor costs calculation
@@ -6841,7 +6982,7 @@ class CapacityManager extends BaseComponent {
                 } finally {
                     // 🚨 PURE STATE MANAGER: Restore original current project using store action
                     if (originalCurrentProject) {
-                        AppStore.getState().updateCurrentProject(originalCurrentProject);
+                        (window.appStore || window.AppStore).getState().updateCurrentProject(originalCurrentProject);
                     }
                 }
             }
@@ -7286,7 +7427,7 @@ class CapacityManager extends BaseComponent {
             }
             
             // 🚨 PURE STATE MANAGER: Use store action instead of direct mutation
-            AppStore.getState().updateCurrentProject(projectData);
+            (window.appStore || window.AppStore).getState().updateCurrentProject(projectData);
             console.log('🔄 Temporarily set project as current for calculation');
             
             // 🚨 CRITICAL FIX: Access CalculationsManager from app.managers
@@ -7346,12 +7487,12 @@ class CapacityManager extends BaseComponent {
             const calculationsManager = this.app?.managers?.calculations || this.app?.calculationsManager;
             
             if (originalCurrentProject && calculationsManager) {
-                AppStore.getState().updateCurrentProject(originalCurrentProject);
+                (window.appStore || window.AppStore).getState().updateCurrentProject(originalCurrentProject);
                 calculationsManager.calculateVendorCosts();
                 console.log('🔄 Restored original project state');
             } else if (calculationsManager) {
                 // Clear the project state using store action
-                AppStore.getState().clearCurrentProject();
+                (window.appStore || window.AppStore).getState().clearCurrentProject();
                 calculationsManager.vendorCosts = [];
                 console.log('🔄 Cleared current project state');
             }

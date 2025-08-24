@@ -835,7 +835,7 @@ class VersionManager {
             const newProjectVersion = this.convertVersionIdToSemver(nextVersionId);
             
             // 🚨 PURE STATE MANAGER: Use store action instead of direct store.getState() access
-            AppStore.getState().updateProjectMetadata({ version: newProjectVersion });
+            (window.appStore || window.AppStore).getState().updateProjectMetadata({ version: newProjectVersion });
 
             // Create deep copy of current project state
             const projectSnapshot = this.createProjectSnapshot();
@@ -858,7 +858,7 @@ class VersionManager {
             const currentVersions = updatedCurrentProject.versions || [];
             const updatedVersions = [...currentVersions, newVersion];
             
-            AppStore.getState().updateProjectVersions(updatedVersions);
+            (window.appStore || window.AppStore).getState().updateProjectVersions(updatedVersions);
             this.currentVersions = updatedVersions;
 
             // Save project with new version (use app reference for save method)
@@ -1225,7 +1225,7 @@ class VersionManager {
             restoredData.versions.push(restoreVersion);
 
             // 🚨 PURE STATE MANAGER: Use store action instead of direct mutation
-            AppStore.getState().updateCurrentProject(restoredData);
+            (window.appStore || window.AppStore).getState().updateCurrentProject(restoredData);
             
             // Update title bar
             this.updateTitleBar();
@@ -1275,7 +1275,7 @@ class VersionManager {
             this.render();
             
             // 🚨 PURE STATE MANAGER: Mark as dirty using store action
-            AppStore.getState().markProjectDirty();
+            (window.appStore || window.AppStore).getState().markProjectDirty();
             
             // Force save the project with restored data (use app reference for save method)
             if (this.app && typeof this.app.saveProject === 'function') {
@@ -2514,7 +2514,7 @@ class VersionManager {
                 this.currentVersions.splice(index, 1);
                 
                 // 🚨 PURE STATE MANAGER: Use AppStore instead of this.store
-                AppStore.getState().updateProjectVersions([...this.currentVersions]);
+                (window.appStore || window.AppStore).getState().updateProjectVersions([...this.currentVersions]);
                 
                 // Save project to persist the deletion (use app reference for save method)
                 if (this.app && typeof this.app.saveProject === 'function') {
@@ -2769,7 +2769,7 @@ class VersionManager {
             // Update versions array
             this.currentVersions = preview.versionsToKeep;
             // 🚨 PURE STATE MANAGER: Use AppStore instead of this.store
-            AppStore.getState().updateProjectVersions(this.currentVersions);
+            (window.appStore || window.AppStore).getState().updateProjectVersions(this.currentVersions);
 
             // Save project (use app reference for save method)
             if (this.app && typeof this.app.saveProject === 'function') {
@@ -3085,7 +3085,7 @@ class VersionManager {
             // Add version to project
             this.currentVersions.push(finalVersionData);
             // 🚨 PURE STATE MANAGER: Use AppStore instead of this.store
-            AppStore.getState().updateProjectVersions(this.currentVersions);
+            (window.appStore || window.AppStore).getState().updateProjectVersions(this.currentVersions);
 
             // Save project (use app reference for save method)
             if (this.app && typeof this.app.saveProject === 'function') {

@@ -488,35 +488,87 @@ class ProjectPhasesManager {
         return totals;
     }
 
+    /**
+     * ⚡ REACTIVE ACTION DISPATCHER: Setup reactive actions for phases
+     * Replaces 4 traditional addEventListener calls with centralized action management
+     */
     attachEventListeners(container) {
-        // Input changes
+        this.setupReactivePhasesActions(container);
+    }
+
+    /**
+     * Setup reactive actions system for phases management
+     */
+    setupReactivePhasesActions(container) {
+        this.setupPhasesActionDispatcher();
+        this.setupDelegatedPhasesHandler(container);
+    }
+
+    /**
+     * Setup centralized action dispatcher for phases
+     */
+    setupPhasesActionDispatcher() {
+        this.phasesActionMap = {
+            'input-change': (target) => this.handleInputChange(target),
+            'supplier-change': (target) => this.handleSupplierChange(target),
+            'validation': (target) => this.validateInput(target),
+            'action-handler': (action, target) => this.handleAction(action, target)
+        };
+    }
+
+    /**
+     * Setup single delegated event handler for ALL phases interactions
+     * REPLACES 4 individual addEventListener calls with 1 centralized handler
+     */
+    setupDelegatedPhasesHandler(container) {
+        // Single input event handler for all number inputs
         container.addEventListener('input', (e) => {
             if (e.target.type === 'number') {
-                this.handleInputChange(e.target);
+                this.dispatchPhasesAction('input-change', e.target);
             }
         });
 
-        // Supplier dropdown changes
+        // Single change event handler for supplier dropdowns
         container.addEventListener('change', (e) => {
             if (e.target.classList.contains('supplier-select')) {
-                this.handleSupplierChange(e.target);
+                this.dispatchPhasesAction('supplier-change', e.target);
             }
         });
 
-        // Action buttons
+        // Single click event handler for action buttons
         container.addEventListener('click', (e) => {
-            const action = e.target.closest('[data-action]')?.dataset.action;
-            if (action) {
-                this.handleAction(action, e.target);
+            const actionElement = e.target.closest('[data-action]');
+            if (actionElement) {
+                const action = actionElement.dataset.action;
+                this.dispatchPhasesAction('action-handler', action, actionElement);
             }
         });
 
-        // Validation on blur
+        // Single blur event handler for validation
         container.addEventListener('blur', (e) => {
             if (e.target.type === 'number') {
-                this.validateInput(e.target);
+                this.dispatchPhasesAction('validation', e.target);
             }
         }, true);
+    }
+
+    /**
+     * Centralized action dispatcher for phases
+     */
+    dispatchPhasesAction(actionType, ...params) {
+        const handler = this.phasesActionMap[actionType];
+        if (handler) {
+            try {
+                handler(...params);
+            } catch (error) {
+                console.error(`ProjectPhasesManager action '${actionType}' failed:`, error);
+                if (window.NotificationManager) {
+                    NotificationManager.show(`Phase action failed: ${error.message}`, 'error');
+                }
+            }
+        } else {
+            console.warn(`ProjectPhasesManager: Unknown action type '${actionType}'`);
+        }
     }
     
     handleSupplierChange(select) {
@@ -1020,6 +1072,10 @@ class ProjectPhasesManager {
 
     // Method removed - export functionality moved to main app export
 
+    /**
+     * ⚡ REACTIVE SETUP: Initialize reactive event system
+     * Now handles phase change notifications via app integration
+     */
     setupEventListeners() {
         // Listen for feature changes to update development phase
         if (this.app) {
