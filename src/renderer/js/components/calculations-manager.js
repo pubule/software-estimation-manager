@@ -4311,7 +4311,8 @@ class CapacityManager extends BaseComponent {
             teams.forEach(team => {
                 (team.members || []).forEach(member => {
                     const memberRole = team.role; // Role comes from team configuration
-                    const uniqueId = `${team.vendorId || 'unknown'}_${team.id}_${member.id}`;
+                    // 🔧 FIX: Use same ID format as getRealTeamMembers() with ':' separator
+                    const uniqueId = `${team.id}:${member.id}`;
                     
                     // Add basic member info without allocations for UI display
                     realTeamMembers.push({
@@ -4324,11 +4325,90 @@ class CapacityManager extends BaseComponent {
                         // Basic capacity info for UI display
                         maxCapacity: 22, // Standard working days
                         currentUtilization: 0, // Not calculated in this method
-                        allocations: {}, // Empty for UI purposes
+                        allocations: {}, // Will be populated below with manual assignments
                         _isUIOnly: true // Flag to indicate this is for UI display only
                     });
                 });
             });
+
+            // 🔥 CRITICAL FIX: Populate allocations from manual assignments for UI rendering
+            console.log('🔄 Populating allocations from manual assignments for UI rendering');
+            if (this.manualAssignments && this.manualAssignments.length > 0) {
+                console.log(`📋 Processing ${this.manualAssignments.length} manual assignments for allocation population`);
+                
+                this.manualAssignments.forEach(assignment => {
+                    // Find the team member for this assignment
+                    const member = realTeamMembers.find(m => m.id === assignment.teamMemberId);
+                    if (member && assignment.phaseSchedule) {
+                        console.log(`🎯 Found member ${member.firstName} ${member.lastName} for assignment ${assignment.id}`);
+                        
+                        // Get project name from assignment.projectId
+                        const projectName = this.getProjectNameById(assignment.projectId) || 'Unknown Project';
+                        console.log(`📋 Project name for assignment: "${projectName}"`);
+                        
+                        // Process each phase in the assignment to create month allocations
+                        assignment.phaseSchedule.forEach(phase => {
+                            if (phase.startDate && phase.endDate && phase.estimatedMDs) {
+                                // Parse dates
+                                const startDate = new Date(phase.startDate);
+                                const endDate = new Date(phase.endDate);
+                                const estimatedMDs = parseFloat(phase.estimatedMDs) || 0;
+                                
+                                // Generate months between start and end
+                                const months = [];
+                                const currentDate = new Date(startDate);
+                                while (currentDate <= endDate) {
+                                    const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+                                    if (!months.includes(monthKey)) {
+                                        months.push(monthKey);
+                                    }
+                                    currentDate.setMonth(currentDate.getMonth() + 1);
+                                }
+                                
+                                // Distribute MDs across months
+                                const mdsPerMonth = months.length > 0 ? estimatedMDs / months.length : 0;
+                                
+                                months.forEach(monthKey => {
+                                    // Initialize month if needed
+                                    if (!member.allocations[monthKey]) {
+                                        member.allocations[monthKey] = {};
+                                    }
+                                    
+                                    // Add project allocation for this month
+                                    if (!member.allocations[monthKey][projectName]) {
+                                        member.allocations[monthKey][projectName] = {
+                                            days: 0,
+                                            planned: 0,
+                                            phases: []
+                                        };
+                                    }
+                                    
+                                    member.allocations[monthKey][projectName].days += mdsPerMonth;
+                                    member.allocations[monthKey][projectName].planned += mdsPerMonth;
+                                    member.allocations[monthKey][projectName].phases.push({
+                                        phaseName: phase.phaseName || phase.phaseId || 'Unknown Phase',
+                                        estimatedMDs: mdsPerMonth
+                                    });
+                                    
+                                    console.log(`📊 Added ${mdsPerMonth.toFixed(1)} MDs to ${member.firstName} ${member.lastName} for ${projectName} in ${monthKey}`);
+                                });
+                            }
+                        });
+                    } else {
+                        if (!member) {
+                            console.warn(`⚠️ Team member not found for assignment ${assignment.id} with teamMemberId: ${assignment.teamMemberId}`);
+                            console.log('Available team member IDs:', realTeamMembers.map(m => m.id));
+                        }
+                        if (!assignment.phaseSchedule) {
+                            console.warn(`⚠️ Assignment ${assignment.id} has no phase schedule`);
+                        }
+                    }
+                });
+                
+                console.log('✅ Manual assignments processed and allocations populated');
+            } else {
+                console.log('ℹ️ No manual assignments to process');
+            }
 
             console.log(`✅ Retrieved ${realTeamMembers.length} team members for UI components`);
             return realTeamMembers;
@@ -4994,31 +5074,56 @@ class CapacityManager extends BaseComponent {
         
         this._capacityTablePromise = (async () => {
             try {
-                const rawTeamMembers = await this.getRealTeamMembers();
+                console.log('🔄 DEBUG RENDER: loadCapacityTable started');
+                console.log('📋 DEBUG RENDER: Current manualAssignments array length:', this.manualAssignments?.length || 0);
+                if (this.manualAssignments?.length > 0) {
+                    console.log('📋 DEBUG RENDER: Manual assignments details:');
+                    this.manualAssignments.forEach((assignment, index) => {
+                        console.log(`  Assignment ${index + 1}: ID=${assignment.id}, Team=${assignment.teamMemberId}, Project=${assignment.projectId}`);
+                    });
+                }
+                
+                // 🔧 FIX: Get current project to load manual assignments correctly
+                const currentProject = StateSelectors.getCurrentProject();
+                const rawTeamMembers = currentProject 
+                    ? await this.getRealTeamMembers(currentProject)
+                    : await this.getRealTeamMembers(); // Fallback for compatibility
+                    
+        console.log('🔄 DEBUG RENDER: About to consolidate team members');
         const teamMembers = this.consolidateTeamMembersByPerson(rawTeamMembers);
+        console.log('✅ DEBUG RENDER: Team members consolidated, count:', teamMembers?.length);
         
         // Store consolidated team members for use in other functions
         this.consolidatedTeamMembers = teamMembers;
+        console.log('🔄 DEBUG RENDER: Consolidated team members stored');
         
         // Get both table bodies
+        console.log('🔄 DEBUG RENDER: Looking for table bodies');
         const ganttTableBody = document.getElementById('gantt-table-body');
         const allocationsTableBody = document.getElementById('allocations-table-body');
+        console.log('🔍 DEBUG RENDER: ganttTableBody found:', !!ganttTableBody);
+        console.log('🔍 DEBUG RENDER: allocationsTableBody found:', !!allocationsTableBody);
         
         if (!ganttTableBody || !allocationsTableBody) {
+            console.log('⚠️ DEBUG RENDER: New table structure not found, trying fallback');
             // Fallback to old single table if new structure not found
             const oldTableBody = document.getElementById('capacity-table-body');
+            console.log('🔍 DEBUG RENDER: oldTableBody found:', !!oldTableBody);
             if (oldTableBody) {
+                console.log('🔄 DEBUG RENDER: Using old table structure fallback');
                 const ganttHTML = await this.generateGanttTableRows(teamMembers);
                 oldTableBody.innerHTML = ganttHTML;
                 this.initializeGanttExpansion();
             } else {
-                console.warn('Capacity table bodies not found');
+                console.warn('❌ DEBUG RENDER: No capacity table bodies found at all');
             }
             return;
         }
 
         // Generate content for both panels
+        console.log('🔄 DEBUG RENDER: About to call groupAllocationsByProject');
         const projectsData = this.groupAllocationsByProject(teamMembers);
+        console.log('✅ DEBUG RENDER: groupAllocationsByProject completed, projects found:', projectsData?.length);
         
         // Panel 1: Generate Gantt view for project phases
         const ganttHTML = this.generateGanttPanel(projectsData);
@@ -5085,6 +5190,7 @@ class CapacityManager extends BaseComponent {
      * Group team member allocations by project
      */
     groupAllocationsByProject(teamMembers) {
+        console.log('🚀 DEBUG RENDER: groupAllocationsByProject called with teamMembers:', teamMembers?.length);
         const projectsMap = new Map();
         
         teamMembers.forEach(member => {
@@ -5113,44 +5219,73 @@ class CapacityManager extends BaseComponent {
         const projectsArray = Array.from(projectsMap.values());
         
         projectsArray.forEach(projectData => {
+            console.log(`🔍 DEBUG RENDER: Processing project "${projectData.name}" for assignment matching`);
+            
             // Find manual assignment for this project using multiple matching strategies
             if (this.manualAssignments?.length > 0) {
+                console.log(`📋 DEBUG RENDER: Looking for assignment among ${this.manualAssignments.length} manual assignments`);
+                
                 // Strategy 1: Find by project name directly
                 projectData.assignment = this.manualAssignments.find(a => {
                     const projectObj = this.getProjectNameById(a.projectId);
+                    console.log(`  🔍 Strategy 1: Assignment projectId="${a.projectId}" -> projectName="${projectObj}" vs target="${projectData.name}"`);
                     return projectObj === projectData.name;
                 });
                 
-                // If found, add project ID to projectData
                 if (projectData.assignment) {
+                    console.log(`✅ DEBUG RENDER: Found assignment via Strategy 1 for project "${projectData.name}"`);
                     projectData.id = projectData.assignment.projectId;
+                } else {
+                    console.log(`❌ DEBUG RENDER: Strategy 1 failed for project "${projectData.name}"`);
                 }
                 
                 // Strategy 2: If not found, try by project object lookup
                 if (!projectData.assignment) {
                     const projectObj = this.getProjectByName(projectData.name);
+                    console.log(`  🔍 Strategy 2: Looking for project object with name="${projectData.name}" -> found: ${!!projectObj}`);
                     if (projectObj) {
+                        console.log(`    Project object ID: "${projectObj.id}"`);
                         // Add project ID from project object
                         projectData.id = projectObj.id;
                         
-                        projectData.assignment = this.manualAssignments.find(a => 
-                            a.projectId === projectObj.id
-                        );
+                        projectData.assignment = this.manualAssignments.find(a => {
+                            console.log(`    Comparing assignment.projectId="${a.projectId}" vs projectObj.id="${projectObj.id}"`);
+                            return a.projectId === projectObj.id;
+                        });
+                        
+                        if (projectData.assignment) {
+                            console.log(`✅ DEBUG RENDER: Found assignment via Strategy 2 for project "${projectData.name}"`);
+                        }
                     }
                 }
                 
                 // Strategy 3: If still not found, try fuzzy matching
                 if (!projectData.assignment) {
+                    console.log(`  🔍 Strategy 3: Trying fuzzy matching for project "${projectData.name}"`);
                     projectData.assignment = this.manualAssignments.find(a => {
-                        return a.projectName === projectData.name || 
-                               a.projectId === projectData.name;
+                        const nameMatch = a.projectName === projectData.name;
+                        const idMatch = a.projectId === projectData.name;
+                        console.log(`    Assignment projectName="${a.projectName}" vs target="${projectData.name}" -> ${nameMatch}`);
+                        console.log(`    Assignment projectId="${a.projectId}" vs target="${projectData.name}" -> ${idMatch}`);
+                        return nameMatch || idMatch;
                     });
                     
                     // If found via fuzzy matching, add project ID
                     if (projectData.assignment) {
+                        console.log(`✅ DEBUG RENDER: Found assignment via Strategy 3 for project "${projectData.name}"`);
                         projectData.id = projectData.assignment.projectId;
+                    } else {
+                        console.log(`❌ DEBUG RENDER: All strategies failed for project "${projectData.name}"`);
                     }
                 }
+                
+                if (projectData.assignment) {
+                    console.log(`🎯 DEBUG RENDER: Final result - Project "${projectData.name}" HAS assignment (ID: ${projectData.assignment.id})`);
+                } else {
+                    console.log(`💔 DEBUG RENDER: Final result - Project "${projectData.name}" has NO assignment`);
+                }
+            } else {
+                console.log(`❌ DEBUG RENDER: No manual assignments available to match`);
             }
             
             // If no assignment found but we can still get project ID, try to find it
@@ -8755,35 +8890,57 @@ class CapacityManager extends BaseComponent {
             const teamMembers = await this.getRealTeamMembers(targetProject);
             const projects = await this.getAvailableProjects();
             
+            console.log('🔍 QUICK DEBUG: Assignment validation');
+            console.log('  teamMemberId:', teamMemberId);
+            console.log('  projectId:', projectId);
+            console.log('  teamMembers found:', teamMembers.length);
+            
             const teamMember = teamMembers.find(m => m.id === teamMemberId);
+            console.log('  teamMember found:', teamMember ? 'YES' : 'NO');
+            
             // 🔧 CONSISTENT FIX: Handle both ID and filePath-based lookup like in loadProjectForAssignment
             let project = projects.find(p => p.id === projectId);
             if (!project) {
                 project = projects.find(p => p.filePath === projectId);
             }
+            console.log('  project found:', project ? 'YES' : 'NO');
             
             if (!teamMember || !project) {
+                console.log('❌ VALIDATION FAILED - stopping here');
                 NotificationManager.error('Invalid team member or project selection');
                 return;
             }
+            
+            console.log('✅ VALIDATION PASSED - proceeding with assignment save...');
             
             // Load complete project data
             const dataManager = this.app?.managers?.data || window.dataManager;
             if (!project.filePath) {
                 throw new Error(`Project file path not available for project ${project.name || project.id}`);
             }
+            console.log('🔄 Loading complete project data...');
             const completeProject = await dataManager.loadProject(project.filePath);
+            console.log('✅ Complete project loaded');
             
             // Get budget info
+            console.log('🔄 Getting budget info...');
             const budgetInfo = this.getBudgetInfo();
+            console.log('✅ Budget info obtained:', budgetInfo);
             
             // Calculate phase-based allocation
+            console.log('🔄 Calculating phase-based allocation...');
             const calculatedAllocation = await this.calculatePhaseBasedAllocation(teamMember, completeProject, phaseSchedule);
+            console.log('✅ Phase-based allocation calculated:', calculatedAllocation);
             
             // Initialize manual assignments array if it doesn't exist
             if (!this.manualAssignments) {
                 this.manualAssignments = [];
+                console.log('🔄 Initialized empty manual assignments array');
+            } else {
+                console.log('📋 Manual assignments array exists, length:', this.manualAssignments.length);
             }
+            
+            console.log('🔄 Processing assignment - isEditing:', isEditing);
             
             if (isEditing) {
                 // Update existing assignment
@@ -8826,6 +8983,7 @@ class CapacityManager extends BaseComponent {
                 }
                 
             } else {
+                console.log('🔄 Creating new assignment...');
                 // Create new assignment with a unique, stable ID
                 const assignment = {
                     id: this.generateId('assignment-'),
@@ -8840,27 +8998,36 @@ class CapacityManager extends BaseComponent {
                 };
 
                 // Save assignment - NO duplicate checking, user manages duplicates manually
+                console.log('💾 Saving assignment to array...');
                 this.manualAssignments.push(assignment);
+                console.log('✅ Assignment saved, total assignments:', this.manualAssignments.length);
                 
                 // Clear all caches to ensure fresh data
+                console.log('🔄 Clearing caches...');
                 this._teamMembersCache = null;
                 this._teamMembersCacheTime = null;
                 this._cacheIsDirty = true;
+                console.log('✅ Caches cleared');
 
                 // Synchronize main form phase inputs with new assignment
+                console.log('🔄 Synchronizing form phase dates...');
                 this.synchronizeMainFormPhaseDates(phaseSchedule);
 
                 // Check for overflows and show alerts
+                console.log('🔄 Checking for overflows...');
                 const overflows = this.detectOverflows(phaseSchedule);
                 if (overflows.length > 0) {
                     const overflowMessages = overflows.map(o => `${o.phaseName}: +${o.overflow.toFixed(1)} MDs`);
+                    console.log('⚠️ Assignment has overflows:', overflowMessages);
                     NotificationManager.warning(`Assignment created with overflows: ${overflowMessages.join(', ')}`);
                 } else {
+                    console.log('✅ Assignment has no overflows');
                     NotificationManager.success('Assignment created successfully');
                 }
             }
             
             // Close modal and refresh
+            console.log('🔄 Closing modal and refreshing UI...');
             this.resetAssignmentModal();
             
             // Clear editing state
@@ -8869,8 +9036,11 @@ class CapacityManager extends BaseComponent {
             }
             
             document.getElementById('assignment-modal').classList.remove('active');
+            console.log('✅ Modal closed');
             
+            console.log('🔄 Refreshing capacity sections...');
             await this.refreshAllCapacitySections();
+            console.log('✅ All capacity sections refreshed - assignment should now be visible!');
             
         } catch (error) {
             console.error('Error handling assignment:', error);
