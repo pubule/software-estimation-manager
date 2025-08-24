@@ -408,7 +408,7 @@ class CategoriesConfigManager {
         if (this.currentScope === 'global') {
             return this.configManager.globalConfig?.categories || [];
         } else {
-            const currentProject = this.app?.currentProject;
+            const currentProject = StateSelectors.getCurrentProject();
             if (!currentProject) {
                 console.log('No current project available');
                 return [];
@@ -438,7 +438,7 @@ class CategoriesConfigManager {
         const globalCountEl = document.getElementById('global-categories-count');
         if (globalCountEl) globalCountEl.textContent = globalCount;
 
-        const currentProject = this.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         let projectCount = 0;
         if (currentProject) {
             const projectConfig = this.configManager.getProjectConfig(currentProject.config);
@@ -953,7 +953,7 @@ class CategoriesConfigManager {
         if (this.currentScope === 'global') {
             await this.configManager.saveGlobalConfig();
         } else {
-            const currentProject = this.app?.currentProject;
+            const currentProject = StateSelectors.getCurrentProject();
             if (currentProject) {
                 await this.configManager.saveProjectConfig(currentProject.config);
             }

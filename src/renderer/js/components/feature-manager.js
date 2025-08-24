@@ -552,7 +552,7 @@ class FeatureManager extends BaseComponent {
      * Populate filter dropdowns
      */
     populateFilterDropdowns() {
-        const currentProject = window.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject || !this.configManager) {
             this.clearFilterDropdowns();
             return;
@@ -734,7 +734,7 @@ class FeatureManager extends BaseComponent {
      * Internal filter features (debounced)
      */
     _filterFeatures() {
-        const currentProject = window.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject?.features) {
             this.state.filteredFeatures = [];
             this.renderTable();
@@ -928,7 +928,7 @@ class FeatureManager extends BaseComponent {
         row.dataset.featureId = feature.id;
         row.classList.add('feature-main-row');
 
-        const currentProject = window.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         const categoryName = this.getCategoryName(currentProject, feature.category);
         const supplierName = this.getSupplierName(currentProject, feature.supplier);
 
@@ -1008,7 +1008,7 @@ class FeatureManager extends BaseComponent {
         detailsRow.dataset.featureId = feature.id;
         detailsRow.classList.add('feature-details-row', 'collapsed');
 
-        const currentProject = window.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         const categoryName = this.getCategoryName(currentProject, feature.category);
         const featureTypeName = this.getFeatureTypeName(currentProject, feature.featureType);
 
@@ -1133,7 +1133,7 @@ class FeatureManager extends BaseComponent {
      * Generate feature ID
      */
     generateFeatureId() {
-        const currentProject = window.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject?.features || currentProject.features.length === 0) {
             return 'BR-001';
         }
@@ -1174,7 +1174,7 @@ class FeatureManager extends BaseComponent {
             return 'No features to export';
         }
 
-        const currentProject = window.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         
         const headers = [
             'ID', 'Description', 'Category', 'Feature Type', 'Supplier',
@@ -1341,7 +1341,7 @@ class FeatureModal extends ModalManagerBase {
      * Populate all dropdowns
      */
     populateDropdowns() {
-        const currentProject = window.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject || !this.configManager) {
             return;
         }
@@ -1447,7 +1447,7 @@ class FeatureModal extends ModalManagerBase {
             return;
         }
 
-        const currentProject = window.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject || !this.configManager) {
             featureTypeSelect.disabled = true;
             return;

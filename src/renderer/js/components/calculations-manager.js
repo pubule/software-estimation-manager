@@ -125,13 +125,8 @@ class CalculationsManager {
         const container = document.querySelector('.calculations-content');
         if (!container) return;
 
-        // Get current project from store if available, fallback to app
-        let currentProject = null;
-        if (this.store && this.store.getState) {
-            currentProject = this.store.getState().currentProject;
-        } else {
-            currentProject = this.app?.currentProject;
-        }
+        // PURE STATE MANAGER: Always use StateSelectors for consistency
+        const currentProject = StateSelectors.getCurrentProject();
         
         if (!currentProject) {
             container.innerHTML = this.renderNoProjectState();
@@ -155,7 +150,7 @@ class CalculationsManager {
      */
     calculateVendorCosts() {
         
-        const currentProject = this.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject || !this.configManager) {
             this.vendorCosts = [];
             return;
@@ -541,7 +536,7 @@ class CalculationsManager {
      * Check if supplier is internal resource
      */
     isInternalResource(supplier) {
-        const currentProject = this.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject || !this.configManager) return false;
 
         const projectConfig = this.configManager.getProjectConfig(currentProject.config);
@@ -1121,7 +1116,7 @@ class CalculationsManager {
      * Restore manually set finalMDs values from project data
      */
     restoreFinalMDsFromProject() {
-        const currentProject = this.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject || !currentProject.finalMDsOverrides) {
             return;
         }
@@ -1140,7 +1135,7 @@ class CalculationsManager {
      * Save manually set finalMDs values to project data
      */
     saveFinalMDsToProject(vendorId, role, department, finalMDs) {
-        const currentProject = this.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject) {
             return;
         }
@@ -1159,7 +1154,7 @@ class CalculationsManager {
      * Remove finalMDs override from project data (when resetting to calculated value)
      */
     removeFinalMDsFromProject(vendorId, role, department) {
-        const currentProject = this.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject || !currentProject.finalMDsOverrides) {
             return;
         }
@@ -1221,7 +1216,7 @@ class CalculationsManager {
      * Share project estimation via email
      */
     shareByEmail() {
-        const currentProject = this.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject) {
             alert('No project loaded');
             return;
@@ -6136,7 +6131,7 @@ class CapacityManager extends BaseComponent {
                 });
             } else {
                 // Fallback to current project if no projects available through getAvailableProjects
-                const currentProject = this.app?.currentProject;
+                const currentProject = StateSelectors.getCurrentProject();
                 if (currentProject) {
                     const currentProjectName = currentProject.project?.name || 'Current Project';
                     this.projectIdToNameMap.set('current', currentProjectName);
@@ -6474,7 +6469,7 @@ class CapacityManager extends BaseComponent {
             // Check if modal already exists
             let modal = document.getElementById('assignment-modal');
             if (!modal) {
-                // Create the modal HTML
+                // Create the modal HTML - 🔧 FIXED: Project selection BEFORE Team Member
                 modal = document.createElement('div');
                 modal.id = 'assignment-modal';
                 modal.className = 'modal';
@@ -6487,18 +6482,18 @@ class CapacityManager extends BaseComponent {
                         <div class="modal-body">
                             <form id="assignment-form">
                                 <div class="form-group">
-                                    <label for="assignment-team-member">Team Member *</label>
-                                    <select id="assignment-team-member" name="teamMember" required>
-                                        <option value="">Select Team Member</option>
-                                    </select>
-                                    <small class="field-info" id="member-role-info"></small>
-                                </div>
-                                <div class="form-group">
                                     <label for="assignment-project">Project *</label>
                                     <select id="assignment-project" name="project" required>
                                         <option value="">Select Project</option>
                                     </select>
                                     <small class="field-info" id="project-readonly-info" style="display: none; color: #888;">Project cannot be changed when editing an assignment</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="assignment-team-member">Team Member *</label>
+                                    <select id="assignment-team-member" name="teamMember" required>
+                                        <option value="">First select a project to see available team members</option>
+                                    </select>
+                                    <small class="field-info" id="member-role-info"></small>
                                 </div>
                                 
                                 <!-- Budget Tracking Section -->
@@ -6817,10 +6812,13 @@ class CapacityManager extends BaseComponent {
                 });
             } else {
                 
-                // CRITICAL FIX: Generate calculationData if missing
-                // Temporarily set this project as current to trigger vendor costs calculation
-                const originalCurrentProject = this.app.currentProject;
-                this.app.currentProject = completeProjectData;
+                // 🚨 CRITICAL FIX: Generate calculationData if missing
+                // 🚨 PURE STATE MANAGER: NO DIRECT PROJECT MUTATION!
+                // Instead of temporarily setting currentProject, use store action
+                const originalCurrentProject = StateSelectors.getCurrentProject();
+                
+                // Temporarily update store with the complete project data
+                AppStore.getState().updateCurrentProject(completeProjectData);
                 
                 try {
                     // Trigger vendor costs calculation
@@ -6841,8 +6839,10 @@ class CapacityManager extends BaseComponent {
                 } catch (error) {
                     console.error('  - Error generating vendor costs:', error);
                 } finally {
-                    // Restore original current project
-                    this.app.currentProject = originalCurrentProject;
+                    // 🚨 PURE STATE MANAGER: Restore original current project using store action
+                    if (originalCurrentProject) {
+                        AppStore.getState().updateCurrentProject(originalCurrentProject);
+                    }
                 }
             }
             
@@ -6990,48 +6990,53 @@ class CapacityManager extends BaseComponent {
         this._populatingDropdowns = true;
         
         try {
-            // Populate team members
             const teamMemberSelect = document.getElementById('assignment-team-member');
             const projectSelect = document.getElementById('assignment-project');
             const projectReadonlyInfo = document.getElementById('project-readonly-info');
             
+            // 🚨 ULTRA THINK FIX: First populate projects, then team members will be filtered by project selection
+            
+            // Initialize team member dropdown with placeholder (will be populated after project selection)
             if (teamMemberSelect) {
-                teamMemberSelect.innerHTML = '<option value="">Select Team Member</option>';
-                
-                // Use await instead of .then() to avoid race conditions
-                const teamMembers = await this.getRealTeamMembers();
-                if (Array.isArray(teamMembers) && teamMembers.length > 0) {
-                    teamMembers.forEach(member => {
+                if (mode === 'edit') {
+                    // In edit mode, populate all team members (existing behavior for edit)
+                    teamMemberSelect.innerHTML = '<option value="">Select Team Member</option>';
+                    
+                    const teamMembers = await this.getRealTeamMembers();
+                    if (Array.isArray(teamMembers) && teamMembers.length > 0) {
+                        teamMembers.forEach(member => {
+                            const option = document.createElement('option');
+                            option.value = member.id;
+                            
+                            // Get vendor details for enhanced display
+                            const vendorDetails = this.getVendorDetails(member);
+                            
+                            // Format: "Ioana-Simina Stoica - RO [G2] Developer (€352/day)"
+                            option.textContent = `${member.firstName} ${member.lastName} - ${vendorDetails.department} [${vendorDetails.role}] ${vendorDetails.name} (€${vendorDetails.rate}/day)`;
+                            teamMemberSelect.appendChild(option);
+                        });
+                    } else {
                         const option = document.createElement('option');
-                        option.value = member.id;
-                        
-                        // Get vendor details for enhanced display
-                        const vendorDetails = this.getVendorDetails(member);
-                        
-                        // Format: "Ioana-Simina Stoica - RO [G2] Developer (€352/day)"
-                        option.textContent = `${member.firstName} ${member.lastName} - ${vendorDetails.department} [${vendorDetails.role}] ${vendorDetails.name} (€${vendorDetails.rate}/day)`;
+                        option.value = '';
+                        option.textContent = 'No team members configured';
+                        option.disabled = true;
                         teamMemberSelect.appendChild(option);
-                    });
+                    }
                 } else {
-                    const option = document.createElement('option');
-                    option.value = '';
-                    option.textContent = 'No team members configured';
-                    option.disabled = true;
-                    teamMemberSelect.appendChild(option);
+                    // In create mode, show placeholder until project is selected
+                    teamMemberSelect.innerHTML = '<option value="">First select a project to see available team members</option>';
+                    teamMemberSelect.disabled = true;
                 }
             }
 
             // Handle project dropdown based on mode
             if (projectSelect) {
-                // First populate the projects dropdown
+                // Populate the projects dropdown
                 await this.populateProjectsDropdown(projectSelect, mode);
                 
-                // THEN apply mode-specific restrictions
+                // Apply mode-specific restrictions
                 if (mode === 'edit') {
                     // In edit mode, make project selection visually disabled but keep value
-                    
-                    // Don't use disabled=true as it prevents the value from being submitted
-                    // Instead, use pointer-events:none and visual styling
                     projectSelect.style.backgroundColor = '#f5f5f5';
                     projectSelect.style.cursor = 'not-allowed';
                     projectSelect.style.pointerEvents = 'none';
@@ -7054,7 +7059,7 @@ class CapacityManager extends BaseComponent {
                         projectReadonlyInfo.style.display = 'block';
                     }
                 } else {
-                    // In create/duplicate mode, enable project selection with filtering
+                    // In create/duplicate mode, enable project selection
                     projectSelect.style.backgroundColor = '';
                     projectSelect.style.cursor = '';
                     projectSelect.style.pointerEvents = '';
@@ -7070,8 +7075,8 @@ class CapacityManager extends BaseComponent {
                         projectReadonlyInfo.style.display = 'none';
                     }
                     
-                    // Setup dynamic filtering when team member changes (only for create/duplicate)
-                    this.setupProjectFilteringForTeamMember(teamMemberSelect, projectSelect);
+                    // 🚨 ULTRA THINK: Setup project selection handler to filter team members
+                    this.setupProjectBasedTeamMemberFiltering(projectSelect, teamMemberSelect);
                 }
             }
             
@@ -7091,6 +7096,265 @@ class CapacityManager extends BaseComponent {
         } finally {
             // Always reset the flag when done
             this._populatingDropdowns = false;
+        }
+    }
+
+    /**
+     * 🚨 ULTRA THINK: Setup project-based team member filtering
+     * Only show team members who have corresponding vendor costs in the selected project's calculationData
+     */
+    setupProjectBasedTeamMemberFiltering(projectSelect, teamMemberSelect) {
+        // Remove any existing change listeners first to prevent duplicates
+        const existingHandler = this._projectFilterHandler;
+        if (existingHandler) {
+            projectSelect.removeEventListener('change', existingHandler);
+        }
+
+        // Create new handler
+        this._projectFilterHandler = async (event) => {
+            const selectedProjectPath = event.target.value;
+            
+            if (!selectedProjectPath) {
+                // No project selected - disable team member dropdown
+                teamMemberSelect.innerHTML = '<option value="">First select a project to see available team members</option>';
+                teamMemberSelect.disabled = true;
+                return;
+            }
+
+            try {
+                console.log(`🔄 ULTRA THINK: Filtering team members for project ${selectedProjectPath}`);
+                
+                // Load the complete project data with calculationData
+                const dataManager = this.app?.managers?.data || window.dataManager;
+                let projectData = null;
+                
+                // 🚨 CRITICAL FIX: Handle both filepath and ID loading
+                try {
+                    projectData = await dataManager.loadProject(selectedProjectPath);
+                    console.log(`📂 Successfully loaded project from: ${selectedProjectPath}`);
+                } catch (loadError) {
+                    console.error(`❌ Failed to load project: ${loadError.message}`);
+                    // Show error in team member dropdown
+                    teamMemberSelect.innerHTML = '<option value="">Error loading project data</option>';
+                    teamMemberSelect.disabled = true;
+                    return;
+                }
+                
+                if (!projectData) {
+                    console.error('❌ Project data is null after loading');
+                    teamMemberSelect.innerHTML = '<option value="">Failed to load project data</option>';
+                    teamMemberSelect.disabled = true;
+                    return;
+                }
+                
+                console.log('📊 Project calculationData:', projectData?.calculationData);
+                
+                // 🚨 CRITICAL FIX: Generate calculationData automatically if missing
+                let calculationData = projectData?.calculationData;
+                
+                if (!calculationData?.vendorCosts) {
+                    console.log('🔧 ULTRA THINK: calculationData missing - generating automatically...');
+                    calculationData = await this.generateCalculationDataForProject(projectData);
+                    console.log('✅ Generated calculationData:', calculationData);
+                }
+                
+                // Get all team members
+                const allTeamMembers = await this.getRealTeamMembers();
+                console.log(`👥 Total team members available: ${allTeamMembers.length}`);
+                
+                // Filter team members based on calculationData
+                const availableTeamMembers = this.filterTeamMembersByCalculationData(
+                    allTeamMembers, 
+                    calculationData
+                );
+                
+                console.log(`✅ Team members with budget allocated: ${availableTeamMembers.length}`);
+                
+                // Update team member dropdown
+                teamMemberSelect.innerHTML = '<option value="">Select Team Member</option>';
+                
+                if (availableTeamMembers.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = calculationData?.vendorCosts ? 
+                        'No team members have budget allocated in this project' :
+                        'Project has no budget calculated - please go to Calculations section first';
+                    option.disabled = true;
+                    teamMemberSelect.appendChild(option);
+                    teamMemberSelect.disabled = true;
+                } else {
+                    // Populate with filtered team members
+                    availableTeamMembers.forEach(member => {
+                        const option = document.createElement('option');
+                        option.value = member.id;
+                        
+                        // Get vendor details for enhanced display
+                        const vendorDetails = this.getVendorDetails(member);
+                        
+                        // Format: "Ioana-Simina Stoica - RO [G2] Developer (€352/day)"
+                        option.textContent = `${member.firstName} ${member.lastName} - ${vendorDetails.department} [${vendorDetails.role}] ${vendorDetails.name} (€${vendorDetails.rate}/day)`;
+                        teamMemberSelect.appendChild(option);
+                    });
+                    teamMemberSelect.disabled = false;
+                }
+                
+            } catch (error) {
+                console.error('Error filtering team members by project:', error);
+                teamMemberSelect.innerHTML = '<option value="">Error loading team members for this project</option>';
+                teamMemberSelect.disabled = true;
+            }
+        };
+
+        // Add the new event listener
+        projectSelect.addEventListener('change', this._projectFilterHandler);
+    }
+
+    /**
+     * 🚨 ULTRA THINK: Filter team members to only show those with budget allocated in calculationData
+     * @param {Array} teamMembers - All available team members
+     * @param {Object} calculationData - Project's calculationData with vendorCosts
+     * @returns {Array} Filtered team members who have corresponding vendor costs
+     */
+    filterTeamMembersByCalculationData(teamMembers, calculationData) {
+        if (!calculationData?.vendorCosts || !Array.isArray(calculationData.vendorCosts)) {
+            console.warn('🚨 ULTRA THINK: No calculationData.vendorCosts found - no team members will be available');
+            return [];
+        }
+
+        const vendorCosts = calculationData.vendorCosts;
+        console.log('📊 Available vendor costs:', vendorCosts.map(vc => `${vc.vendor} - ${vc.role} (${vc.vendorId})`));
+
+        const filteredMembers = teamMembers.filter(member => {
+            // Get member's role and vendorId
+            const memberRole = this.getMemberRole(member);
+            const memberVendorId = member.vendorId;
+
+            if (!memberRole || !memberVendorId) {
+                console.warn(`⚠️ Team member ${member.firstName} ${member.lastName} missing role or vendorId`);
+                return false;
+            }
+
+            // Check if there's a matching vendor cost entry
+            const hasMatchingVendorCost = vendorCosts.some(vendorCost => {
+                const vendorIdMatch = vendorCost.vendorId === memberVendorId;
+                const roleMatch = vendorCost.role === memberRole;
+                
+                if (vendorIdMatch && roleMatch) {
+                    console.log(`✅ Found match: ${member.firstName} ${member.lastName} [${memberRole}] -> ${vendorCost.vendor} (${vendorCost.finalMDs} MDs)`);
+                    return true;
+                }
+                
+                return false;
+            });
+
+            if (!hasMatchingVendorCost) {
+                console.log(`❌ No match: ${member.firstName} ${member.lastName} [${memberRole}] (vendorId: ${memberVendorId})`);
+            }
+
+            return hasMatchingVendorCost;
+        });
+
+        console.log(`🎯 ULTRA THINK: Filtered ${teamMembers.length} -> ${filteredMembers.length} team members based on calculationData`);
+        return filteredMembers;
+    }
+
+    /**
+     * 🚨 ULTRA THINK: Generate calculationData for a project that doesn't have it
+     * @param {Object} projectData - Project data to generate calculations for
+     * @returns {Object} Generated calculationData with vendorCosts
+     */
+    async generateCalculationDataForProject(projectData) {
+        if (!projectData) {
+            console.warn('🚨 Cannot generate calculationData: no project data provided');
+            return null;
+        }
+
+        // Store original state to restore later (declare at top level for proper scope)
+        const originalCurrentProject = StateSelectors.getCurrentProject();
+
+        try {
+            console.log(`🔧 Generating calculationData for project: ${projectData.project?.name || 'Unknown'}`);
+            
+            // Validate project data structure
+            if (!projectData.project || (!projectData.features && !projectData.phases)) {
+                console.warn('⚠️ Project data incomplete - missing features or phases');
+                return {
+                    vendorCosts: [],
+                    timestamp: new Date().toISOString(),
+                    generationError: 'Project data incomplete - missing features or phases'
+                };
+            }
+            
+            // 🚨 PURE STATE MANAGER: Use store action instead of direct mutation
+            AppStore.getState().updateCurrentProject(projectData);
+            console.log('🔄 Temporarily set project as current for calculation');
+            
+            // 🚨 CRITICAL FIX: Access CalculationsManager from app.managers
+            const calculationsManager = this.app?.managers?.calculations || this.app?.calculationsManager;
+            
+            if (!calculationsManager) {
+                console.error('🚨 CalculationsManager not available');
+                return {
+                    vendorCosts: [],
+                    timestamp: new Date().toISOString(),
+                    generationError: 'CalculationsManager not available'
+                };
+            }
+            
+            // Generate vendor costs using CalculationsManager
+            calculationsManager.calculateVendorCosts();
+            
+            let calculationData = null;
+            
+            // Check if we successfully generated vendor costs
+            if (calculationsManager.vendorCosts && calculationsManager.vendorCosts.length > 0) {
+                calculationData = {
+                    vendorCosts: JSON.parse(JSON.stringify(calculationsManager.vendorCosts)), // Deep copy
+                    timestamp: new Date().toISOString()
+                };
+                
+                console.log(`✅ Generated calculationData with ${calculationData.vendorCosts.length} vendor cost entries`);
+                
+                // Log generated vendor costs for debugging
+                calculationData.vendorCosts.forEach(vc => {
+                    console.log(`   📊 ${vc.vendor} [${vc.role}] - ${vc.finalMDs} MDs (vendorId: ${vc.vendorId})`);
+                });
+            } else {
+                console.warn('⚠️ No vendor costs generated - project may need phases configuration');
+                console.log('📋 Project features count:', projectData.features?.length || 0);
+                console.log('📋 Project phases:', Object.keys(projectData.phases || {}));
+                
+                calculationData = {
+                    vendorCosts: [],
+                    timestamp: new Date().toISOString(),
+                    generationError: 'No vendor costs could be calculated - check project phases configuration'
+                };
+            }
+            
+            return calculationData;
+            
+        } catch (error) {
+            console.error('🚨 Error generating calculationData:', error);
+            
+            return {
+                vendorCosts: [],
+                timestamp: new Date().toISOString(),
+                generationError: error.message
+            };
+        } finally {
+            // 🚨 PURE STATE MANAGER: Always restore original current project using store action
+            const calculationsManager = this.app?.managers?.calculations || this.app?.calculationsManager;
+            
+            if (originalCurrentProject && calculationsManager) {
+                AppStore.getState().updateCurrentProject(originalCurrentProject);
+                calculationsManager.calculateVendorCosts();
+                console.log('🔄 Restored original project state');
+            } else if (calculationsManager) {
+                // Clear the project state using store action
+                AppStore.getState().clearCurrentProject();
+                calculationsManager.vendorCosts = [];
+                console.log('🔄 Cleared current project state');
+            }
         }
     }
 
@@ -7169,9 +7433,20 @@ class CapacityManager extends BaseComponent {
             if (Array.isArray(projects) && projects.length > 0) {
                 projects.forEach(project => {
                     const option = document.createElement('option');
-                    option.value = project.id || project.code;
+                    // 🚨 CRITICAL FIX: Use filePath as value instead of ID for proper loading
+                    option.value = project.filePath || project.id || project.code;
                     option.textContent = project.name || project.code;
+                    
+                    // Add debug info as data attribute
+                    option.setAttribute('data-project-id', project.id || '');
+                    option.setAttribute('data-project-name', project.name || '');
+                    
                     projectSelect.appendChild(option);
+                });
+                
+                console.log(`📋 Populated project dropdown with ${projects.length} projects`);
+                projects.forEach(p => {
+                    console.log(`   📁 ${p.name} -> filePath: ${p.filePath}`);
                 });
             } else {
                 const option = document.createElement('option');
@@ -7281,7 +7556,7 @@ class CapacityManager extends BaseComponent {
         const teamMemberSelect = document.getElementById('assignment-team-member');
         const projectSelect = document.getElementById('assignment-project');
         
-        if (!teamMemberSelect.value || !projectSelect.value || !completeProject) {
+        if (!teamMemberSelect.value || !projectSelect.value) {
             document.getElementById('total-final-mds').textContent = '-';
             document.getElementById('budget-context').textContent = '';
             this.updateBudgetBalance();
@@ -7289,9 +7564,40 @@ class CapacityManager extends BaseComponent {
         }
         
         try {
+            // 🚨 CRITICAL FIX: If no completeProject provided, try to load it
+            let projectData = completeProject;
+            if (!projectData) {
+                console.log('🔄 No project data provided, attempting to load project for budget calculation');
+                // Try to load the selected project
+                const projects = await this.getAvailableProjects();
+                const selectedProject = projects.find(p => p.id === projectSelect.value);
+                
+                if (selectedProject && selectedProject.filePath) {
+                    const dataManager = this.app?.managers?.data || window.dataManager;
+                    projectData = await dataManager.loadProject(selectedProject.filePath);
+                    
+                    // Try to get calculationData from latest version if available
+                    if (projectData.versions && projectData.versions.length > 0) {
+                        const sortedVersions = projectData.versions.sort((a, b) => {
+                            return b.id.localeCompare(a.id, undefined, { numeric: true });
+                        });
+                        
+                        const latestVersion = sortedVersions[0];
+                        if (latestVersion.projectSnapshot?.calculationData) {
+                            projectData.calculationData = latestVersion.projectSnapshot.calculationData;
+                        }
+                    }
+                } else {
+                    console.warn('🚨 Cannot load project data for budget calculation');
+                    document.getElementById('total-final-mds').textContent = '-';
+                    document.getElementById('budget-context').textContent = 'Project data not available';
+                    this.updateBudgetBalance();
+                    return;
+                }
+            }
+            
             // Get team member role and vendor
             const teamMembers = await this.getRealTeamMembers();
-
             const selectedMember = teamMembers.find(m => m.id === teamMemberSelect.value);
             
             if (!selectedMember) {
@@ -7307,12 +7613,8 @@ class CapacityManager extends BaseComponent {
             // Find matching vendor cost in project calculation data
             let finalMDs = 0;
 
-            if (completeProject.calculationData?.vendorCosts) {
-                completeProject.calculationData.vendorCosts.forEach((cost, index) => {
-                });
-                
-
-                const vendorCost = completeProject.calculationData.vendorCosts.find(cost => {
+            if (projectData.calculationData?.vendorCosts) {
+                const vendorCost = projectData.calculationData.vendorCosts.find(cost => {
                     const vendorIdMatch = cost.vendorId === selectedMember.vendorId;
                     const roleMatch = cost.role === memberRole;
                     return vendorIdMatch && roleMatch;
@@ -7320,17 +7622,13 @@ class CapacityManager extends BaseComponent {
 
                 if (vendorCost) {
                     finalMDs = vendorCost.finalMDs || 0;
-
                 } else {
-
-                    completeProject.calculationData.vendorCosts.forEach((cost, index) => {
-
-                    });
+                    console.warn(`  - No vendor cost found for vendor ${selectedMember.vendorId} with role ${memberRole}`);
                 }
             } else {
                 console.error('  - CRITICAL: No calculationData.vendorCosts found in project');
+                console.warn('  - 🔧 Budget calculation may not have been performed yet for this project');
             }
-            
 
             document.getElementById('total-final-mds').textContent = `${finalMDs.toFixed(1)} MDs`;
             document.getElementById('budget-context').textContent = `Budget for ${vendorName} - ${memberRole} in this project`;

@@ -245,7 +245,7 @@ class ProjectManager {
      */
     showNewProjectModal() {
         // Check if current project needs saving
-        if (this.app.isDirty) {
+        if (StateSelectors.isProjectDirty()) {
             const confirmed = confirm('You have unsaved changes. Creating a new project will discard them. Continue?');
             if (!confirmed) return;
         }
@@ -425,7 +425,7 @@ class ProjectManager {
             await new Promise(resolve => setTimeout(resolve, 200));
 
             // Verify project is clean before creating initial version
-            const currentProject = this.store.getState().currentProject;
+            const currentProject = StateSelectors.getCurrentProject();
             console.log('🔍 Verifying project state before initial version:', {
                 features: currentProject.features?.length || 0,
                 developmentManDays: currentProject.phases?.development?.manDays || 'N/A',
@@ -800,7 +800,7 @@ class ProjectManager {
             }
 
             // Check if current project needs saving
-            if (this.app.isDirty) {
+            if (StateSelectors.isProjectDirty()) {
                 const save = await this.confirmSave();
                 if (save === null) return; // User cancelled
                 if (save) await this.app.saveProject();
@@ -903,7 +903,7 @@ class ProjectManager {
         return await withLoading(
             LoadingOperations.PROJECT_SAVE,
             async () => {
-                const currentProject = this.store.getState().currentProject;
+                const currentProject = StateSelectors.getCurrentProject();
                 if (!currentProject) {
                     throw new Error('No project to save');
                 }
@@ -1016,9 +1016,10 @@ class ProjectManager {
      * Update recent project if it exists with current project data
      */
     updateRecentProjectVersion() {
-        if (!this.app.currentProject?.project) return;
+        const currentProjectData = StateSelectors.getCurrentProject();
+        if (!currentProjectData?.project) return;
         
-        const currentProject = this.app.currentProject.project;
+        const currentProject = currentProjectData.project;
         const currentFilePath = this.app.dataManager.currentProjectPath;
         
         // Find existing recent project by ID or file path
@@ -1222,7 +1223,8 @@ class ProjectManager {
      * Update current project UI
      */
     updateCurrentProjectUI() {
-        const project = this.app.currentProject?.project;
+        const currentProjectData = StateSelectors.getCurrentProject();
+        const project = currentProjectData?.project;
         // Only really loaded projects, not the default "New Project"
         const hasLoadedProject = project && project.name !== 'New Project' && this.app.dataManager.currentProjectPath;
 
@@ -1252,7 +1254,7 @@ class ProjectManager {
         const closeBtn = document.getElementById('close-current-project-btn');
 
         if (saveBtn) {
-            saveBtn.disabled = !hasLoadedProject || !this.app.isDirty;
+            saveBtn.disabled = !hasLoadedProject || !StateSelectors.isProjectDirty();
         }
 
         if (closeBtn) {
@@ -1427,7 +1429,7 @@ class ProjectManager {
             }
 
             // Check if current project needs saving
-            if (this.app.isDirty) {
+            if (StateSelectors.isProjectDirty()) {
                 const save = await this.confirmSave();
                 if (save === null) return;
                 if (save) await this.saveCurrentProject();
@@ -1488,7 +1490,7 @@ class ProjectManager {
     async loadSavedProject(filePath) {
         try {
             // Check if current project needs saving
-            if (this.app.isDirty) {
+            if (StateSelectors.isProjectDirty()) {
                 const save = await this.confirmSave();
                 if (save === null) return;
                 if (save) await this.saveCurrentProject();
@@ -1708,8 +1710,8 @@ class ProjectManager {
         return {
             recentCount: this.recentProjects.length,
             savedCount: this.savedProjects.length,
-            currentProject: this.app.currentProject?.project?.name || 'None',
-            isDirty: this.app.isDirty
+            currentProject: StateSelectors.getCurrentProject()?.project?.name || 'None',
+            isDirty: StateSelectors.isProjectDirty()
         };
     }
 }

@@ -95,8 +95,9 @@ class ProjectPhasesManager {
 
     loadResourceRates() {
         // Carica i supplier selezionati dal progetto corrente
-        if (this.app.currentProject && this.app.currentProject.phases) {
-            const phasesConfig = this.app.currentProject.phases;
+        const currentProject = StateSelectors.getCurrentProject();
+        if (currentProject && currentProject.phases) {
+            const phasesConfig = currentProject.phases;
             
             if (phasesConfig.selectedSuppliers) {
                 this.selectedSuppliers = { ...phasesConfig.selectedSuppliers };
@@ -106,9 +107,10 @@ class ProjectPhasesManager {
     }
     
     updateRatesFromSelectedSuppliers() {
-        if (!this.configManager || !this.app.currentProject) return;
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!this.configManager || !currentProject) return;
         
-        const projectConfig = this.configManager.getProjectConfig(this.app.currentProject.config);
+        const projectConfig = this.configManager.getProjectConfig(currentProject.config);
         const allSuppliers = [...projectConfig.suppliers, ...projectConfig.internalResources];
         
         Object.keys(this.selectedSuppliers).forEach(resourceType => {
@@ -123,20 +125,22 @@ class ProjectPhasesManager {
     }
     
     getAvailableSuppliers() {
-        if (!this.configManager || !this.app.currentProject) return [];
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!this.configManager || !currentProject) return [];
         
-        const projectConfig = this.configManager.getProjectConfig(this.app.currentProject.config);
+        const projectConfig = this.configManager.getProjectConfig(currentProject.config);
         return [...projectConfig.suppliers, ...projectConfig.internalResources];
     }
 
     initializePhases() {
         // Inizializza le fasi dal progetto corrente o dai default
-        if (this.app.currentProject && this.app.currentProject.phases) {
-            this.currentPhases = this.mergeProjectPhases(this.app.currentProject.phases);
+        const currentProject = StateSelectors.getCurrentProject();
+        if (currentProject && currentProject.phases) {
+            this.currentPhases = this.mergeProjectPhases(currentProject.phases);
             
             // Restore selected suppliers from project if they exist
-            if (this.app.currentProject.phases.selectedSuppliers) {
-                this.selectedSuppliers = { ...this.app.currentProject.phases.selectedSuppliers };
+            if (currentProject.phases.selectedSuppliers) {
+                this.selectedSuppliers = { ...currentProject.phases.selectedSuppliers };
             }
         } else {
             this.currentPhases = this.createDefaultPhases();
@@ -173,13 +177,14 @@ class ProjectPhasesManager {
     calculateDevelopmentPhase() {
         // Calcola automaticamente i man days della fase Development dalla lista features + coverage
         const developmentPhase = this.currentPhases.find(p => p.id === 'development');
-        if (developmentPhase && this.app.currentProject) {
-            const featuresTotal = this.app.currentProject.features.reduce((sum, feature) => {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (developmentPhase && currentProject) {
+            const featuresTotal = currentProject.features.reduce((sum, feature) => {
                 return sum + (parseFloat(feature.manDays) || 0);
             }, 0);
 
             // Add coverage MDs to development phase
-            const coverageMDs = parseFloat(this.app.currentProject.coverage) || 0;
+            const coverageMDs = parseFloat(currentProject.coverage) || 0;
             const totalDevelopmentMDs = featuresTotal + coverageMDs;
 
             // Round to 1 decimal place to avoid too many decimal digits
@@ -219,9 +224,10 @@ class ProjectPhasesManager {
 
     renderDevelopmentNotice() {
         const developmentPhase = this.currentPhases.find(p => p.id === 'development');
-        const featuresCount = this.app.currentProject?.features?.length || 0;
+        const currentProject = StateSelectors.getCurrentProject();
+        const featuresCount = currentProject?.features?.length || 0;
         const developmentDays = developmentPhase?.manDays || 0;
-        const coverageMDs = parseFloat(this.app.currentProject?.coverage) || 0;
+        const coverageMDs = parseFloat(currentProject?.coverage) || 0;
 
         return `
             <div class="development-notice">
@@ -427,12 +433,13 @@ class ProjectPhasesManager {
         // Per Development: somma di (ogni feature: Calc MDs * rate supplier specifico della feature * effort % G2)
         let g2Cost = 0;
         
-        if (this.app.currentProject && this.app.currentProject.features) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (currentProject && currentProject.features) {
             const g2EffortPercent = developmentPhase.effort.G2 / 100;
-            const projectConfig = this.configManager ? this.configManager.getProjectConfig(this.app.currentProject.config) : null;
+            const projectConfig = this.configManager ? this.configManager.getProjectConfig(currentProject.config) : null;
             const allSuppliers = projectConfig ? [...projectConfig.suppliers, ...projectConfig.internalResources] : [];
             
-            this.app.currentProject.features.forEach(feature => {
+            currentProject.features.forEach(feature => {
                 const featureManDays = parseFloat(feature.manDays) || 0;
                 
                 // Trova il supplier specifico di questa feature
@@ -606,21 +613,20 @@ class ProjectPhasesManager {
             return;
         }
         
-        if (!this.app || !this.app.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!this.app || !currentProject) {
             console.warn('No current project to sync to');
             return;
         }
 
-        // Ensure project has phases structure
-        const currentProject = StateSelectors.getCurrentProject();
-        if (!currentProject) return;
+        // Project already retrieved above
         
         // PURE STATE MANAGER: Build phases object for store update
-        const phasesObject = currentProject.phases || {};
+        const newPhasesObject = {};
 
         // Sync phases data to project structure
         this.currentPhases.forEach(phase => {
-            phasesObject[phase.id] = {
+            newPhasesObject[phase.id] = {
                 manDays: phase.manDays,
                 effort: { ...phase.effort }, // Deep copy effort object
                 lastModified: phase.lastModified,
@@ -630,16 +636,147 @@ class ProjectPhasesManager {
 
         // Preserve selectedSuppliers
         if (this.selectedSuppliers) {
-            phasesObject.selectedSuppliers = { ...this.selectedSuppliers };
+            newPhasesObject.selectedSuppliers = { ...this.selectedSuppliers };
         }
         
-        // PURE STATE MANAGER: Use store action with safe access
+        // 🚨 CRITICAL FIX: Compare current and new phases data to prevent infinite loops
+        const currentPhasesObject = currentProject.phases || {};
+        const hasRealChanges = this.phasesDataHasChanged(currentPhasesObject, newPhasesObject);
+        
+        if (!hasRealChanges) {
+            console.log('🛡️ Phases data unchanged, skipping store update to prevent loop');
+            return;
+        }
+        
+        // 🚨 CRITICAL FIX: Access store state and actions correctly
         try {
-            this.store.getState().updateProjectPhases(phasesObject);
-            console.log('Phases data synced to current project:', this.app.currentProject.phases);
+            const storeState = this.store.getState();
+            if (storeState && typeof storeState.updateProjectPhases === 'function') {
+                storeState.updateProjectPhases(newPhasesObject);
+                console.log('Phases data synced to current project via store');
+            } else {
+                throw new Error('updateProjectPhases not available on store state');
+            }
         } catch (error) {
             console.error('Error syncing phases to store:', error);
+            // Fallback: direct project update (legacy approach)
+            if (this.app && currentProject) {
+                // PURE STATE MANAGER: Use store action instead of direct mutation
+                if (this.store) {
+                    this.store.getState().updateProjectPhases(newPhasesObject);
+                }
+                if (typeof this.app.markDirty === 'function') {
+                    this.app.markDirty();
+                }
+                console.log('Phases synced via fallback direct update');
+            }
         }
+    }
+
+    /**
+     * 🚨 CRITICAL FIX: Check if phases data has actually changed to prevent infinite loops
+     */
+    phasesDataHasChanged(currentPhasesObject, newPhasesObject) {
+        // Quick reference comparison - if same object, no changes
+        if (currentPhasesObject === newPhasesObject) {
+            return false;
+        }
+        
+        // Compare keys
+        const currentKeys = Object.keys(currentPhasesObject).sort();
+        const newKeys = Object.keys(newPhasesObject).sort();
+        
+        if (currentKeys.length !== newKeys.length) {
+            return true;
+        }
+        
+        // Compare each phase data (excluding volatile fields like timestamps)
+        for (const key of currentKeys) {
+            if (!newKeys.includes(key)) {
+                return true;
+            }
+            
+            const currentPhase = currentPhasesObject[key];
+            const newPhase = newPhasesObject[key];
+            
+            // Skip if either is null/undefined but not both
+            if ((currentPhase == null) !== (newPhase == null)) {
+                return true;
+            }
+            
+            if (currentPhase == null && newPhase == null) {
+                continue;
+            }
+            
+            // Compare significant fields (excluding lastModified which is volatile)
+            if (currentPhase.manDays !== newPhase.manDays ||
+                currentPhase.calculated !== newPhase.calculated) {
+                return true;
+            }
+            
+            // Compare effort objects
+            if (!this.effortObjectsEqual(currentPhase.effort, newPhase.effort)) {
+                return true;
+            }
+        }
+        
+        // Compare selectedSuppliers
+        const currentSuppliers = currentPhasesObject.selectedSuppliers || {};
+        const newSuppliers = newPhasesObject.selectedSuppliers || {};
+        
+        if (!this.suppliersEqual(currentSuppliers, newSuppliers)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Compare effort objects for equality
+     */
+    effortObjectsEqual(effort1, effort2) {
+        if ((effort1 == null) !== (effort2 == null)) {
+            return false;
+        }
+        
+        if (effort1 == null && effort2 == null) {
+            return true;
+        }
+        
+        const keys1 = Object.keys(effort1).sort();
+        const keys2 = Object.keys(effort2).sort();
+        
+        if (keys1.length !== keys2.length) {
+            return false;
+        }
+        
+        for (const key of keys1) {
+            if (!keys2.includes(key) || effort1[key] !== effort2[key]) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Compare suppliers objects for equality
+     */
+    suppliersEqual(suppliers1, suppliers2) {
+        const keys1 = Object.keys(suppliers1).sort();
+        const keys2 = Object.keys(suppliers2).sort();
+        
+        if (keys1.length !== keys2.length) {
+            return false;
+        }
+        
+        for (const key of keys1) {
+            if (!keys2.includes(key) || suppliers1[key] !== suppliers2[key]) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     validateInput(input) {
@@ -822,12 +959,15 @@ class ProjectPhasesManager {
             return;
         }
         
-        // PURE STATE MANAGER: Use store action instead of duplicated state
-        StateSelectors.markProjectDirty();
-        
-        // App dirty state updated automatically via store
-        if (this.app && typeof this.app.markDirty === 'function') {
-            this.app.markDirty();
+        // PURE STATE MANAGER: Use StateSelectors which has safe access
+        try {
+            StateSelectors.markProjectDirty();
+        } catch (error) {
+            console.error('Error using StateSelectors.markProjectDirty:', error);
+            // Fallback to app method
+            if (this.app && typeof this.app.markDirty === 'function') {
+                this.app.markDirty();
+            }
         }
         
         // Update UI to show unsaved changes indicator
@@ -910,7 +1050,8 @@ class ProjectPhasesManager {
 
     // New method: Call this when a project is loaded to ensure phases are synchronized
     synchronizeWithProject() {
-        if (!this.app.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) {
             return;
         }
         
@@ -1042,16 +1183,20 @@ class ProjectPhasesManager {
         };
 
         // Remove any saved selected suppliers from project data to prevent restore
-        if (this.app.currentProject && this.app.currentProject.phases) {
-            delete this.app.currentProject.phases.selectedSuppliers;
+        const currentProject = StateSelectors.getCurrentProject();
+        if (currentProject && currentProject.phases) {
+            delete currentProject.phases.selectedSuppliers;
         }
 
         // Reset phases to default clean state
         this.currentPhases = this.createDefaultPhases();
         
         // Update project phases with clean data
-        if (this.app.currentProject) {
-            this.app.currentProject.phases = this.getProjectPhases();
+        if (currentProject) {
+            // PURE STATE MANAGER: Use store action instead of direct mutation
+            if (this.store) {
+                this.store.getState().updateProjectPhases(this.getProjectPhases());
+            }
         }
 
         // Force re-render of phases page to reflect clean state

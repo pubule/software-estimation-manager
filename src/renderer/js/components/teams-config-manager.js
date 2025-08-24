@@ -509,7 +509,7 @@ class TeamsConfigManager {
                 return this.configManager.globalConfig?.teams || [];
             } else {
                 // Project scope
-                const currentProject = this.app?.currentProject;
+                const currentProject = StateSelectors.getCurrentProject();
                 if (!currentProject) {
                     console.log('No current project available');
                     return [];
@@ -547,7 +547,7 @@ class TeamsConfigManager {
             const globalTeams = this.configManager.globalConfig?.teams || [];
             
             let projectTeams = [];
-            const currentProject = this.app?.currentProject;
+            const currentProject = StateSelectors.getCurrentProject();
             if (currentProject) {
                 const projectConfig = this.configManager.getProjectConfig(currentProject.config);
                 const projectOverrides = projectConfig.projectOverrides || {};
@@ -962,7 +962,7 @@ class TeamsConfigManager {
                 }
             } else {
                 // Reset project teams
-                const currentProject = this.app?.currentProject;
+                const currentProject = StateSelectors.getCurrentProject();
                 if (currentProject) {
                     const projectConfig = this.configManager.getProjectConfig(currentProject.config);
                     projectConfig.projectOverrides = projectConfig.projectOverrides || {};
@@ -1201,7 +1201,7 @@ class TeamsConfigManager {
         if (this.currentScope === 'global') {
             await this.configManager.saveGlobalConfig();
         } else {
-            const currentProject = this.app?.currentProject;
+            const currentProject = StateSelectors.getCurrentProject();
             if (currentProject) {
                 await this.configManager.saveProjectConfig(currentProject.config);
             }

@@ -74,8 +74,8 @@ function getProjectConfig() {
  * @returns {boolean} True if project is loaded
  */
 function hasProject() {
-    const state = getState();
-    return state?.hasProject || false;
+    const currentProject = getCurrentProject();
+    return currentProject !== null;
 }
 
 /**
@@ -92,8 +92,8 @@ function isProjectDirty() {
  * @returns {string} Project name or default
  */
 function getProjectName() {
-    const state = getState();
-    return state?.projectName || 'New Project';
+    const currentProject = getCurrentProject();
+    return currentProject?.project?.name || 'New Project';
 }
 
 /**
@@ -102,7 +102,8 @@ function getProjectName() {
  */
 function getLastSavedFormatted() {
     const state = getState();
-    return state?.lastSavedFormatted || 'Never';
+    if (!state?.lastSavedTime) return 'Never';
+    return state.lastSavedTime.toLocaleString();
 }
 
 // ======================
@@ -114,8 +115,8 @@ function getLastSavedFormatted() {
  * @returns {number} Number of features
  */
 function getFeatureCount() {
-    const state = getState();
-    return state?.featureCount || 0;
+    const features = getProjectFeatures();
+    return features.length;
 }
 
 /**
@@ -123,8 +124,8 @@ function getFeatureCount() {
  * @returns {number} Total man days
  */
 function getTotalManDays() {
-    const state = getState();
-    return state?.totalManDays || 0;
+    const features = getProjectFeatures();
+    return features.reduce((sum, feature) => sum + (parseFloat(feature.manDays) || 0), 0);
 }
 
 /**

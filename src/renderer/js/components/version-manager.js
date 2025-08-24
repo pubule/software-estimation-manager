@@ -90,7 +90,8 @@ class VersionManager {
                 this.showCreateVersionModal();
             } else if (e.shiftKey && e.key === 'H') {
                 e.preventDefault();
-                if (this.app.navigationManager) {
+                // Use app reference for navigation manager access (non-state related)
+                if (this.app?.navigationManager) {
                     this.app.navigationManager.navigateTo('history');
                 }
             }
@@ -104,14 +105,15 @@ class VersionManager {
         const container = document.querySelector('.history-content');
         if (!container) return;
 
-        const currentProject = this.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject) {
             container.innerHTML = this.renderNoProjectState();
             return;
         }
 
         // Trigger calculations update to ensure data is current
-        if (this.app.calculationsManager) {
+        // Use app reference for manager access (non-state related)
+        if (this.app?.calculationsManager) {
             this.app.calculationsManager.calculateVendorCosts();
             this.app.calculationsManager.calculateKPIs();
         }
@@ -153,7 +155,7 @@ class VersionManager {
      * Render version history header
      */
     renderVersionHistoryHeader() {
-        const currentProject = this.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         const currentVersion = this.getCurrentVersion();
         const versionsCount = this.currentVersions.length;
         
@@ -677,7 +679,8 @@ class VersionManager {
      * Show create version modal
      */
     showCreateVersionModal() {
-        if (!this.app.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) {
             NotificationManager.show('No project loaded', 'error');
             return;
         }
@@ -763,9 +766,10 @@ class VersionManager {
      * Render current project statistics for preview
      */
     renderCurrentProjectStats() {
-        if (!this.app.currentProject) return '<p>No project loaded</p>';
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) return '<p>No project loaded</p>';
         
-        const stats = this.calculateVersionStats(this.app.currentProject);
+        const stats = this.calculateVersionStats(currentProject);
         return `
             <div class="version-stats-grid">
                 <div class="version-preview-stat-item">
@@ -792,33 +796,34 @@ class VersionManager {
      * Create a new version
      */
     async createVersion(reason) {
-        if (!this.app.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) {
             NotificationManager.show('No project loaded', 'error');
             return;
         }
-
 
         try {
             this.isLoading = true;
             this.showLoading('Creating version...');
 
             // Ensure we're synchronized with the current project before creating version
-            this.ensureVersionsArray(this.app.currentProject);
-            this.loadVersionsFromProject(this.app.currentProject);
+            this.ensureVersionsArray(currentProject);
+            this.loadVersionsFromProject(currentProject);
 
             // Force synchronization of all managers to currentProject before creating snapshot
-            if (this.app.projectPhasesManager && typeof this.app.projectPhasesManager.syncToCurrentProject === 'function') {
+            // Use app reference for manager access (non-state related)
+            if (this.app?.projectPhasesManager && typeof this.app.projectPhasesManager.syncToCurrentProject === 'function') {
                 this.app.projectPhasesManager.syncToCurrentProject();
             }
             
             // Force recalculation of vendor costs and KPIs to ensure calculation data is current
-            if (this.app.calculationsManager) {
+            if (this.app?.calculationsManager) {
                 this.app.calculationsManager.calculateVendorCosts();
                 this.app.calculationsManager.calculateKPIs();
             }
 
             // Check file size before creating version
-            const projectSize = JSON.stringify(this.app.currentProject).length;
+            const projectSize = JSON.stringify(currentProject).length;
             if (projectSize > this.maxFileSize) {
                 NotificationManager.show(`Project size (${(projectSize / 1024 / 1024).toFixed(1)}MB) exceeds recommended limit`, 'warning');
             }
@@ -829,8 +834,8 @@ class VersionManager {
             // Update project version to match the new version ID
             const newProjectVersion = this.convertVersionIdToSemver(nextVersionId);
             
-            // PURE STATE MANAGER: Use store action instead of direct mutation
-            this.store.getState().updateProjectMetadata({ version: newProjectVersion });
+            // 🚨 PURE STATE MANAGER: Use store action instead of direct store.getState() access
+            AppStore.getState().updateProjectMetadata({ version: newProjectVersion });
 
             // Create deep copy of current project state
             const projectSnapshot = this.createProjectSnapshot();
@@ -848,16 +853,18 @@ class VersionManager {
             };
 
             // Add to versions array
-            // PURE STATE MANAGER: Use store action instead of direct mutation
-            const currentProject = StateSelectors.getCurrentProject();
-            const currentVersions = currentProject.versions || [];
+            // 🚨 PURE STATE MANAGER: Use store action instead of direct mutation
+            const updatedCurrentProject = StateSelectors.getCurrentProject();
+            const currentVersions = updatedCurrentProject.versions || [];
             const updatedVersions = [...currentVersions, newVersion];
             
-            this.store.getState().updateProjectVersions(updatedVersions);
+            AppStore.getState().updateProjectVersions(updatedVersions);
             this.currentVersions = updatedVersions;
 
-            // Save project with new version
-            await this.app.saveProject();
+            // Save project with new version (use app reference for save method)
+            if (this.app && typeof this.app.saveProject === 'function') {
+                await this.app.saveProject();
+            }
 
             // Update title bar to show new version
             this.updateTitleBar();
@@ -881,7 +888,8 @@ class VersionManager {
      */
     generateNextVersionId() {
         // Always check current project's versions array for most accurate count
-        const projectVersions = this.app.currentProject?.versions || [];
+        const currentProject = StateSelectors.getCurrentProject();
+        const projectVersions = currentProject?.versions || [];
         
         // Double-check with currentVersions array for consistency
         if (projectVersions.length === 0 && this.currentVersions.length === 0) {
@@ -915,7 +923,8 @@ class VersionManager {
      */
     createProjectSnapshot() {
         // Create deep copy without versions array to avoid circular references
-        const snapshot = JSON.parse(JSON.stringify(this.app.currentProject));
+        const currentProject = StateSelectors.getCurrentProject();
+        const snapshot = JSON.parse(JSON.stringify(currentProject));
         delete snapshot.versions; // Remove versions to avoid storing versions within versions
         
         // Include current calculation data if available, but exclude timestamp for comparison consistency
@@ -935,9 +944,10 @@ class VersionManager {
      */
     updateTitleBar() {
         const titleElement = document.getElementById('title-project-name');
-        if (titleElement && this.app.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (titleElement && currentProject) {
             const currentVersion = this.getCurrentVersion();
-            const projectName = this.app.currentProject.project.name;
+            const projectName = currentProject.project.name;
             const versionText = currentVersion !== 'No Versions' ? ` - ${currentVersion} (Live)` : '';
             titleElement.textContent = `${projectName}${versionText}`;
         }
@@ -976,7 +986,8 @@ class VersionManager {
 
     handleCompareVersion(versionId) {
         
-        if (!this.app.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) {
             NotificationManager.show('No project loaded', 'error');
             return;
         }
@@ -999,7 +1010,8 @@ class VersionManager {
 
     handleRestoreVersion(versionId) {
         
-        if (!this.app.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) {
             NotificationManager.show('No project loaded', 'error');
             return;
         }
@@ -1101,7 +1113,8 @@ class VersionManager {
      * Render version comparison summary
      */
     renderVersionComparison(versionToRestore) {
-        const currentStats = this.calculateVersionStats(this.app.currentProject);
+        const currentProject = StateSelectors.getCurrentProject();
+        const currentStats = this.calculateVersionStats(currentProject);
         const restoreStats = this.calculateVersionStats(versionToRestore.projectSnapshot);
         
         const changes = [];
@@ -1190,13 +1203,12 @@ class VersionManager {
             const backupReason = `Backup before restoring ${versionToRestore.id}`;
             await this.createVersion(backupReason);
 
-
             // Restore the version data (without versions array)
             const restoredData = JSON.parse(JSON.stringify(versionToRestore.projectSnapshot));
             
             // Preserve the versions array from current project
-            restoredData.versions = this.app.currentProject.versions;
-            
+            const currentProject = StateSelectors.getCurrentProject();
+            restoredData.versions = currentProject.versions;
             
             // Create a version to represent the restored state BEFORE updating the current project
             const restoreReason = `Restored from version ${versionToRestore.id}`;
@@ -1212,17 +1224,16 @@ class VersionManager {
             // Add the restore version to the versions array before updating the project
             restoredData.versions.push(restoreVersion);
 
-            // Update current project with restored data (including the new restore version)
-            this.app.currentProject = restoredData;
-            
+            // 🚨 PURE STATE MANAGER: Use store action instead of direct mutation
+            AppStore.getState().updateCurrentProject(restoredData);
             
             // Update title bar
             this.updateTitleBar();
 
             // Force refresh ALL components to ensure they use the restored data
             
-            // Force refresh features manager
-            if (this.app.featureManager) {
+            // Force refresh features manager (use app reference for manager access)
+            if (this.app?.featureManager) {
                 this.app.featureManager.refreshTable();
             }
 
@@ -1231,16 +1242,18 @@ class VersionManager {
 
             // Re-initialize all managers with the restored data from currentProject
             
-            // Re-initialize phases manager with restored data
-            if (this.app.projectPhasesManager && typeof this.app.projectPhasesManager.initializePhases === 'function') {
+            // Re-initialize phases manager with restored data (use app reference for manager access)
+            if (this.app?.projectPhasesManager && typeof this.app.projectPhasesManager.initializePhases === 'function') {
                 this.app.projectPhasesManager.initializePhases();
             }
 
             // Ensure phases are properly initialized - create phasesManager reference for calculations
-            this.app.phasesManager = this.app.projectPhasesManager;
+            if (this.app?.projectPhasesManager) {
+                this.app.phasesManager = this.app.projectPhasesManager;
+            }
 
-            // Force refresh calculations data
-            if (this.app.calculationsManager) {
+            // Force refresh calculations data (use app reference for manager access)
+            if (this.app?.calculationsManager) {
                 this.app.calculationsManager.calculateVendorCosts();
                 this.app.calculationsManager.calculateKPIs();
             }
@@ -1253,7 +1266,7 @@ class VersionManager {
             }
             
             // Force refresh configuration manager to reload project config
-            if (this.app.configManager) {
+            if (this.app?.configManager) {
                 // Force reload of project configuration
                 this.app.configManager.currentConfig = null; // Clear cache
             }
@@ -1261,11 +1274,13 @@ class VersionManager {
             // Refresh version history UI (this component)
             this.render();
             
-            // Mark as dirty AFTER all managers have been properly initialized with restored data
-            this.app.markDirty();
+            // 🚨 PURE STATE MANAGER: Mark as dirty using store action
+            AppStore.getState().markProjectDirty();
             
-            // Force save the project with restored data
-            await this.app.saveProject();
+            // Force save the project with restored data (use app reference for save method)
+            if (this.app && typeof this.app.saveProject === 'function') {
+                await this.app.saveProject();
+            }
             
             NotificationManager.show(`Successfully restored version ${versionToRestore.id}`, 'success');
 
@@ -1296,7 +1311,8 @@ class VersionManager {
         
         const currentVersion = this.getCurrentVersion();
         console.log('🔍 VERSION COMPARE - Current version:', currentVersion);
-        console.log('🔍 VERSION COMPARE - Current project data keys:', Object.keys(this.app.currentProject));
+        const currentProject = StateSelectors.getCurrentProject();
+        console.log('🔍 VERSION COMPARE - Current project data keys:', Object.keys(currentProject));
         console.log('🔍 VERSION COMPARE - Version snapshot data keys:', Object.keys(versionToCompare.projectSnapshot));
         
         const modal = document.createElement('div');
@@ -1370,7 +1386,7 @@ class VersionManager {
      * Render project metadata comparison
      */
     renderProjectComparison(versionToCompare) {
-        const current = this.app.currentProject;
+        const current = StateSelectors.getCurrentProject();
         const compare = versionToCompare.projectSnapshot;
         
         console.log('🔍 PROJECT COMPARE - Current project data:', {
@@ -1481,7 +1497,7 @@ class VersionManager {
      * Render features comparison
      */
     renderFeaturesComparison(versionToCompare) {
-        const currentFeatures = this.app.currentProject.features || [];
+        const currentFeatures = currentProject.features || [];
         const compareFeatures = versionToCompare.projectSnapshot.features || [];
         
         console.log('🔍 FEATURES COMPARE - Current features:', currentFeatures.map(f => ({
@@ -1500,7 +1516,8 @@ class VersionManager {
             category: f.category
         })));
         
-        const currentStats = this.calculateVersionStats(this.app.currentProject);
+        const currentProject = StateSelectors.getCurrentProject();
+        const currentStats = this.calculateVersionStats(currentProject);
         const compareStats = this.calculateVersionStats(versionToCompare.projectSnapshot);
         
         console.log('🔍 FEATURES COMPARE - Current stats:', currentStats);
@@ -1665,7 +1682,7 @@ class VersionManager {
      * Render assumptions comparison
      */
     renderAssumptionsComparison(versionToCompare) {
-        const currentAssumptions = this.app.currentProject.assumptions || [];
+        const currentAssumptions = currentProject.assumptions || [];
         const compareAssumptions = versionToCompare.projectSnapshot.assumptions || [];
         
         console.log('🔍 ASSUMPTIONS COMPARE - Current assumptions:', currentAssumptions.map(a => ({
@@ -1682,7 +1699,8 @@ class VersionManager {
             impact: a.impact
         })));
         
-        const currentStats = this.calculateVersionStats(this.app.currentProject);
+        const currentProject = StateSelectors.getCurrentProject();
+        const currentStats = this.calculateVersionStats(currentProject);
         const compareStats = this.calculateVersionStats(versionToCompare.projectSnapshot);
         
         console.log('🔍 ASSUMPTIONS COMPARE - Current stats:', currentStats);
@@ -1862,7 +1880,8 @@ class VersionManager {
      * Render configuration comparison
      */
     renderConfigurationComparison(versionToCompare) {
-        const currentOverrides = this.app.currentProject.projectOverrides || {};
+        const currentProject = StateSelectors.getCurrentProject();
+        const currentOverrides = currentProject.projectOverrides || {};
         const compareOverrides = versionToCompare.projectSnapshot.projectOverrides || {};
         
         const configFields = [
@@ -1986,12 +2005,12 @@ class VersionManager {
         console.log('🔍 PHASES COMPARE - Current phases array:', currentPhasesArray.map(p => ({
             id: p.id,
             name: p.name,
-            manDays: this.app.currentProject.phases?.[p.id]?.manDays || 0
+            manDays: currentProject.phases?.[p.id]?.manDays || 0
         })));
         
         // Fallback: if phases manager is not available or empty, use phase definitions from current project phases
         if (currentPhasesArray.length === 0) {
-            const currentPhasesMap = this.app.currentProject.phases || {};
+            const currentPhasesMap = currentProject.phases || {};
             const defaultPhaseNames = [
                 { id: 'functionalAnalysis', name: 'Functional Analysis' },
                 { id: 'technicalAnalysis', name: 'Technical Analysis' },
@@ -2009,7 +2028,7 @@ class VersionManager {
             );
         }
         
-        const currentPhasesMap = this.app.currentProject.phases || {};
+        const currentPhasesMap = currentProject.phases || {};
         const comparePhasesMap = versionToCompare.projectSnapshot.phases || {};
         
         console.log('🔍 PHASES COMPARE - Current phases map:', Object.entries(currentPhasesMap).map(([id, data]) => ({
@@ -2301,7 +2320,8 @@ class VersionManager {
 
     async handleExportVersion(versionId) {
         
-        if (!this.app.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) {
             NotificationManager.show('No project loaded', 'error');
             return;
         }
@@ -2327,13 +2347,13 @@ class VersionManager {
                 version: versionToExport,
                 exportedAt: new Date().toISOString(),
                 originalProject: {
-                    name: this.app.currentProject.project.name,
-                    id: this.app.currentProject.project.id
+                    name: currentProject.project.name,
+                    id: currentProject.project.id
                 }
             };
 
             // Generate filename
-            const projectName = this.app.currentProject.project.name.replace(/[^a-z0-9]/gi, '_');
+            const projectName = currentProject.project.name.replace(/[^a-z0-9]/gi, '_');
             const filename = `${projectName}_${versionId}_${new Date().toISOString().split('T')[0]}.json`;
 
             // Use Electron API to save file
@@ -2375,7 +2395,8 @@ class VersionManager {
 
     handleDeleteVersion(versionId) {
         
-        if (!this.app.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) {
             NotificationManager.show('No project loaded', 'error');
             return;
         }
@@ -2492,11 +2513,13 @@ class VersionManager {
             if (index !== -1) {
                 this.currentVersions.splice(index, 1);
                 
-                // PURE STATE MANAGER: Use store action instead of direct mutation
-                this.store.getState().updateProjectVersions([...this.currentVersions]);
+                // 🚨 PURE STATE MANAGER: Use AppStore instead of this.store
+                AppStore.getState().updateProjectVersions([...this.currentVersions]);
                 
-                // Save project to persist the deletion
-                await this.app.saveProject();
+                // Save project to persist the deletion (use app reference for save method)
+                if (this.app && typeof this.app.saveProject === 'function') {
+                    await this.app.saveProject();
+                }
                 
                 // Refresh UI
                 this.render();
@@ -2515,7 +2538,8 @@ class VersionManager {
     }
 
     showCleanupModal() {
-        if (!this.app.currentProject || this.currentVersions.length < 10) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject || this.currentVersions.length < 10) {
             NotificationManager.show('Cleanup is only available when there are 10 or more versions', 'info');
             return;
         }
@@ -2744,10 +2768,13 @@ class VersionManager {
 
             // Update versions array
             this.currentVersions = preview.versionsToKeep;
-            this.app.currentProject.versions = this.currentVersions;
+            // 🚨 PURE STATE MANAGER: Use AppStore instead of this.store
+            AppStore.getState().updateProjectVersions(this.currentVersions);
 
-            // Save project
-            await this.app.saveProject();
+            // Save project (use app reference for save method)
+            if (this.app && typeof this.app.saveProject === 'function') {
+                await this.app.saveProject();
+            }
 
             // Refresh UI
             this.render();
@@ -2756,7 +2783,6 @@ class VersionManager {
                 `Cleanup completed: ${preview.versionsToDelete.length} versions deleted, ${preview.versionsToKeep.length} kept`, 
                 'success'
             );
-
 
         } catch (error) {
             console.error('Failed to cleanup versions:', error);
@@ -2770,7 +2796,8 @@ class VersionManager {
      * Show import version modal
      */
     showImportModal() {
-        if (!this.app.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) {
             NotificationManager.show('No project loaded', 'error');
             return;
         }
@@ -3057,10 +3084,13 @@ class VersionManager {
 
             // Add version to project
             this.currentVersions.push(finalVersionData);
-            this.app.currentProject.versions = this.currentVersions;
+            // 🚨 PURE STATE MANAGER: Use AppStore instead of this.store
+            AppStore.getState().updateProjectVersions(this.currentVersions);
 
-            // Save project
-            await this.app.saveProject();
+            // Save project (use app reference for save method)
+            if (this.app && typeof this.app.saveProject === 'function') {
+                await this.app.saveProject();
+            }
 
             // Refresh UI
             this.render();
@@ -3069,7 +3099,6 @@ class VersionManager {
                 `Version ${finalVersionData.id} imported successfully${strategy === 'add' && versionData.id !== finalVersionData.id ? ` (renamed from ${versionData.id})` : ''}`,
                 'success'
             );
-
 
         } catch (error) {
             console.error('Failed to import version:', error);

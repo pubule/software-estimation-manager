@@ -1806,7 +1806,7 @@ class InternalResourcesConfigManager {
 
     getResourceData() {
         const globalResources = this.configManager?.globalConfig?.internalResources || [];
-        const currentProject = this.app.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         const projectResources = currentProject ?
             this.configManager.getInternalResources(currentProject.config) : [];
 

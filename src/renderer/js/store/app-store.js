@@ -24,7 +24,7 @@ const appStore = window.zustand.createStore((set, get) => ({
     // UI STATE
     // ======================
     currentPage: 'projects',
-    currentSection: 'features',
+    currentSection: 'projects', // 🚨 ULTRA THINK FIX: Start with 'projects' section, not 'features' when no project loaded
     modalsOpen: new Set(),
     loadingStates: new Map(), // For tracking loading states
     
@@ -101,44 +101,74 @@ const appStore = window.zustand.createStore((set, get) => ({
     // ======================
     
     /**
-     * Update project coverage
+     * Update project features
      */
-    updateProjectCoverage: (coverage, isAutoCalculated = false) => {
+    updateProjectFeatures: (features) => {
         const currentState = get();
         if (!currentState.currentProject) return;
         
-        // 🚨 CRITICAL FIX: Prevent infinite loop in coverage update chain
-        if (currentState._isUpdatingCoverage) {
-            console.warn('🛡️ Prevented recursive coverage update');
-            return;
-        }
-        
-        // Set recursive guard
-        set({ _isUpdatingCoverage: true });
-        
         const updatedProject = {
             ...currentState.currentProject,
-            coverage: coverage,
-            coverageIsAutoCalculated: isAutoCalculated
+            features: features
         };
         
         set({ 
             currentProject: updatedProject,
-            isDirty: true,
-            _isUpdatingCoverage: false // Clear guard after update
+            isDirty: true
         });
     },
     
     /**
-     * Update project config
+     * Add project feature
      */
-    updateProjectConfig: (config) => {
+    addProjectFeature: (feature) => {
         const currentState = get();
         if (!currentState.currentProject) return;
         
+        const updatedFeatures = [...currentState.currentProject.features, feature];
         const updatedProject = {
             ...currentState.currentProject,
-            config: config
+            features: updatedFeatures
+        };
+        
+        set({ 
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+    
+    /**
+     * Update project feature
+     */
+    updateProjectFeature: (featureIndex, updatedFeature) => {
+        const currentState = get();
+        if (!currentState.currentProject || !currentState.currentProject.features) return;
+        
+        const updatedFeatures = [...currentState.currentProject.features];
+        updatedFeatures[featureIndex] = updatedFeature;
+        
+        const updatedProject = {
+            ...currentState.currentProject,
+            features: updatedFeatures
+        };
+        
+        set({ 
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+    
+    /**
+     * Remove project feature
+     */
+    removeProjectFeature: (featureIndex) => {
+        const currentState = get();
+        if (!currentState.currentProject || !currentState.currentProject.features) return;
+        
+        const updatedFeatures = currentState.currentProject.features.filter((_, index) => index !== featureIndex);
+        const updatedProject = {
+            ...currentState.currentProject,
+            features: updatedFeatures
         };
         
         set({ 
@@ -166,6 +196,52 @@ const appStore = window.zustand.createStore((set, get) => ({
     },
     
     /**
+     * Update project configuration
+     */
+    updateProjectConfig: (config) => {
+        const currentState = get();
+        if (!currentState.currentProject) return;
+        
+        const updatedProject = {
+            ...currentState.currentProject,
+            config: config
+        };
+        
+        set({ 
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+    
+    /**
+     * Update project coverage
+     */
+    updateProjectCoverage: (coverage, isAutoCalculated = false) => {
+        const currentState = get();
+        if (!currentState.currentProject) return;
+        
+        // 🚨 CRITICAL FIX: Prevent infinite loop in coverage update chain
+        if (currentState._isUpdatingCoverage) {
+            console.warn('🛡️ Prevented recursive coverage update');
+            return;
+        }
+        
+        set({ _isUpdatingCoverage: true });
+        
+        const updatedProject = {
+            ...currentState.currentProject,
+            coverage: coverage,
+            coverageIsAutoCalculated: isAutoCalculated
+        };
+        
+        set({ 
+            currentProject: updatedProject,
+            isDirty: true,
+            _isUpdatingCoverage: false
+        });
+    },
+    
+    /**
      * Update project versions
      */
     updateProjectVersions: (versions) => {
@@ -184,7 +260,7 @@ const appStore = window.zustand.createStore((set, get) => ({
     },
     
     /**
-     * Update project metadata (lastModified, version, etc.)
+     * Update project metadata (project.name, project.comment, etc.)
      */
     updateProjectMetadata: (metadata) => {
         const currentState = get();
@@ -194,7 +270,8 @@ const appStore = window.zustand.createStore((set, get) => ({
             ...currentState.currentProject,
             project: {
                 ...currentState.currentProject.project,
-                ...metadata
+                ...metadata,
+                lastModified: new Date().toISOString()
             }
         };
         
@@ -209,14 +286,14 @@ const appStore = window.zustand.createStore((set, get) => ({
     // ======================
     
     /**
-     * Navigate to a page/section
+     * Navigate to page and section
      */
     navigateTo: (page, section = null) => {
-        const newState = { currentPage: page };
+        const updates = { currentPage: page };
         if (section) {
-            newState.currentSection = section;
+            updates.currentSection = section;
         }
-        set(newState);
+        set(updates);
     },
     
     /**
@@ -227,34 +304,72 @@ const appStore = window.zustand.createStore((set, get) => ({
     },
     
     /**
-     * Modal management
+     * Open modal
      */
     openModal: (modalId) => {
         const currentState = get();
-        const newModals = new Set(currentState.modalsOpen);
-        newModals.add(modalId);
-        set({ modalsOpen: newModals });
-    },
-    
-    closeModal: (modalId) => {
-        const currentState = get();
-        const newModals = new Set(currentState.modalsOpen);
-        newModals.delete(modalId);
-        set({ modalsOpen: newModals });
+        const newModalsOpen = new Set(currentState.modalsOpen);
+        newModalsOpen.add(modalId);
+        set({ 
+            modalsOpen: newModalsOpen,
+            hasOpenModal: newModalsOpen.size > 0
+        });
     },
     
     /**
-     * Loading state management
+     * Close modal
      */
-    setLoading: (key, isLoading) => {
+    closeModal: (modalId) => {
+        const currentState = get();
+        const newModalsOpen = new Set(currentState.modalsOpen);
+        newModalsOpen.delete(modalId);
+        set({ 
+            modalsOpen: newModalsOpen,
+            hasOpenModal: newModalsOpen.size > 0
+        });
+    },
+    
+    /**
+     * Close all modals
+     */
+    closeAllModals: () => {
+        set({ 
+            modalsOpen: new Set(),
+            hasOpenModal: false
+        });
+    },
+    
+    // ======================
+    // LOADING STATE ACTIONS
+    // ======================
+    
+    /**
+     * Set loading state
+     */
+    setLoading: (key, loading = true) => {
         const currentState = get();
         const newLoadingStates = new Map(currentState.loadingStates);
-        if (isLoading) {
+        
+        if (loading) {
             newLoadingStates.set(key, true);
         } else {
             newLoadingStates.delete(key);
         }
-        set({ loadingStates: newLoadingStates });
+        
+        set({ 
+            loadingStates: newLoadingStates,
+            isLoading: newLoadingStates.size > 0
+        });
+    },
+    
+    /**
+     * Clear all loading states
+     */
+    clearAllLoading: () => {
+        set({ 
+            loadingStates: new Map(),
+            isLoading: false
+        });
     },
     
     // ======================
@@ -266,35 +381,21 @@ const appStore = window.zustand.createStore((set, get) => ({
      */
     addNotification: (notification) => {
         const currentState = get();
-        const id = Date.now() + Math.random();
-        const newNotification = {
-            id,
+        const newNotifications = [...currentState.notifications, {
+            id: Date.now() + Math.random(),
             timestamp: new Date(),
             ...notification
-        };
-        
-        set({ 
-            notifications: [...currentState.notifications, newNotification] 
-        });
-        
-        // Auto-remove after timeout
-        if (notification.autoRemove !== false) {
-            setTimeout(() => {
-                get().removeNotification(id);
-            }, notification.timeout || 5000);
-        }
-        
-        return id;
+        }];
+        set({ notifications: newNotifications });
     },
     
     /**
      * Remove notification
      */
-    removeNotification: (id) => {
+    removeNotification: (notificationId) => {
         const currentState = get();
-        set({ 
-            notifications: currentState.notifications.filter(n => n.id !== id) 
-        });
+        const newNotifications = currentState.notifications.filter(n => n.id !== notificationId);
+        set({ notifications: newNotifications });
     },
     
     /**
@@ -315,74 +416,54 @@ const appStore = window.zustand.createStore((set, get) => ({
         set({ globalConfig: config });
     },
     
-    // ======================
-    // COMPUTED GETTERS
-    // ======================
-    
     /**
-     * Get project name (computed)
+     * Update global configuration
      */
-    get projectName() {
-        const state = get();
-        return state.currentProject?.project?.name || 'New Project';
+    updateGlobalConfig: (updater) => {
+        const currentState = get();
+        const updatedConfig = typeof updater === 'function' 
+            ? updater(currentState.globalConfig) 
+            : updater;
+        set({ globalConfig: updatedConfig });
     },
     
-    /**
-     * Check if project is loaded (computed)
-     */
-    get hasProject() {
+    // ======================
+    // COMPUTED PROPERTIES (SELECTORS)
+    // ======================
+    
+    // Project computed values
+    hasProject: () => {
         const state = get();
         return state.currentProject !== null;
     },
     
-    /**
-     * Get project features count (computed)
-     */
-    get featureCount() {
+    projectName: () => {
+        const state = get();
+        return state.currentProject?.project?.name || 'New Project';
+    },
+    
+    featureCount: () => {
         const state = get();
         return state.currentProject?.features?.length || 0;
     },
     
-    /**
-     * Get total man days (computed)
-     */
-    get totalManDays() {
+    totalManDays: () => {
         const state = get();
-        return state.currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0) || 0;
+        return state.currentProject?.features?.reduce((sum, feature) => sum + (feature.manDays || 0), 0) || 0;
     },
     
-    /**
-     * Check if any modal is open (computed)
-     */
-    get hasOpenModal() {
-        const state = get();
-        return state.modalsOpen.size > 0;
-    },
-    
-    /**
-     * Check if anything is loading (computed)
-     */
-    get isLoading() {
-        const state = get();
-        return state.loadingStates.size > 0;
-    },
-    
-    /**
-     * Get formatted last saved time (computed)
-     */
-    get lastSavedFormatted() {
+    lastSavedFormatted: () => {
         const state = get();
         if (!state.lastSavedTime) return 'Never';
-        
-        return state.lastSavedTime.toLocaleString('it-IT', {
-            day: '2-digit',
-            month: '2-digit', 
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        return state.lastSavedTime.toLocaleString();
+    },
+    
+    // UI computed values
+    hasOpenModal: () => {
+        const state = get();
+        return state.modalsOpen.size > 0;
     }
-}));;
+}));
 
 // ======================
 // DEBUGGING HELPERS

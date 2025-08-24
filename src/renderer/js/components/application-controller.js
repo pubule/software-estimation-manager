@@ -218,10 +218,12 @@ class ApplicationController extends BaseComponent {
             // Initialize feature managers
             await this.initializeFeatureManagers();
             
-            // Initialize default project if needed
-            if (!this.currentProject) {
-                this.currentProject = await this.createNewProject();
-            }
+            // 🚨 ULTRA THINK FIX: NO automatic project creation on startup!
+            // User should start with clean state without any project
+            // REMOVED: Initialize default project if needed
+            // if (!this.currentProject) {
+            //     this.currentProject = await this.createNewProject();
+            // }
 
             this.initializeDropdowns();
 
@@ -686,14 +688,15 @@ class ApplicationController extends BaseComponent {
      */
     async exportJSON(filename) {
         // Ensure hierarchical config format
-        if (!this.currentProject.config.projectOverrides) {
-            this.currentProject.config = this.managers.config.migrateProjectConfig(this.currentProject.config);
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject.config.projectOverrides) {
+            currentProject.config = this.managers.config.migrateProjectConfig(currentProject.config);
         }
 
         if (window.electronAPI && window.electronAPI.saveFile) {
             const result = await window.electronAPI.saveFile(
                 `${filename}.json`,
-                this.currentProject
+                currentProject
             );
 
             if (!result.success && !result.canceled) {
@@ -801,12 +804,13 @@ class ApplicationController extends BaseComponent {
      * Create Excel sheet for features data
      */
     createFeaturesSheet() {
-        if (!this.managers.feature || !this.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!this.managers.feature || !currentProject) {
             return XLSX.utils.aoa_to_sheet([['No features data available']]);
         }
 
-        const features = this.currentProject.features || [];
-        const currentProject = this.currentProject;
+        const features = currentProject.features || [];
+        // currentProject already defined above via StateSelectors
 
         // Headers
         const headers = [
@@ -849,7 +853,8 @@ class ApplicationController extends BaseComponent {
      * Create Excel sheet for phases data
      */
     createPhasesSheet() {
-        if (!this.managers.projectPhases || !this.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!this.managers.projectPhases || !currentProject) {
             return XLSX.utils.aoa_to_sheet([['No phases data available']]);
         }
 
@@ -1773,7 +1778,8 @@ class ApplicationController extends BaseComponent {
         });
 
         // Check if phases manager and project are available
-        if (!this.managers.projectPhases || !this.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!this.managers.projectPhases || !currentProject) {
             // Create a simple message sheet
             worksheet.mergeCells('A1:K1');
             const messageCell = worksheet.getCell('A1');
@@ -2330,8 +2336,9 @@ class ApplicationController extends BaseComponent {
         // Update last saved timestamp
         const lastSavedEl = this.getElement('last-saved');
         if (lastSavedEl) {
-            if (this.currentProject && this.currentProject.project && this.currentProject.project.lastModified) {
-                const date = new Date(this.currentProject.project.lastModified);
+            const currentProject = StateSelectors.getCurrentProject();
+            if (currentProject && currentProject.project && currentProject.project.lastModified) {
+                const date = new Date(currentProject.project.lastModified);
                 const formatted = date.toLocaleString('it-IT', {
                     day: '2-digit',
                     month: '2-digit',
@@ -2357,21 +2364,25 @@ class ApplicationController extends BaseComponent {
         const features = StateSelectors.getProjectFeatures();
         const totalFeatures = StateSelectors.getFeatureCount();
         const totalManDays = StateSelectors.getTotalManDays();
-        const averageManDays = totalFeatures > 0 ? (totalManDays / totalFeatures).toFixed(1) : 0;
-        const defaultCoverage = (totalManDays * 0.3).toFixed(1);
+        
+        // 🚨 CRITICAL FIX: Ensure totalManDays is always a valid number
+        const safeTotalManDays = parseFloat(totalManDays) || 0;
+        
+        const averageManDays = totalFeatures > 0 ? (safeTotalManDays / totalFeatures).toFixed(1) : 0;
+        const defaultCoverage = (safeTotalManDays * 0.3).toFixed(1);
 
         // Calculate filtered man days
         let filteredManDays = 0;
         if (this.managers.feature && this.managers.feature.state && this.managers.feature.state.filteredFeatures) {
-            filteredManDays = this.managers.feature.state.filteredFeatures.reduce((sum, feature) => sum + (feature.manDays || 0), 0);
+            filteredManDays = this.managers.feature.state.filteredFeatures.reduce((sum, feature) => sum + (parseFloat(feature.manDays) || 0), 0);
         } else {
             // If no filters applied, filtered equals total
-            filteredManDays = totalManDays;
+            filteredManDays = safeTotalManDays;
         }
 
-        // Update display elements
+        // Update display elements with safe number values
         this.updateElementContent('total-features', totalFeatures);
-        this.updateElementContent('total-man-days', totalManDays.toFixed(1));
+        this.updateElementContent('total-man-days', safeTotalManDays.toFixed(1));
         this.updateElementContent('average-man-days', averageManDays);
         this.updateElementContent('filtered-man-days', filteredManDays.toFixed(1));
         
@@ -2385,17 +2396,18 @@ class ApplicationController extends BaseComponent {
      */
     updateCoverage(defaultCoverage) {
         const coverageEl = this.getElement('coverage-value');
-        if (!coverageEl || !this.currentProject) return;
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!coverageEl || !currentProject) return;
 
-        const coverageIsAutoCalculated = this.currentProject.coverageIsAutoCalculated !== false;
+        const coverageIsAutoCalculated = currentProject.coverageIsAutoCalculated !== false;
         
-        if (coverageIsAutoCalculated || this.currentProject.coverage === undefined) {
+        if (coverageIsAutoCalculated || currentProject.coverage === undefined) {
             coverageEl.value = defaultCoverage;
             
             // PURE STATE MANAGER: Use store action instead of direct mutation
             this.store.getState().updateProjectCoverage(parseFloat(defaultCoverage), true);
         } else {
-            coverageEl.value = this.currentProject.coverage;
+            coverageEl.value = currentProject.coverage;
         }
     }
 
@@ -2403,9 +2415,10 @@ class ApplicationController extends BaseComponent {
      * Reset coverage to automatic calculation
      */
     resetCoverageToAuto() {
-        if (!this.currentProject) return;
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) return;
 
-        const features = this.currentProject.features;
+        const features = currentProject.features;
         const totalManDays = features.reduce((sum, feature) => sum + (feature.manDays || 0), 0);
         const defaultCoverage = (totalManDays * 0.3).toFixed(1);
 
@@ -2431,8 +2444,9 @@ class ApplicationController extends BaseComponent {
      */
     updateCoverageResetButtonVisibility() {
         const resetBtn = this.getElement('coverage-reset-btn');
-        if (resetBtn && this.currentProject) {
-            const isManuallySet = this.currentProject.coverageIsAutoCalculated === false;
+        const currentProject = StateSelectors.getCurrentProject();
+        if (resetBtn && currentProject) {
+            const isManuallySet = currentProject.coverageIsAutoCalculated === false;
             resetBtn.classList.toggle('hidden', !isManuallySet);
         }
     }
@@ -2441,9 +2455,10 @@ class ApplicationController extends BaseComponent {
      * Update configuration status
      */
     updateConfigurationStatus() {
-        if (!this.managers.config || !this.currentProject) return;
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!this.managers.config || !currentProject) return;
 
-        const stats = this.managers.config.getConfigStats(this.currentProject.config);
+        const stats = this.managers.config.getConfigStats(currentProject.config);
         const statusMessage = this.getElement('status-message');
         
         if (statusMessage && stats) {
@@ -2484,7 +2499,7 @@ class ApplicationController extends BaseComponent {
                 return;
             }
             if (lastProject) {
-                this.currentProject = await this.migrateProjectConfig(lastProject);
+                currentProject = await this.migrateProjectConfig(lastProject);
                 
                 this.managers.version?.onProjectChanged(this.currentProject);
                 this.managers.projectPhases?.synchronizeWithProject();

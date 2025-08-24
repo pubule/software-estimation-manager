@@ -143,7 +143,7 @@ class AssumptionsManager extends BaseComponent {
      * Generate assumption ID
      */
     generateAssumptionId() {
-        const currentProject = window.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject?.assumptions || currentProject.assumptions.length === 0) {
             return 'ASS-001';
         }
@@ -214,7 +214,7 @@ class AssumptionsManager extends BaseComponent {
      * Save assumption to current project
      */
     async saveAssumptionToProject(assumptionData) {
-        const currentProject = window.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject) {
             throw new Error('No project loaded');
         }
@@ -266,7 +266,7 @@ class AssumptionsManager extends BaseComponent {
         }
 
         try {
-            const currentProject = window.app?.currentProject;
+            const currentProject = StateSelectors.getCurrentProject();
             if (!currentProject) {
                 throw new Error('No project loaded');
             }
@@ -300,7 +300,7 @@ class AssumptionsManager extends BaseComponent {
      * Internal filter assumptions (debounced)
      */
     _filterAssumptions() {
-        const currentProject = window.app?.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject?.assumptions) {
             this.state.filteredAssumptions = [];
             this.renderTable();

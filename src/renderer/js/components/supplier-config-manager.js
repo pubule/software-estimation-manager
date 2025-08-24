@@ -154,8 +154,9 @@ class SupplierConfigManager {
             console.log('Force reset:', forceReset);
             
             // Clear any existing project-specific overrides if force reset
-            if (forceReset && this.configManager.app?.currentProject?.config?.projectOverrides?.suppliers) {
-                this.configManager.app.currentProject.config.projectOverrides.suppliers = [];
+            const currentProject = StateSelectors.getCurrentProject();
+            if (forceReset && currentProject?.config?.projectOverrides?.suppliers) {
+                currentProject.config.projectOverrides.suppliers = [];
                 console.log('Cleared project-specific supplier overrides');
             }
             
@@ -1746,7 +1747,10 @@ class SupplierConfigManager {
      * Persiste supplier di progetto
      */
     persistProjectSupplier(supplierData) {
-        this.configManager.addSupplierToProject(this.app.currentProject.config, supplierData);
+        const currentProject = StateSelectors.getCurrentProject();
+        if (currentProject) {
+            this.configManager.addSupplierToProject(currentProject.config, supplierData);
+        }
         this.app.markDirty();
     }
 
@@ -1764,7 +1768,10 @@ class SupplierConfigManager {
                     this.configManager.globalConfig.suppliers.filter(s => s.id !== supplierId);
                 this.configManager.saveGlobalConfig();
             } else {
-                this.configManager.deleteSupplierFromProject(this.app.currentProject.config, supplierId);
+                const currentProject = StateSelectors.getCurrentProject();
+                if (currentProject) {
+                    this.configManager.deleteSupplierFromProject(currentProject.config, supplierId);
+                }
                 this.app.markDirty();
             }
 
@@ -1821,8 +1828,9 @@ class SupplierConfigManager {
      * Assicura che gli override di progetto esistano
      */
     ensureProjectOverrides() {
-        if (!this.app.currentProject.config.projectOverrides) {
-            this.app.currentProject.config.projectOverrides = {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (currentProject && !currentProject.config.projectOverrides) {
+            currentProject.config.projectOverrides = {
                 suppliers: [],
                 internalResources: [],
                 categories: [],
@@ -1923,7 +1931,7 @@ class SupplierConfigManager {
 
     getSupplierData() {
         const globalSuppliers = this.configManager?.globalConfig?.suppliers || [];
-        const currentProject = this.app.currentProject;
+        const currentProject = StateSelectors.getCurrentProject();
         const projectSuppliers = currentProject ?
             this.configManager.getSuppliers(currentProject.config) : [];
 
