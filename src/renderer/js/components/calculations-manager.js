@@ -6872,29 +6872,94 @@ class CapacityManager extends BaseComponent {
     async handleTeamMemberSelectionChange() {
         const teamMemberSelect = document.getElementById('assignment-team-member');
         const memberRoleInfo = document.getElementById('member-role-info');
+        const projectSelect = document.getElementById('assignment-project');
         
         if (!teamMemberSelect.value) {
             memberRoleInfo.textContent = '';
+            // Clear phases section when no team member is selected
+            document.getElementById('phases-list').innerHTML = '';
             this.updateBudgetSection();
             return;
         }
 
         // Get selected member data
         const teamMembers = await this.getRealTeamMembers();
-
         const selectedMember = teamMembers.find(m => m.id === teamMemberSelect.value);
 
         if (selectedMember) {
-
             const memberRole = this.getMemberRole(selectedMember);
             const vendorName = this.getVendorName(selectedMember);
             memberRoleInfo.textContent = `Role: ${memberRole}, Vendor: ${vendorName}`;
         } else {
             console.error('No member found with ID:', teamMemberSelect.value);
-
         }
         
-        this.updateBudgetSection();
+        // 🔥 IMPROVED FIX: Update phases and budget when team member is selected
+        if (projectSelect.value && teamMemberSelect.value) {
+            try {
+                const projects = await this.getAvailableProjects();
+                let selectedProject = projects.find(p => p.id === projectSelect.value);
+                if (!selectedProject) {
+                    selectedProject = projects.find(p => p.filePath === projectSelect.value);
+                }
+                
+                if (selectedProject && selectedProject.filePath) {
+                    const dataManager = this.app?.managers?.data || window.dataManager;
+                    const projectData = await dataManager.loadProject(selectedProject.filePath);
+                    
+                    // Try to get calculationData from latest version first
+                    if (projectData.versions && projectData.versions.length > 0) {
+                        const sortedVersions = projectData.versions.sort((a, b) => {
+                            return b.id.localeCompare(a.id, undefined, { numeric: true });
+                        });
+                        
+                        const latestVersion = sortedVersions[0];
+                        if (latestVersion.projectSnapshot?.calculationData) {
+                            projectData.calculationData = latestVersion.projectSnapshot.calculationData;
+                        }
+                    }
+
+                    // Generate calculationData if missing
+                    if (!projectData?.calculationData?.vendorCosts) {
+                        console.log('🔧 Generating calculationData for team member selection...');
+                        try {
+                            const generatedCalculationData = await this.generateCalculationDataForProject(projectData);
+                            if (generatedCalculationData && generatedCalculationData.vendorCosts?.length > 0) {
+                                projectData.calculationData = generatedCalculationData;
+                            } else {
+                                projectData.calculationData = {
+                                    vendorCosts: [],
+                                    timestamp: new Date().toISOString()
+                                };
+                            }
+                        } catch (error) {
+                            console.error('Error generating calculationData:', error);
+                            projectData.calculationData = {
+                                vendorCosts: [],
+                                timestamp: new Date().toISOString()
+                            };
+                        }
+                    }
+                    
+                    // 🎯 UPDATE PHASES SECTION with project data that has calculationData
+                    await this.updatePhasesSection(projectData);
+                    
+                    // Update budget section with the same project data
+                    await this.updateBudgetSection(projectData);
+                } else {
+                    console.warn('Cannot load project data for phases/budget calculation');
+                    document.getElementById('phases-list').innerHTML = '';
+                    this.updateBudgetSection();
+                }
+            } catch (error) {
+                console.error('Error loading project data for team member selection:', error);
+                document.getElementById('phases-list').innerHTML = '<div class="error-message"><i class="fas fa-exclamation-triangle"></i><span>Error loading project phases</span></div>';
+                this.updateBudgetSection();
+            }
+        } else {
+            // If no project selected, just update budget
+            this.updateBudgetSection();
+        }
     }
     
     /**
@@ -6946,62 +7011,43 @@ class CapacityManager extends BaseComponent {
             const dataManager = this.app?.managers?.data || window.dataManager;
             const completeProjectData = await dataManager.loadProject(project.filePath);
 
-            // NUOVO: Recupera calculationData dalla versione più recente se disponibile
+            // Try to get calculationData from the latest version first
             if (completeProjectData.versions && completeProjectData.versions.length > 0) {
-
-                // Ordina le versioni per ID e prendi la più recente
                 const sortedVersions = completeProjectData.versions.sort((a, b) => {
-                    // Confronta gli ID delle versioni (es. "v1.0.0" vs "v1.1.0")
                     return b.id.localeCompare(a.id, undefined, { numeric: true });
                 });
                 
                 const latestVersion = sortedVersions[0];
-
-                // Usa i calculationData dalla versione più recente se disponibili
                 if (latestVersion.projectSnapshot?.calculationData) {
                     completeProjectData.calculationData = latestVersion.projectSnapshot.calculationData;
-                } else {
+                    console.log('📊 Using calculationData from latest version:', latestVersion.id);
                 }
-            } else {
             }
 
-            if (completeProjectData?.calculationData?.vendorCosts) {
-                completeProjectData.calculationData.vendorCosts.forEach((cost, index) => {
-
-                });
-            } else {
-                
-                // 🚨 CRITICAL FIX: Generate calculationData if missing
-                // 🚨 PURE STATE MANAGER: NO DIRECT PROJECT MUTATION!
-                // Instead of temporarily setting currentProject, use store action
-                const originalCurrentProject = StateSelectors.getCurrentProject();
-                
-                // Temporarily update store with the complete project data
-                (window.appStore || window.AppStore).getState().setProject(completeProjectData);
+            // 🔥 IMPROVED FIX: Generate calculationData if still missing
+            if (!completeProjectData?.calculationData?.vendorCosts) {
+                console.log('🔧 GeneratingcalculationData for assignment modal...');
                 
                 try {
-                    // Trigger vendor costs calculation
-                    this.calculateVendorCosts();
-                    
-                    // Add the calculated vendorCosts to the project data
-                    if (this.vendorCosts && this.vendorCosts.length > 0) {
+                    // Use the dedicated method to generate calculation data
+                    const generatedCalculationData = await this.generateCalculationDataForProject(completeProjectData);
+                    if (generatedCalculationData && generatedCalculationData.vendorCosts?.length > 0) {
+                        completeProjectData.calculationData = generatedCalculationData;
+                        console.log('✅ Generated calculationData with', generatedCalculationData.vendorCosts.length, 'vendor cost entries');
+                    } else {
+                        console.warn('⚠️ Failed to generate calculationData - using empty vendor costs');
                         completeProjectData.calculationData = {
-                            vendorCosts: JSON.parse(JSON.stringify(this.vendorCosts)),
+                            vendorCosts: [],
                             timestamp: new Date().toISOString()
                         };
-                        completeProjectData.calculationData.vendorCosts.forEach((cost, index) => {
-
-                        });
-                    } else {
-                        console.warn('  - Failed to generate vendor costs - array is empty');
                     }
                 } catch (error) {
-                    console.error('  - Error generating vendor costs:', error);
-                } finally {
-                    // 🚨 PURE STATE MANAGER: Restore original current project using store action
-                    if (originalCurrentProject) {
-                        (window.appStore || window.AppStore).getState().setProject(originalCurrentProject);
-                    }
+                    console.error('❌ Error generating calculationData:', error);
+                    // Create empty calculationData to prevent further errors
+                    completeProjectData.calculationData = {
+                        vendorCosts: [],
+                        timestamp: new Date().toISOString()
+                    };
                 }
             }
             
@@ -7009,7 +7055,7 @@ class CapacityManager extends BaseComponent {
             document.getElementById('budget-section').style.display = 'block';
             document.getElementById('phases-section').style.display = 'block';
             
-            // Update budget section and phases - pass the project data correctly
+            // Update budget section and phases - pass the project data with calculationData
             await this.updateBudgetSection(completeProjectData);
             await this.updatePhasesSection(completeProjectData);
             
