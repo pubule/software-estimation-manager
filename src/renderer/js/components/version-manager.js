@@ -5,6 +5,11 @@
 class VersionManager {
     constructor(app) {
         this.app = app;
+        
+        // PURE STATE MANAGER: Connect to store
+        this.store = window.appStore;
+        this.storeUnsubscribe = null;
+        
         this.currentVersions = [];
         this.maxVersions = 50;
         this.maxFileSize = 10 * 1024 * 1024; // 10MB
@@ -29,9 +34,44 @@ class VersionManager {
         
         this.initializeEventListeners();
         
-        // Load versions from current project if available
-        if (this.app.currentProject) {
-            this.loadVersionsFromProject(this.app.currentProject);
+        // PURE STATE MANAGER: Setup store subscription
+        this.setupStoreSubscription();
+        
+        // Load versions from current project if available (using StateSelectors)
+        const currentProject = StateSelectors.getCurrentProject();
+        if (currentProject) {
+            this.loadVersionsFromProject(currentProject);
+        }
+    }
+
+    /**
+     * PURE STATE MANAGER: Setup store subscription for reactive updates
+     */
+    setupStoreSubscription() {
+        if (!this.store) {
+            console.warn('Store not available for VersionManager');
+            return;
+        }
+
+        this.storeUnsubscribe = this.store.subscribe((state, prevState) => {
+            // React to project changes
+            if (state.currentProject !== prevState.currentProject) {
+                this.handleProjectChange(state.currentProject);
+            }
+        });
+    }
+
+    /**
+     * PURE STATE MANAGER: Handle project change from store
+     */
+    handleProjectChange(newProject) {
+        console.log('VersionManager: Project changed', !!newProject);
+        
+        if (newProject) {
+            this.loadVersionsFromProject(newProject);
+        } else {
+            this.currentVersions = [];
+            this.render();
         }
     }
 
@@ -330,7 +370,8 @@ class VersionManager {
      * Update the current (most recent) version with latest project state
      */
     async updateCurrentVersion() {
-        if (!this.app.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) {
             console.warn('No project loaded, cannot update current version');
             return;
         }
@@ -787,7 +828,9 @@ class VersionManager {
 
             // Update project version to match the new version ID
             const newProjectVersion = this.convertVersionIdToSemver(nextVersionId);
-            this.app.currentProject.project.version = newProjectVersion;
+            
+            // PURE STATE MANAGER: Use store action instead of direct mutation
+            this.store.getState().updateProjectMetadata({ version: newProjectVersion });
 
             // Create deep copy of current project state
             const projectSnapshot = this.createProjectSnapshot();
@@ -805,12 +848,13 @@ class VersionManager {
             };
 
             // Add to versions array
-            if (!this.app.currentProject.versions) {
-                this.app.currentProject.versions = [];
-            }
+            // PURE STATE MANAGER: Use store action instead of direct mutation
+            const currentProject = StateSelectors.getCurrentProject();
+            const currentVersions = currentProject.versions || [];
+            const updatedVersions = [...currentVersions, newVersion];
             
-            this.app.currentProject.versions.push(newVersion);
-            this.currentVersions = this.app.currentProject.versions;
+            this.store.getState().updateProjectVersions(updatedVersions);
+            this.currentVersions = updatedVersions;
 
             // Save project with new version
             await this.app.saveProject();
@@ -2448,8 +2492,8 @@ class VersionManager {
             if (index !== -1) {
                 this.currentVersions.splice(index, 1);
                 
-                // Update project's versions array
-                this.app.currentProject.versions = this.currentVersions;
+                // PURE STATE MANAGER: Use store action instead of direct mutation
+                this.store.getState().updateProjectVersions([...this.currentVersions]);
                 
                 // Save project to persist the deletion
                 await this.app.saveProject();

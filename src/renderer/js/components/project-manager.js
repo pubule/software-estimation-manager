@@ -35,8 +35,10 @@ class ProjectManager {
         }
 
         this.storeUnsubscribe = this.store.subscribe((state, prevState) => {
-            // React to project changes
-            if (state.currentProject !== prevState.currentProject) {
+            // 🚨 CRITICAL FIX: Deep comparison to prevent infinite loops
+            const hasProjectReallyChanged = this.hasProjectReallyChanged(state.currentProject, prevState.currentProject);
+            
+            if (hasProjectReallyChanged) {
                 this.handleProjectChange(state.currentProject, prevState.currentProject);
             }
 
@@ -45,6 +47,45 @@ class ProjectManager {
                 this.handleDirtyStateChange(state.isDirty);
             }
         });
+    }
+
+    /**
+     * 🚨 CRITICAL: Deep comparison to prevent infinite loops
+     */
+    hasProjectReallyChanged(currentProject, previousProject) {
+        // If both are null/undefined, no change
+        if (!currentProject && !previousProject) return false;
+        
+        // If one is null and the other isn't, it's a change
+        if (!currentProject || !previousProject) return true;
+        
+        // Compare key properties for ProjectManager
+        const currentKey = this.generateProjectComparisonKey(currentProject);
+        const previousKey = this.generateProjectComparisonKey(previousProject);
+        
+        return currentKey !== previousKey;
+    }
+    
+    /**
+     * Generate comparison key for ProjectManager (focuses on project metadata)
+     */
+    generateProjectComparisonKey(project) {
+        if (!project) return 'null';
+        
+        try {
+            const keyProps = {
+                id: project.project?.id,
+                name: project.project?.name,
+                lastModified: project.project?.lastModified,
+                version: project.project?.version,
+                featuresCount: project.features?.length || 0
+            };
+            
+            return JSON.stringify(keyProps);
+        } catch (error) {
+            console.warn('🛡️ ProjectManager comparison fallback:', error.message);
+            return `${project.project?.id}_${project.project?.lastModified}_${Date.now()}`;
+        }
     }
 
     /**
@@ -341,8 +382,8 @@ class ProjectManager {
             // Mark as dirty since it's a new project
             this.store.getState().markDirty();
 
-            // Notify navigation manager that a project was loaded
-            this.app.navigationManager.onProjectLoaded();
+            // REMOVED LEGACY CALL FOR PURE STATE MANAGER:
+            // this.app.navigationManager.onProjectLoaded(); → Automatic via subscription
 
             // AUTO-SAVE: Save new project automatically
             console.log('Auto-saving new project...');
@@ -368,7 +409,8 @@ class ProjectManager {
                 NotificationManager.warning('Project created but auto-save failed');
             }
 
-            this.app.refreshDropdowns();
+            // REMOVED LEGACY CALL FOR PURE STATE MANAGER:
+            // this.app.refreshDropdowns(); → Automatic via FeatureManager subscription
 
             // Update UI - handled by store subscription
             // this.app.updateUI();
@@ -824,10 +866,11 @@ class ProjectManager {
                     this.app.calculationsManager.calculateVendorCosts();
                 }
 
-                this.app.navigationManager.onProjectLoaded();
+                // REMOVED LEGACY CALL FOR PURE STATE MANAGER:
+                // this.app.navigationManager.onProjectLoaded(); → Automatic via subscription
 
-                // FIXED: Update dropdowns through refreshDropdowns instead of populateDropdowns
-                this.app.refreshDropdowns();
+                // REMOVED LEGACY CALL FOR PURE STATE MANAGER:
+                // this.app.refreshDropdowns(); → Automatic via FeatureManager subscription
 
                 // Update all UI components - handled by store subscription
                 // this.app.updateUI();
@@ -914,10 +957,11 @@ class ProjectManager {
             const newProject = await this.app.createNewProject();
             this.store.getState().setProject(newProject);
 
-            // Notify navigation manager that project was closed
-            this.app.navigationManager.onProjectClosed();
+            // REMOVED LEGACY CALL FOR PURE STATE MANAGER:
+            // this.app.navigationManager.onProjectClosed(); → Automatic via subscription
 
-            this.app.refreshDropdowns();
+            // REMOVED LEGACY CALL FOR PURE STATE MANAGER:
+            // this.app.refreshDropdowns(); → Automatic via FeatureManager subscription
             
             // UI updates handled by store subscription
             // this.app.updateUI();
@@ -1534,9 +1578,8 @@ class ProjectManager {
         console.log('🧹 Cleaning up previous project data...');
         
         try {
-            // Clear current project reference
-            this.app.currentProject = null;
-            this.app.isDirty = false;
+            // PURE STATE MANAGER: Use store action instead of direct access
+            this.store.getState().newProject(); // Sets currentProject to null and isDirty to false
             
             // Clear data manager paths
             if (this.app.dataManager) {
@@ -1615,10 +1658,8 @@ class ProjectManager {
             // Clear UI elements
             this.clearProjectUI();
             
-            // Update navigation state
-            if (this.app.navigationManager) {
-                this.app.navigationManager.onProjectClosed();
-            }
+            // REMOVED LEGACY CALL FOR PURE STATE MANAGER:
+            // this.app.navigationManager.onProjectClosed(); → Automatic via subscription
             
             console.log('✅ Previous project data cleaned successfully');
         } catch (error) {

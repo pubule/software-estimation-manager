@@ -29,10 +29,10 @@ class FeatureManager extends BaseComponent {
         this.updateCalculatedManDays = this.throttle(this._updateCalculatedManDays, 100);
         this.filterFeatures = this.debounce(this._filterFeatures, 300);
         
-        this.setupStoreSubscription();
-        
-        // If store wasn't available during construction, try to connect when it becomes available
-        if (!this.store) {
+        // 🚨 CRITICAL FIX: Only setup subscription if store is available
+        if (this.store) {
+            this.setupStoreSubscription();
+        } else {
             console.log('Store not available during FeatureManager construction, will attempt to connect later');
             this.connectToStoreWhenReady();
         }
@@ -66,23 +66,74 @@ class FeatureManager extends BaseComponent {
      * Setup store subscription for reactive feature updates
      */
     setupStoreSubscription() {
+        // 🚨 CRITICAL FIX: Guard against undefined store
         if (!this.store) {
-            console.warn('Store not available for FeatureManager');
+            console.warn('Store not available for FeatureManager subscription setup');
             return;
         }
-
+        
+        // PURE STATE MANAGER: Setup subscription to store changes
         this.storeUnsubscribe = this.store.subscribe((state, prevState) => {
-            // React to project changes  
-            if (state.currentProject !== prevState.currentProject) {
-                this.handleProjectChange(state.currentProject);
-            }
+            const currentProject = state.currentProject;
+            const previousProject = prevState.currentProject;
 
-            // React to feature changes within the same project
-            if (state.currentProject && prevState.currentProject && 
-                state.currentProject.features !== prevState.currentProject.features) {
-                this.handleFeaturesChange(state.currentProject.features);
+            // 🚨 CRITICAL FIX: Deep comparison to prevent infinite loops
+            const hasProjectChanged = this.hasProjectReallyChanged(currentProject, previousProject);
+            
+            if (hasProjectChanged) {
+                console.log('FeatureManager: Project changed', true);
+                this.handleProjectChange(currentProject);
             }
         });
+    }
+
+    /**
+     * 🚨 CRITICAL: Deep comparison to prevent infinite loops
+     * Compare projects by meaningful properties, not by reference
+     */
+    hasProjectReallyChanged(currentProject, previousProject) {
+        // If both are null/undefined, no change
+        if (!currentProject && !previousProject) return false;
+        
+        // If one is null and the other isn't, it's a change
+        if (!currentProject || !previousProject) return true;
+        
+        // Compare key properties that would require UI refresh
+        const currentKey = this.generateProjectComparisonKey(currentProject);
+        const previousKey = this.generateProjectComparisonKey(previousProject);
+        
+        return currentKey !== previousKey;
+    }
+    
+    /**
+     * Generate a stable comparison key for projects
+     * Only includes properties that matter for FeatureManager
+     */
+    generateProjectComparisonKey(project) {
+        if (!project) return 'null';
+        
+        try {
+            // Only compare properties that matter for feature management
+            const keyProps = {
+                id: project.project?.id,
+                name: project.project?.name,
+                featuresLength: project.features?.length || 0,
+                // Create a stable hash of features for comparison
+                featuresHash: project.features ? 
+                    project.features.map(f => `${f.id}:${f.name}:${f.manDays}`).join('|') : '',
+                configHash: project.config ? JSON.stringify({
+                    suppliers: project.config.suppliers?.length || 0,
+                    categories: project.config.categories?.length || 0,
+                    internalResources: project.config.internalResources?.length || 0
+                }) : ''
+            };
+            
+            return JSON.stringify(keyProps);
+        } catch (error) {
+            console.warn('🛡️ FeatureManager comparison fallback:', error.message);
+            // Fallback to simple comparison
+            return `${project.project?.id}_${project.features?.length || 0}_${Date.now()}`;
+        }
     }
 
     /**
@@ -1183,6 +1234,17 @@ class FeatureManager extends BaseComponent {
      * Update project summary
      */
     updateProjectSummary() {
+        // 🚨 CRITICAL FIX: Throttle to prevent infinite loops
+        if (this._summaryUpdateThrottled) {
+            console.warn('🛡️ FeatureManager: Summary update throttled to prevent loop');
+            return;
+        }
+        
+        this._summaryUpdateThrottled = true;
+        setTimeout(() => {
+            this._summaryUpdateThrottled = false;
+        }, 100); // 100ms throttle
+        
         if (window.app && typeof window.app.updateSummary === 'function') {
             window.app.updateSummary();
         }

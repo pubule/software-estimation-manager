@@ -6,6 +6,11 @@ class InternalResourcesConfigManager {
     constructor(configManager, app) {
         this.configManager = configManager;
         this.app = app;
+        
+        // PURE STATE MANAGER: Connect to store
+        this.store = window.appStore;
+        this.storeUnsubscribe = null;
+        
         this.currentScope = 'global';
         this.containerId = 'resources-content';
 

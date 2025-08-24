@@ -7,7 +7,18 @@ class ProjectPhasesManager {
     constructor(app, configManager) {
         this.app = app;
         this.configManager = configManager;
-        this.isDirty = false;
+        
+        // PURE STATE MANAGER: NO duplicated isDirty state! Use StateSelectors.getIsDirty()
+        // REMOVED: this.isDirty = false; → Use store state instead
+        
+        // 🚨 CRITICAL FIX: Conditional store connection to prevent race conditions
+        this.store = window.appStore || null;
+        
+        // If store is not available yet, set up a retry mechanism
+        if (!this.store) {
+            console.warn('🛡️ Store not available during ProjectPhasesManager initialization, will retry');
+            this.setupStoreConnection();
+        }
 
         // Resource rates (daily) - ora vengono da supplier selezionati
         this.selectedSuppliers = {
@@ -28,6 +39,35 @@ class ProjectPhasesManager {
         this.phaseDefinitions = [];
         this.currentPhases = [];
         this.init();
+    }
+
+    /**
+     * 🚨 CRITICAL FIX: Set up store connection with retry mechanism
+     * Prevents race condition during initialization
+     */
+    setupStoreConnection() {
+        const maxRetries = 10;
+        let retryCount = 0;
+        
+        const tryConnect = () => {
+            this.store = window.appStore || null;
+            
+            if (this.store) {
+                console.log('✅ ProjectPhasesManager store connection established');
+                return;
+            }
+            
+            retryCount++;
+            if (retryCount < maxRetries) {
+                console.warn(`🔄 ProjectPhasesManager store retry ${retryCount}/${maxRetries}`);
+                setTimeout(tryConnect, 100 * retryCount);
+            } else {
+                console.error('❌ ProjectPhasesManager: Failed to connect to store after maximum retries');
+            }
+        };
+        
+        // Initial retry in next tick
+        setTimeout(tryConnect, 50);
     }
 
     async init() {
@@ -555,20 +595,32 @@ class ProjectPhasesManager {
      * Sync current phases data back to the project in memory
      * This ensures changes persist when navigating between sections
      */
+    /**
+     * Sync current phases data back to the project in memory
+     * This ensures changes persist when navigating between sections
+     */
     syncToCurrentProject() {
+        // 🚨 CRITICAL FIX: Check store availability to prevent undefined access
+        if (!this.store) {
+            console.warn('🛡️ Store not available in ProjectPhasesManager, skipping syncToCurrentProject');
+            return;
+        }
+        
         if (!this.app || !this.app.currentProject) {
             console.warn('No current project to sync to');
             return;
         }
 
         // Ensure project has phases structure
-        if (!this.app.currentProject.phases) {
-            this.app.currentProject.phases = {};
-        }
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) return;
+        
+        // PURE STATE MANAGER: Build phases object for store update
+        const phasesObject = currentProject.phases || {};
 
         // Sync phases data to project structure
         this.currentPhases.forEach(phase => {
-            this.app.currentProject.phases[phase.id] = {
+            phasesObject[phase.id] = {
                 manDays: phase.manDays,
                 effort: { ...phase.effort }, // Deep copy effort object
                 lastModified: phase.lastModified,
@@ -578,10 +630,16 @@ class ProjectPhasesManager {
 
         // Preserve selectedSuppliers
         if (this.selectedSuppliers) {
-            this.app.currentProject.phases.selectedSuppliers = { ...this.selectedSuppliers };
+            phasesObject.selectedSuppliers = { ...this.selectedSuppliers };
         }
-
-        console.log('Phases data synced to current project:', this.app.currentProject.phases);
+        
+        // PURE STATE MANAGER: Use store action with safe access
+        try {
+            this.store.getState().updateProjectPhases(phasesObject);
+            console.log('Phases data synced to current project:', this.app.currentProject.phases);
+        } catch (error) {
+            console.error('Error syncing phases to store:', error);
+        }
     }
 
     validateInput(input) {
@@ -751,10 +809,23 @@ class ProjectPhasesManager {
     /**
      * Mark project as dirty to indicate unsaved changes
      */
+    /**
+     * Mark project as dirty to indicate unsaved changes
+     */
     markDirty() {
-        this.isDirty = true;
+        // 🚨 CRITICAL FIX: Check store availability before using StateSelectors
+        if (!this.store) {
+            console.warn('🛡️ Store not available in ProjectPhasesManager.markDirty, using app fallback');
+            if (this.app && typeof this.app.markDirty === 'function') {
+                this.app.markDirty();
+            }
+            return;
+        }
         
-        // Update the app's dirty state as well
+        // PURE STATE MANAGER: Use store action instead of duplicated state
+        StateSelectors.markProjectDirty();
+        
+        // App dirty state updated automatically via store
         if (this.app && typeof this.app.markDirty === 'function') {
             this.app.markDirty();
         }

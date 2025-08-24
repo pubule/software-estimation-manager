@@ -6,6 +6,11 @@ class SupplierConfigManager {
     constructor(configManager, app) {
         this.configManager = configManager;
         this.app = app;
+        
+        // PURE STATE MANAGER: Connect to store
+        this.store = window.appStore;
+        this.storeUnsubscribe = null;
+        
         this.currentScope = 'global';
         this.containerId = 'suppliers-content';
 
@@ -32,11 +37,43 @@ class SupplierConfigManager {
         // Default suppliers will be loaded from configuration
         this.defaultSuppliers = [];
         
+        // PURE STATE MANAGER: Setup store subscription
+        this.setupStoreSubscription();
+        
         // Load default configuration
         this.loadDefaults();
 
         // Bind methods to window for global access
         this.exposeGlobalMethods();
+    }
+
+    /**
+     * PURE STATE MANAGER: Setup store subscription for reactive updates
+     */
+    setupStoreSubscription() {
+        if (!this.store) {
+            console.warn('Store not available for SupplierConfigManager');
+            return;
+        }
+
+        this.storeUnsubscribe = this.store.subscribe((state, prevState) => {
+            // React to project changes
+            if (state.currentProject !== prevState.currentProject) {
+                this.handleProjectChange(state.currentProject);
+            }
+        });
+    }
+
+    /**
+     * PURE STATE MANAGER: Handle project change from store
+     */
+    handleProjectChange(newProject) {
+        console.log('SupplierConfigManager: Project changed', !!newProject);
+        
+        // Refresh suppliers table when project changes
+        if (this.currentScope === 'project') {
+            this.loadSuppliers();
+        }
     }
 
     /**
@@ -1748,19 +1785,26 @@ class SupplierConfigManager {
      */
     async disableSupplier(supplierId) {
         try {
-            if (!this.app.currentProject) return;
+            const currentProject = StateSelectors.getCurrentProject();
+            if (!currentProject) return;
 
             this.ensureProjectOverrides();
 
-            const existingOverride = this.app.currentProject.config.projectOverrides.suppliers.find(s => s.id === supplierId);
+            // PURE STATE MANAGER: Work with config copy then use store action
+            const updatedConfig = JSON.parse(JSON.stringify(currentProject.config));
+            
+            const existingOverride = updatedConfig.projectOverrides.suppliers.find(s => s.id === supplierId);
             if (existingOverride) {
                 existingOverride.status = 'inactive';
             } else {
-                this.app.currentProject.config.projectOverrides.suppliers.push({
+                updatedConfig.projectOverrides.suppliers.push({
                     id: supplierId,
                     status: 'inactive'
                 });
             }
+            
+            // Use store action instead of direct mutation
+            this.store.getState().updateProjectConfig(updatedConfig);
 
             this.app.markDirty();
             await this.loadSuppliersConfig();

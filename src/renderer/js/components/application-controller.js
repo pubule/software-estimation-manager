@@ -31,7 +31,8 @@ class ApplicationController extends BaseComponent {
         this.handleMenuAction = this.handleMenuAction.bind(this);
         this.handleCloseRequest = this.handleCloseRequest.bind(this);
         this.markDirty = this.markDirty.bind(this);
-        this.updateUI = this.updateUI.bind(this);
+        
+        // REMOVED: this.updateUI.bind(this) → Method eliminated in pure state manager
         
         // Initialize store connection
         this.initializeStoreConnection();
@@ -56,16 +57,18 @@ class ApplicationController extends BaseComponent {
         
         console.log('Initializing ApplicationController store subscription');
         
+        // CRITICAL: Initialize ALL component store connections synchronously
+        this.initializeComponentStoreConnections();
+        
         // Subscribe to store changes for reactive updates
         this.storeUnsubscribe = this.store.subscribe((state, prevState) => {
-            // React to project changes
+            // PURE STATE MANAGER: Only log changes, no direct method calls
             if (state.currentProject !== prevState.currentProject) {
-                this.onProjectChanged(state.currentProject, prevState.currentProject);
+                console.log('🏪 Project changed in store, updating UI');
             }
             
-            // React to dirty state changes
             if (state.isDirty !== prevState.isDirty) {
-                this.onDirtyStateChanged(state.isDirty);
+                console.log('🏪 Dirty state changed:', state.isDirty);
             }
             
             // React to navigation changes
@@ -76,40 +79,40 @@ class ApplicationController extends BaseComponent {
         
         console.log('🏪 Store connection initialized');
     }
-
+    
     /**
-     * Handle project changes from store
+     * PURE STATE MANAGER: Initialize all component store connections synchronously
+     * This ensures ALL components are connected BEFORE any state changes occur
      */
-    onProjectChanged(currentProject, previousProject) {
-        if (currentProject !== previousProject) {
-            console.log('🏪 Project changed in store, updating UI');
-            this.managers.version?.onProjectChanged(currentProject);
-            this.refreshDropdowns();
-            this.updateUI();
-            this.updateNavigationState();
-        }
-    }
-
-    /**
-     * Handle dirty state changes from store
-     */
-    onDirtyStateChanged(isDirty) {
-        console.log('🏪 Dirty state changed:', isDirty);
-        this.managers.navigation?.onProjectDirty(isDirty);
-        this.updateProjectStatus();
+    initializeComponentStoreConnections() {
+        console.log('🔄 Initializing component store connections synchronously...');
         
-        // Update phases if needed
-        if (isDirty && this.managers.projectPhases) {
-            this.managers.projectPhases.calculateDevelopmentPhase();
-            
-            if (this.store.getState().currentSection === 'phases') {
-                const phasesPage = this.getElement('phases-page');
-                if (phasesPage?.classList.contains('active')) {
-                    this.managers.projectPhases.updateCalculations();
+        // Force all managers to connect to store immediately if not already connected
+        const managers = [
+            this.managers.navigation,
+            this.managers.project, 
+            this.managers.feature,
+            this.managers.notification,
+            this.managers.modal
+        ];
+        
+        managers.forEach(manager => {
+            if (manager && !manager.store && manager.connectToStoreWhenReady) {
+                // Force immediate connection instead of async retry
+                manager.store = window.appStore;
+                if (manager.setupStoreSubscription) {
+                    manager.setupStoreSubscription();
                 }
             }
-        }
+        });
+        
+        console.log('✅ All component store connections initialized');
     }
+
+    // REMOVED LEGACY METHODS:
+    // - onProjectChanged() → Components react via store subscriptions
+    // - onDirtyStateChanged() → Components react via store subscriptions
+    // PURE STATE MANAGER: No direct method calls to components!
 
     /**
      * Handle section changes from store
@@ -163,8 +166,10 @@ class ApplicationController extends BaseComponent {
         this.setupEventListeners();
         // Removed automatic loading of last project - start with clean state
         // await this.loadLastProject();
-        this.updateNavigationState();
-        this.updateUI();
+        
+        // REMOVED LEGACY CALLS FOR PURE STATE MANAGER:
+        // this.updateNavigationState(); → NavigationManager handles via subscription
+        // this.updateUI(); → All managers handle via subscriptions
         
         // Ensure proper initial navigation
         setTimeout(() => {
@@ -544,7 +549,7 @@ class ApplicationController extends BaseComponent {
      */
     setupWindowEvents() {
         this.addEventListener(window, 'beforeunload', (e) => {
-            if (this.isDirty) {
+            if (StateSelectors.getIsDirty()) {
                 e.preventDefault();
                 e.returnValue = '';
                 return '';
@@ -563,8 +568,9 @@ class ApplicationController extends BaseComponent {
     handleCoverageChange(value) {
         if (this.currentProject) {
             const numericValue = parseFloat(value) || 0;
-            this.currentProject.coverage = numericValue;
-            this.currentProject.coverageIsAutoCalculated = false;
+            
+            // PURE STATE MANAGER: Use store action instead of direct mutation
+            this.store.getState().updateProjectCoverage(numericValue, false);
             this.updateCoverageResetButtonVisibility();
             this.markDirty();
         }
@@ -642,12 +648,13 @@ class ApplicationController extends BaseComponent {
      * Export project in various formats
      */
     async exportProject(format) {
-        if (!this.currentProject) return;
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) return;
 
         try {
             this.showLoading(`Exporting to ${format.toUpperCase()}...`);
 
-            const filename = `${this.currentProject.project.name}_${new Date().toISOString().split('T')[0]}`;
+            const filename = `${currentProject.project.name}_${new Date().toISOString().split('T')[0]}`;
 
             switch (format) {
                 case 'json':
@@ -2115,7 +2122,7 @@ class ApplicationController extends BaseComponent {
      * Create new project
      */
     async newProject() {
-        if (this.isDirty) {
+        if (StateSelectors.getIsDirty()) {
             const save = await this.confirmSave();
             if (save === null) return; // User cancelled
             if (save) await this.saveProject();
@@ -2124,12 +2131,14 @@ class ApplicationController extends BaseComponent {
         this.currentProject = await this.createNewProject();
         StateSelectors.markProjectClean();
 
-        this.managers.navigation.onProjectLoaded();
-        this.managers.version?.onProjectChanged(this.currentProject);
+        // REMOVED LEGACY CALLS FOR PURE STATE MANAGER:
+        // this.managers.navigation.onProjectLoaded(); → Automatic via subscription
+        // this.managers.version?.onProjectChanged(); → Automatic via subscription
+        // this.refreshDropdowns(); → Automatic via subscription
+        // this.updateUI(); → Automatic via subscription
+        // this.updateProjectStatus(); → Automatic via subscription
         
-        this.refreshDropdowns();
-        this.updateUI();
-        this.updateProjectStatus();
+        // PURE STATE MANAGER: All updates happen automatically!
 
         // Reset phases after UI updates
         setTimeout(() => {
@@ -2154,47 +2163,58 @@ class ApplicationController extends BaseComponent {
      * Save project
      */
     async saveProject() {
-        if (!this.currentProject) return false;
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!currentProject) return false;
 
         try {
             this.showLoading('Saving project...');
 
-            // Update project metadata
-            this.currentProject.project.lastModified = new Date().toISOString();
+            // PURE STATE MANAGER: Use store action instead of direct mutation  
+            this.store.getState().updateProjectMetadata({ 
+                lastModified: new Date().toISOString() 
+            });
 
-            // Ensure hierarchical config format
-            if (!this.currentProject.config.projectOverrides) {
-                this.currentProject.config = this.managers.config.migrateProjectConfig(this.currentProject.config);
+            // Ensure hierarchical config format  
+            if (!currentProject.config.projectOverrides) {
+                const migratedConfig = this.managers.config.migrateProjectConfig(currentProject.config);
+                
+                // PURE STATE MANAGER: Use store action instead of direct mutation
+                this.store.getState().updateProjectConfig(migratedConfig);
             }
 
             // Save phases configuration
             await this.saveProjectPhasesConfiguration();
 
             // Save through data manager
-            await this.managers.data.saveProject(this.currentProject);
+            await this.managers.data.saveProject(currentProject);
 
             StateSelectors.markProjectClean();
-            this.managers.navigation.onProjectDirty(false);
+            
+            // REMOVED LEGACY CALL FOR PURE STATE MANAGER:
+            // this.managers.navigation.onProjectDirty(false); → Automatic via subscription
+            
             this.updateProjectStatus();
 
             // Update project manager
             this.managers.project?.loadSavedProjects();
-            this.managers.project?.updateCurrentProjectUI();
-
-            this.refreshDropdowns();
+            // REMOVED LEGACY CALLS FOR PURE STATE MANAGER:
+            // this.managers.project?.updateCurrentProjectUI(); → Automatic via subscription
+            // this.refreshDropdowns(); → Automatic via subscription
 
             // Check version update conditions
 
             // Update current version with latest project state after successful save
-            if (this.managers.version && this.currentProject && this.currentProject.versions && this.currentProject.versions.length > 0) {
+            if (this.managers.version && currentProject && currentProject.versions && currentProject.versions.length > 0) {
                 console.log('🔍 SAVE UPDATE - Updating current version with latest project state');
-                console.log('🔍 SAVE UPDATE - Current project features:', this.currentProject.features?.length || 0);
-                console.log('🔍 SAVE UPDATE - Current project coverage:', this.currentProject.coverage);
+                console.log('🔍 SAVE UPDATE - Current project features:', currentProject.features?.length || 0);
+                console.log('🔍 SAVE UPDATE - Current project coverage:', currentProject.coverage);
                 await this.managers.version.updateCurrentVersion();
                 
                 // Save the project again to persist the updated version data
                 console.log('🔍 SAVE UPDATE - Saving updated version data to disk');
-                await this.managers.data.saveProject(this.currentProject);
+                // Use fresh project state after version update
+                const updatedProject = StateSelectors.getCurrentProject();
+                await this.managers.data.saveProject(updatedProject);
                 
                 // Update version manager UI if it's currently visible
                 if (this.managers.navigation.currentSection === 'versions') {
@@ -2224,7 +2244,8 @@ class ApplicationController extends BaseComponent {
      * Save project phases configuration
      */
     async saveProjectPhasesConfiguration() {
-        if (!this.managers.projectPhases || !this.currentProject) return;
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!this.managers.projectPhases || !currentProject) return;
 
         try {
             const currentPhases = this.managers.projectPhases.getProjectPhases();
@@ -2242,7 +2263,9 @@ class ApplicationController extends BaseComponent {
             });
 
             phasesObject.selectedSuppliers = { ...selectedSuppliers };
-            this.currentProject.phases = phasesObject;
+            
+            // PURE STATE MANAGER: Use store action instead of direct mutation
+            this.store.getState().updateProjectPhases(phasesObject);
 
         } catch (error) {
             console.error('Failed to save phases configuration:', error);
@@ -2255,7 +2278,10 @@ class ApplicationController extends BaseComponent {
     markDirty() {
         // Use StateSelectors to mark dirty in store
         StateSelectors.markProjectDirty();
-        this.managers.navigation.onProjectDirty(true);
+        
+        // REMOVED LEGACY CALL FOR PURE STATE MANAGER:
+        // this.managers.navigation.onProjectDirty(true); → Automatic via subscription
+        
         this.updateProjectStatus();
 
         // Update phases if needed
@@ -2274,23 +2300,9 @@ class ApplicationController extends BaseComponent {
     /**
      * Update UI components
      */
-    updateUI() {
-        this.updateProjectInfo();
-        this.updateProjectStatus();
-        this.managers.feature?.refreshTable();
-        this.managers.assumptions?.refreshTable();
-        this.updateSummary();
-        this.updateConfigurationStatus();
-        
-        // Update section-specific managers using global state selectors
-        const currentSection = StateSelectors.getCurrentSection();
-        if (currentSection === 'phases' && this.managers.projectPhases) {
-            this.managers.projectPhases.refreshFromFeatures();
-        }
-        if (currentSection === 'calculations' && this.managers.calculations) {
-            this.managers.calculations.refresh();
-        }
-    }
+    // REMOVED LEGACY METHOD FOR PURE STATE MANAGER:
+    // - updateUI() → All managers react to store changes automatically via subscriptions
+    // PURE STATE MANAGER: No manual UI updates needed!
 
     /**
      * Update project information display
@@ -2310,8 +2322,9 @@ class ApplicationController extends BaseComponent {
     updateProjectStatus() {
         const statusEl = this.getElement('project-status');
         if (statusEl) {
-            statusEl.className = this.isDirty ? 'unsaved' : 'saved';
-            statusEl.textContent = this.isDirty ? '●' : '○';
+            const isDirty = StateSelectors.getIsDirty();
+            statusEl.className = isDirty ? 'unsaved' : 'saved';
+            statusEl.textContent = isDirty ? '●' : '○';
         }
 
         // Update last saved timestamp
@@ -2378,8 +2391,9 @@ class ApplicationController extends BaseComponent {
         
         if (coverageIsAutoCalculated || this.currentProject.coverage === undefined) {
             coverageEl.value = defaultCoverage;
-            this.currentProject.coverage = parseFloat(defaultCoverage);
-            this.currentProject.coverageIsAutoCalculated = true;
+            
+            // PURE STATE MANAGER: Use store action instead of direct mutation
+            this.store.getState().updateProjectCoverage(parseFloat(defaultCoverage), true);
         } else {
             coverageEl.value = this.currentProject.coverage;
         }
@@ -2395,8 +2409,8 @@ class ApplicationController extends BaseComponent {
         const totalManDays = features.reduce((sum, feature) => sum + (feature.manDays || 0), 0);
         const defaultCoverage = (totalManDays * 0.3).toFixed(1);
 
-        this.currentProject.coverage = parseFloat(defaultCoverage);
-        this.currentProject.coverageIsAutoCalculated = true;
+        // PURE STATE MANAGER: Use store action instead of direct mutation
+        this.store.getState().updateProjectCoverage(parseFloat(defaultCoverage), true);
 
         const coverageEl = this.getElement('coverage-value');
         if (coverageEl) {
@@ -2443,28 +2457,10 @@ class ApplicationController extends BaseComponent {
         }
     }
 
-    /**
-     * Refresh all dropdowns
-     */
-    refreshDropdowns() {
-        this.managers.feature?.refreshDropdowns();
-    }
-
-    /**
-     * Update navigation state based on current project
-     */
-    updateNavigationState() {
-        const hasProject = this.currentProject &&
-            this.currentProject.project &&
-            this.currentProject.project.name !== 'New Project';
-
-        if (hasProject) {
-            this.managers.navigation.onProjectLoaded();
-            this.managers.navigation.onProjectDirty(this.isDirty);
-        } else {
-            this.managers.navigation.onProjectClosed();
-        }
-    }
+    // REMOVED LEGACY METHODS FOR PURE STATE MANAGER:
+    // - refreshDropdowns() → FeatureManager reacts to store changes automatically
+    // - updateNavigationState() → NavigationManager reacts to store changes automatically
+    // PURE STATE MANAGER: Components auto-update via subscriptions!
 
     /**
      * Load last saved project
@@ -2495,9 +2491,11 @@ class ApplicationController extends BaseComponent {
                 this.managers.calculations?.calculateVendorCosts();
                 
                 this.phasesManager = this.managers.projectPhases; // Legacy reference
-                this.updateNavigationState();
-                this.refreshDropdowns();
-                this.updateProjectStatus();
+                
+                // REMOVED LEGACY CALLS FOR PURE STATE MANAGER:
+                // this.updateNavigationState(); → Automatic via subscription
+                // this.refreshDropdowns(); → Automatic via subscription
+                // this.updateProjectStatus(); → Automatic via subscription
             }
 
             // Restore navigation state
@@ -2568,7 +2566,8 @@ class ApplicationController extends BaseComponent {
     async handleCloseRequest() {
         console.log('Application close requested, checking for unsaved changes...');
         
-        if (!this.isDirty || !this.currentProject) {
+        const currentProject = StateSelectors.getCurrentProject();
+        if (!StateSelectors.getIsDirty() || !currentProject) {
             console.log('No unsaved changes, confirming close');
             window.electronAPI?.confirmWindowClose(true);
             return;
@@ -2605,10 +2604,11 @@ class ApplicationController extends BaseComponent {
         
         this.managers.version?.onProjectChanged(null);
         this.managers.projectPhases?.resetAllPhaseData();
-        this.managers.navigation.onProjectClosed();
         
-        this.refreshDropdowns();
-        this.updateUI();
+        // REMOVED LEGACY CALLS FOR PURE STATE MANAGER:
+        // this.managers.navigation.onProjectClosed(); → Automatic via subscription
+        // this.refreshDropdowns(); → Automatic via subscription  
+        // this.updateUI(); → Automatic via subscription
         
         if (window.NotificationManager) {
             NotificationManager.info('Project closed');

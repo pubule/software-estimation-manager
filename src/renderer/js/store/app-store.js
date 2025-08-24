@@ -16,6 +16,11 @@ const appStore = window.zustand.createStore((set, get) => ({
     lastSavedTime: null,
     
     // ======================
+    // LOOP PREVENTION STATE
+    // ======================
+    _isUpdatingCoverage: false, // 🚨 CRITICAL: Prevents infinite coverage update loops
+    
+    // ======================
     // UI STATE
     // ======================
     currentPage: 'projects',
@@ -88,6 +93,114 @@ const appStore = window.zustand.createStore((set, get) => ({
             currentProject: null,
             isDirty: false,
             lastSavedTime: null
+        });
+    },
+    
+    // ======================
+    // PROJECT PROPERTY ACTIONS (for eliminating direct mutations)
+    // ======================
+    
+    /**
+     * Update project coverage
+     */
+    updateProjectCoverage: (coverage, isAutoCalculated = false) => {
+        const currentState = get();
+        if (!currentState.currentProject) return;
+        
+        // 🚨 CRITICAL FIX: Prevent infinite loop in coverage update chain
+        if (currentState._isUpdatingCoverage) {
+            console.warn('🛡️ Prevented recursive coverage update');
+            return;
+        }
+        
+        // Set recursive guard
+        set({ _isUpdatingCoverage: true });
+        
+        const updatedProject = {
+            ...currentState.currentProject,
+            coverage: coverage,
+            coverageIsAutoCalculated: isAutoCalculated
+        };
+        
+        set({ 
+            currentProject: updatedProject,
+            isDirty: true,
+            _isUpdatingCoverage: false // Clear guard after update
+        });
+    },
+    
+    /**
+     * Update project config
+     */
+    updateProjectConfig: (config) => {
+        const currentState = get();
+        if (!currentState.currentProject) return;
+        
+        const updatedProject = {
+            ...currentState.currentProject,
+            config: config
+        };
+        
+        set({ 
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+    
+    /**
+     * Update project phases
+     */
+    updateProjectPhases: (phases) => {
+        const currentState = get();
+        if (!currentState.currentProject) return;
+        
+        const updatedProject = {
+            ...currentState.currentProject,
+            phases: phases
+        };
+        
+        set({ 
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+    
+    /**
+     * Update project versions
+     */
+    updateProjectVersions: (versions) => {
+        const currentState = get();
+        if (!currentState.currentProject) return;
+        
+        const updatedProject = {
+            ...currentState.currentProject,
+            versions: versions
+        };
+        
+        set({ 
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+    
+    /**
+     * Update project metadata (lastModified, version, etc.)
+     */
+    updateProjectMetadata: (metadata) => {
+        const currentState = get();
+        if (!currentState.currentProject) return;
+        
+        const updatedProject = {
+            ...currentState.currentProject,
+            project: {
+                ...currentState.currentProject.project,
+                ...metadata
+            }
+        };
+        
+        set({ 
+            currentProject: updatedProject,
+            isDirty: true
         });
     },
     
@@ -269,7 +382,7 @@ const appStore = window.zustand.createStore((set, get) => ({
             minute: '2-digit'
         });
     }
-}));
+}));;
 
 // ======================
 // DEBUGGING HELPERS

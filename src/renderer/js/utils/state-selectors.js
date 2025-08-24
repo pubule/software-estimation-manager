@@ -445,7 +445,10 @@ if (typeof window !== 'undefined') {
         navigateTo,
         setSection,
         markProjectDirty,
-        markProjectClean
+        markProjectClean,
+        
+        // 🚨 CRITICAL FIX: Add missing alias for getIsDirty
+        getIsDirty: isProjectDirty
     };
 }
 

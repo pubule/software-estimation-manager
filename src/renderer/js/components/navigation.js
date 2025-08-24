@@ -109,6 +109,13 @@ class EnhancedNavigationManager extends NavigationManager {
      */
     handleProjectLoadedChange(hasProject) {
         console.log(`Navigation: Project loaded state changed to ${hasProject}`);
+        
+        // Auto-expand projects section when project is loaded (from old onProjectLoaded logic)
+        if (hasProject && !this.projectsExpanded) {
+            this.projectsExpanded = true;
+            this.updateProjectsExpansion();
+        }
+        
         this.updateProjectStatus();
         this.updateProjectSubSections();
         
@@ -1009,37 +1016,14 @@ class EnhancedNavigationManager extends NavigationManager {
         });
     }
 
-    onProjectLoaded() {
-        // This method is called by ApplicationController
-        // The actual state change should happen in the store via ApplicationController
-        // This is just for UI-specific navigation behavior
-        
-        console.log('Navigation: onProjectLoaded called');
+    // REMOVED LEGACY METHOD FOR PURE STATE MANAGER:
+    // onProjectLoaded() → All project load reactions happen automatically via handleProjectLoadedChange()
 
-        // Auto-expand projects section
-        if (!this.projectsExpanded) {
-            this.projectsExpanded = true;
-            this.updateProjectsExpansion();
-        }
-        
-        // The store subscription will handle the UI updates
-    }
+    // REMOVED LEGACY METHOD FOR PURE STATE MANAGER:
+    // onProjectClosed() → All project closed reactions happen automatically via handleProjectLoadedChange(false)
 
-    onProjectClosed() {
-        // This method is called by ApplicationController  
-        // The actual state change should happen in the store via ApplicationController
-        console.log('Navigation: onProjectClosed called');
-        
-        // The store subscription will handle the UI updates and navigation
-    }
-
-    onProjectDirty(isDirty) {
-        // This method is called by ApplicationController
-        // The actual state change should happen in the store via ApplicationController
-        console.log(`Navigation: onProjectDirty called with ${isDirty}`);
-        
-        // The store subscription will handle the UI updates
-    }
+    // REMOVED LEGACY METHOD FOR PURE STATE MANAGER:
+    // onProjectDirty() → All dirty state reactions happen automatically via handleDirtyStateChange()
 
     getNavigationState() {
         return {

@@ -7,6 +7,11 @@ class CalculationsManager {
         
         this.app = app;
         this.configManager = configManager;
+        
+        // Connect to global state store (may not be available immediately)
+        this.store = window.appStore;
+        this.storeUnsubscribe = null;
+        
         this.vendorCosts = [];
         this.kpiData = {};
         this.currentFilters = {
@@ -29,6 +34,84 @@ class CalculationsManager {
         };
         
         this.initializeEventListeners();
+        this.setupStoreSubscription();
+        
+        // If store wasn't available during construction, try to connect when it becomes available
+        if (!this.store) {
+            console.log('Store not available during CalculationsManager construction, will attempt to connect later');
+            this.connectToStoreWhenReady();
+        }
+    }
+
+    /**
+     * Attempt to connect to store when it becomes available
+     */
+    connectToStoreWhenReady() {
+        // Check periodically for store availability
+        const checkForStore = () => {
+            if (window.appStore && !this.store) {
+                console.log('Store now available, connecting CalculationsManager...');
+                this.store = window.appStore;
+                this.setupStoreSubscription();
+                return;
+            }
+            
+            // Keep checking every 100ms for up to 5 seconds
+            if (!this.store && (this.storeCheckAttempts || 0) < 50) {
+                this.storeCheckAttempts = (this.storeCheckAttempts || 0) + 1;
+                setTimeout(checkForStore, 100);
+            } else if (!this.store) {
+                console.warn('CalculationsManager: Store not available after 5 seconds, will operate without store integration');
+            }
+        };
+        
+        setTimeout(checkForStore, 100);
+    }
+    
+    /**
+     * Setup store subscription for reactive calculation updates
+     */
+    setupStoreSubscription() {
+        if (!this.store) {
+            console.warn('Store not available for CalculationsManager');
+            return;
+        }
+
+        this.storeUnsubscribe = this.store.subscribe((state, prevState) => {
+            // React to project changes  
+            if (state.currentProject !== prevState.currentProject) {
+                this.handleProjectChange(state.currentProject);
+            }
+        });
+    }
+    
+    /**
+     * Handle project changes from global state
+     */
+    handleProjectChange(newProject) {
+        console.log('CalculationsManager: Project changed', {
+            hasProject: !!newProject
+        });
+        
+        // Re-render calculations when project changes
+        if (newProject) {
+            // Small delay to ensure DOM is ready
+            setTimeout(() => {
+                if (this.render && typeof this.render === 'function') {
+                    this.render();
+                }
+            }, 100);
+        }
+    }
+    
+    /**
+     * Cleanup store subscription
+     */
+    destroy() {
+        if (this.storeUnsubscribe) {
+            this.storeUnsubscribe();
+            this.storeUnsubscribe = null;
+        }
     }
 
     initializeEventListeners() {
@@ -42,7 +125,14 @@ class CalculationsManager {
         const container = document.querySelector('.calculations-content');
         if (!container) return;
 
-        const currentProject = this.app?.currentProject;
+        // Get current project from store if available, fallback to app
+        let currentProject = null;
+        if (this.store && this.store.getState) {
+            currentProject = this.store.getState().currentProject;
+        } else {
+            currentProject = this.app?.currentProject;
+        }
+        
         if (!currentProject) {
             container.innerHTML = this.renderNoProjectState();
             return;
@@ -7452,8 +7542,9 @@ class CapacityManager extends BaseComponent {
     
     /**
      * Calculate available MDs and overflow for a phase
+     * FIXED: Added DOM availability check with retry mechanism for better timing
      */
-    calculatePhaseAvailability(phaseId) {
+    calculatePhaseAvailability(phaseId, retryCount = 0) {
         const startDateInput = document.querySelector(`[data-phase-id="${phaseId}"] .phase-start-date`);
         const endDateInput = document.querySelector(`[data-phase-id="${phaseId}"] .phase-end-date`);
         const availableMDsSpan = document.querySelector(`.available-mds[data-phase-id="${phaseId}"]`);
@@ -7461,7 +7552,12 @@ class CapacityManager extends BaseComponent {
         
         // Check if DOM elements exist before accessing their properties
         if (!startDateInput || !endDateInput || !availableMDsSpan || !overflowIndicator) {
-            console.warn(`Missing DOM elements for phase ${phaseId}:`, {
+            // DOM not ready - retry once after short delay
+            if (retryCount < 1) {
+                setTimeout(() => this.calculatePhaseAvailability(phaseId, retryCount + 1), 100);
+                return;
+            }
+            console.warn(`Missing DOM elements for phase ${phaseId} after retry:`, {
                 startDateInput: !!startDateInput,
                 endDateInput: !!endDateInput,
                 availableMDsSpan: !!availableMDsSpan,
@@ -7500,7 +7596,12 @@ class CapacityManager extends BaseComponent {
         
         const phaseMDsElement = phaseItem.querySelector('.phase-mds');
         if (!phaseMDsElement) {
-            console.warn(`Phase MDs element not found for phaseId: ${phaseId}`);
+            // DOM element might not be ready yet - skip this calculation
+            if (retryCount < 1) {
+                setTimeout(() => this.calculatePhaseAvailability(phaseId, retryCount + 1), 100);
+                return;
+            }
+            console.warn(`Phase MDs element not found for phaseId: ${phaseId} after retry - skipping calculation`);
             return;
         }
         

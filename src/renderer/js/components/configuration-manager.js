@@ -695,12 +695,32 @@ class ConfigCache {
     generateKey(globalConfig, projectConfig) {
         if (!projectConfig) return 'global';
 
-        const hash = this.simpleHash(JSON.stringify({
-            global: globalConfig,
-            project: projectConfig
-        }));
+        try {
+            // 🚨 CRITICAL FIX: Prevent circular references in JSON.stringify
+            const hash = this.simpleHash(JSON.stringify({
+                global: globalConfig,
+                project: projectConfig
+            }, (key, value) => {
+                // Skip circular references and complex objects
+                if (key === 'project' && typeof value === 'object' && value !== null) {
+                    // Only include basic project properties for cache key
+                    return {
+                        name: value.name,
+                        id: value.id || value.project?.id,
+                        lastModified: value.project?.lastModified
+                    };
+                }
+                return value;
+            }));
 
-        return `project_${hash}`;
+            return `project_${hash}`;
+        } catch (error) {
+            console.warn('🛡️ ConfigCache.generateKey: Fallback to simple key due to:', error.message);
+            // Fallback to a simpler key generation
+            const projectId = projectConfig?.project?.id || projectConfig?.id || 'unknown';
+            const timestamp = projectConfig?.project?.lastModified || Date.now();
+            return `project_${projectId}_${timestamp}`;
+        }
     }
 
     has(key) {
