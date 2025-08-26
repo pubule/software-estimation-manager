@@ -321,6 +321,16 @@ class ProjectManager {
                 }
                 break;
                 
+            // 🎯 CAPACITY MANAGER ACTIONS - Delegate to CapacityManager (silent)
+            case 'close-assignment-modal':
+                // This is handled by CapacityManager, ignore silently
+                console.log('📋 close-assignment-modal delegated to CapacityManager');
+                break;
+            case 'edit':
+                // This is handled by CapacityManager for assignment editing, ignore silently
+                console.log('📋 edit action delegated to CapacityManager');
+                break;
+                
             default:
                 console.warn(`Unknown action: ${actionType}`, payload);
         }

@@ -1611,6 +1611,9 @@ class CapacityManager extends BaseComponent {
         // Track expanded details rows to preserve state during refresh
         this._expandedDetailsRows = new Set();
 
+        // Initialize Assignment Modal State Manager for race condition-free modal operations
+        this.assignmentModalStateManager = new AssignmentModalStateManager(this);
+
         // Make this instance available globally for modal interactions
         if (typeof window !== 'undefined') {
             window.capacityManager = this;
@@ -1660,6 +1663,29 @@ class CapacityManager extends BaseComponent {
         // Initialize capacity panel event listeners
         this.initializeCapacityPanelEventListeners();
 
+        // Setup global event delegation for assignment modal actions
+        if (!this._modalEventDelegationSetup) {
+            document.addEventListener('click', (e) => {
+                // Handle close-assignment-modal action ONLY
+                const target = e.target.closest('[data-action="close-assignment-modal"]');
+                if (target) {
+                    e.preventDefault();
+                    e.stopPropagation(); // Stop propagation to prevent ProjectManager warning
+                    
+                    const modal = document.getElementById('assignment-modal');
+                    if (modal) {
+                        modal.classList.remove('active');
+                        // Clean up modal state in StateManager
+                        if (this.assignmentModalStateManager) {
+                            this.assignmentModalStateManager.state.isProcessing = false;
+                            this.assignmentModalStateManager.state.currentMode = null;
+                            this.assignmentModalStateManager.state.currentAssignment = null;
+                        }
+                    }
+                }
+            });
+            this._modalEventDelegationSetup = true;
+        }
     }
 
     /**
@@ -7049,182 +7075,14 @@ class CapacityManager extends BaseComponent {
      * Show add assignment modal
      */
     async showAddAssignmentModal(mode = 'create', assignmentData = null) {
-        // Prevent multiple simultaneous calls to this method
-        if (this._showingAssignmentModal) {
-            return;
-        }
+        console.log(`🎬 showAddAssignmentModal called - Mode: ${mode}, Using StateManager`);
         
-        this._showingAssignmentModal = true;
-        
+        // Use the new Assignment Modal State Manager for race-condition free operations
         try {
-            
-            // Check if modal already exists
-            let modal = document.getElementById('assignment-modal');
-            if (!modal) {
-                // Create the modal HTML - 🔧 FIXED: Project selection BEFORE Team Member
-                modal = document.createElement('div');
-                modal.id = 'assignment-modal';
-                modal.className = 'modal';
-                modal.innerHTML = `
-                    <div class="modal-content assignment-modal-content">
-                        <div class="modal-header">
-                            <h3 id="assignment-modal-title">Add Team Member Assignment</h3>
-                            <button class="modal-close">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="assignment-form">
-                                <div class="form-group">
-                                    <label for="assignment-project">Project *</label>
-                                    <select id="assignment-project" name="project" required>
-                                        <option value="">Select Project</option>
-                                    </select>
-                                    <small class="field-info" id="project-readonly-info" style="display: none; color: #888;">Project cannot be changed when editing an assignment</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="assignment-team-member">Team Member *</label>
-                                    <select id="assignment-team-member" name="teamMember" required>
-                                        <option value="">First select a project to see available team members</option>
-                                    </select>
-                                    <small class="field-info" id="member-role-info"></small>
-                                </div>
-                                
-                                <!-- Budget Tracking Section -->
-                                <div class="budget-section" id="budget-section" style="display: none;">
-                                    <h4><i class="fas fa-chart-line"></i> Budget Overview</h4>
-                                    <div class="budget-summary">
-                                        <div class="budget-item">
-                                            <label>Total Final MDs:</label>
-                                            <span id="total-final-mds" class="budget-value">-</span>
-                                            <small id="budget-context"></small>
-                                        </div>
-                                        <div class="budget-item">
-                                            <label>Total Allocated MDs:</label>
-                                            <span id="total-allocated-mds" class="budget-value">0.0</span>
-                                            <small>Sum of MDs allocated in phases below</small>
-                                        </div>
-                                        <div class="budget-item balance-item">
-                                            <label>Balance:</label>
-                                            <span id="budget-balance" class="budget-balance">-</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Phase Scheduling Section -->
-                                <div class="phases-section" id="phases-section" style="display: none;">
-                                    <h4><i class="fas fa-calendar-alt"></i> Phase Scheduling</h4>
-                                    <div id="phases-list">
-                                        <!-- Dynamic phase items will be inserted here -->
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="assignment-notes">Notes</label>
-                                    <textarea id="assignment-notes" name="notes" rows="3" maxlength="500"></textarea>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" id="cancel-assignment">Cancel</button>
-                            <button type="submit" class="btn btn-primary" form="assignment-form" id="submit-assignment">Add Assignment</button>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(modal);
-                
-                // IMPORTANT: Setup event listeners ONLY when creating the modal for the first time
-                // This prevents duplicate listeners that cause multiple assignment creation
-                
-                // Setup form submission - ONLY ONCE when modal is created
-                const form = document.getElementById('assignment-form');
-                form.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    // Prevent double-clicks by disabling the submit button
-                    const submitBtn = document.getElementById('submit-assignment');
-                    if (submitBtn && !submitBtn.disabled) {
-                        submitBtn.disabled = true;
-                        submitBtn.textContent = mode === 'edit' ? 'Updating...' : 'Creating...';
-                        
-                        // Call handler and re-enable button when done
-                        this.handleAddAssignment().finally(() => {
-                            if (submitBtn) {
-                                submitBtn.disabled = false;
-                                submitBtn.textContent = mode === 'edit' ? 'Update Assignment' : 'Add Assignment';
-                            }
-                        });
-                    }
-                });
-
-                // Setup modal close handlers - ONLY ONCE when modal is created
-                modal.querySelectorAll('.modal-close').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        this.resetAssignmentModal();
-                        modal.classList.remove('active');
-                    });
-                });
-                
-                // Setup cancel button handler separately
-                modal.querySelector('#cancel-assignment').addEventListener('click', () => {
-                    this.resetAssignmentModal();
-                    modal.classList.remove('active');
-                });
-            }
-
-            // Reset modal based on mode
-            if (mode === 'edit') {
-                // For edit mode, use partial reset to preserve data
-                this.partialResetModal();
-            } else {
-                // For create/duplicate modes, do full reset
-                this.resetAssignmentModal();
-            }
-
-            // Set modal mode and data
-            modal.dataset.mode = mode;
-            
-            // CRITICAL FIX: Only set editingAssignmentId for edit mode, NOT for duplicate mode
-            if (mode === 'edit' && assignmentData) {
-                modal.dataset.editingAssignmentId = assignmentData.id;
-            } else {
-                // For create and duplicate modes, ensure no editingAssignmentId is set
-                delete modal.dataset.editingAssignmentId;
-            }
-
-            // Update modal title and button text based on mode
-            const titleElement = document.getElementById('assignment-modal-title');
-            const submitBtn = document.getElementById('submit-assignment');
-            
-            switch (mode) {
-                case 'edit':
-                    titleElement.textContent = 'Edit Team Member Assignment';
-                    submitBtn.textContent = 'Update Assignment';
-                    break;
-                case 'duplicate':
-                    titleElement.textContent = 'Duplicate Team Member Assignment';
-                    submitBtn.textContent = 'Create Duplicate';
-                    break;
-                default: // create
-                    titleElement.textContent = 'Add Team Member Assignment';
-                    submitBtn.textContent = 'Add Assignment';
-                    break;
-            }
-
-            // Populate dropdowns with filtering based on mode
-            await this.populateAssignmentModalDropdowns(mode);
-            
-            // Pre-populate form if editing or duplicating
-            if (assignmentData) {
-                await this.populateAssignmentForm(assignmentData, mode);
-            }
-            
-            // Setup event listeners for dynamic content (this can be done every time)
-            this.setupAssignmentModalEventListeners();
-
-            // Show modal
-            modal.classList.add('active');
-            
-        } finally {
-            // Always reset the flag
-            this._showingAssignmentModal = false;
+            await this.assignmentModalStateManager.showAssignmentModal(mode, assignmentData);
+        } catch (error) {
+            console.error('❌ Error showing assignment modal:', error);
+            NotificationManager.error('Error opening assignment modal: ' + error.message);
         }
     }
 
@@ -8121,11 +7979,17 @@ class CapacityManager extends BaseComponent {
      */
     async populateAssignmentForm(assignmentData, mode) {
         try {
+            console.log(`🔧 populateAssignmentForm - Mode: ${mode} (Legacy method - StateManager handles this now)`, assignmentData);
+            
+            // NOTE: This method is now mainly used by the StateManager's internal actions
+            // The complex async logic with timeouts has been moved to the StateManager
+            // to eliminate race conditions
             
             // Populate team member
             const teamMemberSelect = document.getElementById('assignment-team-member');
             if (teamMemberSelect && assignmentData.teamMemberId) {
                 teamMemberSelect.value = assignmentData.teamMemberId;
+                console.log(`✅ Team member set to: ${assignmentData.teamMemberId}`);
                 
                 // ONLY trigger change event for duplicate mode, and only once
                 // DO NOT trigger change in edit mode to avoid loops
@@ -8143,6 +8007,7 @@ class CapacityManager extends BaseComponent {
             const projectSelect = document.getElementById('assignment-project');
             if (projectSelect && assignmentData.projectId) {
                 projectSelect.value = assignmentData.projectId;
+                console.log(`✅ Project set to: ${assignmentData.projectId}`);
                 
                 // For edit mode, also update the hidden input
                 if (mode === 'edit') {
@@ -8150,14 +8015,6 @@ class CapacityManager extends BaseComponent {
                     if (hiddenProjectInput) {
                         hiddenProjectInput.value = assignmentData.projectId;
                     }
-                }
-                
-                // For edit/duplicate modes, load the project data to show budget and phases
-                // But prevent multiple simultaneous calls
-                if ((mode === 'edit' || mode === 'duplicate') && !this._loadingProjectForAssignment) {
-                    this._loadingProjectForAssignment = true;
-                    await this.loadProjectForAssignment(assignmentData.projectId);
-                    this._loadingProjectForAssignment = false;
                 }
             }
 
@@ -8172,32 +8029,14 @@ class CapacityManager extends BaseComponent {
                 }
             }
 
-            // For edit/duplicate modes, populate existing assignment data after project is loaded
-            // But only once per modal opening
-            if ((mode === 'edit' || mode === 'duplicate') && assignmentData.phaseSchedule && !this._phaseDataPopulated) {
-                this._phaseDataPopulated = true;
-                
-                // Wait longer for the project data to be fully loaded and UI updated
-                // Increased timeout to reduce race conditions with HTML regeneration
-                setTimeout(() => {
-                    this.populatePhaseScheduleData(assignmentData.phaseSchedule);
-                    
-                    // Also populate budget info if available
-                    if (assignmentData.budgetInfo) {
-                        this.populateBudgetInfo(assignmentData.budgetInfo);
-                    }
-                    
-                    // Reset flag when modal closes
-                    const modal = document.getElementById('assignment-modal');
-                    if (modal) {
-                        const closeHandler = () => {
-                            this._phaseDataPopulated = false;
-                            modal.removeEventListener('transitionend', closeHandler);
-                        };
-                        modal.addEventListener('transitionend', closeHandler);
-                    }
-                }, 500);
-            }
+            // REMOVED: All the complex setTimeout logic and race condition prone code
+            // This is now handled by the StateManager in a sequential, race-condition-free manner:
+            // 1. StateManager calls populateFormData (basic form fields)
+            // 2. StateManager calls loadProjectData (project data loading)
+            // 3. StateManager calls updatePhasesUI (DOM regeneration)  
+            // 4. StateManager calls populatePhaseData (phase data population)
+            
+            console.log('✅ populateAssignmentForm completed (basic form population only)');
 
         } catch (error) {
             console.error('Error populating assignment form:', error);
@@ -8383,19 +8222,9 @@ class CapacityManager extends BaseComponent {
             // Setup event listeners for phase date changes
             this.setupPhaseEventListeners();
             
-            // CRITICAL FIX: Re-populate phase dates after HTML regeneration in edit mode
-            // Check if we're in edit mode and have assignment data with phase schedule
-            const modal = document.getElementById('assignment-modal');
-            const editingAssignmentId = modal?.dataset.editingAssignmentId;
-            if (editingAssignmentId) {
-                const assignment = this.manualAssignments.find(a => a.id === editingAssignmentId);
-                if (assignment?.phaseSchedule) {
-                    // Use setTimeout to ensure DOM is fully updated
-                    setTimeout(() => {
-                        this.populatePhaseScheduleData(assignment.phaseSchedule);
-                    }, 50);
-                }
-            }
+            // REMOVED: The setTimeout race condition fix since StateManager now handles this properly
+            // The StateManager ensures that phase data population happens AFTER the UI is fully ready
+            console.log('✅ updatePhasesSection completed - phases UI ready');
             
         } catch (error) {
             console.error('Error updating phases section:', error);
@@ -8505,19 +8334,69 @@ class CapacityManager extends BaseComponent {
      * FIXED: Added DOM availability check with retry mechanism for better timing
      */
     calculatePhaseAvailability(phaseId, retryCount = 0) {
-        const startDateInput = document.querySelector(`[data-phase-id="${phaseId}"] .phase-start-date`);
-        const endDateInput = document.querySelector(`[data-phase-id="${phaseId}"] .phase-end-date`);
-        const availableMDsSpan = document.querySelector(`.available-mds[data-phase-id="${phaseId}"]`);
-        const overflowIndicator = document.querySelector(`.overflow-indicator[data-phase-id="${phaseId}"]`);
+        // 🔧 ENHANCED DOM SELECTORS: Handle both breakdown and non-breakdown states
+        const elementSelectors = {
+            startDate: [
+                `[data-phase-id="${phaseId}"] .phase-start-date`,
+                `input[data-phase-id="${phaseId}"].phase-start-date`,
+                `#phases-list [data-phase-id="${phaseId}"] input[type="date"]:first-of-type`,
+                `.phase-item[data-phase-id="${phaseId}"] .form-group:first-child input[type="date"]`
+            ],
+            endDate: [
+                `[data-phase-id="${phaseId}"] .phase-end-date`,
+                `input[data-phase-id="${phaseId}"].phase-end-date`, 
+                `#phases-list [data-phase-id="${phaseId}"] input[type="date"]:last-of-type`,
+                `.phase-item[data-phase-id="${phaseId}"] .form-group:nth-child(2) input[type="date"]`
+            ],
+            availableMDs: [
+                `.available-mds[data-phase-id="${phaseId}"]`,
+                `[data-phase-id="${phaseId}"] .available-mds`,
+                `#phases-list [data-phase-id="${phaseId}"] .stat-item:first-child span`,
+                `.phase-item[data-phase-id="${phaseId}"] .phase-stats .available-mds`
+            ],
+            overflowIndicator: [
+                `.overflow-indicator[data-phase-id="${phaseId}"]`,
+                `[data-phase-id="${phaseId}"] .overflow-indicator`,
+                `#phases-list [data-phase-id="${phaseId}"] .stat-item.overflow-indicator`,
+                `.phase-item[data-phase-id="${phaseId}"] .phase-stats .overflow-indicator`
+            ]
+        };
+        
+        // Try to find elements using multiple selectors
+        let startDateInput = null;
+        let endDateInput = null;
+        let availableMDsSpan = null;
+        let overflowIndicator = null;
+        
+        for (const selector of elementSelectors.startDate) {
+            startDateInput = document.querySelector(selector);
+            if (startDateInput) break;
+        }
+        
+        for (const selector of elementSelectors.endDate) {
+            endDateInput = document.querySelector(selector);
+            if (endDateInput) break;
+        }
+        
+        for (const selector of elementSelectors.availableMDs) {
+            availableMDsSpan = document.querySelector(selector);
+            if (availableMDsSpan) break;
+        }
+        
+        for (const selector of elementSelectors.overflowIndicator) {
+            overflowIndicator = document.querySelector(selector);
+            if (overflowIndicator) break;
+        }
         
         // Check if DOM elements exist before accessing their properties
         if (!startDateInput || !endDateInput || !availableMDsSpan || !overflowIndicator) {
             // DOM not ready - retry once after short delay
-            if (retryCount < 1) {
-                setTimeout(() => this.calculatePhaseAvailability(phaseId, retryCount + 1), 100);
+            if (retryCount < 2) {
+                console.log(`🔄 Retrying calculatePhaseAvailability for phase ${phaseId} (attempt ${retryCount + 1})`);
+                setTimeout(() => this.calculatePhaseAvailability(phaseId, retryCount + 1), 150 * (retryCount + 1));
                 return;
             }
-            console.warn(`Missing DOM elements for phase ${phaseId} after retry:`, {
+            console.warn(`⚠️ Missing DOM elements for phase ${phaseId} after ${retryCount + 1} attempts:`, {
                 startDateInput: !!startDateInput,
                 endDateInput: !!endDateInput,
                 availableMDsSpan: !!availableMDsSpan,
@@ -8547,35 +8426,72 @@ class CapacityManager extends BaseComponent {
         availableMDsSpan.textContent = `${workingDays} MDs`;
         availableMDsSpan.className = 'available-mds';
         
-        // Get estimated MDs for this phase
-        const phaseItem = document.querySelector(`[data-phase-id="${phaseId}"]`);
+        // Get estimated MDs for this phase - try multiple selectors
+        const phaseSelectors = [
+            `[data-phase-id="${phaseId}"]`,
+            `.phase-item[data-phase-id="${phaseId}"]`,
+            `#phases-list [data-phase-id="${phaseId}"]`
+        ];
+        
+        let phaseItem = null;
+        for (const selector of phaseSelectors) {
+            phaseItem = document.querySelector(selector);
+            if (phaseItem) break;
+        }
+        
         if (!phaseItem) {
-            console.warn(`Phase item not found for phaseId: ${phaseId}`);
+            if (retryCount < 2) {
+                setTimeout(() => this.calculatePhaseAvailability(phaseId, retryCount + 1), 150);
+                return;
+            }
+            console.warn(`⚠️ Phase item not found for phaseId: ${phaseId} after retries`);
             return;
         }
         
-        const phaseMDsElement = phaseItem.querySelector('.phase-mds');
+        // Try multiple selectors for phase MDs element
+        const mdSelectors = [
+            '.phase-mds',
+            '.phase-header .phase-mds', 
+            'span.phase-mds',
+            '.phase-header span:last-child'
+        ];
+        
+        let phaseMDsElement = null;
+        for (const selector of mdSelectors) {
+            phaseMDsElement = phaseItem.querySelector(selector);
+            if (phaseMDsElement) break;
+        }
+        
         if (!phaseMDsElement) {
-            // DOM element might not be ready yet - skip this calculation
-            if (retryCount < 1) {
-                setTimeout(() => this.calculatePhaseAvailability(phaseId, retryCount + 1), 100);
+            if (retryCount < 2) {
+                setTimeout(() => this.calculatePhaseAvailability(phaseId, retryCount + 1), 150);
                 return;
             }
-            console.warn(`Phase MDs element not found for phaseId: ${phaseId} after retry - skipping calculation`);
+            console.warn(`⚠️ Phase MDs element not found for phaseId: ${phaseId} after retries - skipping calculation`);
             return;
         }
         
         const estimatedMDsText = phaseMDsElement.textContent;
         const estimatedMDs = parseFloat(estimatedMDsText);
         
+        if (isNaN(estimatedMDs)) {
+            console.warn(`⚠️ Could not parse estimated MDs from text: "${estimatedMDsText}" for phase ${phaseId}`);
+            return;
+        }
+        
         // Check for overflow
         const overflow = estimatedMDs - workingDays;
         if (overflow > 0) {
             overflowIndicator.style.display = 'flex';
-            overflowIndicator.querySelector('.overflow-amount').textContent = `+${Math.round(overflow)} MDs`;
+            const overflowAmountSpan = overflowIndicator.querySelector('.overflow-amount');
+            if (overflowAmountSpan) {
+                overflowAmountSpan.textContent = `+${Math.round(overflow)} MDs`;
+            }
             overflowIndicator.className = 'stat-item overflow-indicator overflow-warning';
+            console.log(`⚠️ Phase ${phaseId} has overflow: ${overflow.toFixed(1)} MDs`);
         } else {
             overflowIndicator.style.display = 'none';
+            console.log(`✅ Phase ${phaseId} has sufficient capacity`);
         }
     }
     
@@ -9301,6 +9217,16 @@ class CapacityManager extends BaseComponent {
      * Internal method that performs the actual refresh
      */
     async _doRefreshAllCapacitySections() {
+        // 🔧 CRITICAL FIX: Skip refresh if assignment modal is open in edit mode to prevent data loss
+        const assignmentModal = document.getElementById('assignment-modal');
+        const isModalOpen = assignmentModal && assignmentModal.classList.contains('active');
+        const isEditMode = assignmentModal && assignmentModal.dataset.mode === 'edit';
+        
+        if (isModalOpen && isEditMode) {
+            console.log('⚠️ Skipping refresh while assignment modal is open in edit mode to prevent data loss');
+            return Promise.resolve();
+        }
+        
         // Prevent multiple simultaneous refreshes - return existing promise if already running
         if (this._refreshInProgress) {
             return this._currentRefreshPromise || Promise.resolve();
@@ -10104,9 +10030,13 @@ class CapacityManager extends BaseComponent {
             return;
         }
         
+        // IMPORTANT: Pass a deep clone to prevent any mutations from affecting the original
+        // This ensures phase data is preserved even when breakdown is open
+        const assignmentClone = JSON.parse(JSON.stringify(assignment));
+        console.log('🔄 Passing clean assignment clone to edit modal:', assignmentClone);
         
         // Use the proper edit mode in showAddAssignmentModal
-        await this.showAddAssignmentModal('edit', assignment);
+        await this.showAddAssignmentModal('edit', assignmentClone);
     }
 
     /**
@@ -10135,53 +10065,301 @@ class CapacityManager extends BaseComponent {
             notesTextarea.value = assignment.notes || '';
         }
         
-        // Wait for phase schedule to be populated, then fill it
-        setTimeout(() => {
+        // 🔥 MIGLIORAMENTO: Rimuovo il timeout fisso e chiamo direttamente populatePhaseScheduleData
+        // La nuova implementazione di populatePhaseScheduleData aspetterà che il DOM sia pronto
+        if (assignment.phaseSchedule && assignment.phaseSchedule.length > 0) {
+            console.log('🔄 Starting phase schedule population...');
             this.populatePhaseScheduleData(assignment.phaseSchedule);
-        }, 500);
+        } else {
+            console.log('ℹ️ No phase schedule data to populate');
+        }
     }
 
     /**
      * Populate phase schedule data
      */
     populatePhaseScheduleData(phaseSchedule) {
+        console.log(`🔧 populatePhaseScheduleData - Populating ${phaseSchedule.length} phases:`, phaseSchedule);
         
-        phaseSchedule.forEach(phase => {
-            const phaseElement = document.querySelector(`[data-phase-id="${phase.phaseId}"]`);
-            if (!phaseElement) {
-                console.warn(`Phase element not found for phase ID: ${phase.phaseId}`);
-                return;
+        let populatedCount = 0;
+        let retryCount = 0;
+        const maxRetries = 3; // Ridotto a 3 per velocizzare
+        
+        const waitForPhasesDOM = async (maxWaitMs = 2000) => {
+            const startTime = Date.now();
+            while (Date.now() - startTime < maxWaitMs) {
+                // Controlla se esiste almeno il container delle fasi
+                const phasesContainer = document.getElementById('phases-list');
+                if (!phasesContainer) {
+                    console.log('⏳ Waiting for phases container...');
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    continue;
+                }
+                
+                // Controlla solo che gli elementi delle fasi esistano con gli input
+                let allPhasesReady = true;
+                for (const phase of phaseSchedule) {
+                    const phaseElement = document.querySelector(`[data-phase-id="${phase.phaseId}"]`);
+                    if (!phaseElement) {
+                        allPhasesReady = false;
+                        break;
+                    }
+                    
+                    // Controlla solo che gli input esistano, non il contenuto completo
+                    const startInput = phaseElement.querySelector('.phase-start-date');
+                    const endInput = phaseElement.querySelector('.phase-end-date');
+                    if (!startInput || !endInput) {
+                        allPhasesReady = false;
+                        break;
+                    }
+                }
+                
+                if (allPhasesReady) {
+                    console.log('✅ All phase DOM elements are ready');
+                    return true;
+                }
+                
+                console.log('⏳ Waiting for phase elements to be ready...');
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
             
-            // Fill start date
-            const startDateInput = phaseElement.querySelector('.phase-start-date');
+            console.warn('⚠️ Timeout waiting for phase DOM elements');
+            return false;
+        };
+        
+        const populatePhase = (phase, retry = false) => {
+            console.log(`🎯 Processing phase: ${phase.phaseId} (${phase.phaseName})`);
+            
+            // Try multiple selectors to handle both breakdown and non-breakdown DOM states
+            const selectors = [
+                `[data-phase-id="${phase.phaseId}"]`,
+                `.phase-item[data-phase-id="${phase.phaseId}"]`,
+                `#phases-list [data-phase-id="${phase.phaseId}"]`,
+                `div[data-phase-id="${phase.phaseId}"]`
+            ];
+            
+            let phaseElement = null;
+            for (const selector of selectors) {
+                phaseElement = document.querySelector(selector);
+                if (phaseElement) {
+                    console.log(`✅ Found phase element for ${phase.phaseId} using selector: ${selector}`);
+                    break;
+                }
+            }
+            
+            if (!phaseElement) {
+                console.warn(`⚠️ Phase element not found for phase ID: ${phase.phaseId} after trying all selectors`);
+                if (!retry && retryCount < maxRetries) {
+                    // Retry con delay fisso minimo
+                    setTimeout(() => {
+                        console.log(`🔄 Retrying phase population for ${phase.phaseId} (attempt ${retryCount + 1})`);
+                        populatePhase(phase, true);
+                    }, 100); // Delay fisso di 100ms
+                    retryCount++;
+                }
+                return false;
+            }
+            
+            console.log(`✅ Found phase element for ${phase.phaseId}, populating data:`, phase);
+            
+            // 🔧 SCOPED SELECTORS: Use simplified selectors within the phase element context
+            const startDateSelectors = [
+                '.phase-start-date',
+                'input[type="date"].phase-start-date',
+                '.form-group:first-child input[type="date"]',
+                'input[type="date"]:first-of-type'
+            ];
+            
+            const endDateSelectors = [
+                '.phase-end-date', 
+                'input[type="date"].phase-end-date',
+                '.form-group:nth-child(2) input[type="date"]',
+                'input[type="date"]:last-of-type'
+            ];
+            
+            // 🔧 ENHANCED SELECTOR DIAGNOSTICS: Log which selectors we're trying
+            console.log(`🔍 Searching for start date input in ${phase.phaseId} using selectors:`, startDateSelectors);
+            
+            // 🔧 SCOPED SEARCH: Search within phaseElement instead of document
+            let startDateInput = null;
+            for (const selector of startDateSelectors) {
+                startDateInput = phaseElement.querySelector(selector);
+                if (startDateInput) {
+                    console.log(`📅 Found start date input for ${phase.phaseId} using: ${selector}`);
+                    break;
+                }
+            }
+            
             if (startDateInput && phase.startDate) {
                 startDateInput.value = phase.startDate;
-                // Force update the DOM attribute as well
+                // Force update the DOM attribute as well for both scenarios
                 startDateInput.setAttribute('value', phase.startDate);
+                // Trigger change event to ensure any listeners are notified
+                startDateInput.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log(`📅 Set start date for ${phase.phaseId}: ${phase.startDate}`);
+            } else if (phase.startDate && !startDateInput) {
+                console.warn(`⚠️ Start date input not found for phase ${phase.phaseId}`);
             }
             
-            // Fill end date
-            const endDateInput = phaseElement.querySelector('.phase-end-date');
+            console.log(`🔍 Searching for end date input in ${phase.phaseId} using selectors:`, endDateSelectors);
+            
+            // 🔧 SCOPED SEARCH: Search within phaseElement instead of document  
+            let endDateInput = null;
+            for (const selector of endDateSelectors) {
+                endDateInput = phaseElement.querySelector(selector);
+                if (endDateInput) {
+                    console.log(`📅 Found end date input for ${phase.phaseId} using: ${selector}`);
+                    break;
+                }
+            }
+            
             if (endDateInput && phase.endDate) {
                 endDateInput.value = phase.endDate;
-                // Force update the DOM attribute as well
+                // Force update the DOM attribute as well for both scenarios
                 endDateInput.setAttribute('value', phase.endDate);
+                // Trigger change event to ensure any listeners are notified
+                endDateInput.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log(`📅 Set end date for ${phase.phaseId}: ${phase.endDate}`);
+            } else if (phase.endDate && !endDateInput) {
+                console.warn(`⚠️ End date input not found for phase ${phase.phaseId}`);
             }
             
-            // Fill estimated MDs if available
-            const phaseMDsElement = phaseElement.querySelector('.phase-mds');
+            // Fill estimated MDs if available with scoped selectors
+            const mdSelectors = [
+                '.phase-mds',
+                '.phase-header .phase-mds',
+                'span.phase-mds'
+            ];
+            
+            let phaseMDsElement = null;
+            for (const selector of mdSelectors) {
+                phaseMDsElement = phaseElement.querySelector(selector);  // ✅ Scoped to phase element!
+                if (phaseMDsElement) break;
+            }
+            
             if (phaseMDsElement && phase.estimatedMDs !== undefined) {
-                phaseMDsElement.textContent = phase.estimatedMDs.toFixed(1);
+                phaseMDsElement.textContent = `${phase.estimatedMDs.toFixed(1)} MDs`;
+                console.log(`📊 Set estimated MDs for ${phase.phaseId}: ${phase.estimatedMDs}`);
             }
             
-            // Calculate availability and overflow for this phase
-            this.calculatePhaseAvailability(phase.phaseId);
+            // Calculate availability and overflow for this phase with retry logic
+            setTimeout(() => {
+                this.calculatePhaseAvailability(phase.phaseId);
+            }, 50);
+            
+            // 🔧 VERIFY POPULATION SUCCESS
+            const wasPopulated = !!(startDateInput && startDateInput.value) || !!(endDateInput && endDateInput.value);
+            if (wasPopulated) {
+                console.log(`✅ Successfully populated phase ${phase.phaseId}`);
+            } else {
+                console.warn(`⚠️ Failed to populate any data for phase ${phase.phaseId}`);
+            }
+            
+            return wasPopulated;
+        };
+        
+        // 🔥 NUOVO APPROCCIO: Aspetta che il DOM sia pronto prima di popolare
+        const populateWhenReady = async () => {
+            console.log('🔄 Waiting for phase DOM elements to be ready...');
+            const domReady = await waitForPhasesDOM();
+            
+            if (!domReady) {
+                console.error('❌ Phase data population failed: DOM elements not ready after timeout');
+                return 0;
+            }
+            
+            // Populate each phase with enhanced error handling
+            phaseSchedule.forEach(phase => {
+                if (populatePhase(phase)) {
+                    populatedCount++;
+                }
+            });
+            
+            console.log(`📊 Population summary: ${populatedCount}/${phaseSchedule.length} phases populated successfully`);
+            
+            // Fornisci feedback visuale all'utente
+            this._showPhasePopulationFeedback(populatedCount, phaseSchedule.length);
+            
+            // Trigger recalculation after all phases are populated
+            setTimeout(() => {
+                this.updateBudgetBalance();
+            }, 100);
+            
+            return populatedCount;
+        };
+        
+        // Esegui la popolazione in modo asincrono
+        populateWhenReady().catch(error => {
+            console.error('❌ Error in populateWhenReady:', error);
         });
         
-        // Trigger recalculation
-        this.updateBudgetBalance();
+        return 0; // Return immediato, il risultato reale sarà gestito dalla promessa
+    }
+
+    /**
+     * Fornisce feedback visuale per la popolazione delle fasi
+     * @param {number} populatedCount - Numero di fasi popolate con successo
+     * @param {number} totalPhases - Numero totale di fasi
+     */
+    _showPhasePopulationFeedback(populatedCount, totalPhases) {
+        const phasesContainer = document.getElementById('phases-list');
+        if (!phasesContainer) return;
         
+        // Rimuovi qualsiasi feedback precedente
+        const existingFeedback = phasesContainer.querySelector('.phase-population-feedback');
+        if (existingFeedback) {
+            existingFeedback.remove();
+        }
+        
+        if (populatedCount === totalPhases && totalPhases > 0) {
+            // Tutto popolato con successo
+            const successFeedback = document.createElement('div');
+            successFeedback.className = 'phase-population-feedback success';
+            successFeedback.innerHTML = `
+                <i class="fas fa-check-circle"></i> 
+                Successfully populated dates for all ${totalPhases} phases
+            `;
+            phasesContainer.insertBefore(successFeedback, phasesContainer.firstChild);
+            
+            // Rimuovi il feedback dopo 3 secondi
+            setTimeout(() => {
+                if (successFeedback.parentNode) {
+                    successFeedback.remove();
+                }
+            }, 3000);
+        } else if (populatedCount > 0) {
+            // Parzialmente popolato
+            const warningFeedback = document.createElement('div');
+            warningFeedback.className = 'phase-population-feedback warning';
+            warningFeedback.innerHTML = `
+                <i class="fas fa-exclamation-triangle"></i> 
+                Populated ${populatedCount}/${totalPhases} phases. Some phases may not have date inputs available.
+            `;
+            phasesContainer.insertBefore(warningFeedback, phasesContainer.firstChild);
+            
+            // Rimuovi il feedback dopo 5 secondi
+            setTimeout(() => {
+                if (warningFeedback.parentNode) {
+                    warningFeedback.remove();
+                }
+            }, 5000);
+        } else if (totalPhases > 0) {
+            // Nessuna fase popolata
+            const errorFeedback = document.createElement('div');
+            errorFeedback.className = 'phase-population-feedback error';
+            errorFeedback.innerHTML = `
+                <i class="fas fa-times-circle"></i> 
+                Could not populate phase dates. Phase elements may not be ready yet.
+            `;
+            phasesContainer.insertBefore(errorFeedback, phasesContainer.firstChild);
+            
+            // Rimuovi il feedback dopo 7 secondi
+            setTimeout(() => {
+                if (errorFeedback.parentNode) {
+                    errorFeedback.remove();
+                }
+            }, 7000);
+        }
     }
 
     /**
@@ -10513,6 +10691,7 @@ class CapacityManager extends BaseComponent {
         inputs.forEach(input => {
             // Handle input changes
             input.addEventListener('change', (e) => {
+                console.log(`🎯 Breakdown input change - AssignmentId: ${assignmentId}, Value: ${e.target.value}`);
                 this.handlePhaseInputChange(e.target, assignmentId);
             });
             
@@ -11607,6 +11786,899 @@ class CapacityManager extends BaseComponent {
         }
     }
 
+}
+
+/**
+ * Assignment Modal State Manager
+ * Centralizes state management for assignment modal operations
+ * Eliminates race conditions through sequential action processing
+ */
+class AssignmentModalStateManager {
+    constructor(capacityManager) {
+        this.capacityManager = capacityManager;
+        this.state = {
+            isProcessing: false,
+            currentMode: null, // 'create', 'edit', 'duplicate'
+            currentAssignment: null,
+            projectData: null,
+            phaseData: null,
+            modalElement: null
+        };
+        
+        // Action queue for sequential processing
+        this.actionQueue = [];
+        this.isProcessingQueue = false;
+    }
+
+    // Action types
+    static ACTIONS = {
+        SHOW_MODAL: 'SHOW_MODAL',
+        LOAD_PROJECT_DATA: 'LOAD_PROJECT_DATA',
+        UPDATE_PHASES_UI: 'UPDATE_PHASES_UI',
+        POPULATE_FORM_DATA: 'POPULATE_FORM_DATA',
+        POPULATE_PHASE_DATA: 'POPULATE_PHASE_DATA',
+        MODAL_READY: 'MODAL_READY'
+    };
+
+    /**
+     * Dispatch an action to the state manager
+     * Actions are processed sequentially to avoid race conditions
+     */
+    async dispatch(action, payload = {}) {
+        return new Promise((resolve, reject) => {
+            this.actionQueue.push({ action, payload, resolve, reject });
+            this._processQueue();
+        });
+    }
+
+    /**
+     * Process actions sequentially from the queue
+     */
+    async _processQueue() {
+        if (this.isProcessingQueue || this.actionQueue.length === 0) {
+            return;
+        }
+
+        this.isProcessingQueue = true;
+
+        while (this.actionQueue.length > 0) {
+            const { action, payload, resolve, reject } = this.actionQueue.shift();
+            
+            try {
+                console.log(`🎬 AssignmentModalStateManager: Processing action ${action}`, payload);
+                const result = await this._handleAction(action, payload);
+                resolve(result);
+            } catch (error) {
+                console.error(`❌ Error processing action ${action}:`, error);
+                reject(error);
+            }
+        }
+
+        this.isProcessingQueue = false;
+    }
+
+    /**
+     * Handle individual actions
+     */
+    async _handleAction(action, payload) {
+        switch (action) {
+            case AssignmentModalStateManager.ACTIONS.SHOW_MODAL:
+                return await this._showModal(payload);
+                
+            case AssignmentModalStateManager.ACTIONS.LOAD_PROJECT_DATA:
+                return await this._loadProjectData(payload);
+                
+            case AssignmentModalStateManager.ACTIONS.UPDATE_PHASES_UI:
+                return await this._updatePhasesUI(payload);
+                
+            case AssignmentModalStateManager.ACTIONS.POPULATE_FORM_DATA:
+                return await this._populateFormData(payload);
+                
+            case AssignmentModalStateManager.ACTIONS.POPULATE_PHASE_DATA:
+                return await this._populatePhaseData(payload);
+                
+            case AssignmentModalStateManager.ACTIONS.MODAL_READY:
+                return await this._modalReady(payload);
+                
+            default:
+                throw new Error(`Unknown action: ${action}`);
+        }
+    }
+
+    /**
+     * Show modal action - initializes modal and sets up basic state
+     */
+    async _showModal(payload) {
+        const { mode, assignmentData } = payload;
+        
+        this.state.isProcessing = true;
+        this.state.currentMode = mode;
+        
+        // IMPORTANT: Deep clone assignment data to prevent mutations from affecting original data
+        // This fixes the issue where phase data is lost when breakdown is open
+        if (assignmentData) {
+            this.state.currentAssignment = JSON.parse(JSON.stringify(assignmentData));
+            console.log('📋 Assignment data deep cloned to prevent mutations:', this.state.currentAssignment);
+        } else {
+            this.state.currentAssignment = null;
+        }
+        
+        // Create or get modal element
+        this.state.modalElement = await this._ensureModalExists();
+        
+        // Configure modal for the specific mode
+        this._configureModalForMode(mode, this.state.currentAssignment);
+        
+        // Reset modal state appropriately
+        if (mode === 'edit') {
+            this.capacityManager.partialResetModal();
+        } else {
+            this.capacityManager.resetAssignmentModal();
+        }
+        
+        // Populate dropdowns
+        await this.capacityManager.populateAssignmentModalDropdowns(mode);
+        
+        return { modalElement: this.state.modalElement };
+    }
+
+    /**
+     * Load project data action
+     */
+    async _loadProjectData(payload) {
+        const { projectId } = payload;
+        
+        if (!projectId) {
+            throw new Error('Project ID is required for loading project data');
+        }
+        
+        console.log(`📂 Loading project data for: ${projectId}`);
+        
+        // Use the existing loadProjectForAssignment method but capture the project data
+        const projects = await this.capacityManager.getAvailableProjects();
+        let project = projects.find(p => p.id === projectId) || projects.find(p => p.filePath === projectId);
+        
+        if (!project || !project.filePath) {
+            throw new Error(`Project not found: ${projectId}`);
+        }
+        
+        const dataManager = this.capacityManager.app?.managers?.data || window.dataManager;
+        const completeProjectData = await dataManager.loadProject(project.filePath);
+        
+        // Handle calculation data like the original method
+        if (completeProjectData.versions && completeProjectData.versions.length > 0) {
+            const sortedVersions = completeProjectData.versions.sort((a, b) => {
+                return b.id.localeCompare(a.id, undefined, { numeric: true });
+            });
+            
+            const latestVersion = sortedVersions[0];
+            if (latestVersion.projectSnapshot?.calculationData) {
+                completeProjectData.calculationData = latestVersion.projectSnapshot.calculationData;
+            }
+        }
+        
+        if (!completeProjectData?.calculationData?.vendorCosts) {
+            try {
+                const generatedCalculationData = await this.capacityManager.generateCalculationDataForProject(completeProjectData);
+                if (generatedCalculationData && generatedCalculationData.vendorCosts?.length > 0) {
+                    completeProjectData.calculationData = generatedCalculationData;
+                } else {
+                    completeProjectData.calculationData = {
+                        vendorCosts: [],
+                        timestamp: new Date().toISOString()
+                    };
+                }
+            } catch (error) {
+                console.error('❌ Error generating calculationData:', error);
+                completeProjectData.calculationData = {
+                    vendorCosts: [],
+                    timestamp: new Date().toISOString()
+                };
+            }
+        }
+        
+        this.state.projectData = completeProjectData;
+        
+        // Show the sections
+        document.getElementById('budget-section').style.display = 'block';
+        document.getElementById('phases-section').style.display = 'block';
+        
+        // Update budget section
+        await this.capacityManager.updateBudgetSection(completeProjectData);
+        
+        return { projectData: completeProjectData };
+    }
+
+    /**
+     * Update phases UI action
+     */
+    async _updatePhasesUI(payload) {
+        const projectData = this.state.projectData || payload.projectData;
+        
+        if (!projectData) {
+            throw new Error('Project data is required for updating phases UI');
+        }
+        
+        console.log('🔄 Updating phases UI...');
+        
+        // 🔧 BREAKDOWN STATE ISOLATION: Save current breakdown state
+        const breakdownState = this._saveBreakdownState();
+        
+        try {
+            // Clear any breakdown-related DOM state that might interfere
+            this._clearBreakdownState();
+            
+            // 🔧 ENSURE CLEAN DOM STATE: Force clear and verify container exists
+            const teamMemberSelect = document.getElementById('assignment-team-member');
+            const phasesListContainer = document.getElementById('phases-list');
+            
+            if (!phasesListContainer) {
+                throw new Error('Phases list container not found - modal DOM not ready');
+            }
+            
+            // Force clear any existing content
+            phasesListContainer.innerHTML = '';
+            console.log('🧹 Cleared phases container for fresh generation');
+            
+            if (!teamMemberSelect || !teamMemberSelect.value) {
+                console.log('⚠️ No team member selected, showing empty phases');
+                phasesListContainer.innerHTML = '<div class="no-selection">Please select a team member first</div>';
+                return { phasesGenerated: false };
+            }
+            
+            // Get team member role with enhanced validation
+            const teamMembers = await this.capacityManager.getRealTeamMembers();
+            const selectedMember = teamMembers.find(m => m.id === teamMemberSelect.value);
+            
+            if (!selectedMember) {
+                console.warn(`⚠️ Selected team member not found: ${teamMemberSelect.value}`);
+                phasesListContainer.innerHTML = '<div class="error">Selected team member not found</div>';
+                return { phasesGenerated: false };
+            }
+            
+            const memberRole = this.capacityManager.getMemberRole(selectedMember);
+            console.log(`👤 Generating phases for member: ${selectedMember.firstName} ${selectedMember.lastName} (${memberRole})`);
+            
+            // Get active phases with enhanced validation
+            const phases = projectData.phases || {};
+            const activePhases = Object.entries(phases)
+                .filter(([key, phase]) => {
+                    if (key === 'selectedSuppliers') return false;
+                    const hasManDays = (phase.manDays || 0) > 0;
+                    const hasRoleEffort = (phase.effort?.[memberRole] || 0) > 0;
+                    console.log(`📊 Phase ${key}: manDays=${phase.manDays}, ${memberRole}Effort=${phase.effort?.[memberRole] || 0}, included=${hasManDays && hasRoleEffort}`);
+                    return hasManDays && hasRoleEffort;
+                })
+                .map(([key, phase]) => ({
+                    id: key,
+                    name: this.capacityManager.getPhaseDisplayName(key),
+                    ...phase
+                }));
+            
+            console.log(`📋 Found ${activePhases.length} active phases for ${memberRole}`);
+            
+            if (activePhases.length === 0) {
+                const noPhaseHTML = `
+                    <div class="no-phases-message">
+                        <i class="fas fa-info-circle"></i>
+                        <span>No phases available for ${memberRole} role in this project</span>
+                    </div>
+                `;
+                phasesListContainer.innerHTML = noPhaseHTML;
+                console.log('ℹ️ No active phases found - showing no phases message');
+                return { phasesGenerated: false };
+            }
+            
+            // 🔥 NEW: Get existing assignment data for pre-populating dates
+            const existingAssignment = this.state.currentAssignment;
+            const existingPhaseSchedule = existingAssignment?.phaseSchedule || [];
+            
+            if (existingPhaseSchedule.length > 0) {
+                console.log(`📅 Found ${existingPhaseSchedule.length} existing phase dates to pre-populate`);
+            }
+            
+            // 🔧 CONSISTENT DOM GENERATION: Always generate the same structure with enhanced logging
+            const phaseItemsHTML = activePhases.map((phase, index) => {
+                const phaseMDs = this.capacityManager.calculatePhaseMDsForRole(phase, memberRole);
+                console.log(`🏗️ Generating HTML for phase ${index + 1}/${activePhases.length}: ${phase.name} (${phaseMDs.toFixed(1)} MDs)`);
+                
+                // 🔥 NEW: Find existing phase data to pre-populate dates
+                const existingPhase = existingPhaseSchedule.find(p => p.phaseId === phase.id);
+                const startDate = existingPhase?.startDate || '';
+                const endDate = existingPhase?.endDate || '';
+                
+                if (existingPhase) {
+                    console.log(`📅 Pre-populating dates for ${phase.name}: ${startDate} to ${endDate}`);
+                }
+                
+                return `
+                    <div class="phase-item" data-phase-id="${phase.id}">
+                        <div class="phase-header">
+                            <h5><i class="fas fa-tasks"></i> ${phase.name}</h5>
+                            <span class="phase-mds">${phaseMDs.toFixed(1)} MDs</span>
+                        </div>
+                        <div class="phase-dates">
+                            <div class="form-group">
+                                <label>Start Date *</label>
+                                <input type="date" class="phase-start-date" data-phase-id="${phase.id}" value="${startDate}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>End Date *</label>
+                                <input type="date" class="phase-end-date" data-phase-id="${phase.id}" value="${endDate}" required>
+                            </div>
+                            <div class="phase-stats">
+                                <div class="stat-item">
+                                    <label>Available MDs:</label>
+                                    <span class="available-mds" data-phase-id="${phase.id}">-</span>
+                                </div>
+                                <div class="stat-item overflow-indicator" data-phase-id="${phase.id}" style="display: none;">
+                                    <label>Overflow MDs:</label>
+                                    <span class="overflow-amount" data-phase-id="${phase.id}">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // 🔧 DOM INJECTION WITH VERIFICATION
+            console.log(`🏗️ Injecting HTML for ${activePhases.length} phases into container`);
+            phasesListContainer.innerHTML = phaseItemsHTML;
+            
+            // 🔧 IMPROVED SYNCHRONIZATION: Use requestAnimationFrame instead of setTimeout
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            
+            // Verify DOM was properly injected
+            const injectedPhases = phasesListContainer.querySelectorAll('.phase-item');
+            console.log(`✅ DOM verification: Expected ${activePhases.length} phases, found ${injectedPhases.length} in DOM`);
+            
+            if (injectedPhases.length !== activePhases.length) {
+                console.error(`❌ DOM injection mismatch! Expected ${activePhases.length}, got ${injectedPhases.length}`);
+                throw new Error('DOM injection failed - phase count mismatch');
+            }
+            
+            // Verify each phase has the expected structure and dates
+            injectedPhases.forEach((phaseElement, index) => {
+                const phaseId = phaseElement.getAttribute('data-phase-id');
+                const startInput = phaseElement.querySelector('.phase-start-date');
+                const endInput = phaseElement.querySelector('.phase-end-date');
+                
+                console.log(`🔍 Phase ${index + 1} verification - ID: ${phaseId}, StartInput: ${!!startInput}, EndInput: ${!!endInput}`);
+                
+                if (!startInput || !endInput) {
+                    console.error(`❌ Phase ${phaseId} missing date inputs! StartInput: ${!!startInput}, EndInput: ${!!endInput}`);
+                    console.error(`📄 Phase HTML: ${phaseElement.innerHTML}`);
+                } else {
+                    // 🔥 NEW: Log if dates were pre-populated
+                    if (startInput.value || endInput.value) {
+                        console.log(`📅 Phase ${phaseId} pre-populated with dates: ${startInput.value} to ${endInput.value}`);
+                    }
+                }
+            });
+            
+            // Setup event listeners for phase date changes
+            this.capacityManager.setupPhaseEventListeners();
+            
+            this.state.phaseData = activePhases;
+            
+            // 🔥 NEW: Calculate phase availability immediately for pre-populated dates
+            if (existingPhaseSchedule.length > 0) {
+                console.log('🔄 Calculating phase availability for pre-populated dates');
+                setTimeout(() => {
+                    existingPhaseSchedule.forEach(phase => {
+                        this.capacityManager.calculatePhaseAvailability(phase.phaseId);
+                    });
+                }, 100);
+            }
+            
+            console.log(`✅ Phases UI generation completed successfully - ${activePhases.length} phases ready`);
+            return { phasesGenerated: true, activePhases, datesPrePopulated: existingPhaseSchedule.length > 0 };
+            
+        } finally {
+            // 🔧 BREAKDOWN STATE RESTORATION: Restore breakdown state after DOM generation
+            this._restoreBreakdownState(breakdownState);
+        }
+    }
+    
+    /**
+     * Save current breakdown state to prevent interference with modal DOM generation
+     */
+    _saveBreakdownState() {
+        const breakdownState = {
+            openBreakdowns: [],
+            breakdownData: {}
+        };
+        
+        // Find all open breakdown rows
+        const breakdownRows = document.querySelectorAll('[data-assignment-id].breakdown-row');
+        breakdownRows.forEach(row => {
+            const assignmentId = row.dataset.assignmentId;
+            if (assignmentId) {
+                breakdownState.openBreakdowns.push(assignmentId);
+                // Save any breakdown-specific data if needed
+                breakdownState.breakdownData[assignmentId] = {
+                    visible: row.style.display !== 'none'
+                };
+            }
+        });
+        
+        console.log('💾 Saved breakdown state:', breakdownState);
+        return breakdownState;
+    }
+    
+    /**
+     * Temporarily clear breakdown state to ensure clean modal DOM generation
+     */
+    _clearBreakdownState() {
+        // Temporarily hide breakdown rows to prevent DOM interference
+        const breakdownRows = document.querySelectorAll('[data-assignment-id].breakdown-row');
+        breakdownRows.forEach(row => {
+            row.style.display = 'none';
+        });
+        
+        // Clear any breakdown-related cached data that might affect DOM generation
+        if (this.capacityManager._breakdownCache) {
+            this.capacityManager._breakdownCacheBackup = { ...this.capacityManager._breakdownCache };
+            this.capacityManager._breakdownCache = {};
+        }
+        
+        console.log('🧹 Cleared breakdown state for clean modal generation');
+    }
+    
+    /**
+     * Restore breakdown state after modal operations complete
+     */
+    _restoreBreakdownState(breakdownState) {
+        if (!breakdownState) return;
+        
+        // Restore breakdown row visibility
+        breakdownState.openBreakdowns.forEach(assignmentId => {
+            const row = document.querySelector(`[data-assignment-id="${assignmentId}"].breakdown-row`);
+            if (row && breakdownState.breakdownData[assignmentId]) {
+                row.style.display = breakdownState.breakdownData[assignmentId].visible ? '' : 'none';
+            }
+        });
+        
+        // Restore cached breakdown data
+        if (this.capacityManager._breakdownCacheBackup) {
+            this.capacityManager._breakdownCache = { ...this.capacityManager._breakdownCacheBackup };
+            delete this.capacityManager._breakdownCacheBackup;
+        }
+        
+        console.log('🔄 Restored breakdown state:', breakdownState);
+    }
+
+    /**
+     * Populate form data action
+     */
+    async _populateFormData(payload) {
+        const assignmentData = this.state.currentAssignment || payload.assignmentData;
+        const mode = this.state.currentMode || payload.mode;
+        
+        if (!assignmentData) {
+            return { populated: false };
+        }
+        
+        console.log(`📝 Populating form data for mode: ${mode}`);
+        
+        // Populate team member
+        const teamMemberSelect = document.getElementById('assignment-team-member');
+        if (teamMemberSelect && assignmentData.teamMemberId) {
+            teamMemberSelect.value = assignmentData.teamMemberId;
+        }
+
+        // Populate project
+        const projectSelect = document.getElementById('assignment-project');
+        if (projectSelect && assignmentData.projectId) {
+            projectSelect.value = assignmentData.projectId;
+            
+            if (mode === 'edit') {
+                const hiddenProjectInput = document.getElementById('hidden-project-input');
+                if (hiddenProjectInput) {
+                    hiddenProjectInput.value = assignmentData.projectId;
+                }
+            }
+        }
+
+        // Populate notes
+        const notesTextarea = document.getElementById('assignment-notes');
+        if (notesTextarea) {
+            if (mode === 'duplicate') {
+                notesTextarea.value = (assignmentData.notes || '') + ' (Copy)';
+            } else {
+                notesTextarea.value = assignmentData.notes || '';
+            }
+        }
+        
+        return { populated: true };
+    }
+
+    /**
+     * Populate phase data action - this happens after phases UI is ready
+     */
+    async _populatePhaseData(payload) {
+        const assignmentData = this.state.currentAssignment || payload.assignmentData;
+        const phaseSchedule = assignmentData?.phaseSchedule || payload.phaseSchedule;
+        
+        if (!phaseSchedule || !Array.isArray(phaseSchedule)) {
+            console.log('📅 No phase schedule data to populate');
+            return { populated: false };
+        }
+        
+        console.log(`📅 Populating phase schedule data for ${phaseSchedule.length} phases`);
+        
+        // 🔧 DOM PERSISTENCE VERIFICATION: Check if DOM still exists before population
+        const maxRetries = 3;
+        let retryCount = 0;
+        
+        const verifyAndPopulatePhases = async (attempt = 1) => {
+            console.log(`🔍 DOM verification attempt ${attempt}/${maxRetries + 1}`);
+            
+            // Check if phases container exists
+            const phasesListContainer = document.getElementById('phases-list');
+            if (!phasesListContainer) {
+                console.error('❌ Phases list container not found!');
+                return { populated: false, error: 'Container not found' };
+            }
+            
+            // Check if phase elements exist and have content
+            const phaseElements = phasesListContainer.querySelectorAll('.phase-item');
+            console.log(`🔍 Found ${phaseElements.length} phase elements, expected ${phaseSchedule.length}`);
+            
+            let emptyElementsFound = 0;
+            let validElementsFound = 0;
+            
+            phaseElements.forEach((element, index) => {
+                const phaseId = element.getAttribute('data-phase-id');
+                const innerHTML = element.innerHTML;
+                const hasStartInput = element.querySelector('.phase-start-date');
+                const hasEndInput = element.querySelector('.phase-end-date');
+                
+                // Enhanced validation: check not just existence but also proper HTML structure
+                const hasValidHTML = innerHTML && innerHTML.trim().length > 100; // HTML should have substantial content
+                const hasValidInputs = hasStartInput && hasEndInput && 
+                                     hasStartInput.type === 'date' && hasEndInput.type === 'date' &&
+                                     hasStartInput.getAttribute('data-phase-id') === phaseId &&
+                                     hasEndInput.getAttribute('data-phase-id') === phaseId;
+                
+                if (!innerHTML || innerHTML.trim() === '') {
+                    emptyElementsFound++;
+                    console.warn(`⚠️ Phase element ${index + 1} (${phaseId}) has empty innerHTML`);
+                } else if (!hasValidHTML) {
+                    emptyElementsFound++;
+                    console.warn(`⚠️ Phase element ${index + 1} (${phaseId}) has insufficient HTML content (${innerHTML.length} chars)`);
+                } else if (!hasValidInputs) {
+                    emptyElementsFound++;
+                    console.warn(`⚠️ Phase element ${index + 1} (${phaseId}) missing or invalid date inputs - Start: ${!!hasStartInput}, End: ${!!hasEndInput}, StartType: ${hasStartInput?.type}, EndType: ${hasEndInput?.type}`);
+                } else {
+                    validElementsFound++;
+                    console.log(`✅ Phase element ${index + 1} (${phaseId}) is valid with full HTML structure`);
+                }
+            });
+            
+            // 🔧 DEFENSIVE DOM RE-GENERATION: If DOM is cleared or invalid, regenerate it
+            if (phaseElements.length !== phaseSchedule.length || emptyElementsFound > 0) {
+                console.warn(`🔧 DOM integrity compromised - Elements: ${phaseElements.length}/${phaseSchedule.length}, Empty: ${emptyElementsFound}, Valid: ${validElementsFound}`);
+                
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    console.log(`🔄 Regenerating DOM (attempt ${retryCount}/${maxRetries})...`);
+                    
+                    // Call _updatePhasesUI to regenerate the DOM
+                    const result = await this.dispatch('UPDATE_PHASES_UI', {});
+                    
+                    if (result.phasesGenerated) {
+                        console.log('✅ DOM regenerated successfully, retrying population...');
+                        // Wait longer after regeneration to ensure DOM is stable
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        return await verifyAndPopulatePhases(attempt + 1);
+                    } else {
+                        console.error('❌ DOM regeneration failed');
+                        return { populated: false, error: 'DOM regeneration failed' };
+                    }
+                } else {
+                    console.error(`❌ Max retries (${maxRetries}) exceeded - DOM cannot be stabilized`);
+                    return { populated: false, error: 'Max retries exceeded' };
+                }
+            }
+            
+            console.log(`✅ DOM verification passed - ${validElementsFound} valid phase elements found`);
+            
+            // 🔧 INCREASED DOM RENDERING DELAY: Give more time for all async operations
+            const delay = attempt === 1 ? 300 : 200 * attempt;
+            console.log(`⏱️ Waiting ${delay}ms for DOM stabilization (attempt ${attempt})...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            // Final verification before population - use same robust validation
+            const finalPhaseElements = phasesListContainer.querySelectorAll('.phase-item');
+            let finalValidElements = 0;
+            
+            finalPhaseElements.forEach((element, index) => {
+                const phaseId = element.getAttribute('data-phase-id');
+                const innerHTML = element.innerHTML;
+                const hasStartInput = element.querySelector('.phase-start-date');
+                const hasEndInput = element.querySelector('.phase-end-date');
+                
+                const hasValidHTML = innerHTML && innerHTML.trim().length > 100;
+                const hasValidInputs = hasStartInput && hasEndInput && 
+                                     hasStartInput.type === 'date' && hasEndInput.type === 'date' &&
+                                     hasStartInput.getAttribute('data-phase-id') === phaseId &&
+                                     hasEndInput.getAttribute('data-phase-id') === phaseId;
+                
+                if (hasValidHTML && hasValidInputs) {
+                    finalValidElements++;
+                } else {
+                    console.warn(`⚠️ Final verification failed for phase ${index + 1} (${phaseId})`);
+                }
+            });
+            
+            if (finalPhaseElements.length !== phaseSchedule.length || finalValidElements !== phaseSchedule.length) {
+                console.warn(`⚠️ Final DOM validation failed - Elements: ${finalPhaseElements.length}/${phaseSchedule.length}, Valid: ${finalValidElements}/${phaseSchedule.length}`);
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    return await verifyAndPopulatePhases(attempt + 1);
+                }
+            }
+            
+            console.log('⏱️ DOM stabilization completed - proceeding with phase data population');
+            
+            // Proceed with population using existing logic
+            this.capacityManager.populatePhaseScheduleData(phaseSchedule);
+            
+            // 🔧 ENHANCED ERROR RECOVERY: Verify population succeeded
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            let populatedCount = 0;
+            finalPhaseElements.forEach((element) => {
+                const startInput = element.querySelector('.phase-start-date');
+                const endInput = element.querySelector('.phase-end-date');
+                
+                if (startInput && endInput && startInput.value && endInput.value) {
+                    populatedCount++;
+                }
+            });
+            
+            console.log(`📊 Population result: ${populatedCount}/${phaseSchedule.length} phases populated with dates`);
+            
+            if (populatedCount === 0 && retryCount < maxRetries) {
+                console.warn('⚠️ Population failed - no dates were set, retrying...');
+                retryCount++;
+                return await verifyAndPopulatePhases(attempt + 1);
+            }
+            
+            return { 
+                populated: populatedCount > 0, 
+                populatedCount, 
+                totalPhases: phaseSchedule.length,
+                attempts: attempt
+            };
+        };
+        
+        // Also populate budget info if available
+        if (assignmentData.budgetInfo) {
+            this.capacityManager.populateBudgetInfo(assignmentData.budgetInfo);
+        }
+        
+        const result = await verifyAndPopulatePhases();
+        
+        if (result.populated) {
+            console.log(`✅ Phase data population completed successfully after ${result.attempts} attempts`);
+        } else {
+            console.error(`❌ Phase data population failed: ${result.error || 'Unknown error'}`);
+        }
+        
+        return result;
+    }
+
+    /**
+     * Modal ready action - final step to show the modal
+     */
+    async _modalReady(payload) {
+        console.log('✅ Modal ready - showing modal');
+        
+        this.state.modalElement.classList.add('active');
+        this.state.isProcessing = false;
+        
+        return { ready: true };
+    }
+
+    /**
+     * Helper method to ensure modal exists
+     */
+    async _ensureModalExists() {
+        let modal = document.getElementById('assignment-modal');
+        if (modal) {
+            return modal;
+        }
+
+        // Create modal using the existing logic from showAddAssignmentModal
+        modal = document.createElement('div');
+        modal.id = 'assignment-modal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content assignment-modal-content">
+                <div class="modal-header">
+                    <h3 id="assignment-modal-title">Add Team Member Assignment</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="assignment-form">
+                        <div class="form-group">
+                            <label for="assignment-project">Project *</label>
+                            <select id="assignment-project" name="project" required>
+                                <option value="">Select Project</option>
+                            </select>
+                            <small class="field-info" id="project-readonly-info" style="display: none; color: #888;">Project cannot be changed when editing an assignment</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="assignment-team-member">Team Member *</label>
+                            <select id="assignment-team-member" name="teamMember" required>
+                                <option value="">First select a project to see available team members</option>
+                            </select>
+                            <small class="field-info" id="member-role-info"></small>
+                        </div>
+                        
+                        <!-- Budget Tracking Section -->
+                        <div class="budget-section" id="budget-section" style="display: none;">
+                            <h4><i class="fas fa-chart-line"></i> Budget Overview</h4>
+                            <div class="budget-summary">
+                                <div class="budget-item">
+                                    <label>Total Final MDs:</label>
+                                    <span id="total-final-mds" class="budget-value">-</span>
+                                    <small id="budget-context"></small>
+                                </div>
+                                <div class="budget-item">
+                                    <label>Total Allocated MDs:</label>
+                                    <span id="total-allocated-mds" class="budget-value">0.0</span>
+                                    <small>Sum of MDs allocated in phases below</small>
+                                </div>
+                                <div class="budget-item balance-item">
+                                    <label>Balance:</label>
+                                    <span id="budget-balance" class="budget-balance">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Phase Scheduling Section -->
+                        <div class="phases-section" id="phases-section" style="display: none;">
+                            <h4><i class="fas fa-calendar-alt"></i> Phase Scheduling</h4>
+                            <div id="phases-list">
+                                <!-- Dynamic phase items will be inserted here -->
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="assignment-notes">Notes</label>
+                            <textarea id="assignment-notes" name="notes" rows="3" maxlength="500"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancel-assignment">Cancel</button>
+                    <button type="submit" class="btn btn-primary" form="assignment-form" id="submit-assignment">Add Assignment</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Setup event listeners only once
+        const form = document.getElementById('assignment-form');
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submit-assignment');
+            if (submitBtn && !submitBtn.disabled) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = this.state.currentMode === 'edit' ? 'Updating...' : 'Creating...';
+                
+                this.capacityManager.handleAddAssignment().finally(() => {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = this.state.currentMode === 'edit' ? 'Update Assignment' : 'Add Assignment';
+                    }
+                });
+            }
+        });
+
+        // Setup modal close handlers
+        modal.querySelectorAll('.modal-close').forEach(btn => {
+            btn.dataset.action = 'close-assignment-modal';
+        });
+        
+        const cancelBtn = modal.querySelector('#cancel-assignment');
+        if (cancelBtn) {
+            cancelBtn.dataset.action = 'close-assignment-modal';
+        }
+        
+        return modal;
+    }
+
+    /**
+     * Configure modal for specific mode
+     */
+    _configureModalForMode(mode, assignmentData) {
+        const modal = this.state.modalElement;
+        
+        // Set modal mode and data
+        modal.dataset.mode = mode;
+        
+        if (mode === 'edit' && assignmentData) {
+            modal.dataset.editingAssignmentId = assignmentData.id;
+        } else {
+            delete modal.dataset.editingAssignmentId;
+        }
+
+        // Update modal title and button text
+        const titleElement = document.getElementById('assignment-modal-title');
+        const submitBtn = document.getElementById('submit-assignment');
+        
+        switch (mode) {
+            case 'edit':
+                titleElement.textContent = 'Edit Team Member Assignment';
+                submitBtn.textContent = 'Update Assignment';
+                break;
+            case 'duplicate':
+                titleElement.textContent = 'Duplicate Team Member Assignment';
+                submitBtn.textContent = 'Create Duplicate';
+                break;
+            default: // create
+                titleElement.textContent = 'Add Team Member Assignment';
+                submitBtn.textContent = 'Add Assignment';
+                break;
+        }
+    }
+
+    /**
+     * Public method to show assignment modal using the state manager
+     */
+    async showAssignmentModal(mode = 'create', assignmentData = null) {
+        try {
+            // Prevent multiple simultaneous calls
+            if (this.state.isProcessing) {
+                console.log('⚠️ Modal already processing, ignoring request');
+                return;
+            }
+
+            console.log(`🎬 Starting assignment modal flow - Mode: ${mode}`);
+
+            // Step 1: Show modal and setup basic state
+            await this.dispatch(AssignmentModalStateManager.ACTIONS.SHOW_MODAL, { mode, assignmentData });
+
+            // Step 2: Populate form data first (if in edit/duplicate mode)
+            if (assignmentData) {
+                await this.dispatch(AssignmentModalStateManager.ACTIONS.POPULATE_FORM_DATA, { assignmentData, mode });
+            }
+
+            // Step 3: Load project data if we have project info
+            if (assignmentData?.projectId) {
+                await this.dispatch(AssignmentModalStateManager.ACTIONS.LOAD_PROJECT_DATA, { 
+                    projectId: assignmentData.projectId 
+                });
+
+                // Step 4: Update phases UI (this now pre-populates dates when in edit mode)
+                const phasesResult = await this.dispatch(AssignmentModalStateManager.ACTIONS.UPDATE_PHASES_UI, {});
+
+                // Step 5: Only populate phase data if dates weren't already pre-populated
+                if (assignmentData.phaseSchedule && !phasesResult.datesPrePopulated) {
+                    console.log('📅 Dates not pre-populated, running POPULATE_PHASE_DATA fallback');
+                    await this.dispatch(AssignmentModalStateManager.ACTIONS.POPULATE_PHASE_DATA, { assignmentData });
+                } else if (phasesResult.datesPrePopulated) {
+                    console.log('✅ Dates already pre-populated during UI generation - skipping POPULATE_PHASE_DATA');
+                }
+            }
+
+            // Step 6: Setup final event listeners and show modal
+            this.capacityManager.setupAssignmentModalEventListeners();
+            await this.dispatch(AssignmentModalStateManager.ACTIONS.MODAL_READY, {});
+
+            console.log('✅ Assignment modal flow completed successfully');
+
+        } catch (error) {
+            console.error('❌ Error in assignment modal flow:', error);
+            this.state.isProcessing = false;
+            throw error;
+        }
+    }
 }
 
 // Make CapacityManager available globally
