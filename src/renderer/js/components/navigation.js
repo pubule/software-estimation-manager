@@ -52,6 +52,9 @@ class EnhancedNavigationManager extends NavigationManager {
         this.capacityExpanded = true;
         this.lastActivePanel = null; // For collapse/expand functionality
         this.currentActivePanel = null;
+        
+        // React wrappers for modern UI components
+        this.reactProjectWrapper = null;
 
         this.initializeNestedNavigation();
         this.setupStoreSubscription();
@@ -170,12 +173,18 @@ class EnhancedNavigationManager extends NavigationManager {
     }
     
     /**
-     * Cleanup store subscription
+     * Cleanup store subscription and React wrappers
      */
     destroy() {
         if (this.storeUnsubscribe) {
             this.storeUnsubscribe();
             this.storeUnsubscribe = null;
+        }
+
+        // Cleanup React Project Manager wrapper
+        if (this.reactProjectWrapper) {
+            this.reactProjectWrapper.destroy();
+            this.reactProjectWrapper = null;
         }
     }
 
@@ -664,6 +673,12 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
+        // Special handling for projects navigation - Initialize React wrapper
+        if (sectionName === 'projects') {
+            this.showProjectsPage();
+            return;
+        }
+
         // Hide all pages
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
@@ -696,6 +711,68 @@ class EnhancedNavigationManager extends NavigationManager {
         console.log(`Navigated to section: ${sectionName}`);
     }
 
+    // Special method for projects page - Initialize React wrapper
+    async showProjectsPage() {
+        console.log('Navigating to Projects page - initializing React wrapper');
+
+        // Hide all pages first
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // Update active states
+        this.updateActiveStates('projects');
+
+        // Show projects page
+        const projectsPage = document.getElementById('projects-page');
+        if (projectsPage) {
+            projectsPage.classList.add('active');
+        }
+
+        // Initialize React Project Manager wrapper if not already done
+        if (!this.reactProjectWrapper) {
+            console.log('🔄 Initializing React Project Manager wrapper...');
+            console.log('ReactProjectManagerWrapper available:', !!window.ReactProjectManagerWrapper);
+            console.log('ReactComponents available:', !!window.ReactComponents);
+            
+            if (window.ReactProjectManagerWrapper) {
+                this.reactProjectWrapper = new window.ReactProjectManagerWrapper(this.app);
+                
+                try {
+                    await this.reactProjectWrapper.init();
+                    console.log('✅ React Project Manager wrapper initialized successfully');
+                } catch (error) {
+                    console.error('❌ Failed to initialize React Project Manager wrapper:', error);
+                    // Show fallback content
+                    const container = document.getElementById('react-project-manager-root');
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="padding: 2rem; text-align: center; color: #ff6b6b;">
+                                <h3>❌ Project Manager Error</h3>
+                                <p>Failed to load React components</p>
+                                <p><small>Error: ${error.message}</small></p>
+                                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                                    Reload Application
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            } else {
+                console.error('❌ ReactProjectManagerWrapper not available on window object');
+                console.log('Available on window:', Object.keys(window).filter(k => k.includes('React')));
+            }
+        } else {
+            console.log('✅ React Project Manager wrapper already initialized');
+        }
+
+        // Update global state
+        if (this.store && this.store.getState) {
+            this.store.getState().setSection('projects');
+        }
+
+        console.log('Navigated to Projects page with React wrapper');
+    }
 
     // Special method for phases page
     showPhasesPage() {

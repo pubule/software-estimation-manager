@@ -28,6 +28,11 @@ const appStore = window.zustand.createStore((set, get) => ({
     modalsOpen: new Set(),
     loadingStates: new Map(), // For tracking loading states
     
+    // Feature Manager UI State
+    editingFeature: null,
+    filteredFeatures: [],
+    currentSort: { field: 'id', direction: 'asc' },
+    
     // ======================
     // NOTIFICATION STATE
     // ======================
@@ -340,6 +345,48 @@ const appStore = window.zustand.createStore((set, get) => ({
     },
     
     // ======================
+    // FEATURE MANAGER UI ACTIONS
+    // ======================
+    
+    /**
+     * Set editing feature
+     */
+    setEditingFeature: (feature) => {
+        set({ editingFeature: feature });
+    },
+    
+    /**
+     * Set filtered features
+     */
+    setFilteredFeatures: (features) => {
+        set({ filteredFeatures: features });
+    },
+    
+    /**
+     * Set sort order
+     */
+    setSortOrder: (field, direction = 'asc') => {
+        set({ currentSort: { field, direction } });
+    },
+    
+    /**
+     * Toggle sort direction for field
+     */
+    toggleSortDirection: (field) => {
+        const currentState = get();
+        const currentSort = currentState.currentSort;
+        
+        if (currentSort.field === field) {
+            // Same field, toggle direction
+            const newDirection = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            set({ currentSort: { field, direction: newDirection } });
+        } else {
+            // Different field, set to ascending
+            set({ currentSort: { field, direction: 'asc' } });
+        }
+    },
+    
+    // ======================
     // LOADING STATE ACTIONS
     // ======================
     
@@ -462,6 +509,35 @@ const appStore = window.zustand.createStore((set, get) => ({
     hasOpenModal: () => {
         const state = get();
         return state.modalsOpen.size > 0;
+    },
+    
+    // Feature Manager computed values
+    isEditingFeature: () => {
+        const state = get();
+        return state.editingFeature !== null;
+    },
+    
+    filteredFeatureCount: () => {
+        const state = get();
+        return state.filteredFeatures.length;
+    },
+    
+    sortedFeatures: () => {
+        const state = get();
+        const { filteredFeatures, currentSort } = state;
+        
+        if (!filteredFeatures.length) return [];
+        
+        return [...filteredFeatures].sort((a, b) => {
+            const aValue = a[currentSort.field] || '';
+            const bValue = b[currentSort.field] || '';
+            
+            let comparison = 0;
+            if (aValue < bValue) comparison = -1;
+            else if (aValue > bValue) comparison = 1;
+            
+            return currentSort.direction === 'desc' ? -comparison : comparison;
+        });
     }
 }));
 

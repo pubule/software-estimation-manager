@@ -208,88 +208,9 @@
 
         <!-- Main Content Area -->
         <main class="content-area">
-            <!-- Projects Page -->
+            <!-- Projects Page - React component container -->
             <div id="projects-page" class="page active">
-                <div class="page-header">
-                    <h2>Project Manager</h2>
-                    <div class="page-actions">
-                        <button class="btn btn-primary" id="new-project-btn">
-                            <i class="fas fa-plus"></i> New Project
-                        </button>
-                        <button class="btn btn-secondary" id="load-project-btn">
-                            <i class="fas fa-folder-open"></i> Load Project
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Two Column Layout -->
-                <div class="project-manager-layout">
-                    <!-- Left Column -->
-                    <div class="project-manager-left">
-                        <!-- Current Project Info -->
-                        <div class="current-project-section">
-                            <div class="section-header">
-                                <h3>Current Project</h3>
-                            </div>
-                            <div class="current-project-card" id="current-project-card">
-                                <div class="project-info">
-                                    <h4 id="current-project-name">No Project Loaded</h4>
-                                    <div class="project-details">
-                                        <span class="project-detail">
-                                            <i class="fas fa-calendar"></i>
-                                            <span id="current-project-created">-</span>
-                                        </span>
-                                        <span class="project-detail">
-                                            <i class="fas fa-edit"></i>
-                                            <span id="current-project-modified">-</span>
-                                        </span>
-                                        <span class="project-detail">
-                                            <i class="fas fa-code-branch"></i>
-                                            <span id="current-project-version">-</span>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="project-actions">
-                                    <button class="btn btn-small btn-primary" id="save-current-project-btn" disabled>
-                                        <i class="fas fa-save"></i> Save
-                                    </button>
-                                    <button class="btn btn-small btn-secondary" id="close-current-project-btn" disabled>
-                                        <i class="fas fa-times"></i> Close
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Recent Projects -->
-                        <div class="recent-projects-section">
-                            <div class="section-header">
-                                <h3>Recent Projects</h3>
-                                <button class="btn btn-small btn-secondary" id="clear-recent-btn">
-                                    <i class="fas fa-trash"></i> Clear Recent
-                                </button>
-                            </div>
-                            <div id="recent-projects-list" class="projects-list">
-                                <!-- Recent projects will be populated here -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Column -->
-                    <div class="project-manager-right">
-                        <!-- Saved Projects -->
-                        <div class="saved-projects-section">
-                            <div class="section-header">
-                                <h3>Saved Projects</h3>
-                                <button class="btn btn-small btn-secondary" id="refresh-projects-btn">
-                                    <i class="fas fa-sync"></i> Refresh
-                                </button>
-                            </div>
-                            <div id="saved-projects-list" class="projects-list">
-                                <!-- Saved projects will be populated here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div id="react-project-manager-root"></div>
             </div>
 
             <!-- Features Management Page -->
@@ -333,24 +254,9 @@
                     </div>
                 </div>
 
-                <!-- Features Table -->
-                <div class="table-container">
-                    <table id="features-table" class="data-table expandable-table">
-                        <thead>
-                        <tr>
-                            <th class="expand-col"></th>
-                            <th data-sort="id">ID <i class="fas fa-sort"></i></th>
-                            <th data-sort="description">Description <i class="fas fa-sort"></i></th>
-                            <th data-sort="supplier">Supplier <i class="fas fa-sort"></i></th>
-                            <th data-sort="realManDays">Real MD <i class="fas fa-sort"></i></th>
-                            <th data-sort="manDays">Calc MD <i class="fas fa-sort"></i></th>
-                            <th>Actions</th>
-                        </tr>
-                        </thead>
-                        <tbody id="features-tbody">
-                        <!-- Features will be populated here -->
-                        </tbody>
-                    </table>
+                <!-- React Feature Manager -->
+                <div id="features-react-app">
+                    <!-- React Feature Manager will be mounted here -->
                 </div>
 
                 <!-- Feature Summary -->
@@ -615,82 +521,7 @@
 
 <!-- All modals remain the same... -->
 
-<!-- Modal for New Project -->
-<div id="new-project-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Create New Project</h3>
-            <button class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-            <form id="new-project-form">
-                <div class="form-group">
-                    <label for="project-code">Project Code:</label>
-                    <input type="text" id="project-code" name="code" class="validation-tooltip required" required
-                           placeholder="e.g. PJ-001"
-                           pattern="[A-Z0-9\-_]+"
-                           title="Only uppercase letters, numbers, hyphens and underscores allowed">
-                    <small class="form-help">Unique identifier for the project (uppercase, numbers, - and _ only)</small>
-                </div>
-                <div class="form-group">
-                    <label for="project-name">Project Name:</label>
-                    <input type="text" id="project-name" name="name" class="validation-tooltip required" required
-                           placeholder="e.g. Customer Portal Development"
-                           maxlength="100">
-                    <small class="form-help">Descriptive name for the project</small>
-                </div>
-                <div class="form-group">
-                    <label for="project-description">Description (Optional):</label>
-                    <textarea id="project-description" name="description"
-                              placeholder="Brief description of the project..."
-                              rows="3" maxlength="500"></textarea>
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" id="cancel-new-project-btn">Cancel</button>
-            <button type="submit" class="btn btn-primary" id="create-project-btn">Create Project</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal for Project Loading -->
-<div id="project-load-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Load Project</h3>
-            <button class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="load-options">
-                <div class="load-option">
-                    <h4><i class="fas fa-file-upload"></i> Load from File</h4>
-                    <p>Select a JSON project file from your computer</p>
-                    <input type="file" id="project-file-input" accept=".json" style="display: none;">
-                    <button class="btn btn-primary" id="select-file-btn">
-                        <i class="fas fa-folder-open"></i> Choose File
-                    </button>
-                    <div id="selected-file-info" class="file-info" style="display: none;">
-                        <i class="fas fa-file"></i>
-                        <span id="selected-file-name"></span>
-                        <span id="selected-file-size"></span>
-                    </div>
-                </div>
-
-                <div class="load-option">
-                    <h4><i class="fas fa-history"></i> Recent Projects</h4>
-                    <div id="modal-recent-projects" class="recent-projects-modal">
-                        <!-- Recent projects in modal -->
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" id="cancel-load-btn">Cancel</button>
-            <button type="button" class="btn btn-primary" id="load-selected-project-btn" disabled>Load Project</button>
-        </div>
-    </div>
-</div>
+<!-- Project modals now handled by React components -->
 
 <!-- Modal for Feature Form -->
 <div id="feature-modal" class="modal">
@@ -825,89 +656,113 @@
 <script src="js/utils/modal-manager.js"></script>
 <script src="js/utils/helpers.js"></script>
 
+<!-- State Management (FIRST - before React) -->
+<script>
+// Create Zustand-compatible store implementation FIRST
+console.log('Creating simplified Zustand store implementation');
+window.zustand = {
+    createStore: (storeInitializer) => {
+        let state = {};
+        const listeners = new Set();
+        
+        const setState = (partial, replace) => {
+            const nextState = replace ? partial : { ...state, ...partial };
+            if (nextState !== state) {
+                const previousState = state;
+                state = nextState;
+                listeners.forEach((listener) => listener(state, previousState));
+            }
+        };
+        
+        const getState = () => state;
+        
+        const subscribe = (listener) => {
+            listeners.add(listener);
+            return () => listeners.delete(listener);
+        };
+        
+        const destroy = () => listeners.clear();
+        
+        // Initialize the state
+        state = storeInitializer(setState, getState);
+        
+        return {
+            getState,
+            setState,
+            subscribe,
+            destroy
+        };
+    }
+};
+
+console.log('✅ Zustand store implementation ready for React components');
+</script>
+
+<!-- Data layer (load early) -->
+<script src="js/data-manager.js"></script>
+
+<!-- App Store (after zustand and data manager) -->
+<script src="js/store/app-store.js"></script>
+
+<!-- React libraries (AFTER zustand is ready) -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+<!-- React Verification and Component Loading -->
+<script>
+// Verify React is properly loaded before loading components
+(function() {
+    function verifyReact() {
+        if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+            console.error('❌ React or ReactDOM not loaded properly');
+            return false;
+        }
+        
+        if (!React.useState || !React.useEffect || !React.createElement) {
+            console.error('❌ React hooks not available');
+            return false;
+        }
+        
+        if (!ReactDOM.createRoot) {
+            console.error('❌ ReactDOM.createRoot not available');
+            return false;
+        }
+        
+        console.log('✅ React verification passed');
+        console.log('React version:', React.version);
+        console.log('Available hooks:', {
+            useState: !!React.useState,
+            useEffect: !!React.useEffect,
+            createElement: !!React.createElement
+        });
+        
+        return true;
+    }
+    
+    if (verifyReact()) {
+        // Load React components only if React is properly loaded
+        const script = document.createElement('script');
+        script.src = '../../dist/renderer/assets/main.js';
+        script.onload = () => {
+            console.log('✅ React components loaded successfully');
+            console.log('Available window.ReactComponents:', window.ReactComponents ? Object.keys(window.ReactComponents) : 'undefined');
+        };
+        script.onerror = () => {
+            console.error('❌ Failed to load React components');
+        };
+        document.head.appendChild(script);
+    } else {
+        console.error('❌ React verification failed, not loading components');
+    }
+})();
+</script>
+
 <!-- Additional utilities -->
 <script src="js/utils/error-handler.js"></script>
 <script src="js/utils/performance-optimizer.js"></script>
 <script src="js/utils/loading-helpers.js"></script>
 <script src="js/utils/state-selectors.js"></script>
 
-<!-- State Management -->
-<script>
-// Load Zustand library with fallbacks, then load app store
-(function() {
-    function loadScript(src, callback) {
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = callback;
-        script.onerror = () => {
-            console.warn('Failed to load from:', src);
-            callback(false);
-        };
-        document.head.appendChild(script);
-    }
-
-    function loadAppStore() {
-        loadScript('js/store/app-store.js', (success) => {
-            if (success) {
-                console.log('App Store loaded successfully');
-                // Ensure store is available before other components try to access it
-                if (window.appStore) {
-                    console.log('Store verified and available');
-                    // Dispatch a custom event to let components know store is ready
-                    window.dispatchEvent(new CustomEvent('storeReady'));
-                } else {
-                    console.error('Store not available after loading');
-                }
-            } else {
-                console.error('Failed to load app store');
-            }
-        });
-    }
-
-    // Create a simplified store implementation
-    console.log('Creating simplified state store');
-    window.zustand = {
-        createStore: (storeInitializer) => {
-            let state = {};
-            const listeners = new Set();
-            
-            const setState = (partial, replace) => {
-                const nextState = replace ? partial : { ...state, ...partial };
-                if (nextState !== state) {
-                    const previousState = state;
-                    state = nextState;
-                    listeners.forEach((listener) => listener(state, previousState));
-                }
-            };
-            
-            const getState = () => state;
-            
-            const subscribe = (listener) => {
-                listeners.add(listener);
-                return () => listeners.delete(listener);
-            };
-            
-            const destroy = () => listeners.clear();
-            
-            // Initialize the state
-            state = storeInitializer(setState, getState);
-            
-            return {
-                getState,
-                setState,
-                subscribe,
-                destroy
-            };
-        }
-    };
-    
-    console.log('Simplified store created, loading app store');
-    loadAppStore();
-})();
-</script>
-
-<!-- Data layer -->
-<script src="js/data-manager.js"></script>
 
 <!-- UI components (no dependencies on other managers) -->
 <script src="js/components/notification-manager.js"></script>
@@ -937,8 +792,11 @@
 <script src="js/components/categories-config-manager.js"></script>
 <script src="js/components/teams-config-manager.js"></script>
 
-<!-- Feature management (depends on data-manager and configuration-manager) -->
-<script src="js/components/feature-manager.js"></script>
+<!-- Feature management - React wrapper -->
+<script src="js/components/react-feature-manager-wrapper.js"></script>
+
+<!-- Project management - React wrapper -->
+<script src="js/components/react-project-manager-wrapper.js"></script>
 
 <!-- Assumptions management (depends on data-manager) -->
 <script src="js/components/assumptions-manager.js"></script>
@@ -957,8 +815,8 @@
 <!-- Navigation (depends on configuration-manager) -->
 <script src="js/components/navigation.js"></script>
 
-<!-- Project management (depends on other managers) -->
-<script src="js/components/project-manager.js"></script>
+<!-- Project business logic (depends on other managers) -->
+<script src="js/business/project-business-logic.js"></script>
 <script src="js/components/project-phases-manager.js"></script>
 
 <!-- Version management (depends on other managers) -->

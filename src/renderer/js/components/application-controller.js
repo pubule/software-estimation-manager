@@ -187,7 +187,7 @@ class ApplicationController extends BaseComponent {
             // Validate essential dependencies (more flexible for refactored components)
             const requiredDependencies = [
                 'CalculationsManager', 'EnhancedNavigationManager', 'ModalManager',
-                'ProjectManager', 'NotificationManager', 'Helpers'
+                'ProjectBusinessLogic', 'NotificationManager', 'Helpers'
             ];
             
             // Check for either original or refactored versions of core components
@@ -306,8 +306,8 @@ class ApplicationController extends BaseComponent {
         // Calculations manager
         this.managers.calculations = new CalculationsManager(this, this.managers.config);
         
-        // Project manager
-        this.managers.project = new ProjectManager(this);
+        // Project business logic
+        this.managers.project = new ProjectBusinessLogic(this);
         
         // Project phases manager
         this.managers.projectPhases = new ProjectPhasesManager(this, this.managers.config);
