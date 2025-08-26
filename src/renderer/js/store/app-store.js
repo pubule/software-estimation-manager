@@ -44,6 +44,12 @@ const appStore = window.zustand.createStore((set, get) => ({
     globalConfig: null,
     
     // ======================
+    // FEATURE MODAL STATE
+    // ======================
+    featureModalOpen: false,
+    featureModalEditingItem: null,
+    
+    // ======================
     // PROJECT ACTIONS
     // ======================
     
@@ -450,6 +456,30 @@ const appStore = window.zustand.createStore((set, get) => ({
      */
     clearNotifications: () => {
         set({ notifications: [] });
+    },
+    
+    // ======================
+    // FEATURE MODAL ACTIONS
+    // ======================
+    
+    /**
+     * Open feature modal for adding or editing
+     */
+    openFeatureModal: (feature = null) => {
+        set({ 
+            featureModalOpen: true,
+            featureModalEditingItem: feature
+        });
+    },
+    
+    /**
+     * Close feature modal
+     */
+    closeFeatureModal: () => {
+        set({ 
+            featureModalOpen: false,
+            featureModalEditingItem: null
+        });
     },
     
     // ======================

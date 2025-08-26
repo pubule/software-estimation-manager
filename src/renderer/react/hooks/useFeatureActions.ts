@@ -7,26 +7,26 @@ import { useCallback } from 'react';
 import { featureActions, FeatureFormData, FeatureFilters } from '../actions/FeatureActions';
 
 export const useFeatureActions = () => {
-  const addFeature = useCallback(async (featureData: FeatureFormData) => {
+  const addFeature = useCallback((featureData: FeatureFormData) => {
     try {
-      await featureActions.addFeature(featureData);
+      featureActions.addFeature(featureData);
     } catch (error) {
       // Error is already logged in actions, just re-throw for component handling
       throw error;
     }
   }, []);
 
-  const updateFeature = useCallback(async (featureIndex: number, featureData: FeatureFormData) => {
+  const updateFeature = useCallback((featureIndex: number, featureData: FeatureFormData) => {
     try {
-      await featureActions.updateFeature(featureIndex, featureData);
+      featureActions.updateFeature(featureIndex, featureData);
     } catch (error) {
       throw error;
     }
   }, []);
 
-  const deleteFeature = useCallback(async (featureIndex: number) => {
+  const deleteFeature = useCallback((featureIndex: number) => {
     try {
-      await featureActions.deleteFeature(featureIndex);
+      featureActions.deleteFeature(featureIndex);
     } catch (error) {
       throw error;
     }
@@ -48,17 +48,17 @@ export const useFeatureActions = () => {
     }
   }, []);
 
-  const updateCoverage = useCallback(async (coverageValue: number) => {
+  const updateCoverage = useCallback((coverageValue: number) => {
     try {
-      await featureActions.updateCoverage(coverageValue);
+      featureActions.updateCoverage(coverageValue);
     } catch (error) {
       throw error;
     }
   }, []);
 
-  const resetCoverage = useCallback(async () => {
+  const resetCoverage = useCallback(() => {
     try {
-      await featureActions.resetCoverage();
+      featureActions.resetCoverage();
     } catch (error) {
       throw error;
     }
@@ -67,6 +67,70 @@ export const useFeatureActions = () => {
   const getFilterOptions = useCallback(async () => {
     try {
       return await featureActions.getFilterOptions();
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const openAddModal = useCallback(() => {
+    try {
+      featureActions.openAddFeatureModal();
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const openEditModal = useCallback((feature: any) => {
+    try {
+      featureActions.openEditFeatureModal(feature);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const closeModal = useCallback(() => {
+    try {
+      featureActions.closeFeatureModal();
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const generateNextId = useCallback(() => {
+    try {
+      return featureActions.generateNextFeatureId();
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const getDefaultManDays = useCallback((categoryId: string, featureTypeId: string) => {
+    try {
+      return featureActions.getDefaultManDays(categoryId, featureTypeId);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const getFeatureTypesForCategory = useCallback((categoryId: string) => {
+    try {
+      return featureActions.getFeatureTypesForCategory(categoryId);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const showSuccessNotification = useCallback((message: string) => {
+    try {
+      featureActions.showSuccessNotification(message);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const showErrorNotification = useCallback((message: string) => {
+    try {
+      featureActions.showErrorNotification(message);
     } catch (error) {
       throw error;
     }
@@ -87,6 +151,20 @@ export const useFeatureActions = () => {
     resetCoverage,
     
     // Configuration
-    getFilterOptions
+    getFilterOptions,
+    
+    // Modal operations
+    openAddModal,
+    openEditModal,
+    closeModal,
+    
+    // Modal helpers
+    generateNextId,
+    getDefaultManDays,
+    getFeatureTypesForCategory,
+    
+    // Notifications
+    showSuccessNotification,
+    showErrorNotification
   };
 };

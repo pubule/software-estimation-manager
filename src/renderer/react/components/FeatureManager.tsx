@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { useFeatures, useProject, useStoreActions } from '../hooks/useStore';
+import React from 'react';
+import { useProject } from '../hooks/useStore';
+import { useStore } from '../hooks/useStore';
+import { useFeatureActions } from '../hooks/useFeatureActions';
 import FeatureTable from './FeatureTable';
 import FeatureModal from './FeatureModal';
 
@@ -9,28 +11,28 @@ interface FeatureManagerProps {
 
 const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures }) => {
   const { currentProject } = useProject();
+  
+  // Get modal state from store
+  const { featureModalOpen, featureModalEditingItem } = useStore(state => ({
+    featureModalOpen: state.featureModalOpen,
+    featureModalEditingItem: state.featureModalEditingItem
+  }));
+  
   const { 
-    editingFeature, 
-    setEditingFeature,
     addFeature,
     updateFeature,
-    deleteFeature 
-  } = useFeatures();
-  
-  const { addNotification } = useStoreActions();
-  const [modalOpen, setModalOpen] = useState(false);
+    deleteFeature,
+    openEditModal, 
+    closeModal,
+    showSuccessNotification,
+    showErrorNotification
+  } = useFeatureActions();
 
   // Use custom filtered features if provided, otherwise use all project features
   const displayFeatures = customFilteredFeatures || currentProject?.features || [];
 
-  const handleAddFeature = () => {
-    setEditingFeature(null);
-    setModalOpen(true);
-  };
-
   const handleEditFeature = (feature: any) => {
-    setEditingFeature(feature);
-    setModalOpen(true);
+    openEditModal(feature);
   };
 
   const handleDeleteFeature = (featureId: string) => {
@@ -44,10 +46,7 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
         // Feature deletion will trigger parent component to re-filter
         
         // Show notification
-        addNotification({
-          type: 'success',
-          message: `Feature ${featureId} deleted successfully`
-        });
+        showSuccessNotification(`Feature ${featureId} deleted successfully`);
       }
     }
   };
@@ -56,11 +55,11 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
     try {
       const now = new Date().toISOString();
       
-      if (editingFeature) {
+      if (featureModalEditingItem) {
         // Update existing feature
         if (!currentProject?.features) return;
         
-        const featureIndex = currentProject.features.findIndex(f => f.id === editingFeature.id);
+        const featureIndex = currentProject.features.findIndex(f => f.id === featureModalEditingItem.id);
         if (featureIndex >= 0) {
           const updatedFeature = {
             ...featureData,
@@ -71,10 +70,7 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
           
           // Feature update will trigger parent component to re-filter
           
-          addNotification({
-            type: 'success',
-            message: `Feature ${updatedFeature.id} updated successfully`
-          });
+          showSuccessNotification(`Feature ${updatedFeature.id} updated successfully`);
         }
       } else {
         // Add new feature
@@ -88,28 +84,20 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
         
         // Feature addition will trigger parent component to re-filter
         
-        addNotification({
-          type: 'success',
-          message: `Feature ${newFeature.id} added successfully`
-        });
+        showSuccessNotification(`Feature ${newFeature.id} added successfully`);
       }
       
       // Close modal
-      setModalOpen(false);
-      setEditingFeature(null);
+      closeModal();
       
     } catch (error) {
       console.error('Error saving feature:', error);
-      addNotification({
-        type: 'error',
-        message: 'Failed to save feature'
-      });
+      showErrorNotification('Failed to save feature');
     }
   };
 
   const handleCloseModal = () => {
-    setModalOpen(false);
-    setEditingFeature(null);
+    closeModal();
   };
 
   if (!currentProject) {
@@ -132,9 +120,9 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
         onDelete={handleDeleteFeature}
       />
 
-      {modalOpen && (
+      {featureModalOpen && (
         <FeatureModal 
-          feature={editingFeature}
+          feature={featureModalEditingItem}
           onSave={handleSaveFeature}
           onClose={handleCloseModal}
         />

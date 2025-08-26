@@ -12,7 +12,7 @@ const FeaturesPage: React.FC = () => {
     currentProject: state.currentProject
   }));
 
-  const { filterFeatures } = useFeatureActions();
+  const { filterFeatures, openAddModal } = useFeatureActions();
   
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,9 +48,7 @@ const FeaturesPage: React.FC = () => {
   }, [currentProject?.project?.id]);
 
   const handleAddFeature = () => {
-    // This will be handled by the FeatureManager component
-    // which will open the modal for adding a new feature
-    console.log('Add feature requested');
+    openAddModal();
   };
 
   if (!currentProject) {

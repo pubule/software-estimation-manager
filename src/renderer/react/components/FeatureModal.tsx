@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Feature, useStore } from '../hooks/useStore';
+import { useFeatureActions } from '../hooks/useFeatureActions';
 
 interface FeatureModalProps {
   feature: Feature | null;
@@ -10,8 +11,16 @@ interface FeatureModalProps {
 const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose }) => {
   const isEditing = feature !== null;
   
-  // Get config from store
-  const { globalConfig } = useStore(state => ({ globalConfig: state.globalConfig }));
+  const { currentProject } = useStore(state => ({
+    currentProject: state.currentProject
+  }));
+
+  const { 
+    generateNextId, 
+    getFilterOptions, 
+    getFeatureTypesForCategory,
+    getDefaultManDays 
+  } = useFeatureActions();
   
   // Form state
   const [formData, setFormData] = useState<Partial<Feature>>({
@@ -30,18 +39,24 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
   // Form validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  // Available options from config
-  const [categories, setCategories] = useState<string[]>([]);
-  const [featureTypes, setFeatureTypes] = useState<string[]>([]);
-  const [suppliers, setSuppliers] = useState<string[]>([]);
+  // Available options from actions
+  const [filterOptions, setFilterOptions] = useState<{
+    categories: any[];
+    suppliers: any[];
+  }>({
+    categories: [],
+    suppliers: []
+  });
+  const [availableFeatureTypes, setAvailableFeatureTypes] = useState<any[]>([]);
 
   // Initialize form when feature changes
   useEffect(() => {
     if (feature) {
       setFormData(feature);
     } else {
+      const newId = generateNextId();
       setFormData({
-        id: '',
+        id: newId,
         description: '',
         category: '',
         featureType: '',
@@ -53,47 +68,52 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
         notes: ''
       });
     }
-  }, [feature]);
+  }, [feature, generateNextId]);
 
-  // Load configuration options
+  // Load filter options (categories, suppliers)
   useEffect(() => {
-    if (globalConfig) {
-      setCategories(Object.keys(globalConfig.categories || {}));
-      setSuppliers(Object.keys(globalConfig.suppliers || {}));
-    }
-  }, [globalConfig]);
+    const loadOptions = async () => {
+      try {
+        const options = await getFilterOptions();
+        setFilterOptions({
+          categories: options.categories,
+          suppliers: options.suppliers
+        });
+      } catch (error) {
+        console.error('Failed to load filter options:', error);
+      }
+    };
+    loadOptions();
+  }, [getFilterOptions]);
 
   // Update feature types when category changes
   useEffect(() => {
-    if (formData.category && globalConfig?.categories) {
-      const categoryData = globalConfig.categories[formData.category];
-      setFeatureTypes(categoryData?.featureTypes ? Object.keys(categoryData.featureTypes) : []);
+    if (formData.category) {
+      const featureTypes = getFeatureTypesForCategory(formData.category);
+      setAvailableFeatureTypes(featureTypes);
       
       // Reset feature type if it's not valid for the new category
-      if (formData.featureType && categoryData?.featureTypes && !categoryData.featureTypes[formData.featureType]) {
-        setFormData(prev => ({ ...prev, featureType: '', manDays: 0 }));
+      if (formData.featureType && !featureTypes.some(ft => ft.id === formData.featureType || ft.name === formData.featureType)) {
+        setFormData(prev => ({ ...prev, featureType: '', realManDays: 0 }));
       }
     } else {
-      setFeatureTypes([]);
+      setAvailableFeatureTypes([]);
     }
-  }, [formData.category, globalConfig]);
+  }, [formData.category, getFeatureTypesForCategory]);
 
-  // Auto-calculate man days based on feature type
+  // Auto-populate man days when feature type selected
   useEffect(() => {
-    if (formData.category && formData.featureType && globalConfig?.categories) {
-      const categoryData = globalConfig.categories[formData.category];
-      const featureTypeData = categoryData?.featureTypes?.[formData.featureType];
-      
-      if (featureTypeData?.estimatedManDays) {
-        const realMD = featureTypeData.estimatedManDays;
+    if (formData.category && formData.featureType) {
+      const defaultMDs = getDefaultManDays(formData.category, formData.featureType);
+      if (defaultMDs > 0) {
         setFormData(prev => ({ 
           ...prev, 
-          realManDays: realMD,
-          manDays: calculateManDays(realMD, prev.expertise || 100, prev.riskMargin || 10)
+          realManDays: defaultMDs,
+          manDays: calculateManDays(defaultMDs, prev.expertise || 100, prev.riskMargin || 10)
         }));
       }
     }
-  }, [formData.category, formData.featureType, globalConfig]);
+  }, [formData.category, formData.featureType, getDefaultManDays]);
 
   // Recalculate man days when expertise or risk margin changes
   useEffect(() => {
@@ -127,6 +147,7 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
     } else if (!/^[A-Za-z0-9_-]+$/.test(formData.id)) {
       newErrors.id = 'ID must contain only letters, numbers, hyphens and underscores';
     }
+    
     
     if (!formData.description?.trim()) {
       newErrors.description = 'Description is required';
@@ -187,6 +208,7 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
               {errors.id && <span className="error-message">{errors.id}</span>}
             </div>
 
+
             {/* Description Field */}
             <div className="form-group">
               <label htmlFor="feature-description">Description:</label>
@@ -212,8 +234,10 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
                 required
               >
                 <option value="">Select Category</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {filterOptions.categories.map(category => (
+                  <option key={category.id || category.name} value={category.name || category.id}>
+                    {category.name || category.id}
+                  </option>
                 ))}
               </select>
               {errors.category && <span className="error-message">{errors.category}</span>}
@@ -229,8 +253,10 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
                 disabled={!formData.category}
               >
                 <option value="">Select Feature Type</option>
-                {featureTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
+                {availableFeatureTypes.map(featureType => (
+                  <option key={featureType.id || featureType.name} value={featureType.name || featureType.id}>
+                    {featureType.name || featureType.id}
+                  </option>
                 ))}
               </select>
               <small className="form-help">Choose a feature type to auto-populate estimated man days</small>
@@ -247,9 +273,19 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
                 required
               >
                 <option value="">Select Supplier</option>
-                {suppliers.map(sup => (
-                  <option key={sup} value={sup}>{sup}</option>
-                ))}
+                {filterOptions.suppliers.map(supplier => {
+                  const rate = supplier.realRate || supplier.officialRate || 0;
+                  const isInternal = supplier.type === 'internal';
+                  const internalSuffix = isInternal ? ' - Internal' : '';
+                  const displayName = `${supplier.department} - ${supplier.name} (€${rate}/day)${internalSuffix}`;
+                  const optionValue = `${supplier.name.toLowerCase()}-${supplier.role.toLowerCase()}-${supplier.department.toLowerCase()}`;
+                  
+                  return (
+                    <option key={supplier.id} value={optionValue}>
+                      {displayName}
+                    </option>
+                  );
+                })}
               </select>
               {errors.supplier && <span className="error-message">{errors.supplier}</span>}
             </div>

@@ -43,7 +43,7 @@ export class FeatureActions {
   /**
    * Add a new feature to the current project
    */
-  async addFeature(featureData: FeatureFormData): Promise<void> {
+  addFeature(featureData: FeatureFormData): void {
     try {
       const store = this.getStore();
       if (!store) {
@@ -78,7 +78,7 @@ export class FeatureActions {
   /**
    * Update an existing feature
    */
-  async updateFeature(featureIndex: number, featureData: FeatureFormData): Promise<void> {
+  updateFeature(featureIndex: number, featureData: FeatureFormData): void {
     try {
       const store = this.getStore();
       if (!store) {
@@ -111,7 +111,7 @@ export class FeatureActions {
   /**
    * Delete a feature from the current project
    */
-  async deleteFeature(featureIndex: number): Promise<void> {
+  deleteFeature(featureIndex: number): void {
     try {
       const store = this.getStore();
       if (!store) {
@@ -220,7 +220,7 @@ export class FeatureActions {
   /**
    * Update coverage value
    */
-  async updateCoverage(coverageValue: number): Promise<void> {
+  updateCoverage(coverageValue: number): void {
     try {
       const store = this.getStore();
       if (!store) {
@@ -253,7 +253,7 @@ export class FeatureActions {
   /**
    * Reset coverage to 30% of total man days
    */
-  async resetCoverage(): Promise<void> {
+  resetCoverage(): void {
     try {
       const store = this.getStore();
       if (!store) {
@@ -271,12 +271,216 @@ export class FeatureActions {
       );
       
       const defaultCoverage = totalManDays * 0.3;
-      await this.updateCoverage(defaultCoverage);
+      this.updateCoverage(defaultCoverage);
 
       console.log('Coverage reset to 30% of total:', defaultCoverage);
     } catch (error) {
       console.error('Failed to reset coverage:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Open modal for adding a new feature
+   */
+  openAddFeatureModal(): void {
+    try {
+      const store = this.getStore();
+      if (!store) {
+        throw new Error('Store not available');
+      }
+      
+      store.getState().openFeatureModal(null);
+      console.log('Add feature modal opened');
+    } catch (error) {
+      console.error('Failed to open add feature modal:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Open modal for editing an existing feature
+   */
+  openEditFeatureModal(feature: any): void {
+    try {
+      const store = this.getStore();
+      if (!store) {
+        throw new Error('Store not available');
+      }
+      
+      store.getState().openFeatureModal(feature);
+      console.log('Edit feature modal opened for:', feature.id);
+    } catch (error) {
+      console.error('Failed to open edit feature modal:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Close the feature modal
+   */
+  closeFeatureModal(): void {
+    try {
+      const store = this.getStore();
+      if (!store) {
+        throw new Error('Store not available');
+      }
+      
+      store.getState().closeFeatureModal();
+      console.log('Feature modal closed');
+    } catch (error) {
+      console.error('Failed to close feature modal:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate next feature ID with BR-XXX pattern
+   */
+  generateNextFeatureId(): string {
+    try {
+      const store = this.getStore();
+      if (!store) {
+        return 'BR-001';
+      }
+      
+      const features = store.getState().currentProject?.features || [];
+      
+      const brIds = features
+        .map(f => f.id)
+        .filter(id => id.startsWith('BR-'))
+        .map(id => parseInt(id.replace('BR-', '').replace(/^0+/, '')))
+        .filter(n => !isNaN(n));
+      
+      const nextNumber = brIds.length > 0 ? Math.max(...brIds) + 1 : 1;
+      return `BR-${String(nextNumber).padStart(3, '0')}`;
+    } catch (error) {
+      console.error('Failed to generate feature ID:', error);
+      return 'BR-001';
+    }
+  }
+
+  /**
+   * Get default man days for category/feature type combination
+   */
+  getDefaultManDays(categoryId: string, featureTypeId: string): number {
+    try {
+      const configManager = this.getConfigManager();
+      if (!configManager) {
+        return 0;
+      }
+      
+      const store = this.getStore();
+      const state = store?.getState();
+      const currentProject = state?.currentProject;
+      const projectConfig = currentProject?.configuration;
+      
+      const categories = configManager.getCategories(projectConfig);
+      
+      const category = categories.find(c => 
+        c.id === categoryId || c.name === categoryId
+      );
+      
+      if (!category || !category.featureTypes) {
+        return 0;
+      }
+      
+      const featureType = category.featureTypes.find(ft => 
+        ft.id === featureTypeId || ft.name === featureTypeId
+      );
+      
+      return featureType?.averageMDs || featureType?.estimatedManDays || 0;
+    } catch (error) {
+      console.error('Failed to get default man days:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Get feature types for selected category
+   */
+  getFeatureTypesForCategory(categoryId: string): any[] {
+    try {
+      const configManager = this.getConfigManager();
+      if (!configManager) {
+        return [];
+      }
+      
+      const store = this.getStore();
+      const state = store?.getState();
+      const currentProject = state?.currentProject;
+      const projectConfig = currentProject?.configuration;
+      
+      const categories = configManager.getCategories(projectConfig);
+      
+      const category = categories.find(c => 
+        c.id === categoryId || c.name === categoryId
+      );
+      
+      return category?.featureTypes || [];
+    } catch (error) {
+      console.error('Failed to get feature types for category:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Create complete notification config object
+   */
+  private createNotificationConfig(message: string, type: string): any {
+    return {
+      id: `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title: type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Info',
+      message: message,
+      type: type,
+      duration: 5000,
+      persistent: false,
+      actions: [],
+      onClick: null,
+      onClose: null,
+      timestamp: new Date()
+    };
+  }
+
+  /**
+   * Show success notification through store
+   */
+  showSuccessNotification(message: string): void {
+    try {
+      const store = this.getStore();
+      if (!store) {
+        console.warn('Store not available for notification');
+        return;
+      }
+      
+      const state = store.getState();
+      if (state.addNotification) {
+        const notificationConfig = this.createNotificationConfig(message, 'success');
+        state.addNotification(notificationConfig);
+      }
+    } catch (error) {
+      console.error('Failed to show success notification:', error);
+    }
+  }
+
+  /**
+   * Show error notification through store
+   */
+  showErrorNotification(message: string): void {
+    try {
+      const store = this.getStore();
+      if (!store) {
+        console.warn('Store not available for notification');
+        return;
+      }
+      
+      const state = store.getState();
+      if (state.addNotification) {
+        const notificationConfig = this.createNotificationConfig(message, 'error');
+        state.addNotification(notificationConfig);
+      }
+    } catch (error) {
+      console.error('Failed to show error notification:', error);
     }
   }
 
