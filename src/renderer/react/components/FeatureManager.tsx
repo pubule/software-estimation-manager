@@ -1,14 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useFeatures, useProject, useStoreActions } from '../hooks/useStore';
 import FeatureTable from './FeatureTable';
 import FeatureModal from './FeatureModal';
 
-const FeatureManager: React.FC = () => {
+interface FeatureManagerProps {
+  customFilteredFeatures?: any[];
+}
+
+const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures }) => {
   const { currentProject } = useProject();
   const { 
-    filteredFeatures, 
     editingFeature, 
-    setFilteredFeatures,
     setEditingFeature,
     addFeature,
     updateFeature,
@@ -18,15 +20,8 @@ const FeatureManager: React.FC = () => {
   const { addNotification } = useStoreActions();
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Filter features when project changes
-  useEffect(() => {
-    if (currentProject?.features) {
-      console.log('React FeatureManager: Project changed, updating filtered features');
-      setFilteredFeatures(currentProject.features);
-    } else {
-      setFilteredFeatures([]);
-    }
-  }, [currentProject?.features, setFilteredFeatures]);
+  // Use custom filtered features if provided, otherwise use all project features
+  const displayFeatures = customFilteredFeatures || currentProject?.features || [];
 
   const handleAddFeature = () => {
     setEditingFeature(null);
@@ -46,9 +41,7 @@ const FeatureManager: React.FC = () => {
       if (featureIndex >= 0) {
         deleteFeature(featureIndex);
         
-        // Update filtered features
-        const updatedFiltered = filteredFeatures.filter(f => f.id !== featureId);
-        setFilteredFeatures(updatedFiltered);
+        // Feature deletion will trigger parent component to re-filter
         
         // Show notification
         addNotification({
@@ -76,11 +69,7 @@ const FeatureManager: React.FC = () => {
           
           updateFeature(featureIndex, updatedFeature);
           
-          // Update filtered features
-          const updatedFiltered = filteredFeatures.map(f => 
-            f.id === editingFeature.id ? updatedFeature : f
-          );
-          setFilteredFeatures(updatedFiltered);
+          // Feature update will trigger parent component to re-filter
           
           addNotification({
             type: 'success',
@@ -97,8 +86,7 @@ const FeatureManager: React.FC = () => {
         
         addFeature(newFeature);
         
-        // Add to filtered features
-        setFilteredFeatures([...filteredFeatures, newFeature]);
+        // Feature addition will trigger parent component to re-filter
         
         addNotification({
           type: 'success',
@@ -138,32 +126,8 @@ const FeatureManager: React.FC = () => {
 
   return (
     <div className="feature-manager">
-      <div className="feature-stats">
-        <div className="stats-grid">
-          <div className="stat-item">
-            <span className="stat-label">Total Features:</span>
-            <span className="stat-value">{filteredFeatures.length}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Total Man Days:</span>
-            <span className="stat-value">
-              {filteredFeatures.reduce((sum, f) => sum + (f.manDays || 0), 0).toFixed(1)}
-            </span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Average per Feature:</span>
-            <span className="stat-value">
-              {filteredFeatures.length > 0 
-                ? (filteredFeatures.reduce((sum, f) => sum + (f.manDays || 0), 0) / filteredFeatures.length).toFixed(1)
-                : '0.0'
-              }
-            </span>
-          </div>
-        </div>
-      </div>
-
       <FeatureTable 
-        features={filteredFeatures}
+        features={displayFeatures}
         onEdit={handleEditFeature}
         onDelete={handleDeleteFeature}
       />

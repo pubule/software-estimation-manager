@@ -55,6 +55,7 @@ class EnhancedNavigationManager extends NavigationManager {
         
         // React wrappers for modern UI components
         this.reactProjectWrapper = null;
+        this.reactFeaturesWrapper = null;
 
         this.initializeNestedNavigation();
         this.setupStoreSubscription();
@@ -185,6 +186,12 @@ class EnhancedNavigationManager extends NavigationManager {
         if (this.reactProjectWrapper) {
             this.reactProjectWrapper.destroy();
             this.reactProjectWrapper = null;
+        }
+
+        // Cleanup React Features wrapper
+        if (this.reactFeaturesWrapper) {
+            this.reactFeaturesWrapper.destroy();
+            this.reactFeaturesWrapper = null;
         }
     }
 
@@ -679,6 +686,12 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
+        // Special handling for features navigation - Initialize React wrapper
+        if (sectionName === 'features') {
+            this.showFeaturesPage();
+            return;
+        }
+
         // Hide all pages
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
@@ -772,6 +785,90 @@ class EnhancedNavigationManager extends NavigationManager {
         }
 
         console.log('Navigated to Projects page with React wrapper');
+    }
+
+    // Special method for features page - Initialize React wrapper
+    async showFeaturesPage() {
+        console.log('Navigating to Features page - initializing React wrapper');
+
+        // Check if store is available
+        if (!this.store || !this.store.getState) {
+            console.warn('Store not available for NavigationManager.showFeaturesPage, navigation aborted');
+            return;
+        }
+        
+        const state = this.store.getState();
+        const hasProject = state.currentProject !== null;
+        
+        // Verify project is loaded
+        if (!hasProject) {
+            console.warn('Cannot navigate to features: No project loaded');
+            NotificationManager.warning('Please load or create a project first to manage features');
+            return;
+        }
+
+        // Hide all pages first
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // Update active states
+        this.updateActiveStates('features');
+
+        // Show features page
+        const featuresPage = document.getElementById('features-page');
+        if (featuresPage) {
+            featuresPage.classList.add('active');
+        }
+
+        // Initialize React Features wrapper if not already done
+        if (!this.reactFeaturesWrapper) {
+            console.log('🔄 Initializing React Features wrapper...');
+            console.log('ReactFeaturesWrapper available:', !!window.ReactFeaturesWrapper);
+            console.log('ReactComponents available:', !!window.ReactComponents);
+            
+            if (window.ReactFeaturesWrapper) {
+                this.reactFeaturesWrapper = new window.ReactFeaturesWrapper();
+                
+                try {
+                    await this.reactFeaturesWrapper.init();
+                    console.log('✅ React Features wrapper initialized successfully');
+                } catch (error) {
+                    console.error('❌ Failed to initialize React Features wrapper:', error);
+                    // Show fallback content
+                    if (featuresPage) {
+                        featuresPage.innerHTML = `
+                            <div style="padding: 2rem; text-align: center; color: #ff6b6b;">
+                                <h3>❌ Features Page Error</h3>
+                                <p>Failed to load React components</p>
+                                <p><small>Error: ${error.message}</small></p>
+                                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                                    Reload Application
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            } else {
+                console.error('❌ ReactFeaturesWrapper not available on window object');
+                console.log('Available on window:', Object.keys(window).filter(k => k.includes('React')));
+            }
+        } else {
+            console.log('✅ React Features wrapper already initialized');
+        }
+
+        // Update global state
+        if (this.store && this.store.getState) {
+            this.store.getState().setSection('features');
+        }
+
+        // Ensure projects is expanded
+        if (!this.projectsExpanded) {
+            this.projectsExpanded = true;
+            this.updateProjectsExpansion();
+        }
+
+        console.log('Navigated to Features page with React wrapper');
     }
 
     // Special method for phases page

@@ -213,80 +213,9 @@
                 <div id="react-project-manager-root"></div>
             </div>
 
-            <!-- Features Management Page -->
+            <!-- Features Management Page - Full React Implementation -->
             <div id="features-page" class="page">
-                <div class="page-header">
-                    <h2>Features Management</h2>
-                    <div class="page-actions">
-                        <button class="btn btn-primary" id="add-feature-btn">
-                            <i class="fas fa-plus"></i> Add Feature
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Search Bar -->
-                <div class="search-bar">
-                    <div class="search-group">
-                        <label>Search:</label>
-                        <input type="text" id="search-input" placeholder="Search features...">
-                    </div>
-                </div>
-
-                <!-- Filters -->
-                <div class="filters-bar">
-                    <div class="filter-group">
-                        <label>Category:</label>
-                        <select id="category-filter">
-                            <option value="">All Categories</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Feature Type:</label>
-                        <select id="feature-type-filter">
-                            <option value="">All Feature Types</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Supplier:</label>
-                        <select id="supplier-filter">
-                            <option value="">All Suppliers</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- React Feature Manager -->
-                <div id="features-react-app">
-                    <!-- React Feature Manager will be mounted here -->
-                </div>
-
-                <!-- Feature Summary -->
-                <div class="summary-bar">
-                    <div class="summary-item">
-                        <label>Total Features:</label>
-                        <span id="total-features">0</span>
-                    </div>
-                    <div class="summary-item">
-                        <label>Total Man Days:</label>
-                        <span id="total-man-days">0</span>
-                    </div>
-                    <div class="summary-item">
-                        <label>Average per Feature:</label>
-                        <span id="average-man-days">0</span>
-                    </div>
-                    <div class="summary-item">
-                        <label>Filtered Man Days:</label>
-                        <span id="filtered-man-days">0</span>
-                    </div>
-                    <div class="summary-item coverage-item">
-                        <label>Coverage:</label>
-                        <div class="coverage-controls">
-                            <input type="number" id="coverage-value" min="0" step="0.1" class="coverage-input">
-                            <button type="button" id="coverage-reset-btn" class="coverage-reset-btn" title="Reset to 30% of Total Man Days">
-                                <i class="fas fa-undo"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <!-- React Features Page will be mounted here by ReactFeaturesWrapper -->
             </div>
 
             <!-- Project Phases Page -->
@@ -792,11 +721,12 @@ console.log('✅ Zustand store implementation ready for React components');
 <script src="js/components/categories-config-manager.js"></script>
 <script src="js/components/teams-config-manager.js"></script>
 
-<!-- Feature management - React wrapper -->
-<script src="js/components/react-feature-manager-wrapper.js"></script>
 
 <!-- Project management - React wrapper -->
 <script src="js/components/react-project-manager-wrapper.js"></script>
+
+<!-- Features management - React wrapper (new full-page implementation) -->
+<script src="js/components/react-features-wrapper.js"></script>
 
 <!-- Assumptions management (depends on data-manager) -->
 <script src="js/components/assumptions-manager.js"></script>

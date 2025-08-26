@@ -193,8 +193,8 @@ class ApplicationController extends BaseComponent {
             // Check for either original or refactored versions of core components
             const coreComponents = [
                 { original: 'DataManager', refactored: 'DataManager' },
-                { original: 'ConfigurationManager', refactored: 'ConfigurationManager' },
-                { original: 'FeatureManager', refactored: 'FeatureManager' }
+                { original: 'ConfigurationManager', refactored: 'ConfigurationManager' }
+                // FeatureManager removed - now using React implementation
             ];
             
             const missingCoreComponents = coreComponents.filter(comp => 
@@ -291,13 +291,9 @@ class ApplicationController extends BaseComponent {
      * Initialize feature-specific managers
      */
     async initializeFeatureManagers() {
-        // Feature manager (use refactored if available, otherwise original)
-        if (window.FeatureManager) {
-            this.managers.feature = new FeatureManager(this.managers.data, this.managers.config);
-        } else {
-            this.managers.feature = new FeatureManager(this.managers.data, this.managers.config);
-        }
-        await this.managers.feature.init();
+        // Feature manager - now using React implementation
+        // ReactFeaturesWrapper will be initialized by NavigationManager when needed
+        this.managers.feature = null; // Placeholder for compatibility
         
         // Assumptions manager
         this.managers.assumptions = new AssumptionsManager();
@@ -330,7 +326,7 @@ class ApplicationController extends BaseComponent {
         console.log('Feature managers initialized');
         
         // Set up additional backward compatibility aliases
-        this.featureManager = this.managers.feature;
+        this.featureManager = null; // React implementation - no longer needed
         this.calculationsManager = this.managers.calculations;
         this.projectManager = this.managers.project;
         this.projectPhasesManager = this.managers.projectPhases;

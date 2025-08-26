@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useStore } from './hooks/useStore';
-import FeatureManager from './components/FeatureManager';
+import FeaturesPage from './components/FeaturesPage';
 import ProjectManager from './components/ProjectManager';
 
 function App() {
@@ -20,17 +20,7 @@ function App() {
       <main className="app-main">
         <Routes>
           <Route path="/projects" element={<ProjectManager />} />
-          <Route path="/features" element={
-            hasProject ? (
-              <FeatureManager />
-            ) : (
-              <div className="no-project">
-                <h2>No Project Loaded</h2>
-                <p>Please load a project first from the Projects section.</p>
-                <a href="/projects">Go to Projects →</a>
-              </div>
-            )
-          } />
+          <Route path="/features" element={<FeaturesPage />} />
           <Route path="/" element={
             <div>
               <h2>Welcome to React Version!</h2>

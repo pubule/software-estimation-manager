@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom/client';
 import FeatureManager from './components/FeatureManager';
 import FeatureTable from './components/FeatureTable';
 import FeatureModal from './components/FeatureModal';
+import FeaturesPage from './components/FeaturesPage';
 import ProjectManager from './components/ProjectManager';
 import CurrentProjectCard from './components/CurrentProjectCard';
 import RecentProjectsList from './components/RecentProjectsList';
@@ -23,6 +24,7 @@ declare global {
       FeatureManager: typeof FeatureManager;
       FeatureTable: typeof FeatureTable;  
       FeatureModal: typeof FeatureModal;
+      FeaturesPage: typeof FeaturesPage;
       ProjectManager: typeof ProjectManager;
       CurrentProjectCard: typeof CurrentProjectCard;
       RecentProjectsList: typeof RecentProjectsList;
@@ -39,6 +41,7 @@ window.ReactComponents = {
   FeatureManager,
   FeatureTable,
   FeatureModal,
+  FeaturesPage,
   ProjectManager,
   CurrentProjectCard,
   RecentProjectsList,
