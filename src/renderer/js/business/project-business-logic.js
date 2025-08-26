@@ -206,13 +206,29 @@ class ProjectBusinessLogic extends BaseComponent {
                 this.app.store.getState().setProject(projectData);
             }
 
+            // Extract filePath from source and update DataManager currentProjectPath for React components
+            if (source.startsWith('file:') && this.app.dataManager) {
+                const filePath = source.substring(5); // Remove 'file:' prefix
+                this.app.dataManager.currentProjectPath = filePath;
+                console.log(`🔗 Updated DataManager currentProjectPath: ${filePath}`);
+            }
+
             // Add to recent projects
             await this.addToRecentProjects(projectData);
 
             // Trigger updates in other managers
             this.notifyProjectLoaded(projectData);
 
-            console.log(`Project "${projectData.project.name}" loaded successfully`);
+            // Auto-navigate to features section after loading project
+            if (this.app.navigationManager) {
+                console.log(`🧭 Auto-navigating to features section`);
+                // Small delay to ensure store updates are processed
+                setTimeout(() => {
+                    this.app.navigationManager.navigateTo('features');
+                }, 100);
+            }
+
+            console.log(`✅ Project "${projectData.project.name}" loaded successfully`);
         } catch (error) {
             console.error('Failed to load project data:', error);
             throw error;
@@ -333,15 +349,14 @@ class ProjectBusinessLogic extends BaseComponent {
             }
 
             console.log(`Loading project from: ${filePath}`);
+            const projectData = await this.app.dataManager.loadProject(filePath);
             
-            const result = await this.app.dataManager.loadProject(filePath);
-            
-            if (result.success) {
-                await this.loadProjectData(result.data, `file:${filePath}`);
-                console.log(`Project loaded from: ${filePath}`);
+            if (projectData && typeof projectData === 'object' && projectData.project) {
+                await this.loadProjectData(projectData, `file:${filePath}`);
+                console.log(`Project loaded successfully: ${projectData.project.name}`);
                 NotificationManager.success(`Project loaded successfully`);
             } else {
-                throw new Error(result.error || 'Failed to load project');
+                throw new Error('Invalid project data returned from DataManager');
             }
         } catch (error) {
             console.error('Failed to load saved project:', error);
@@ -397,15 +412,22 @@ class ProjectBusinessLogic extends BaseComponent {
                 return;
             }
 
-            console.log(`Deleting project: ${filePath}`);
+            console.log(`🗑️ Deleting project: ${filePath}`);
             
-            // Remove from file system (would need to be implemented in data manager)
-            // For now, just refresh the list
-            await this.loadSavedProjects();
+            // Actually delete the project using DataManager
+            const success = await this.app.dataManager.deleteProject(filePath);
             
-            NotificationManager.success('Project deleted successfully');
+            if (success) {
+                // Refresh saved projects list
+                await this.loadSavedProjects();
+                
+                console.log(`✅ Project deleted successfully: ${filePath}`);
+                NotificationManager.success('Project deleted successfully');
+            } else {
+                throw new Error('Delete operation failed');
+            }
         } catch (error) {
-            console.error('Failed to delete project:', error);
+            console.error('❌ Failed to delete project:', error);
             NotificationManager.error(`Failed to delete project: ${error.message}`);
             throw error;
         }

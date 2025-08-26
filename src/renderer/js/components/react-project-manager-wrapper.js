@@ -22,10 +22,30 @@ class ReactProjectManagerWrapper {
             // Wait for React to be available
             await this.waitForReact();
             
-            // Get the container where React app will be mounted
-            this.container = document.getElementById('react-project-manager-root');
-            if (!this.container) {
-                console.error('React container #react-project-manager-root not found');
+            // CRITICAL: Clear any vanilla JS generated content in projects-page
+            const projectsPage = document.getElementById('projects-page');
+            if (projectsPage) {
+                // Keep only the react-project-manager-root div and remove all other content
+                const reactContainer = document.getElementById('react-project-manager-root');
+                
+                // Clear all content from projects-page
+                projectsPage.innerHTML = '';
+                
+                // Re-add the react container if it existed, or create it
+                if (reactContainer) {
+                    projectsPage.appendChild(reactContainer);
+                    this.container = reactContainer;
+                } else {
+                    // Create fresh container
+                    const newContainer = document.createElement('div');
+                    newContainer.id = 'react-project-manager-root';
+                    projectsPage.appendChild(newContainer);
+                    this.container = newContainer;
+                }
+                
+                console.log('✅ Cleared vanilla JS content from projects-page, React will now manage all UI');
+            } else {
+                console.error('Projects page not found');
                 return;
             }
 

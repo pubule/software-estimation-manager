@@ -33,10 +33,33 @@ const CurrentProjectCard: React.FC<CurrentProjectCardProps> = ({
   }));
 
   // Check if we have a really loaded project (not just the default "New Project")
-  // Replicating logic from ProjectManager.js line 1394
+  // Simplified and more robust logic
   const project = currentProject?.project;
-  const hasLoadedProject = project && project.name !== 'New Project' && 
-    (window as any).appStore?.getState()?.dataManager?.currentProjectPath;
+  const app = (window as any).app;
+  
+  // Multiple ways to detect a loaded project (more robust)
+  const hasValidProject = project && project.name && project.name !== 'New Project';
+  const hasProjectPath = !!app?.dataManager?.currentProjectPath;
+  const hasProjectId = !!project?.id;
+  const hasFeatures = Array.isArray(currentProject?.features);
+  
+  // A project is considered loaded if it has a valid name AND either a path or features
+  const hasLoadedProject = hasValidProject && (hasProjectPath || hasFeatures || hasProjectId);
+  
+  // Enhanced debug logging
+  console.log('🔍 CurrentProjectCard - Debug Info:');
+  console.log('  - hasCurrentProject:', !!currentProject);
+  console.log('  - project?.name:', project?.name);
+  console.log('  - project?.id:', project?.id);
+  console.log('  - currentProjectPath:', app?.dataManager?.currentProjectPath);
+  console.log('  - features count:', currentProject?.features?.length || 0);
+  console.log('  - hasLoadedProject:', hasLoadedProject);
+  console.log('  - isDirty:', isDirty);
+  console.log('  - detection breakdown:');
+  console.log('    * hasValidProject:', hasValidProject);
+  console.log('    * hasProjectPath:', hasProjectPath);
+  console.log('    * hasProjectId:', hasProjectId);
+  console.log('    * hasFeatures:', hasFeatures);
 
   const projectName = hasLoadedProject ? project.name : 'No Project Loaded';
   const projectCreated = hasLoadedProject ? formatDate(project.created) : '-';
