@@ -1,41 +1,30 @@
 import React, { useState } from 'react';
-import { useStore } from '../hooks/useStore';
+import { useProjectActions } from '../hooks/useProjectActions';
+import { NewProjectFormData } from '../actions/ProjectActions';
 import CurrentProjectCard from './CurrentProjectCard';
 import RecentProjectsList from './RecentProjectsList';
 import SavedProjectsList from './SavedProjectsList';
 import NewProjectModal from './NewProjectModal';
 import LoadProjectModal from './LoadProjectModal';
 
-interface NewProjectFormData {
-  code: string;
-  name: string;
-  description: string;
-}
-
 const ProjectManager: React.FC = () => {
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [showLoadProjectModal, setShowLoadProjectModal] = useState(false);
 
-  const { isDirty } = useStore(state => ({
-    isDirty: state.isDirty
-  }));
-
-  // Get ProjectManager instance from global window object
-  const getProjectManager = () => {
-    const app = (window as any).app;
-    return app?.projectManager || app?.managers?.project;
-  };
-
-  const showUnsavedChangesDialog = (): Promise<boolean | null> => {
-    return new Promise((resolve) => {
-      if (isDirty) {
-        const result = confirm('You have unsaved changes. Do you want to save before continuing?');
-        resolve(result);
-      } else {
-        resolve(false); // No need to save
-      }
-    });
-  };
+  const {
+    createProject,
+    loadProject,
+    loadRecentProject,
+    loadProjectFromFile,
+    saveProject,
+    closeProject,
+    deleteProject,
+    exportProject,
+    removeRecentProject,
+    clearRecentProjects,
+    handleUnsavedChanges,
+    isDirty
+  } = useProjectActions();
 
   // Handler for New Project button
   const handleNewProject = async () => {
@@ -55,22 +44,10 @@ const ProjectManager: React.FC = () => {
   // Handler for creating new project
   const handleCreateProject = async (formData: NewProjectFormData) => {
     try {
-      const projectManager = getProjectManager();
-      if (!projectManager) {
-        throw new Error('Project manager not available');
-      }
-
-      // Use existing ProjectManager logic for creating project
-      await projectManager.createNewProject(formData);
+      await createProject(formData);
       setShowNewProjectModal(false);
-      
-      // Trigger events to update other components
-      window.dispatchEvent(new CustomEvent('recent-projects-updated'));
-      window.dispatchEvent(new CustomEvent('saved-projects-updated'));
-      
     } catch (error) {
       console.error('Failed to create project:', error);
-      // NotificationManager should be called by ProjectManager
       throw error; // Re-throw to let modal handle error state
     }
   };
@@ -78,23 +55,10 @@ const ProjectManager: React.FC = () => {
   // Handler for loading project from file
   const handleLoadFromFile = async (projectData: any) => {
     try {
-      if (isDirty) {
-        const save = await showUnsavedChangesDialog();
-        if (save === null) return; // User cancelled
-        if (save) await handleSaveProject();
-      }
-
-      const projectManager = getProjectManager();
-      if (!projectManager) {
-        throw new Error('Project manager not available');
-      }
-
-      await projectManager.loadProjectData(projectData, 'loaded-from-file');
+      if (!(await handleUnsavedChanges())) return;
+      
+      await loadProjectFromFile(projectData);
       setShowLoadProjectModal(false);
-      
-      // Trigger events to update other components
-      window.dispatchEvent(new CustomEvent('recent-projects-updated'));
-      
     } catch (error) {
       console.error('Failed to load project from file:', error);
       throw error; // Re-throw to let modal handle error state
@@ -104,20 +68,10 @@ const ProjectManager: React.FC = () => {
   // Handler for loading recent project
   const handleLoadRecentProject = async (projectId: string) => {
     try {
-      if (isDirty) {
-        const save = await showUnsavedChangesDialog();
-        if (save === null) return; // User cancelled
-        if (save) await handleSaveProject();
-      }
-
-      const projectManager = getProjectManager();
-      if (!projectManager) {
-        throw new Error('Project manager not available');
-      }
-
-      await projectManager.loadRecentProject(projectId);
-      setShowLoadProjectModal(false);
+      if (!(await handleUnsavedChanges())) return;
       
+      await loadRecentProject(projectId);
+      setShowLoadProjectModal(false);
     } catch (error) {
       console.error('Failed to load recent project:', error);
       throw error; // Re-throw to let modal handle error state
@@ -127,76 +81,34 @@ const ProjectManager: React.FC = () => {
   // Handler for saving current project
   const handleSaveProject = async () => {
     try {
-      const projectManager = getProjectManager();
-      if (!projectManager) {
-        throw new Error('Project manager not available');
-      }
-
-      await projectManager.saveCurrentProject();
-      
-      // Trigger events to update other components
-      window.dispatchEvent(new CustomEvent('recent-projects-updated'));
-      window.dispatchEvent(new CustomEvent('saved-projects-updated'));
-      
+      await saveProject();
     } catch (error) {
       console.error('Failed to save project:', error);
-      // NotificationManager should be called by ProjectManager
     }
   };
 
   // Handler for closing current project
   const handleCloseProject = async () => {
     try {
-      const projectManager = getProjectManager();
-      if (!projectManager) {
-        throw new Error('Project manager not available');
-      }
-
-      await projectManager.closeCurrentProject();
-      
-      // Trigger events to update other components
-      window.dispatchEvent(new CustomEvent('recent-projects-updated'));
-      
+      await closeProject();
     } catch (error) {
       console.error('Failed to close project:', error);
-      // NotificationManager should be called by ProjectManager
     }
   };
 
   // Handlers for recent projects list
   const handleLoadRecentProjectFromList = async (projectId: string) => {
     try {
-      if (isDirty) {
-        const save = await showUnsavedChangesDialog();
-        if (save === null) return; // User cancelled
-        if (save) await handleSaveProject();
-      }
-
-      const projectManager = getProjectManager();
-      if (!projectManager) {
-        throw new Error('Project manager not available');
-      }
-
-      await projectManager.loadRecentProject(projectId);
-      
+      if (!(await handleUnsavedChanges())) return;
+      await loadRecentProject(projectId);
     } catch (error) {
       console.error('Failed to load recent project:', error);
-      // NotificationManager should be called by ProjectManager
     }
   };
 
   const handleRemoveRecentProject = (projectId: string) => {
     try {
-      const projectManager = getProjectManager();
-      if (!projectManager) {
-        throw new Error('Project manager not available');
-      }
-
-      projectManager.removeRecentProject(projectId);
-      
-      // Trigger event to update recent projects list
-      window.dispatchEvent(new CustomEvent('recent-projects-updated'));
-      
+      removeRecentProject(projectId);
     } catch (error) {
       console.error('Failed to remove recent project:', error);
     }
@@ -204,16 +116,7 @@ const ProjectManager: React.FC = () => {
 
   const handleClearRecentProjects = () => {
     try {
-      const projectManager = getProjectManager();
-      if (!projectManager) {
-        throw new Error('Project manager not available');
-      }
-
-      projectManager.clearRecentProjects();
-      
-      // Trigger event to update recent projects list
-      window.dispatchEvent(new CustomEvent('recent-projects-updated'));
-      
+      clearRecentProjects();
     } catch (error) {
       console.error('Failed to clear recent projects:', error);
     }
@@ -222,56 +125,26 @@ const ProjectManager: React.FC = () => {
   // Handlers for saved projects list
   const handleLoadSavedProject = async (filePath: string) => {
     try {
-      if (isDirty) {
-        const save = await showUnsavedChangesDialog();
-        if (save === null) return; // User cancelled
-        if (save) await handleSaveProject();
-      }
-
-      const projectManager = getProjectManager();
-      if (!projectManager) {
-        throw new Error('Project manager not available');
-      }
-
-      await projectManager.loadSavedProject(filePath);
-      
+      if (!(await handleUnsavedChanges())) return;
+      await loadProject(filePath);
     } catch (error) {
       console.error('Failed to load saved project:', error);
-      // NotificationManager should be called by ProjectManager
     }
   };
 
   const handleExportSavedProject = async (filePath: string) => {
     try {
-      const projectManager = getProjectManager();
-      if (!projectManager) {
-        throw new Error('Project manager not available');
-      }
-
-      await projectManager.exportSavedProject(filePath);
-      
+      await exportProject(filePath);
     } catch (error) {
       console.error('Failed to export project:', error);
-      // NotificationManager should be called by ProjectManager
     }
   };
 
   const handleDeleteSavedProject = async (filePath: string) => {
     try {
-      const projectManager = getProjectManager();
-      if (!projectManager) {
-        throw new Error('Project manager not available');
-      }
-
-      await projectManager.deleteSavedProject(filePath);
-      
-      // Trigger events to update components
-      window.dispatchEvent(new CustomEvent('recent-projects-updated'));
-      window.dispatchEvent(new CustomEvent('saved-projects-updated'));
-      
+      await deleteProject(filePath);
     } catch (error) {
       console.error('Failed to delete project:', error);
-      // NotificationManager should be called by ProjectManager
     }
   };
 

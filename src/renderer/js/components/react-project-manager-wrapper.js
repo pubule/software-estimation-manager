@@ -43,7 +43,6 @@ class ReactProjectManagerWrapper {
                     this.container = newContainer;
                 }
                 
-                console.log('✅ Cleared vanilla JS content from projects-page, React will now manage all UI');
             } else {
                 console.error('Projects page not found');
                 return;

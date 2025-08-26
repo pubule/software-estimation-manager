@@ -210,7 +210,6 @@ class ProjectBusinessLogic extends BaseComponent {
             if (source.startsWith('file:') && this.app.dataManager) {
                 const filePath = source.substring(5); // Remove 'file:' prefix
                 this.app.dataManager.currentProjectPath = filePath;
-                console.log(`🔗 Updated DataManager currentProjectPath: ${filePath}`);
             }
 
             // Add to recent projects
@@ -221,7 +220,6 @@ class ProjectBusinessLogic extends BaseComponent {
 
             // Auto-navigate to features section after loading project
             if (this.app.navigationManager) {
-                console.log(`🧭 Auto-navigating to features section`);
                 // Small delay to ensure store updates are processed
                 setTimeout(() => {
                     this.app.navigationManager.navigateTo('features');
