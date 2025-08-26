@@ -284,7 +284,7 @@ export class FeatureActions {
    * Get available filter options from configuration
    */
   async getFilterOptions(): Promise<{
-    categories: string[];
+    categories: any[];
     featureTypes: string[];
     suppliers: any[];
   }> {
@@ -327,10 +327,24 @@ export class FeatureActions {
         internalResources: internalResources?.map(r => ({ id: r.id, name: r.name, role: r.role, status: r.status }))
       });
       
-      // Feature types - need to check if this is available in global config
-      const featureTypes = configManager.globalConfig?.featureTypes || [
-        'Core Feature', 'Enhancement', 'Integration', 'UI Component', 'Data Processing'
-      ];
+      // Feature types - extract all feature types from all categories
+      const allFeatureTypes: string[] = [];
+      if (categories && Array.isArray(categories)) {
+        categories.forEach(category => {
+          if (category.featureTypes && Array.isArray(category.featureTypes)) {
+            category.featureTypes.forEach(ft => {
+              if (ft.name && !allFeatureTypes.includes(ft.name)) {
+                allFeatureTypes.push(ft.name);
+              }
+            });
+          }
+        });
+      }
+      
+      console.log('🔍 [DEBUG] Feature types extracted from categories:', {
+        allFeatureTypesCount: allFeatureTypes.length,
+        featureTypes: allFeatureTypes
+      });
 
       // Combine suppliers and internal resources, filter for G2 role only
       const filteredSuppliers = suppliers?.filter(sup => sup.role === 'G2') || [];
@@ -389,15 +403,15 @@ export class FeatureActions {
         ];
         
         return {
-          categories: categories?.map(cat => cat.name || cat.id || cat) || [],
-          featureTypes: Array.isArray(featureTypes) ? featureTypes : [],
+          categories: categories || [],
+          featureTypes: allFeatureTypes,
           suppliers: fallbackSuppliers
         };
       }
       
       return {
-        categories: categories?.map(cat => cat.name || cat.id || cat) || [],
-        featureTypes: Array.isArray(featureTypes) ? featureTypes : [],
+        categories: categories || [],
+        featureTypes: allFeatureTypes,
         suppliers: combinedSuppliers
       };
     } catch (error) {

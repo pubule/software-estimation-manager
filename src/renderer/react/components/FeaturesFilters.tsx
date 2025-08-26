@@ -20,7 +20,7 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
 }) => {
   const { getFilterOptions } = useFeatureActions();
   const [filterOptions, setFilterOptions] = useState<{
-    categories: string[];
+    categories: any[];
     featureTypes: string[];
     suppliers: any[];
   }>({
@@ -29,11 +29,14 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
     suppliers: []
   });
 
+  const [availableFeatureTypes, setAvailableFeatureTypes] = useState<string[]>([]);
+
   useEffect(() => {
     const loadFilterOptions = async () => {
       try {
         const options = await getFilterOptions();
         setFilterOptions(options);
+        setAvailableFeatureTypes(options.featureTypes);
       } catch (error) {
         console.error('Failed to load filter options:', error);
       }
@@ -41,6 +44,42 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
 
     loadFilterOptions();
   }, [getFilterOptions]);
+
+  // Update available feature types when category filter changes
+  useEffect(() => {
+    if (!filterOptions.categories.length) return;
+    
+    if (!categoryFilter || categoryFilter === '') {
+      // Show all feature types when no category is selected
+      setAvailableFeatureTypes(filterOptions.featureTypes);
+    } else {
+      // Filter feature types based on selected category
+      const selectedCategory = filterOptions.categories.find(
+        cat => cat.name === categoryFilter || cat.id === categoryFilter
+      );
+      
+      if (selectedCategory && selectedCategory.featureTypes) {
+        const categoryFeatureTypes = selectedCategory.featureTypes.map(ft => ft.name);
+        setAvailableFeatureTypes(categoryFeatureTypes);
+      } else {
+        setAvailableFeatureTypes([]);
+      }
+    }
+    
+    // Reset feature type filter when category changes
+    if (featureTypeFilter && categoryFilter) {
+      const selectedCategory = filterOptions.categories.find(
+        cat => cat.name === categoryFilter || cat.id === categoryFilter
+      );
+      const isFeatureTypeInCategory = selectedCategory?.featureTypes?.some(
+        ft => ft.name === featureTypeFilter
+      );
+      
+      if (!isFeatureTypeInCategory) {
+        onFeatureTypeChange('');
+      }
+    }
+  }, [categoryFilter, filterOptions.categories, filterOptions.featureTypes, featureTypeFilter, onFeatureTypeChange]);
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     onCategoryChange(e.target.value);
@@ -64,8 +103,8 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
         >
           <option value="">All Categories</option>
           {filterOptions.categories.map((category, index) => (
-            <option key={`category-${index}`} value={category}>
-              {category}
+            <option key={category.id || `category-${index}`} value={category.name || category.id}>
+              {category.name || category.id}
             </option>
           ))}
         </select>
@@ -78,7 +117,7 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
           onChange={handleFeatureTypeChange}
         >
           <option value="">All Feature Types</option>
-          {filterOptions.featureTypes.map((featureType, index) => (
+          {availableFeatureTypes.map((featureType, index) => (
             <option key={`featureType-${index}`} value={featureType}>
               {featureType}
             </option>
