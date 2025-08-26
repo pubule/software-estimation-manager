@@ -110,11 +110,14 @@ class CategoriesConfigManager {
      * Handle all click events
      */
     handleClick(e) {
-        // Tab switching
+        // Tab switching - only handle global scope
         if (e.target.matches('.categories-scope-tab')) {
             e.preventDefault();
             e.stopPropagation();
-            this.switchScope(e.target.dataset.scope);
+            // Only global scope is supported
+            if (e.target.dataset.scope === 'global') {
+                this.switchScope('global');
+            }
             return;
         }
 
@@ -258,11 +261,6 @@ class CategoriesConfigManager {
                             Global Categories
                             <span class="count" id="global-categories-count">0</span>
                         </button>
-                        <button class="scope-tab categories-scope-tab" data-scope="project">
-                            <i class="fas fa-project-diagram"></i>
-                            Project Categories
-                            <span class="count" id="project-categories-count">0</span>
-                        </button>
                     </div>
                     <div class="scope-actions">
                         <button class="btn btn-small btn-secondary" data-action="reset-to-default" title="Reset to Default Categories">
@@ -381,11 +379,17 @@ class CategoriesConfigManager {
      * Switch between global and project scope
      */
     switchScope(scope) {
-        this.currentScope = scope;
+        // Only global scope is supported
+        if (scope !== 'global') {
+            console.log('Only global scope is supported, ignoring:', scope);
+            return;
+        }
         
-        // Update tab states
+        this.currentScope = 'global';
+        
+        // Update tab states - only the global tab exists now
         document.querySelectorAll('.categories-scope-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.scope === scope);
+            tab.classList.toggle('active', tab.dataset.scope === 'global');
         });
 
         // Clear selection when switching scope
@@ -405,18 +409,8 @@ class CategoriesConfigManager {
             return [];
         }
 
-        if (this.currentScope === 'global') {
-            return this.configManager.globalConfig?.categories || [];
-        } else {
-            const currentProject = StateSelectors.getCurrentProject();
-            if (!currentProject) {
-                console.log('No current project available');
-                return [];
-            }
-            
-            const projectConfig = this.configManager.getProjectConfig(currentProject.config);
-            return projectConfig.categories || [];
-        }
+        // Only return global categories since project scope is removed
+        return this.configManager.globalConfig?.categories || [];
     }
 
     /**
@@ -438,15 +432,6 @@ class CategoriesConfigManager {
         const globalCountEl = document.getElementById('global-categories-count');
         if (globalCountEl) globalCountEl.textContent = globalCount;
 
-        const currentProject = StateSelectors.getCurrentProject();
-        let projectCount = 0;
-        if (currentProject) {
-            const projectConfig = this.configManager.getProjectConfig(currentProject.config);
-            projectCount = projectConfig.categories?.length || 0;
-        }
-        
-        const projectCountEl = document.getElementById('project-categories-count');
-        if (projectCountEl) projectCountEl.textContent = projectCount;
     }
 
     /**

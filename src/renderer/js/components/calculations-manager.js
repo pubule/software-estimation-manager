@@ -171,7 +171,7 @@ class CalculationsManager {
             roleFilterChange: (e) => this.dispatchCalculationsAction('role-filter-change', e.target),
             shareClick: () => this.dispatchCalculationsAction('share-calculations'),
             tableBlur: (e) => this.dispatchCalculationsAction('table-blur', e.target),
-            tableClick: (e) => this.dispatchCalculationsAction('table-click', e.target)
+            tableClick: (e) => this.dispatchCalculationsAction('table-click', e)
         };
     }
 
@@ -3969,16 +3969,24 @@ class CapacityManager extends BaseComponent {
                 // 🔥 ULTRA DEBUG: Log monthData structure
                 console.log(`🔍 DEBUG: Month ${month} data:`, monthData);
                 
+                // 🔥 CRITICAL FIX: monthData è { [projectName]: { days: X } }, non { days: X }
+                // Dobbiamo estrarre i dati del progetto specifico
+                const projectData = monthData[projectName];
+                if (!projectData) {
+                    console.warn(`⚠️ No project data found for ${projectName} in month ${month}`);
+                    return;
+                }
+                
                 // Combine allocations if project already exists in the month
                 if (allocations[month][projectName]) {
-                    allocations[month][projectName].days += monthData.days;
-                    allocations[month][projectName].phases.push(...monthData.phases);
+                    allocations[month][projectName].days += projectData.days || 0;
+                    allocations[month][projectName].phases.push(...(projectData.phases || []));
                 } else {
                     allocations[month][projectName] = {
-                        days: monthData.days,
-                        hasOverflow: monthData.hasOverflow || false,
-                        overflowAmount: monthData.overflowAmount || 0,
-                        phases: monthData.phases || []
+                        days: projectData.days || 0,
+                        hasOverflow: projectData.hasOverflow || false,
+                        overflowAmount: projectData.overflowAmount || 0,
+                        phases: projectData.phases || []
                     };
                 }
                 
@@ -4706,9 +4714,8 @@ class CapacityManager extends BaseComponent {
      * Get team member by ID
      */
     async getTeamMember(memberId) {
-        // TODO: Replace with actual API call
-        // return await this.api.getTeamMember(memberId);
-        const members = await this.getTeamMembers();
+        // Use getRealTeamMembers directly to avoid project dependency
+        const members = await this.getRealTeamMembers();
         return members.find(m => m.id === memberId);
     }
     
@@ -6541,7 +6548,8 @@ class CapacityManager extends BaseComponent {
         const overviewContainer = document.getElementById('capacity-overview-grid');
         if (!overviewContainer) return;
 
-        const teamMembers = await this.getTeamMembers();
+        // Use getRealTeamMembers directly for overview - no project context needed
+        const teamMembers = await this.getRealTeamMembers();
         const months = this.getTimelineMonths();
         const currentDate = new Date();
         
@@ -8877,31 +8885,24 @@ class CapacityManager extends BaseComponent {
                         enrichedPhase.monthlyAllocations = {};
                     }
                     
-                    // Calculate monthly distribution for this phase
-                    if (phase.startDate && phase.endDate && phase.estimatedMDs) {
-                        const startDate = new Date(phase.startDate);
-                        const endDate = new Date(phase.endDate);
-                        const totalMDs = parseFloat(phase.estimatedMDs) || 0;
+                    // 🚀 NEW: Use sequential algorithm results instead of uniform distribution
+                    if (calculatedAllocation && calculatedAllocation.phaseBreakdown && calculatedAllocation.phaseBreakdown[phase.phaseId]) {
+                        const phaseData = calculatedAllocation.phaseBreakdown[phase.phaseId];
+                        const monthlyDistribution = phaseData.monthlyDistribution || {};
                         
-                        // Generate months between start and end
-                        const months = [];
-                        const currentDate = new Date(startDate);
-                        while (currentDate <= endDate) {
-                            const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-                            if (!months.includes(monthKey)) {
-                                months.push(monthKey);
+                        // Use the sequential algorithm's distribution directly (no uniform distribution!)
+                        Object.keys(monthlyDistribution).forEach(monthKey => {
+                            const mdsForMonth = monthlyDistribution[monthKey];
+                            if (mdsForMonth > 0) {
+                                enrichedPhase.monthlyAllocations[monthKey] = mdsForMonth;
                             }
-                            currentDate.setMonth(currentDate.getMonth() + 1);
-                        }
-                        
-                        // Distribute MDs evenly across months (simple approach)
-                        const mdsPerMonth = months.length > 0 ? totalMDs / months.length : 0;
-                        
-                        months.forEach(monthKey => {
-                            enrichedPhase.monthlyAllocations[monthKey] = mdsPerMonth;
                         });
                         
-                        console.log(`📊 Updated Phase ${phase.phaseName}: ${totalMDs} MDs distributed across ${months.length} months (${mdsPerMonth.toFixed(1)} MD/month)`);
+                        const allocatedMDs = phaseData.allocated || 0;
+                        const monthsWithAllocation = Object.keys(monthlyDistribution).filter(m => monthlyDistribution[m] > 0).length;
+                        console.log(`🚀 SEQUENTIAL Phase ${phase.phaseName}: ${allocatedMDs} MDs using consumption logic across ${monthsWithAllocation} months`);
+                    } else {
+                        console.warn(`⚠️ No sequential algorithm data found for phase ${phase.phaseId}, phase will have empty monthlyAllocations`);
                     }
                     
                     return enrichedPhase;
@@ -8951,31 +8952,24 @@ class CapacityManager extends BaseComponent {
                         enrichedPhase.monthlyAllocations = {};
                     }
                     
-                    // Calculate monthly distribution for this phase
-                    if (phase.startDate && phase.endDate && phase.estimatedMDs) {
-                        const startDate = new Date(phase.startDate);
-                        const endDate = new Date(phase.endDate);
-                        const totalMDs = parseFloat(phase.estimatedMDs) || 0;
+                    // 🚀 NEW: Use sequential algorithm results instead of uniform distribution  
+                    if (calculatedAllocation && calculatedAllocation.phaseBreakdown && calculatedAllocation.phaseBreakdown[phase.phaseId]) {
+                        const phaseData = calculatedAllocation.phaseBreakdown[phase.phaseId];
+                        const monthlyDistribution = phaseData.monthlyDistribution || {};
                         
-                        // Generate months between start and end
-                        const months = [];
-                        const currentDate = new Date(startDate);
-                        while (currentDate <= endDate) {
-                            const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-                            if (!months.includes(monthKey)) {
-                                months.push(monthKey);
+                        // Use the sequential algorithm's distribution directly (no uniform distribution!)
+                        Object.keys(monthlyDistribution).forEach(monthKey => {
+                            const mdsForMonth = monthlyDistribution[monthKey];
+                            if (mdsForMonth > 0) {
+                                enrichedPhase.monthlyAllocations[monthKey] = mdsForMonth;
                             }
-                            currentDate.setMonth(currentDate.getMonth() + 1);
-                        }
-                        
-                        // Distribute MDs evenly across months (simple approach)
-                        const mdsPerMonth = months.length > 0 ? totalMDs / months.length : 0;
-                        
-                        months.forEach(monthKey => {
-                            enrichedPhase.monthlyAllocations[monthKey] = mdsPerMonth;
                         });
                         
-                        console.log(`📊 Phase ${phase.phaseName}: ${totalMDs} MDs distributed across ${months.length} months (${mdsPerMonth.toFixed(1)} MD/month)`);
+                        const allocatedMDs = phaseData.allocated || 0;
+                        const monthsWithAllocation = Object.keys(monthlyDistribution).filter(m => monthlyDistribution[m] > 0).length;
+                        console.log(`🚀 SEQUENTIAL Phase ${phase.phaseName}: ${allocatedMDs} MDs using consumption logic across ${monthsWithAllocation} months`);
+                    } else {
+                        console.warn(`⚠️ No sequential algorithm data found for phase ${phase.phaseId}, phase will have empty monthlyAllocations`);
                     }
                     
                     return enrichedPhase;
@@ -9449,77 +9443,170 @@ class CapacityManager extends BaseComponent {
     }
 
     /**
+     * Merge sequential distribution result into phase allocations
+     * @param {Object} phaseAllocations Final allocations object to populate
+     * @param {Object} sequentialDistribution Result from autoDistributeSequentialPhases
+     * @param {Array} phaseSchedule Original phase schedule array
+     * @param {string} projectName Project name for allocation structure
+     */
+    mergeSequentialDistribution(phaseAllocations, sequentialDistribution, phaseSchedule, projectName) {
+        console.log(`🔧 Merging sequential distribution for project "${projectName}"`);
+        
+        // Process each month in the sequential distribution
+        Object.keys(sequentialDistribution).forEach(month => {
+            // Skip metadata fields
+            if (['hasOverflow', 'overflowAmount', 'phaseBreakdown'].includes(month)) return;
+            
+            const monthData = sequentialDistribution[month];
+            if (!monthData || monthData.planned <= 0) return;
+            
+            // Initialize month allocation structure
+            if (!phaseAllocations[month]) {
+                phaseAllocations[month] = {};
+            }
+            
+            if (!phaseAllocations[month][projectName]) {
+                phaseAllocations[month][projectName] = {
+                    days: 0,
+                    hasOverflow: false,
+                    overflowAmount: 0,
+                    phases: []
+                };
+            }
+            
+            // Add total monthly allocation
+            phaseAllocations[month][projectName].days += monthData.planned;
+            
+            // Process phase breakdown for this month
+            if (sequentialDistribution.phaseBreakdown) {
+                Object.keys(sequentialDistribution.phaseBreakdown).forEach(phaseId => {
+                    const phaseData = sequentialDistribution.phaseBreakdown[phaseId];
+                    const monthAllocation = phaseData.monthlyDistribution[month] || 0;
+                    
+                    if (monthAllocation > 0) {
+                        // Find phase info from schedule
+                        const phaseInfo = phaseSchedule.find(p => p.phaseId === phaseId);
+                        const phaseName = phaseInfo ? phaseInfo.phaseName : `Phase ${phaseId}`;
+                        
+                        // Add phase detail to month
+                        phaseAllocations[month][projectName].phases.push({
+                            phaseName: phaseName,
+                            phaseDays: monthAllocation,
+                            hasOverflow: phaseData.overflow > 0,
+                            overflowAmount: phaseData.overflow || 0
+                        });
+                        
+                        // Mark month as having overflow if any phase has overflow
+                        if (phaseData.overflow > 0) {
+                            phaseAllocations[month][projectName].hasOverflow = true;
+                            phaseAllocations[month][projectName].overflowAmount += phaseData.overflow;
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Handle global overflow
+        if (sequentialDistribution.hasOverflow && sequentialDistribution.overflowAmount > 0) {
+            console.warn(`⚠️ Project "${projectName}" has ${sequentialDistribution.overflowAmount} MDs overflow`);
+            
+            // Distribute overflow indication across months where allocation occurred
+            const allocatedMonths = Object.keys(sequentialDistribution)
+                .filter(month => !['hasOverflow', 'overflowAmount', 'phaseBreakdown'].includes(month))
+                .filter(month => sequentialDistribution[month].planned > 0);
+            
+            if (allocatedMonths.length > 0) {
+                const overflowPerMonth = sequentialDistribution.overflowAmount / allocatedMonths.length;
+                
+                allocatedMonths.forEach(month => {
+                    if (phaseAllocations[month] && phaseAllocations[month][projectName]) {
+                        phaseAllocations[month][projectName].hasOverflow = true;
+                        phaseAllocations[month][projectName].overflowAmount += overflowPerMonth;
+                    }
+                });
+            }
+        }
+        
+        console.log(`✅ Sequential distribution merged successfully for "${projectName}"`);
+    }
+
+    /**
      * Calculate phase-based allocation for assignment
      */
     async calculatePhaseBasedAllocation(teamMember, completeProject, phaseSchedule) {
         try {
+            // 🚀 DEBUG: Verify new algorithm activation
+            console.log('🚀 [DEBUG] calculatePhaseBasedAllocation - STARTING with new sequential algorithm');
+            console.log('🚀 [DEBUG] AutoDistribution instance:', !!this.autoDistribution);
+            console.log('🚀 [DEBUG] Sequential method available:', !!this.autoDistribution?.autoDistributeSequentialPhases);
+            console.log('🚀 [DEBUG] Team member:', teamMember.firstName, teamMember.lastName);
+            console.log('🚀 [DEBUG] Phase schedule:', phaseSchedule.map(p => ({ 
+                id: p.phaseId, 
+                name: p.phaseName, 
+                mds: p.estimatedMDs,
+                startDate: p.startDate,
+                endDate: p.endDate 
+            })));
 
             const memberRole = this.getMemberRole(teamMember);
 
             const allocations = {};
             
-            // Use the new auto-distribution algorithm for better allocation
+            // Use the new sequential auto-distribution algorithm for realistic allocation
             
             if (this.autoDistribution) {
                         
                 // Set current team member for the adapter
                 this._currentTeamMember = teamMember;
                 
-                // Use phases in their predefined order (NOT sorted by date)
-                // The order matters for allocation priority, not the dates
-                const sortedPhases = phaseSchedule; // Keep original order
-                
-                
-                // Distribute phase by phase, tracking existing allocations
-                const existingAllocations = {}; // Track accumulated allocations per month
                 const projectName = completeProject.project.name;
                 
-                for (const phase of sortedPhases) {
-                    
-                    const phaseDistribution = this.autoDistribution.autoDistributeMDs(
-                        phase.estimatedMDs,
-                        new Date(phase.startDate),
-                        new Date(phase.endDate),
-                        teamMember.id,
-                        existingAllocations
-                    );
-                    
-                    
-                    // Merge phase distribution into final allocations
-                    this.mergePhaseDistribution(allocations, phaseDistribution, phase, projectName);
-                    
-                    // Update existing allocations for next phase with temporal information
-                    Object.keys(phaseDistribution).forEach(month => {
-                        if (!['hasOverflow', 'overflowAmount'].includes(month)) {
-                            const allocation = phaseDistribution[month];
-                            if (allocation && allocation.planned > 0) {
-                                // Initialize month array if not exists
-                                if (!existingAllocations[month]) {
-                                    existingAllocations[month] = [];
-                                }
-                                
-                                // Add allocation with phase temporal info
-                                existingAllocations[month].push({
-                                    phaseId: phase.phaseId,
-                                    phaseName: phase.phaseName,
-                                    startDate: phase.startDate,
-                                    endDate: phase.endDate,
-                                    allocatedMDs: allocation.planned
-                                });
-                            }
-                        }
-                    });
-                    
+                console.log(`🚀 Using sequential distribution for ${phaseSchedule.length} phases in project "${projectName}"`);
+                
+                // 🔄 DEBUG: Confirm sequential algorithm call
+                console.log('🔄 [DEBUG] About to call autoDistributeSequentialPhases with:', {
+                    phaseCount: phaseSchedule.length,
+                    teamMemberId: teamMember.id,
+                    phases: phaseSchedule.map(p => ({ id: p.phaseId, name: p.phaseName, mds: p.estimatedMDs }))
+                });
+                
+                // Use the new sequential algorithm that handles all phases with consumption logic
+                const sequentialDistribution = this.autoDistribution.autoDistributeSequentialPhases(
+                    phaseSchedule,
+                    teamMember.id,
+                    {} // No existing allocations for now - could be enhanced later
+                );
+                
+                // 📊 DEBUG: Verify sequential distribution result
+                console.log('📊 [DEBUG] Sequential distribution result:', sequentialDistribution);
+                console.log('📊 [DEBUG] Has phaseBreakdown:', !!sequentialDistribution.phaseBreakdown);
+                console.log('📊 [DEBUG] Overflow info:', { 
+                    hasOverflow: sequentialDistribution.hasOverflow, 
+                    overflowAmount: sequentialDistribution.overflowAmount 
+                });
+                
+                console.log(`📊 Sequential distribution result:`, sequentialDistribution);
+                
+                // Convert sequential distribution result to the expected format
+                this.mergeSequentialDistribution(allocations, sequentialDistribution, phaseSchedule, projectName);
+                
+                // 🔥 CRITICAL FIX: Preserve phaseBreakdown for UI usage
+                // The UI code expects calculatedAllocation.phaseBreakdown to exist
+                if (sequentialDistribution.phaseBreakdown) {
+                    allocations.phaseBreakdown = sequentialDistribution.phaseBreakdown;
+                    console.log('✅ phaseBreakdown preserved for UI usage');
+                } else {
+                    console.warn('⚠️ No phaseBreakdown found in sequentialDistribution');
                 }
+                
             } else {
                 throw new Error('Auto-distribution not available - cannot calculate phase-based allocation');
             }
 
             return allocations;
-            
         } catch (error) {
-            console.error('Error calculating phase-based allocation:', error);
-            throw new Error(`Cannot create assignment: ${error.message}`);
+            console.error('Error in calculatePhaseBasedAllocation:', error);
+            throw error;
         }
     }
 
@@ -11738,7 +11825,8 @@ class CapacityManager extends BaseComponent {
                 
                 if (phase && phase.estimatedMDs > 0) {
                     
-                    // Use auto-distribution for this phase
+                    // ⚠️ WARNING: Using legacy single-phase algorithm - may not be accurate for sequential consumption
+                    // TODO: Refactor to use sequential algorithm for better accuracy
                     const distribution = this.autoDistribution.autoDistributeMDs(
                         phase.estimatedMDs,
                         new Date(phase.startDate),

@@ -201,8 +201,6 @@ class TeamsConfigManager {
      * Handle click events
      */
     handleClick(e) {
-        console.log('Teams handleClick triggered:', e.target);
-        
         // Modal close buttons - global handler for teams modals only
         if (e.target.closest('.modal-close')) {
             const modalElement = e.target.closest('.modal');
@@ -218,11 +216,16 @@ class TeamsConfigManager {
 
         // Only handle clicks within teams config container for non-modal events
         if (!e.target.closest('.teams-config-container')) return;
+        
+        // Log only clicks that will be processed (after filtering)
+        console.log('Teams handleClick processing:', e.target);
 
-        // Handle scope tab switching
+        // Handle scope tab switching - only global scope is supported
         if (e.target.classList.contains('teams-scope-tab')) {
             const scope = e.target.dataset.scope;
-            this.switchScope(scope);
+            if (scope === 'global') {
+                this.switchScope(scope);
+            }
             e.preventDefault();
             return;
         }
@@ -339,11 +342,6 @@ class TeamsConfigManager {
                             <i class="fas fa-globe"></i>
                             Global Teams
                             <span class="count" id="global-teams-count">0</span>
-                        </button>
-                        <button class="scope-tab teams-scope-tab" data-scope="project">
-                            <i class="fas fa-project-diagram"></i>
-                            Project Teams
-                            <span class="count" id="project-teams-count">0</span>
                         </button>
                     </div>
                     <div class="scope-actions">
@@ -484,17 +482,18 @@ class TeamsConfigManager {
     }
 
     /**
-     * Switch between global and project scope
+     * Switch scope - now only global is supported
      */
     switchScope(scope) {
-        if (scope === this.currentScope) return;
-
-        this.currentScope = scope;
+        // Only global scope is supported now
+        if (scope !== 'global') return;
+        
+        this.currentScope = 'global';
         this.selectedTeam = null;
 
-        // Update active tab
+        // Ensure global tab is always active
         document.querySelectorAll('.teams-scope-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.scope === scope);
+            tab.classList.toggle('active', true);
         });
 
         this.refreshTeamsDisplay();
@@ -510,20 +509,8 @@ class TeamsConfigManager {
                 return [];
             }
 
-            if (this.currentScope === 'global') {
-                return this.configManager.globalConfig?.teams || [];
-            } else {
-                // Project scope
-                const currentProject = StateSelectors.getCurrentProject();
-                if (!currentProject) {
-                    console.log('No current project available');
-                    return [];
-                }
-                
-                const projectConfig = this.configManager.getProjectConfig(currentProject.config);
-                const projectOverrides = projectConfig.projectOverrides || {};
-                return projectOverrides.teams || [];
-            }
+            // Only return global teams since project scope is removed
+            return this.configManager.globalConfig?.teams || [];
         } catch (error) {
             console.error('Failed to get current teams:', error);
             return [];
@@ -560,10 +547,8 @@ class TeamsConfigManager {
             }
 
             const globalCount = document.getElementById('global-teams-count');
-            const projectCount = document.getElementById('project-teams-count');
 
             if (globalCount) globalCount.textContent = globalTeams.length;
-            if (projectCount) projectCount.textContent = projectTeams.length;
         } catch (error) {
             console.error('Failed to update teams counts:', error);
         }

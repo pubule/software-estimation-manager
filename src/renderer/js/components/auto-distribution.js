@@ -58,6 +58,11 @@ class AutoDistribution {
      * @returns {Object} Monthly allocation distribution
      */
     autoDistributeMDs(totalMDs, startDate, endDate, teamMemberId, existingAllocations = {}) {
+        // ⚠️ DEBUG: Old algorithm being called - this should NOT happen with new implementation
+        console.warn('⚠️ [DEBUG] OLD autoDistributeMDs algorithm called - this should be replaced by sequential algorithm!');
+        console.warn('⚠️ [DEBUG] Called with:', { totalMDs, startDate, endDate, teamMemberId });
+        console.trace('⚠️ [DEBUG] Call stack:');
+        
         // Validation
         if (totalMDs < 0) {
             throw new Error('Total MDs must be positive');
@@ -332,6 +337,199 @@ class AutoDistribution {
     setExistingAllocations(teamMemberId, month, allocatedMDs) {
         const key = `${teamMemberId}-${month}`;
         this.existingAllocations.set(key, allocatedMDs);
+    }
+
+    /**
+     * Distribute multiple phases using sequential consumption logic
+     * @param {Array} phases Array of phase objects with {phaseId, phaseName, startDate, endDate, estimatedMDs}
+     * @param {string} teamMemberId Team member ID
+     * @param {Object} existingAllocations Existing allocations to consider
+     * @returns {Object} Combined allocation result for all phases
+     */
+    autoDistributeSequentialPhases(phases, teamMemberId, existingAllocations = {}) {
+        // 🔄 DEBUG: Confirm new algorithm is called
+        console.log('🔄 [DEBUG] autoDistributeSequentialPhases CALLED - This is the NEW SEQUENTIAL algorithm!');
+        console.log('🔄 [DEBUG] Input phases:', phases.map(p => ({ 
+            id: p.phaseId, 
+            name: p.phaseName, 
+            mds: p.estimatedMDs,
+            startDate: p.startDate,
+            endDate: p.endDate 
+        })));
+        console.log('🔄 [DEBUG] Team member ID:', teamMemberId);
+        
+        // Validation
+        if (!phases || !Array.isArray(phases) || phases.length === 0) {
+            console.log('🔄 [DEBUG] No phases provided, returning empty result');
+            return { hasOverflow: false, overflowAmount: 0 };
+        }
+
+        // Get team member
+        const teamMember = this.teamManager.getTeamMemberById(teamMemberId);
+        if (!teamMember) {
+            console.error('🔄 [DEBUG] Team member not found:', teamMemberId);
+            throw new Error('Team member not found');
+        }
+
+        console.log(`🔄 Sequential distribution starting for ${phases.length} phases`);
+
+        // Sort phases by start date to ensure sequential processing
+        const sortedPhases = phases.slice().sort((a, b) => 
+            new Date(a.startDate) - new Date(b.startDate)
+        );
+
+        // Calculate overall date range
+        const minStartDate = new Date(Math.min(...sortedPhases.map(p => new Date(p.startDate))));
+        const maxEndDate = new Date(Math.max(...sortedPhases.map(p => new Date(p.endDate))));
+
+        // Get all months in the range
+        const allMonths = this._getMonthsBetween(minStartDate, maxEndDate);
+        console.log(`📅 Processing months: ${allMonths[0]} to ${allMonths[allMonths.length - 1]} (${allMonths.length} total)`);
+
+        // Initialize result structure
+        const result = {};
+        const phaseAllocations = {}; // Track allocations per phase
+        const monthlyCapacityUsed = {}; // Track used capacity per month
+        let totalOverflow = 0;
+
+        // Initialize months in result
+        allMonths.forEach(month => {
+            result[month] = { planned: 0, actual: 0, locked: false };
+            monthlyCapacityUsed[month] = 0;
+        });
+
+        // Initialize phase tracking
+        sortedPhases.forEach(phase => {
+            phaseAllocations[phase.phaseId] = {
+                allocated: 0,
+                needed: phase.estimatedMDs,
+                completed: false,
+                monthlyDistribution: {}
+            };
+        });
+
+        // SEQUENTIAL CONSUMPTION ALGORITHM
+        // Process phases in chronological order, consuming capacity month by month
+        for (const phase of sortedPhases) {
+            console.log(`\n🔍 Processing phase: ${phase.phaseName} (${phase.estimatedMDs} MDs needed)`);
+            
+            const phaseStart = new Date(phase.startDate);
+            const phaseEnd = new Date(phase.endDate);
+            const phaseMonths = this._getMonthsBetween(phaseStart, phaseEnd);
+            
+            let phaseRemainingMDs = phase.estimatedMDs;
+            
+            // Process each month within this phase's timeframe
+            for (const month of phaseMonths) {
+                if (phaseRemainingMDs <= 0) break;
+
+                // Calculate available capacity for this month
+                const isFirstMonth = month === phaseMonths[0];
+                const isLastMonth = month === phaseMonths[phaseMonths.length - 1];
+                const monthStartDate = isFirstMonth ? phaseStart : null;
+                const monthEndDate = isLastMonth ? phaseEnd : null;
+
+                let monthCapacity;
+                try {
+                    monthCapacity = this.workingDaysCalculator.calculateAvailableCapacity(
+                        teamMember, 
+                        month, 
+                        monthStartDate,
+                        true, // excludeExistingAllocations 
+                        monthEndDate
+                    );
+                } catch (error) {
+                    console.warn(`Error calculating capacity for ${month}:`, error);
+                    monthCapacity = 0;
+                }
+
+                // Subtract existing allocations (from other projects)
+                const existingInMonth = this._calculateExistingAllocationsForMonth(month, existingAllocations);
+                const availableCapacity = Math.max(0, monthCapacity - existingInMonth - monthlyCapacityUsed[month]);
+
+                console.log(`  📊 Month ${month}: Capacity=${monthCapacity}, Used=${monthlyCapacityUsed[month]}, Existing=${existingInMonth}, Available=${availableCapacity}`);
+
+                if (availableCapacity > 0) {
+                    // Consume available capacity for this phase
+                    const toAllocate = Math.min(phaseRemainingMDs, availableCapacity);
+                    
+                    // Update result allocation
+                    result[month].planned += toAllocate;
+                    result[month].actual += toAllocate;
+                    
+                    // Update phase tracking
+                    if (!phaseAllocations[phase.phaseId].monthlyDistribution[month]) {
+                        phaseAllocations[phase.phaseId].monthlyDistribution[month] = 0;
+                    }
+                    phaseAllocations[phase.phaseId].monthlyDistribution[month] += toAllocate;
+                    phaseAllocations[phase.phaseId].allocated += toAllocate;
+                    
+                    // Update capacity tracking
+                    monthlyCapacityUsed[month] += toAllocate;
+                    phaseRemainingMDs -= toAllocate;
+
+                    console.log(`  ✅ Allocated ${toAllocate} MDs to ${phase.phaseName} in ${month}. Phase remaining: ${phaseRemainingMDs}`);
+                } else {
+                    console.log(`  ❌ No capacity available in ${month} for ${phase.phaseName}`);
+                }
+            }
+
+            // Check if phase was completed
+            if (phaseRemainingMDs > 0) {
+                console.warn(`⚠️ Phase ${phase.phaseName} has ${phaseRemainingMDs} MDs unallocated (overflow)`);
+                totalOverflow += phaseRemainingMDs;
+                phaseAllocations[phase.phaseId].overflow = phaseRemainingMDs;
+            } else {
+                console.log(`✅ Phase ${phase.phaseName} fully allocated`);
+                phaseAllocations[phase.phaseId].completed = true;
+            }
+        }
+
+        // Add metadata to result
+        result.hasOverflow = totalOverflow > 0;
+        result.overflowAmount = totalOverflow;
+        result.phaseBreakdown = phaseAllocations;
+
+        console.log(`🏁 Sequential distribution complete. Total overflow: ${totalOverflow} MDs`);
+        
+        // 🏁 DEBUG: Final result confirmation
+        console.log('🏁 [DEBUG] NEW SEQUENTIAL algorithm completed successfully!');
+        console.log('🏁 [DEBUG] Final result structure:', {
+            monthsWithAllocation: Object.keys(result).filter(k => !['hasOverflow', 'overflowAmount', 'phaseBreakdown'].includes(k)).length,
+            hasPhaseBreakdown: !!result.phaseBreakdown,
+            totalOverflow: totalOverflow
+        });
+        
+        return result;
+    }
+
+    /**
+     * Calculate existing allocations for a specific month from external sources
+     * @private
+     * @param {string} month Month in YYYY-MM format  
+     * @param {Object} existingAllocations Existing allocations structure
+     * @returns {number} Total existing allocations for the month
+     */
+    _calculateExistingAllocationsForMonth(month, existingAllocations) {
+        if (!existingAllocations || !existingAllocations[month]) {
+            return 0;
+        }
+
+        // Handle different formats of existingAllocations
+        if (Array.isArray(existingAllocations[month])) {
+            // Array format: sum all allocations
+            return existingAllocations[month].reduce((sum, allocation) => {
+                const mdValue = typeof allocation === 'object' ? 
+                    (allocation.planned || allocation.allocatedMDs || 0) : allocation;
+                return sum + (Number(mdValue) || 0);
+            }, 0);
+        } else if (typeof existingAllocations[month] === 'object') {
+            // Object format: get planned value
+            return Number(existingAllocations[month].planned || existingAllocations[month].allocatedMDs || 0) || 0;
+        } else {
+            // Simple number format
+            return Number(existingAllocations[month]) || 0;
+        }
     }
 
     /**

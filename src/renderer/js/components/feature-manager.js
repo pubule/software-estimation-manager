@@ -817,11 +817,6 @@ class FeatureManager extends BaseComponent {
         option.value = category.id;
         option.textContent = category.name;
         
-        if (category.isProjectSpecific) {
-            option.textContent += ' (Project)';
-        } else if (category.isOverridden) {
-            option.textContent += ' (Modified)';
-        }
         
         return option;
     }
@@ -836,11 +831,6 @@ class FeatureManager extends BaseComponent {
             option.textContent += ' - Internal';
         }
         
-        if (supplier.isProjectSpecific) {
-            option.textContent += ' - Project';
-        } else if (supplier.isOverridden) {
-            option.textContent += ' - Modified';
-        }
         
         return option;
     }
@@ -1465,9 +1455,9 @@ class FeatureModal extends ModalManagerBase {
         const calculationFields = ['feature-real-man-days', 'feature-expertise', 'feature-risk-margin'];
         
         document.addEventListener('input', (e) => {
-            if (!this.element || !this.element.contains(e.target)) return;
-            
+            // Only handle input events for calculation fields
             if (calculationFields.includes(e.target.id)) {
+                console.log('Calculation field changed:', e.target.id);
                 this.modalActionMap['calculation-update']();
             }
         });
@@ -1478,11 +1468,12 @@ class FeatureModal extends ModalManagerBase {
      */
     setupReactiveDependencies() {
         document.addEventListener('change', (e) => {
-            if (!this.element || !this.element.contains(e.target)) return;
-            
+            // Only handle change events for feature modal elements
             if (e.target.id === 'feature-category') {
+                console.log('Feature category changed, updating feature type dropdown');
                 this.modalActionMap['category-change']();
             } else if (e.target.id === 'feature-type') {
+                console.log('Feature type changed, updating man days');
                 this.modalActionMap['feature-type-change']();
             }
         });
@@ -1576,13 +1567,6 @@ class FeatureModal extends ModalManagerBase {
                 option.value = category.id;
                 option.textContent = category.name;
 
-                if (category.isProjectSpecific) {
-                    option.textContent += ' (Project)';
-                    option.style.fontStyle = 'italic';
-                } else if (category.isOverridden) {
-                    option.textContent += ' (Modified)';
-                    option.style.fontWeight = 'bold';
-                }
 
                 option.title = category.description || category.name;
                 categorySelect.appendChild(option);
@@ -1631,13 +1615,6 @@ class FeatureModal extends ModalManagerBase {
             option.title = `External Supplier - Rate: €${supplier.officialRate}/day`;
         }
 
-        if (supplier.isProjectSpecific) {
-            option.textContent += ' - Project';
-            option.style.fontStyle = 'italic';
-        } else if (supplier.isOverridden) {
-            option.textContent += ' - Modified';
-            option.style.fontWeight = 'bold';
-        }
 
         return option;
     }
