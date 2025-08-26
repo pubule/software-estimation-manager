@@ -286,30 +286,123 @@ export class FeatureActions {
   async getFilterOptions(): Promise<{
     categories: string[];
     featureTypes: string[];
-    suppliers: string[];
+    suppliers: any[];
   }> {
     try {
+      console.log('🔍 [DEBUG] getFilterOptions - Starting...');
+      
       const configManager = this.getConfigManager();
+      console.log('🔍 [DEBUG] configManager:', !!configManager);
+      
       if (!configManager) {
+        console.log('❌ [DEBUG] No configManager available');
         return { categories: [], featureTypes: [], suppliers: [] };
       }
 
-      // Get configuration data using the proper ConfigurationManager methods
-      const categories = configManager.getCategories();
-      const suppliers = configManager.getSuppliers();
+      // Get current project configuration from store
+      const store = this.getStore();
+      const state = store?.getState();
+      const currentProject = state?.currentProject;
+      const projectConfig = currentProject?.configuration;
+      
+      console.log('🔍 [DEBUG] Store state:', {
+        hasStore: !!store,
+        hasState: !!state,
+        hasCurrentProject: !!currentProject,
+        hasProjectConfig: !!projectConfig,
+        projectName: currentProject?.project?.name,
+        globalConfig: !!state?.globalConfig
+      });
+
+      // Get configuration data using the proper ConfigurationManager methods with projectConfig
+      const categories = configManager.getCategories(projectConfig);
+      const suppliers = configManager.getSuppliers(projectConfig);
+      const internalResources = configManager.getInternalResources(projectConfig);
+      
+      console.log('🔍 [DEBUG] Raw data from ConfigManager:', {
+        categoriesCount: categories?.length || 0,
+        suppliersCount: suppliers?.length || 0,
+        internalResourcesCount: internalResources?.length || 0,
+        suppliers: suppliers?.map(s => ({ id: s.id, name: s.name, role: s.role, status: s.status })),
+        internalResources: internalResources?.map(r => ({ id: r.id, name: r.name, role: r.role, status: r.status }))
+      });
       
       // Feature types - need to check if this is available in global config
       const featureTypes = configManager.globalConfig?.featureTypes || [
         'Core Feature', 'Enhancement', 'Integration', 'UI Component', 'Data Processing'
       ];
+
+      // Combine suppliers and internal resources, filter for G2 role only
+      const filteredSuppliers = suppliers?.filter(sup => sup.role === 'G2') || [];
+      const filteredInternalResources = internalResources?.filter(res => res.role === 'G2') || [];
+      
+      console.log('🔍 [DEBUG] After G2/active filtering:', {
+        filteredSuppliersCount: filteredSuppliers.length,
+        filteredInternalResourcesCount: filteredInternalResources.length,
+        filteredSuppliers: filteredSuppliers.map(s => ({ id: s.id, name: s.name, role: s.role, status: s.status })),
+        filteredInternalResources: filteredInternalResources.map(r => ({ id: r.id, name: r.name, role: r.role, status: r.status }))
+      });
+
+      const combinedSuppliers = [
+        ...filteredSuppliers,
+        ...filteredInternalResources.map(res => ({ ...res, type: 'internal' })) // Mark internal resources
+      ];
+      
+      console.log('🔍 [DEBUG] Final combined suppliers:', {
+        count: combinedSuppliers.length,
+        suppliers: combinedSuppliers.map(s => ({ 
+          id: s.id, 
+          name: s.name, 
+          role: s.role, 
+          status: s.status, 
+          type: s.type,
+          department: s.department,
+          realRate: s.realRate,
+          officialRate: s.officialRate
+        }))
+      });
+
+      // If no suppliers found, provide fallback data for debugging
+      if (combinedSuppliers.length === 0) {
+        console.log('⚠️ [DEBUG] No suppliers found, using fallback data');
+        const fallbackSuppliers = [
+          {
+            id: 'fallback-1',
+            name: 'Debug Supplier',
+            role: 'G2',
+            status: 'active',
+            department: 'Debug',
+            realRate: 400,
+            officialRate: 450,
+            type: 'external'
+          },
+          {
+            id: 'fallback-2', 
+            name: 'Debug Internal',
+            role: 'G2',
+            status: 'active',
+            department: 'Debug',
+            realRate: 350,
+            officialRate: 400,
+            type: 'internal'
+          }
+        ];
+        
+        return {
+          categories: categories?.map(cat => cat.name || cat.id || cat) || [],
+          featureTypes: Array.isArray(featureTypes) ? featureTypes : [],
+          suppliers: fallbackSuppliers
+        };
+      }
       
       return {
-        categories: categories.map(cat => cat.name || cat.id || cat),
+        categories: categories?.map(cat => cat.name || cat.id || cat) || [],
         featureTypes: Array.isArray(featureTypes) ? featureTypes : [],
-        suppliers: suppliers.map(sup => sup.name || sup.id || sup)
+        suppliers: combinedSuppliers
       };
     } catch (error) {
-      console.error('Failed to get filter options:', error);
+      console.error('❌ [DEBUG] Failed to get filter options:', error);
+      console.error('❌ [DEBUG] Error stack:', error.stack);
       return { categories: [], featureTypes: [], suppliers: [] };
     }
   }

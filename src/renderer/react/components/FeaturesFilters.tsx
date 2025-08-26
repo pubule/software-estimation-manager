@@ -22,7 +22,7 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
   const [filterOptions, setFilterOptions] = useState<{
     categories: string[];
     featureTypes: string[];
-    suppliers: string[];
+    suppliers: any[];
   }>({
     categories: [],
     featureTypes: [],
@@ -63,8 +63,8 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
           onChange={handleCategoryChange}
         >
           <option value="">All Categories</option>
-          {filterOptions.categories.map(category => (
-            <option key={category} value={category}>
+          {filterOptions.categories.map((category, index) => (
+            <option key={`category-${index}`} value={category}>
               {category}
             </option>
           ))}
@@ -78,8 +78,8 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
           onChange={handleFeatureTypeChange}
         >
           <option value="">All Feature Types</option>
-          {filterOptions.featureTypes.map(featureType => (
-            <option key={featureType} value={featureType}>
+          {filterOptions.featureTypes.map((featureType, index) => (
+            <option key={`featureType-${index}`} value={featureType}>
               {featureType}
             </option>
           ))}
@@ -93,11 +93,19 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
           onChange={handleSupplierChange}
         >
           <option value="">All Suppliers</option>
-          {filterOptions.suppliers.map(supplier => (
-            <option key={supplier} value={supplier}>
-              {supplier}
-            </option>
-          ))}
+          {filterOptions.suppliers.map(supplier => {
+            const rate = supplier.realRate || supplier.officialRate || 0;
+            const isInternal = supplier.type === 'internal' || supplier.isInternal;
+            const internalSuffix = isInternal ? ' - Internal' : '';
+            const displayName = `${supplier.department} - ${supplier.name} (€${rate}/day)${internalSuffix}`;
+            const optionValue = `${supplier.name.toLowerCase()}-${supplier.role.toLowerCase()}-${supplier.department.toLowerCase()}`;
+            
+            return (
+              <option key={supplier.id} value={optionValue}>
+                {displayName}
+              </option>
+            );
+          })}
         </select>
       </div>
     </div>
