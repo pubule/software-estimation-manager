@@ -464,6 +464,48 @@
     width: 100%;
 }
 
+/* React Features Page Full Height Layout */
+#react-features-root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#react-features-root .features-page {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 100px); /* Account for app header and margins */
+    flex: 1;
+    overflow: hidden;
+}
+
+#react-features-root .page-header,
+#react-features-root .search-bar,
+#react-features-root .filters-bar {
+    flex: none; /* Fixed size, don't grow or shrink */
+}
+
+#react-features-root .feature-manager {
+    flex: 1; /* Take all remaining space */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0; /* Allow flex shrinking */
+}
+
+#react-features-root .feature-table-container {
+    flex: 1; /* Take all available space in feature-manager */
+    overflow: auto; /* Allow scrolling when content exceeds space */
+    min-height: 0; /* Allow flex shrinking */
+}
+
+#react-features-root .summary-bar {
+    flex: none; /* Fixed size footer */
+    border-top: 1px solid var(--table-border, var(--border-primary, #e0e0e0));
+    background-color: var(--bg-tertiary);
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+}
+
 .empty-state-icon {
     font-size: 48px;
     margin-bottom: var(--spacing-md);
