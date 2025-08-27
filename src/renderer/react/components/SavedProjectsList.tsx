@@ -1,18 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ProjectItem from './ProjectItem';
-
-interface SavedProject {
-  filePath: string;
-  fileName: string;
-  project: {
-    id: string;
-    name: string;
-    version: string;
-    lastModified: string;
-  };
-  fileSize: number;
-  lastModified: string;
-}
+import { projectActions, SavedProject } from '../actions/ProjectsActions';
 
 interface SavedProjectsListProps {
   onLoadProject: (filePath: string) => void;
@@ -29,58 +17,34 @@ const SavedProjectsList: React.FC<SavedProjectsListProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load saved projects from file system - replicating ProjectManager.js line 1261
+  // Load saved projects using Actions - NO business logic in component
   const loadSavedProjects = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
-    try {
-      // Access the app instance through global window object
-      const app = (window as any).app;
-      if (!app?.dataManager) {
-        throw new Error('Data manager not available');
-      }
-
-      const projects = await app.dataManager.listProjects();
-      const mappedProjects = projects.map((project: any) => ({
-        filePath: project.filePath,
-        fileName: project.fileName,
-        project: project.project,
-        fileSize: project.fileSize,
-        lastModified: project.lastModified
-      }));
-
-      setSavedProjects(mappedProjects);
-      console.log(`Loaded ${mappedProjects.length} saved projects`);
-    } catch (err) {
-      console.error('Failed to load saved projects:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load projects');
-      setSavedProjects([]);
-    } finally {
-      setIsLoading(false);
-    }
+    const projects = await projectActions.loadSavedProjects();
+    setSavedProjects(projects);
+    setIsLoading(false);
   }, []);
 
-  // Auto-load projects on mount - replicating ProjectManager.js line 1491
+  // Auto-load projects on mount using Actions
   useEffect(() => {
     loadSavedProjects();
   }, [loadSavedProjects]);
 
-  // Listen for project list updates
+  // Setup event listeners using Actions
   useEffect(() => {
-    const handleProjectsUpdate = () => {
+    const cleanup = projectActions.setupStorageListeners(() => {
       loadSavedProjects();
-    };
-
-    window.addEventListener('saved-projects-updated', handleProjectsUpdate);
+    });
     
-    return () => {
-      window.removeEventListener('saved-projects-updated', handleProjectsUpdate);
-    };
+    return cleanup;
   }, [loadSavedProjects]);
 
-  const handleRefresh = () => {
-    loadSavedProjects();
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    await projectActions.refreshSavedProjects();
+    await loadSavedProjects();
   };
 
   const handleLoadProject = (project: SavedProject) => {

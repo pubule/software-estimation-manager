@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ProjectItem from './ProjectItem';
-
-interface RecentProject {
-  id: string;
-  name: string;
-  version: string;
-  lastOpened: string;
-  filePath?: string;
-}
+import { projectActions, RecentProject } from '../actions/ProjectsActions';
 
 interface RecentProjectsListProps {
   onLoadProject: (projectId: string) => void;
@@ -22,41 +15,18 @@ const RecentProjectsList: React.FC<RecentProjectsListProps> = ({
 }) => {
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
 
-  // Load recent projects from localStorage - replicating ProjectManager.js line 1237
+  // Setup data loading through Actions - NO business logic in component  
   useEffect(() => {
-    const loadRecentProjects = () => {
-      try {
-        const data = localStorage.getItem('recent-projects');
-        const projects = data ? JSON.parse(data) : [];
-        setRecentProjects(projects);
-      } catch (error) {
-        console.error('Failed to load recent projects:', error);
-        setRecentProjects([]);
-      }
+    const loadData = async () => {
+      const projects = await projectActions.loadRecentProjects();
+      setRecentProjects(projects);
     };
 
-    loadRecentProjects();
+    loadData();
 
-    // Listen for storage changes to keep in sync
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'recent-projects') {
-        loadRecentProjects();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also listen for custom events from the project manager
-    const handleRecentProjectsUpdate = () => {
-      loadRecentProjects();
-    };
-
-    window.addEventListener('recent-projects-updated', handleRecentProjectsUpdate);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('recent-projects-updated', handleRecentProjectsUpdate);
-    };
+    // Setup event listeners using Actions
+    const cleanup = projectActions.setupStorageListeners(loadData);
+    return cleanup;
   }, []);
 
   const handleLoadProject = (project: RecentProject) => {
@@ -67,8 +37,8 @@ const RecentProjectsList: React.FC<RecentProjectsListProps> = ({
     onRemoveProject(project.id);
   };
 
-  // Show only first 2 projects as in original implementation (line 1456)
-  const displayProjects = recentProjects.slice(0, 2);
+  // Get display projects using Actions business logic
+  const displayProjects = projectActions.getDisplayRecentProjects(recentProjects, 2);
 
   return (
     <div className="recent-projects-section">

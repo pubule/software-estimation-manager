@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from 'react';
-import { projectActions, NewProjectFormData } from '../actions/ProjectActions';
+import { projectActions, NewProjectFormData } from '../actions/ProjectsActions';
 import { useStore } from './useStore';
 
 export const useProjectActions = () => {

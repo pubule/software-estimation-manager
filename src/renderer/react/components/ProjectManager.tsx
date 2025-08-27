@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useProjectActions } from '../hooks/useProjectActions';
-import { NewProjectFormData } from '../actions/ProjectActions';
+import { NewProjectFormData } from '../actions/ProjectsActions';
 import CurrentProjectCard from './CurrentProjectCard';
 import RecentProjectsList from './RecentProjectsList';
 import SavedProjectsList from './SavedProjectsList';
