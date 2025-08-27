@@ -652,7 +652,35 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
-        // Special handling for phases navigation
+        // CRITICAL: Generic state preservation when leaving ANY section
+        // This ensures state is preserved when navigating away
+        if (state.currentSection && state.currentSection !== sectionName) {
+            // Preserve phases state when leaving phases
+            if (state.currentSection === 'phases') {
+                const phasesState = {
+                    currentPhases: state.currentPhases,
+                    selectedSuppliers: state.selectedSuppliers,  // Critical for preserving supplier selections
+                    resourceRates: state.resourceRates,
+                    phasesTotals: state.phasesTotals
+                };
+                state.preserveSectionState('phases', phasesState);
+                console.log('✅ Generic navigation: Preserved phases state before leaving');
+            }
+            // Preserve features state when leaving features
+            else if (state.currentSection === 'features') {
+                const featuresState = {
+                    filteredFeatures: state.filteredFeatures,
+                    currentSort: state.currentSort,
+                    editingFeature: state.editingFeature,
+                    featureModalOpen: state.featureModalOpen,
+                    featureModalEditingItem: state.featureModalEditingItem
+                };
+                state.preserveSectionState('features', featuresState);
+                console.log('✅ Generic navigation: Preserved features state before leaving');
+            }
+        }
+
+        // Special handling for phases navigation (State/Actions/Dispatcher pattern)
         if (sectionName === 'phases') {
             this.showPhasesPage();
             return;
@@ -693,8 +721,13 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
-        // Special handling for features navigation - Initialize React wrapper
+        // Special handling for features navigation - Initialize React wrapper (State/Actions/Dispatcher pattern)
         if (sectionName === 'features') {
+            // Preserve current state before navigating
+            if (state.currentSection && state.currentSection !== 'features') {
+                console.log(`🔄 Navigation: Preserving ${state.currentSection} state before moving to features`);
+            }
+            
             this.showFeaturesPage();
             return;
         }
@@ -733,7 +766,15 @@ class EnhancedNavigationManager extends NavigationManager {
 
     // Special method for projects page - Initialize React wrapper
     async showProjectsPage() {
-        console.log('Navigating to Projects page - initializing React wrapper');
+        console.log('🔄 NavigationManager: showProjectsPage - Using State/Actions/Dispatcher pattern');
+
+        // Check if store is available
+        if (!this.store || !this.store.getState) {
+            console.warn('Store not available for NavigationManager.showProjectsPage, navigation aborted');
+            return;
+        }
+        
+        const state = this.store.getState();
 
         // Hide all pages first
         document.querySelectorAll('.page').forEach(page => {
@@ -749,8 +790,11 @@ class EnhancedNavigationManager extends NavigationManager {
             projectsPage.classList.add('active');
         }
 
-        // Initialize React Project Manager wrapper if not already done
-        if (!this.reactProjectWrapper) {
+        // Smart React wrapper initialization (Pattern: avoid unnecessary re-init)
+        const isComponentAlreadyInitialized = state.isComponentInitialized('projects');
+        const hasExistingWrapper = !!this.reactProjectWrapper;
+        
+        if (!hasExistingWrapper || !isComponentAlreadyInitialized) {
             console.log('🔄 Initializing React Project Manager wrapper...');
             console.log('ReactProjectManagerWrapper available:', !!window.ReactProjectManagerWrapper);
             console.log('ReactComponents available:', !!window.ReactComponents);
@@ -761,6 +805,10 @@ class EnhancedNavigationManager extends NavigationManager {
                 try {
                     await this.reactProjectWrapper.init();
                     console.log('✅ React Project Manager wrapper initialized successfully');
+                    
+                    // Mark component as initialized in store
+                    state.setComponentInitialized('projects', true);
+                    
                 } catch (error) {
                     console.error('❌ Failed to initialize React Project Manager wrapper:', error);
                     // Show fallback content
@@ -783,8 +831,16 @@ class EnhancedNavigationManager extends NavigationManager {
                 console.log('Available on window:', Object.keys(window).filter(k => k.includes('React')));
             }
         } else {
-            console.log('✅ React Project Manager wrapper already initialized');
+            console.log('✅ React Project Manager wrapper already initialized - PRESERVING STATE');
+            
+            // Ensure we're using the existing wrapper without re-init
+            if (this.reactProjectWrapper && this.reactProjectWrapper.isInitialized) {
+                console.log('🔄 Using existing projects wrapper - no reset needed');
+            }
         }
+
+        // Use NavigationActions to set section (business logic)
+        state.setCurrentSection('projects');
 
         // Update global state
         if (this.store && this.store.getState) {
@@ -796,7 +852,7 @@ class EnhancedNavigationManager extends NavigationManager {
 
     // Special method for features page - Initialize React wrapper
     async showFeaturesPage() {
-        console.log('Navigating to Features page - initializing React wrapper');
+        console.log('🔄 NavigationManager: showFeaturesPage - Using State/Actions/Dispatcher pattern');
 
         // Check if store is available
         if (!this.store || !this.store.getState) {
@@ -814,6 +870,28 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
+        // Use NavigationActions for business logic (Pattern State/Actions/Dispatcher)
+        try {
+            // Preserve current section state if needed
+            if (state.currentSection && state.currentSection !== 'features') {
+                console.log('🔄 Preserving current section state before navigating to features');
+                
+                // If leaving features, preserve its state
+                if (state.currentSection === 'features') {
+                    const featuresState = {
+                        filteredFeatures: state.filteredFeatures,
+                        currentSort: state.currentSort,
+                        editingFeature: state.editingFeature,
+                        featureModalOpen: state.featureModalOpen,
+                        featureModalEditingItem: state.featureModalEditingItem
+                    };
+                    state.preserveSectionState('features', featuresState);
+                }
+            }
+        } catch (error) {
+            console.warn('NavigationActions not available, using fallback logic', error);
+        }
+
         // Hide all pages first
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
@@ -828,8 +906,11 @@ class EnhancedNavigationManager extends NavigationManager {
             featuresPage.classList.add('active');
         }
 
-        // Initialize React Features wrapper if not already done
-        if (!this.reactFeaturesWrapper) {
+        // Smart React wrapper initialization (Pattern: avoid unnecessary re-init)
+        const isComponentAlreadyInitialized = state.isComponentInitialized('features');
+        const hasExistingWrapper = !!this.reactFeaturesWrapper;
+        
+        if (!hasExistingWrapper || !isComponentAlreadyInitialized) {
             console.log('🔄 Initializing React Features wrapper...');
             console.log('ReactFeaturesWrapper available:', !!window.ReactFeaturesWrapper);
             console.log('ReactComponents available:', !!window.ReactComponents);
@@ -840,6 +921,10 @@ class EnhancedNavigationManager extends NavigationManager {
                 try {
                     await this.reactFeaturesWrapper.init();
                     console.log('✅ React Features wrapper initialized successfully');
+                    
+                    // Mark component as initialized in store
+                    state.setComponentInitialized('features', true);
+                    
                 } catch (error) {
                     console.error('❌ Failed to initialize React Features wrapper:', error);
                     // Show fallback content
@@ -861,7 +946,12 @@ class EnhancedNavigationManager extends NavigationManager {
                 console.log('Available on window:', Object.keys(window).filter(k => k.includes('React')));
             }
         } else {
-            console.log('✅ React Features wrapper already initialized');
+            console.log('✅ React Features wrapper already initialized - PRESERVING STATE');
+            
+            // Ensure we're using the existing wrapper without re-init
+            if (this.reactFeaturesWrapper && this.reactFeaturesWrapper.isInitialized) {
+                console.log('🔄 Using existing features wrapper - no reset needed');
+            }
         }
 
         // Update global state
@@ -880,7 +970,7 @@ class EnhancedNavigationManager extends NavigationManager {
 
     // Special method for phases page - Initialize React wrapper
     async showPhasesPage() {
-        console.log('Navigating to Phases page - initializing React wrapper');
+        console.log('🔄 NavigationManager: showPhasesPage - Using State/Actions/Dispatcher pattern');
 
         // Check if store is available
         if (!this.store || !this.store.getState) {
@@ -898,6 +988,31 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
+        // Use NavigationActions for business logic (Pattern State/Actions/Dispatcher)
+        try {
+            // CRITICAL FIX: Preserve current section state BEFORE switching to phases
+            // This preserves the section we're LEAVING, not where we're going
+            if (state.currentSection && state.currentSection !== 'phases') {
+                console.log(`🔄 Preserving ${state.currentSection} state before navigating to phases`);
+                
+                // Preserve features state if leaving features
+                if (state.currentSection === 'features') {
+                    const featuresState = {
+                        filteredFeatures: state.filteredFeatures,
+                        currentSort: state.currentSort,
+                        editingFeature: state.editingFeature,
+                        featureModalOpen: state.featureModalOpen,
+                        featureModalEditingItem: state.featureModalEditingItem
+                    };
+                    state.preserveSectionState('features', featuresState);
+                }
+                // Add other sections preservation as needed
+            }
+            
+        } catch (error) {
+            console.warn('NavigationActions not available, using fallback logic', error);
+        }
+
         // Hide all pages first
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
@@ -912,8 +1027,11 @@ class EnhancedNavigationManager extends NavigationManager {
             phasesPage.classList.add('active');
         }
 
-        // Initialize React Phases wrapper if not already done
-        if (!this.reactPhasesWrapper) {
+        // Smart React wrapper initialization (Pattern: avoid unnecessary re-init)
+        const isComponentAlreadyInitialized = state.isComponentInitialized('phases');
+        const hasExistingWrapper = !!this.reactPhasesWrapper;
+        
+        if (!hasExistingWrapper || !isComponentAlreadyInitialized) {
             console.log('🔄 Initializing React Phases wrapper...');
             console.log('ReactPhasesWrapper available:', !!window.ReactPhasesWrapper);
             console.log('ReactComponents available:', !!window.ReactComponents);
@@ -924,6 +1042,10 @@ class EnhancedNavigationManager extends NavigationManager {
                 try {
                     await this.reactPhasesWrapper.init();
                     console.log('✅ React Phases wrapper initialized successfully');
+                    
+                    // Mark component as initialized in store
+                    state.setComponentInitialized('phases', true);
+                    
                 } catch (error) {
                     console.error('❌ Failed to initialize React Phases wrapper:', error);
                     // Show fallback content
@@ -945,7 +1067,29 @@ class EnhancedNavigationManager extends NavigationManager {
                 console.log('Available on window:', Object.keys(window).filter(k => k.includes('React')));
             }
         } else {
-            console.log('✅ React Phases wrapper already initialized');
+            console.log('✅ React Phases wrapper already initialized - PRESERVING STATE');
+            
+            // Ensure we're using the existing wrapper without re-init
+            if (this.reactPhasesWrapper && this.reactPhasesWrapper.isInitialized) {
+                console.log('🔄 Using existing phases wrapper - no reset needed');
+            }
+        }
+
+        // Use NavigationActions to set section (business logic)
+        state.setCurrentSection('phases');
+        
+        // CRITICAL: Restore preserved phases state if it exists
+        // This restores supplier selections and other configurations
+        try {
+            const preservedStates = state.navigationState?.preservedStates;
+            if (preservedStates && preservedStates.has && preservedStates.has('phases')) {
+                state.restoreSectionState('phases');
+                console.log('✅ Restored preserved phases state including supplier selections');
+            } else {
+                console.log('ℹ️ No preserved phases state to restore');
+            }
+        } catch (error) {
+            console.warn('Could not restore preserved state:', error);
         }
 
         // Update global state

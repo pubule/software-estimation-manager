@@ -114,6 +114,16 @@ const appStore = window.zustand.createStore((set, get) => ({
     },
     
     // ======================
+    // NAVIGATION STATE (Pattern State/Actions/Dispatcher)
+    // ======================
+    currentSection: 'projects',
+    navigationState: {
+        preservedStates: new Map(),
+        lastNavigationTime: null,
+        componentStates: new Map() // Track React component initialization states
+    },
+    
+    // ======================
     // NOTIFICATION STATE
     // ======================
     notifications: [],
@@ -378,10 +388,16 @@ const appStore = window.zustand.createStore((set, get) => ({
     // ======================
     
     /**
-     * Navigate to page and section
+     * Navigate to page and section (updated for State/Actions pattern)
      */
     navigateTo: (page, section = null) => {
-        const updates = { currentPage: page };
+        const updates = { 
+            currentPage: page,
+            navigationState: {
+                ...get().navigationState,
+                lastNavigationTime: new Date().toISOString()
+            }
+        };
         if (section) {
             updates.currentSection = section;
         }
@@ -389,10 +405,118 @@ const appStore = window.zustand.createStore((set, get) => ({
     },
     
     /**
-     * Set current section
+     * Set current section with state preservation logic
+     */
+    setCurrentSection: (section) => {
+        const currentState = get();
+        set({ 
+            currentSection: section,
+            navigationState: {
+                ...currentState.navigationState,
+                lastNavigationTime: new Date().toISOString()
+            }
+        });
+    },
+    
+    /**
+     * Legacy setSection for backward compatibility
      */
     setSection: (section) => {
         set({ currentSection: section });
+    },
+
+    /**
+     * Preserve section state before navigation (Pattern State/Actions/Dispatcher)
+     */
+    preserveSectionState: (section, sectionState) => {
+        const currentState = get();
+        const newPreservedStates = new Map(currentState.navigationState.preservedStates);
+        newPreservedStates.set(section, {
+            ...sectionState,
+            preservedAt: new Date().toISOString()
+        });
+        
+        set({
+            navigationState: {
+                ...currentState.navigationState,
+                preservedStates: newPreservedStates
+            }
+        });
+        console.log(`State preserved for section: ${section}`);
+    },
+
+    /**
+     * Restore preserved section state
+     */
+    restoreSectionState: (section) => {
+        const currentState = get();
+        const preservedState = currentState.navigationState.preservedStates.get(section);
+        
+        if (!preservedState) {
+            console.log(`No preserved state found for section: ${section}`);
+            return false;
+        }
+
+        // Restore section-specific state
+        if (section === 'phases') {
+            set({
+                currentPhases: preservedState.currentPhases || currentState.currentPhases,
+                selectedSuppliers: preservedState.selectedSuppliers || currentState.selectedSuppliers,
+                resourceRates: preservedState.resourceRates || currentState.resourceRates,
+                phasesTotals: preservedState.phasesTotals || currentState.phasesTotals
+            });
+        } else if (section === 'features') {
+            set({
+                filteredFeatures: preservedState.filteredFeatures || currentState.filteredFeatures,
+                currentSort: preservedState.currentSort || currentState.currentSort,
+                editingFeature: preservedState.editingFeature || currentState.editingFeature,
+                featureModalOpen: preservedState.featureModalOpen || currentState.featureModalOpen,
+                featureModalEditingItem: preservedState.featureModalEditingItem || currentState.featureModalEditingItem
+            });
+        }
+        
+        console.log(`State restored for section: ${section}`);
+        return true;
+    },
+
+    /**
+     * Clear preserved state for section
+     */
+    clearPreservedState: (section) => {
+        const currentState = get();
+        const newPreservedStates = new Map(currentState.navigationState.preservedStates);
+        newPreservedStates.delete(section);
+        
+        set({
+            navigationState: {
+                ...currentState.navigationState,
+                preservedStates: newPreservedStates
+            }
+        });
+    },
+
+    /**
+     * Track React component initialization state
+     */
+    setComponentInitialized: (section, isInitialized) => {
+        const currentState = get();
+        const newComponentStates = new Map(currentState.navigationState.componentStates);
+        newComponentStates.set(section, isInitialized);
+        
+        set({
+            navigationState: {
+                ...currentState.navigationState,
+                componentStates: newComponentStates
+            }
+        });
+    },
+
+    /**
+     * Check if component is initialized for section
+     */
+    isComponentInitialized: (section) => {
+        const currentState = get();
+        return currentState.navigationState.componentStates.get(section) || false;
     },
     
     /**
@@ -485,12 +609,14 @@ const appStore = window.zustand.createStore((set, get) => ({
         const currentProject = currentState.currentProject;
         
         if (currentProject && currentProject.phases) {
+            console.log('Loading existing phases data from project');
             const existingPhases = currentProject.phases;
+            
             const currentPhases = currentState.phaseDefinitions.map(def => {
                 const existing = existingPhases[def.id] || {};
                 return {
                     ...def,
-                    manDays: existing.manDays || 0,
+                    manDays: existing.manDays !== undefined ? existing.manDays : 0,
                     effort: existing.effort || { ...def.defaultEffort },
                     assignedResources: existing.assignedResources || [],
                     cost: existing.cost || 0,
@@ -503,6 +629,7 @@ const appStore = window.zustand.createStore((set, get) => ({
                 selectedSuppliers: existingPhases.selectedSuppliers || { G1: null, G2: null, TA: null, PM: null }
             });
         } else {
+            console.log('No existing phases data found, using defaults');
             const defaultPhases = currentState.phaseDefinitions.map(def => ({
                 ...def,
                 manDays: 0,
@@ -603,7 +730,7 @@ const appStore = window.zustand.createStore((set, get) => ({
             return sum + (parseFloat(feature.manDays) || 0);
         }, 0);
         
-        const coverageMDs = parseFloat(currentProject.coverage) || 0;
+        const coverageMDs = currentProject.coverage?.manDays || 0;
         const totalDevelopmentMDs = featuresTotal + coverageMDs;
         
         const updatedPhases = currentState.currentPhases.map(phase => 

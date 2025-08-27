@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useProject } from '../hooks/useStore';
 import { useStore } from '../hooks/useStore';
 import { useFeatureActions } from '../hooks/useFeatureActions';
@@ -28,6 +28,23 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
     showSuccessNotification,
     showErrorNotification
   } = useFeatureActions();
+
+  // Track component initialization in navigation state (Pattern State/Actions/Dispatcher)
+  useEffect(() => {
+    const store = (window as any).appStore;
+    if (store) {
+      store.getState().setComponentInitialized('features', true);
+      console.log('FeatureManager: Component initialized and tracked in store');
+    }
+    
+    return () => {
+      // Cleanup on unmount
+      if (store) {
+        store.getState().setComponentInitialized('features', false);
+        console.log('FeatureManager: Component unmounted, tracking cleared');
+      }
+    };
+  }, []);
 
   // Use custom filtered features if provided, otherwise use all project features
   const displayFeatures = customFilteredFeatures || currentProject?.features || [];

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useProject } from '../hooks/useStore';
 import { useStore } from '../hooks/useStore';
 import { usePhasesActions } from '../hooks/usePhasesActions';
+import { NavigationActions } from '../actions/NavigationActions';
 import DevelopmentNotice from './DevelopmentNotice';
 import SupplierSelectors from './SupplierSelectors';
 import PhasesTable from './PhasesTable';
@@ -13,6 +14,9 @@ interface PhasesManagerProps {
 const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { currentProject } = useProject();
+  
+  // NavigationActions instance (Pattern State/Actions/Dispatcher)
+  const navigationActions = new NavigationActions();
   
   // Get phases state from store
   const { 
@@ -40,23 +44,50 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
     showErrorNotification
   } = usePhasesActions();
 
-  // Load phases data when component mounts or project changes
+  // Smart initialization using NavigationActions (Pattern State/Actions/Dispatcher)
   useEffect(() => {
     if (currentProject) {
       setIsLoading(true);
-      loadPhaseData()
-        .then(() => {
-          setIsLoading(false);
-        })
-        .catch(error => {
-          console.error('Failed to load phases data:', error);
-          showErrorNotification('Failed to load phases data');
-          setIsLoading(false);
-        });
+      
+      // BUSINESS LOGIC: Check if we already have configured phases
+      const hasExistingPhases = currentPhases.length > 0;
+      const hasSelectedSuppliers = Object.values(selectedSuppliers || {}).some(s => s !== null);
+      
+      // Smart loading: only reset if truly necessary
+      if (!hasExistingPhases || !hasSelectedSuppliers) {
+        console.log('PhasesManager: Loading data for first time or incomplete config');
+        loadPhaseData()
+          .then(() => {
+            setIsLoading(false);
+          })
+          .catch(error => {
+            console.error('Failed to load phases data:', error);
+            showErrorNotification('Failed to load phases data');
+            setIsLoading(false);
+          });
+      } else {
+        console.log('PhasesManager: Using existing phases configuration, no reset needed');
+        setIsLoading(false);
+      }
     } else {
       setIsLoading(false);
     }
-  }, [currentProject, loadPhaseData, showErrorNotification]);
+  }, [currentProject]); // REMOVED loadPhaseData dependency to prevent unnecessary reloads
+
+  // Track component initialization in navigation state
+  useEffect(() => {
+    const store = (window as any).appStore;
+    if (store) {
+      store.getState().setComponentInitialized('phases', true);
+    }
+    
+    return () => {
+      // Cleanup on unmount
+      if (store) {
+        store.getState().setComponentInitialized('phases', false);
+      }
+    };
+  }, []);
 
   // Recalculate development phase when features change
   useEffect(() => {
@@ -135,7 +166,7 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
         <DevelopmentNotice 
           featuresCount={currentProject.features?.length || 0}
           developmentPhase={currentPhases.find(p => p.id === 'development')}
-          coverage={parseFloat(currentProject.coverage as string) || 0}
+          coverage={currentProject.coverage?.manDays || 0}
         />
 
         <div className="phases-controls">

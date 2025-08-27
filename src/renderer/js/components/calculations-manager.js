@@ -628,7 +628,7 @@ class CalculationsManager {
         });
 
         // Process coverage MDs as additional G2 development costs
-        const coverageMDs = parseFloat(currentProject.coverage) || 0;
+        const coverageMDs = currentProject.coverage?.manDays || 0;
         if (coverageMDs > 0 && g2EffortPercent > 0) {
 
             // For coverage, we need to determine which supplier to use

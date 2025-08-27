@@ -471,7 +471,7 @@ export class PhasesActions {
       const featuresCount = currentProject.features?.length || 0;
       const developmentPhase = state.currentPhases.find((p: PhaseData) => p.id === 'development');
       const developmentDays = developmentPhase?.manDays || 0;
-      const coverageMDs = parseFloat(currentProject.coverage) || 0;
+      const coverageMDs = currentProject.coverage?.manDays || 0;
       
       return `Development Phase: Man Days are automatically calculated from ${featuresCount} features + coverage (Coverage: ${coverageMDs.toFixed(1)} days, Total: ${developmentDays.toFixed(1)} days). You can configure effort distribution percentages.`;
     } catch (error) {
