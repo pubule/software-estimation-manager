@@ -56,6 +56,7 @@ class EnhancedNavigationManager extends NavigationManager {
         // React wrappers for modern UI components
         this.reactProjectWrapper = null;
         this.reactFeaturesWrapper = null;
+        this.reactPhasesWrapper = null;
 
         this.initializeNestedNavigation();
         this.setupStoreSubscription();
@@ -192,6 +193,12 @@ class EnhancedNavigationManager extends NavigationManager {
         if (this.reactFeaturesWrapper) {
             this.reactFeaturesWrapper.destroy();
             this.reactFeaturesWrapper = null;
+        }
+
+        // Cleanup React Phases wrapper
+        if (this.reactPhasesWrapper) {
+            this.reactPhasesWrapper.destroy();
+            this.reactPhasesWrapper = null;
         }
     }
 
@@ -871,8 +878,10 @@ class EnhancedNavigationManager extends NavigationManager {
         console.log('Navigated to Features page with React wrapper');
     }
 
-    // Special method for phases page
-    showPhasesPage() {
+    // Special method for phases page - Initialize React wrapper
+    async showPhasesPage() {
+        console.log('Navigating to Phases page - initializing React wrapper');
+
         // Check if store is available
         if (!this.store || !this.store.getState) {
             console.warn('Store not available for NavigationManager.showPhasesPage, navigation aborted');
@@ -889,7 +898,7 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
-        // Hide all pages
+        // Hide all pages first
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
         });
@@ -897,24 +906,52 @@ class EnhancedNavigationManager extends NavigationManager {
         // Update active states
         this.updateActiveStates('phases');
 
-        // Show target page
-        const targetPage = document.getElementById('phases-page');
-        if (targetPage) {
-            targetPage.classList.add('active');
-
-            // Initialize phases manager if not exists
-            if (!this.app.projectPhasesManager) {
-                this.app.projectPhasesManager = new ProjectPhasesManager(this.app, this.configManager);
-            }
-
-            // Render phases content
-            setTimeout(() => {
-                this.app.projectPhasesManager.renderPhasesPage(targetPage);
-            }, 100);
+        // Show phases page
+        const phasesPage = document.getElementById('phases-page');
+        if (phasesPage) {
+            phasesPage.classList.add('active');
         }
 
-        // Store current section
-        this.currentSection = 'phases';
+        // Initialize React Phases wrapper if not already done
+        if (!this.reactPhasesWrapper) {
+            console.log('🔄 Initializing React Phases wrapper...');
+            console.log('ReactPhasesWrapper available:', !!window.ReactPhasesWrapper);
+            console.log('ReactComponents available:', !!window.ReactComponents);
+            
+            if (window.ReactPhasesWrapper) {
+                this.reactPhasesWrapper = new window.ReactPhasesWrapper();
+                
+                try {
+                    await this.reactPhasesWrapper.init();
+                    console.log('✅ React Phases wrapper initialized successfully');
+                } catch (error) {
+                    console.error('❌ Failed to initialize React Phases wrapper:', error);
+                    // Show fallback content
+                    if (phasesPage) {
+                        phasesPage.innerHTML = `
+                            <div style="padding: 2rem; text-align: center; color: #ff6b6b;">
+                                <h3>❌ Phases Page Error</h3>
+                                <p>Failed to load React components</p>
+                                <p><small>Error: ${error.message}</small></p>
+                                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                                    Reload Application
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            } else {
+                console.error('❌ ReactPhasesWrapper not available on window object');
+                console.log('Available on window:', Object.keys(window).filter(k => k.includes('React')));
+            }
+        } else {
+            console.log('✅ React Phases wrapper already initialized');
+        }
+
+        // Update global state
+        if (this.store && this.store.getState) {
+            this.store.getState().setSection('phases');
+        }
 
         // Ensure projects is expanded
         if (!this.projectsExpanded) {
@@ -922,7 +959,7 @@ class EnhancedNavigationManager extends NavigationManager {
             this.updateProjectsExpansion();
         }
 
-        console.log('Navigated to phases page');
+        console.log('Navigated to Phases page with React wrapper');
     }
 
     // Special method for calculations page

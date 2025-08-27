@@ -34,6 +34,86 @@ const appStore = window.zustand.createStore((set, get) => ({
     currentSort: { field: 'id', direction: 'asc' },
     
     // ======================
+    // PHASES STATE
+    // ======================
+    phaseDefinitions: [
+        {
+            id: "functionalAnalysis",
+            name: "Functional Analysis",
+            description: "Business requirements analysis and functional specification",
+            type: "analysis",
+            defaultEffort: { G1: 100, G2: 0, TA: 20, PM: 50 },
+            editable: true
+        },
+        {
+            id: "technicalAnalysis",
+            name: "Technical Analysis", 
+            description: "Technical design and architecture specification",
+            type: "analysis",
+            defaultEffort: { G1: 0, G2: 100, TA: 60, PM: 20 },
+            editable: true
+        },
+        {
+            id: "development",
+            name: "Development",
+            description: "Implementation of features (calculated from features list)",
+            type: "development", 
+            defaultEffort: { G1: 0, G2: 100, TA: 40, PM: 20 },
+            editable: true,
+            calculated: true
+        },
+        {
+            id: "integrationTests",
+            name: "Integration Tests",
+            description: "System integration and integration testing", 
+            type: "testing",
+            defaultEffort: { G1: 100, G2: 50, TA: 50, PM: 75 },
+            editable: true
+        },
+        {
+            id: "uatTests", 
+            name: "UAT Tests",
+            description: "User acceptance testing support and execution",
+            type: "testing",
+            defaultEffort: { G1: 50, G2: 50, TA: 40, PM: 75 },
+            editable: true
+        },
+        {
+            id: "consolidation",
+            name: "Consolidation",
+            description: "Final testing, bug fixing, and deployment preparation", 
+            type: "testing",
+            defaultEffort: { G1: 30, G2: 30, TA: 30, PM: 20 },
+            editable: true
+        },
+        {
+            id: "vapt",
+            name: "VAPT", 
+            description: "Vulnerability Assessment and Penetration Testing",
+            type: "security",
+            defaultEffort: { G1: 30, G2: 30, TA: 30, PM: 20 },
+            editable: true
+        },
+        {
+            id: "postGoLive", 
+            name: "Post Go-Live Support",
+            description: "Production support and monitoring after deployment",
+            type: "support", 
+            defaultEffort: { G1: 0, G2: 100, TA: 50, PM: 100 },
+            editable: true
+        }
+    ],
+    currentPhases: [],
+    selectedSuppliers: { G1: null, G2: null, TA: null, PM: null },
+    resourceRates: { G1: 450, G2: 380, TA: 420, PM: 500 },
+    availableSuppliers: [],
+    phasesTotals: { 
+        manDays: 0, 
+        manDaysByResource: { G1: 0, G2: 0, TA: 0, PM: 0 }, 
+        costByResource: { G1: 0, G2: 0, TA: 0, PM: 0 } 
+    },
+    
+    // ======================
     // NOTIFICATION STATE
     // ======================
     notifications: [],
@@ -391,6 +471,214 @@ const appStore = window.zustand.createStore((set, get) => ({
             // Different field, set to ascending
             set({ currentSort: { field, direction: 'asc' } });
         }
+    },
+    
+    // ======================
+    // PHASES ACTIONS
+    // ======================
+    
+    /**
+     * Initialize phases from project data or defaults
+     */
+    initializePhases: () => {
+        const currentState = get();
+        const currentProject = currentState.currentProject;
+        
+        if (currentProject && currentProject.phases) {
+            const existingPhases = currentProject.phases;
+            const currentPhases = currentState.phaseDefinitions.map(def => {
+                const existing = existingPhases[def.id] || {};
+                return {
+                    ...def,
+                    manDays: existing.manDays || 0,
+                    effort: existing.effort || { ...def.defaultEffort },
+                    assignedResources: existing.assignedResources || [],
+                    cost: existing.cost || 0,
+                    lastModified: existing.lastModified || new Date().toISOString()
+                };
+            });
+            
+            set({ 
+                currentPhases: currentPhases,
+                selectedSuppliers: existingPhases.selectedSuppliers || { G1: null, G2: null, TA: null, PM: null }
+            });
+        } else {
+            const defaultPhases = currentState.phaseDefinitions.map(def => ({
+                ...def,
+                manDays: 0,
+                effort: { ...def.defaultEffort },
+                assignedResources: [],
+                cost: 0,
+                lastModified: new Date().toISOString()
+            }));
+            
+            set({ 
+                currentPhases: defaultPhases,
+                selectedSuppliers: { G1: null, G2: null, TA: null, PM: null }
+            });
+        }
+    },
+    
+    /**
+     * Update phase man days
+     */
+    updatePhaseManDays: (phaseId, manDays) => {
+        const currentState = get();
+        const updatedPhases = currentState.currentPhases.map(phase => 
+            phase.id === phaseId ? { 
+                ...phase, 
+                manDays: parseFloat(manDays) || 0,
+                lastModified: new Date().toISOString()
+            } : phase
+        );
+        
+        set({ currentPhases: updatedPhases });
+    },
+    
+    /**
+     * Update phase effort distribution
+     */
+    updatePhaseEffort: (phaseId, resourceType, percentage) => {
+        const currentState = get();
+        const updatedPhases = currentState.currentPhases.map(phase => 
+            phase.id === phaseId ? { 
+                ...phase, 
+                effort: {
+                    ...phase.effort,
+                    [resourceType]: parseFloat(percentage) || 0
+                },
+                lastModified: new Date().toISOString()
+            } : phase
+        );
+        
+        set({ currentPhases: updatedPhases });
+    },
+    
+    /**
+     * Set selected supplier for resource type
+     */
+    setSelectedSupplier: (resourceType, supplierId) => {
+        const currentState = get();
+        const updatedSuppliers = {
+            ...currentState.selectedSuppliers,
+            [resourceType]: supplierId
+        };
+        
+        // Update resource rate from supplier
+        if (supplierId && currentState.availableSuppliers.length > 0) {
+            const supplier = currentState.availableSuppliers.find(s => s.id === supplierId);
+            if (supplier) {
+                const updatedRates = {
+                    ...currentState.resourceRates,
+                    [resourceType]: supplier.realRate || supplier.officialRate || currentState.resourceRates[resourceType]
+                };
+                set({ 
+                    selectedSuppliers: updatedSuppliers,
+                    resourceRates: updatedRates
+                });
+                return;
+            }
+        }
+        
+        set({ selectedSuppliers: updatedSuppliers });
+    },
+    
+    /**
+     * Load available suppliers from configuration
+     */
+    loadAvailableSuppliers: (suppliers) => {
+        set({ availableSuppliers: suppliers || [] });
+    },
+    
+    /**
+     * Calculate development phase man days from features + coverage
+     */
+    calculateDevelopmentPhase: () => {
+        const currentState = get();
+        const currentProject = currentState.currentProject;
+        
+        if (!currentProject) return;
+        
+        const featuresTotal = (currentProject.features || []).reduce((sum, feature) => {
+            return sum + (parseFloat(feature.manDays) || 0);
+        }, 0);
+        
+        const coverageMDs = parseFloat(currentProject.coverage) || 0;
+        const totalDevelopmentMDs = featuresTotal + coverageMDs;
+        
+        const updatedPhases = currentState.currentPhases.map(phase => 
+            phase.id === 'development' ? { 
+                ...phase, 
+                manDays: Math.round(totalDevelopmentMDs * 10) / 10,
+                lastModified: new Date().toISOString()
+            } : phase
+        );
+        
+        set({ currentPhases: updatedPhases });
+    },
+    
+    /**
+     * Calculate phases totals
+     */
+    calculatePhasesTotals: () => {
+        const currentState = get();
+        const { currentPhases, resourceRates, currentProject } = currentState;
+        
+        let totals = {
+            manDays: 0,
+            manDaysByResource: { G1: 0, G2: 0, TA: 0, PM: 0 },
+            costByResource: { G1: 0, G2: 0, TA: 0, PM: 0 }
+        };
+        
+        currentPhases.forEach(phase => {
+            const effort = phase.effort;
+            const manDaysByResource = {
+                G1: (phase.manDays * effort.G1) / 100,
+                G2: (phase.manDays * effort.G2) / 100,
+                TA: (phase.manDays * effort.TA) / 100,
+                PM: (phase.manDays * effort.PM) / 100
+            };
+            
+            // Special calculation for Development G2 cost
+            let costByResource;
+            if (phase.id === 'development' && currentProject?.features) {
+                const g2EffortPercent = effort.G2 / 100;
+                let g2Cost = 0;
+                
+                currentProject.features.forEach(feature => {
+                    const featureManDays = parseFloat(feature.manDays) || 0;
+                    const featureSupplier = currentState.availableSuppliers.find(s => s.id === feature.supplier);
+                    const featureRate = featureSupplier ? (featureSupplier.realRate || featureSupplier.officialRate || 0) : 0;
+                    g2Cost += featureManDays * featureRate * g2EffortPercent;
+                });
+                
+                costByResource = {
+                    G1: Math.round(manDaysByResource.G1 * resourceRates.G1),
+                    G2: Math.round(g2Cost),
+                    TA: Math.round(manDaysByResource.TA * resourceRates.TA),
+                    PM: Math.round(manDaysByResource.PM * resourceRates.PM)
+                };
+            } else {
+                costByResource = {
+                    G1: Math.round(manDaysByResource.G1 * resourceRates.G1),
+                    G2: Math.round(manDaysByResource.G2 * resourceRates.G2),
+                    TA: Math.round(manDaysByResource.TA * resourceRates.TA),
+                    PM: Math.round(manDaysByResource.PM * resourceRates.PM)
+                };
+            }
+            
+            totals.manDays += phase.manDays;
+            totals.manDaysByResource.G1 += manDaysByResource.G1;
+            totals.manDaysByResource.G2 += manDaysByResource.G2;
+            totals.manDaysByResource.TA += manDaysByResource.TA;
+            totals.manDaysByResource.PM += manDaysByResource.PM;
+            totals.costByResource.G1 += costByResource.G1;
+            totals.costByResource.G2 += costByResource.G2;
+            totals.costByResource.TA += costByResource.TA;
+            totals.costByResource.PM += costByResource.PM;
+        });
+        
+        set({ phasesTotals: totals });
     },
     
     // ======================

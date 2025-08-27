@@ -14,6 +14,14 @@ import ProjectItem from './components/ProjectItem';
 import NewProjectModal from './components/NewProjectModal';
 import LoadProjectModal from './components/LoadProjectModal';
 
+// Import phases components
+import PhasesManager from './components/PhasesManager';
+import PhasesTable from './components/PhasesTable';
+import PhaseRow from './components/PhaseRow';
+import PhasesTotals from './components/PhasesTotals';
+import DevelopmentNotice from './components/DevelopmentNotice';
+import SupplierSelectors from './components/SupplierSelectors';
+
 // Import the existing store
 import '../js/store/app-store.js';
 
@@ -32,6 +40,12 @@ declare global {
       ProjectItem: typeof ProjectItem;
       NewProjectModal: typeof NewProjectModal;
       LoadProjectModal: typeof LoadProjectModal;
+      PhasesManager: typeof PhasesManager;
+      PhasesTable: typeof PhasesTable;
+      PhaseRow: typeof PhaseRow;
+      PhasesTotals: typeof PhasesTotals;
+      DevelopmentNotice: typeof DevelopmentNotice;
+      SupplierSelectors: typeof SupplierSelectors;
     };
   }
 }
@@ -48,7 +62,13 @@ window.ReactComponents = {
   SavedProjectsList,
   ProjectItem,
   NewProjectModal,
-  LoadProjectModal
+  LoadProjectModal,
+  PhasesManager,
+  PhasesTable,
+  PhaseRow,
+  PhasesTotals,
+  DevelopmentNotice,
+  SupplierSelectors
 };
 
 console.log('✅ React components exported globally:', Object.keys(window.ReactComponents));

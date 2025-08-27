@@ -271,7 +271,7 @@ class NotificationManager {
             <div class="notification-content">
                 ${config.title ? `<div class="notification-title">${Helpers.escapeHtml(config.title)}</div>` : ''}
                 <div class="notification-message">${Helpers.escapeHtml(config.message)}</div>
-                ${config.actions.length > 0 ? this.createActionsHtml(config.actions) : ''}
+                ${(config.actions && config.actions.length > 0) ? this.createActionsHtml(config.actions) : ''}
             </div>
             <button class="notification-close" aria-label="Close notification">
                 <i class="fas fa-times"></i>
