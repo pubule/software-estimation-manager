@@ -104,3 +104,13 @@ Feature: Projects Management
     Then both recent and saved projects should load automatically
     And I should see loading indicators during data fetch
     And any errors should be handled gracefully
+
+  Scenario: React components load successfully without errors
+    Given the application is loaded
+    And React libraries are available globally
+    When I navigate to the projects page
+    Then React components should load without timeout errors
+    And I should see "✅ React components loaded successfully" in the console
+    And window.ReactComponents should be available
+    And the ProjectManager component should render correctly
+    And I should not see "ERR_FILE_NOT_FOUND" errors for main.js
