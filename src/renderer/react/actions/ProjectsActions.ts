@@ -105,7 +105,7 @@ export class ProjectActions {
       }
 
       // Delegate to existing project manager logic
-      await app.managers.project.loadProjectById(projectId);
+      await app.managers.project.loadRecentProject(projectId);
       
       // Update store state
       const store = this.getStore();
@@ -132,7 +132,7 @@ export class ProjectActions {
       }
 
       // Delegate to existing project manager logic
-      await app.managers.project.loadProjectFromFile(filePath);
+      await app.managers.project.loadSavedProject(filePath);
       
       // Update store state
       const store = this.getStore();

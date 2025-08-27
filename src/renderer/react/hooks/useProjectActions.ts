@@ -37,9 +37,9 @@ export const useProjectActions = () => {
     }
   }, []);
 
-  const loadProjectFromFile = useCallback(async (projectData: any) => {
+  const loadProjectFromFile = useCallback(async (filePathOrData: string | any) => {
     try {
-      await projectActions.loadProjectFromFile(projectData);
+      await projectActions.loadProjectFromFile(filePathOrData);
     } catch (error) {
       throw error;
     }

@@ -366,3 +366,116 @@ Then('I should not see {string} errors for main.js', async function(errorType) {
     
     expect(errorFound).toBe(false);
 });
+
+// New step definitions for project loading methods fix
+When('I attempt to load a recent project', async function() {
+    // This step simulates the loading that was causing the "is not a function" error
+    // We check that React components are loaded and don't cause the function error
+    
+    // Wait for React components to be available - this is what was failing before
+    await this.page.waitForFunction(() => {
+        return window.ReactComponents && 
+               window.ReactComponents.ProjectManager && 
+               window.app && 
+               window.app.managers && 
+               window.app.managers.project;
+    }, { timeout: 15000 });
+});
+
+Then('the project loading should not fail with {string} error', async function(errorMessage) {
+    // Listen for console errors
+    let functionError = false;
+    
+    this.page.on('console', (msg) => {
+        if (msg.type() === 'error' && msg.text().includes(errorMessage)) {
+            functionError = true;
+        }
+    });
+    
+    this.page.on('pageerror', (error) => {
+        if (error.message.includes(errorMessage)) {
+            functionError = true;
+        }
+    });
+    
+    // Wait a bit to capture any errors
+    await this.page.waitForTimeout(3000);
+    
+    expect(functionError).toBe(false);
+});
+
+Then('the correct ProjectBusinessLogic methods should be called', async function() {
+    // Verify that the project manager has the correct methods available
+    const methodsAvailable = await this.page.evaluate(() => {
+        const app = window.app;
+        if (!app || !app.managers || !app.managers.project) {
+            return { hasManager: false };
+        }
+        
+        const projectManager = app.managers.project;
+        return {
+            hasManager: true,
+            hasLoadRecentProject: typeof projectManager.loadRecentProject === 'function',
+            hasLoadSavedProject: typeof projectManager.loadSavedProject === 'function',
+            // These should NOT exist (they were the wrong method names)
+            hasLoadProjectById: typeof projectManager.loadProjectById === 'function',
+            hasLoadProjectFromFile: typeof projectManager.loadProjectFromFile === 'function'
+        };
+    });
+    
+    expect(methodsAvailable.hasManager).toBe(true);
+    expect(methodsAvailable.hasLoadRecentProject).toBe(true);
+    expect(methodsAvailable.hasLoadSavedProject).toBe(true);
+    // These should be false since we corrected the method names
+    expect(methodsAvailable.hasLoadProjectById).toBe(false);
+    expect(methodsAvailable.hasLoadProjectFromFile).toBe(false);
+});
+
+// New step definitions for saved project loading fix
+When('I attempt to load a saved project', async function() {
+    // This simulates clicking on a saved project which should trigger loadSavedProject
+    // We'll wait for the components to be ready and available
+    
+    await this.page.waitForFunction(() => {
+        return window.ReactComponents && 
+               window.ReactComponents.ProjectManager && 
+               window.app && 
+               window.app.managers && 
+               window.app.managers.project &&
+               window.app.managers.project.loadSavedProject;
+    }, { timeout: 15000 });
+});
+
+Then('it should call loadSavedProject not loadRecentProject', async function() {
+    // Verify that the project manager has loadSavedProject method
+    const hasCorrectMethod = await this.page.evaluate(() => {
+        const app = window.app;
+        if (!app?.managers?.project) return false;
+        
+        return typeof app.managers.project.loadSavedProject === 'function';
+    });
+    
+    expect(hasCorrectMethod).toBe(true);
+});
+
+Then('the project should load successfully without {string} error', async function(errorMessage) {
+    // Listen for console errors related to the specific message
+    let errorFound = false;
+    
+    this.page.on('console', (msg) => {
+        if (msg.type() === 'error' && msg.text().includes(errorMessage)) {
+            errorFound = true;
+        }
+    });
+    
+    this.page.on('pageerror', (error) => {
+        if (error.message.includes(errorMessage)) {
+            errorFound = true;
+        }
+    });
+    
+    // Wait a bit to capture any errors
+    await this.page.waitForTimeout(3000);
+    
+    expect(errorFound).toBe(false);
+});

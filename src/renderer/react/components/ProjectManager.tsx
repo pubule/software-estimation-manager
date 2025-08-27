@@ -126,7 +126,7 @@ const ProjectManager: React.FC = () => {
   const handleLoadSavedProject = async (filePath: string) => {
     try {
       if (!(await handleUnsavedChanges())) return;
-      await loadProject(filePath);
+      await loadProjectFromFile(filePath);
     } catch (error) {
       console.error('Failed to load saved project:', error);
     }

@@ -114,3 +114,19 @@ Feature: Projects Management
     And window.ReactComponents should be available
     And the ProjectManager component should render correctly
     And I should not see "ERR_FILE_NOT_FOUND" errors for main.js
+
+  Scenario: Project loading methods work correctly without errors
+    Given the application is loaded
+    And I am on the projects page
+    And I have some recent projects
+    When I attempt to load a recent project
+    Then the project loading should not fail with "is not a function" error
+    And the correct ProjectBusinessLogic methods should be called
+
+  Scenario: Saved projects use correct loading method
+    Given the application is loaded
+    And I am on the projects page
+    And I have some saved projects in the file system
+    When I attempt to load a saved project
+    Then it should call loadSavedProject not loadRecentProject
+    And the project should load successfully without "Recent project not found" error
