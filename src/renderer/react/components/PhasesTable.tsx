@@ -1,6 +1,7 @@
 import React from 'react';
 import PhaseRow from './PhaseRow';
 import PhasesTotals from './PhasesTotals';
+import { usePhasesActions } from '../hooks/usePhasesActions';
 
 interface PhaseData {
   id: string;
@@ -40,21 +41,15 @@ const PhasesTable: React.FC<PhasesTableProps> = ({
   onManDaysChange,
   onEffortChange
 }) => {
+  // PATTERN: State/Actions/Dispatcher - Use Actions for business logic
+  const { calculateCostByResourceForPhase } = usePhasesActions();
+
   const calculateManDaysByResource = (totalManDays: number, effort: { G1: number; G2: number; TA: number; PM: number }) => {
     return {
       G1: (totalManDays * effort.G1) / 100,
       G2: (totalManDays * effort.G2) / 100,
       TA: (totalManDays * effort.TA) / 100,
       PM: (totalManDays * effort.PM) / 100
-    };
-  };
-
-  const calculateCostByResource = (manDaysByResource: { G1: number; G2: number; TA: number; PM: number }) => {
-    return {
-      G1: Math.round(manDaysByResource.G1 * resourceRates.G1),
-      G2: Math.round(manDaysByResource.G2 * resourceRates.G2),
-      TA: Math.round(manDaysByResource.TA * resourceRates.TA),
-      PM: Math.round(manDaysByResource.PM * resourceRates.PM)
     };
   };
 
@@ -89,7 +84,8 @@ const PhasesTable: React.FC<PhasesTableProps> = ({
         <tbody>
           {phases.map(phase => {
             const manDaysByResource = calculateManDaysByResource(phase.manDays, phase.effort);
-            const costByResource = calculateCostByResource(manDaysByResource);
+            // PATTERN: State/Actions/Dispatcher - Use Actions for cost calculation
+            const costByResource = calculateCostByResourceForPhase(phase);
             
             return (
               <PhaseRow

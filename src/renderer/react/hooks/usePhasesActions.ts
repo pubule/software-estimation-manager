@@ -85,6 +85,15 @@ export const usePhasesActions = () => {
     }
   }, []);
 
+  const calculateCostByResourceForPhase = useCallback((phase: any) => {
+    try {
+      return phasesActions.calculateCostByResourceForPhase(phase);
+    } catch (error) {
+      console.error('Failed to calculate cost by resource:', error);
+      return { G1: 0, G2: 0, TA: 0, PM: 0 };
+    }
+  }, []);
+
   const getDevelopmentNoticeText = useCallback(() => {
     try {
       return phasesActions.getDevelopmentNoticeText();
@@ -149,6 +158,7 @@ export const usePhasesActions = () => {
     // Utility functions
     validateEffortPercentages,
     getAvailableSuppliersByRole,
+    calculateCostByResourceForPhase,
     getDevelopmentNoticeText,
     
     // Notification helpers

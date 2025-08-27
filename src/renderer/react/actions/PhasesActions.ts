@@ -186,6 +186,7 @@ export class PhasesActions {
 
   /**
    * Calculate development costs using feature-specific supplier rates
+   * PATTERN: State/Actions/Dispatcher - Business logic centralizzata qui
    */
   calculateDevelopmentCosts(developmentPhase: PhaseData): { G1: number; G2: number; TA: number; PM: number } {
     try {
@@ -195,14 +196,15 @@ export class PhasesActions {
       }
 
       const state = store.getState();
-      const { currentProject, availableSuppliers, resourceRates } = state;
+      const { currentProject, availableSuppliers, resourceRates, selectedSuppliers } = state;
 
-      // For Development: G2 cost uses feature-specific supplier rates
+      // For Development: G2 cost uses feature-specific supplier rates + coverage
       let g2Cost = 0;
       
       if (currentProject?.features) {
         const g2EffortPercent = developmentPhase.effort.G2 / 100;
         
+        // 1. Calculate features cost with feature-specific suppliers
         currentProject.features.forEach((feature: any) => {
           const featureManDays = parseFloat(feature.manDays) || 0;
           
@@ -213,6 +215,14 @@ export class PhasesActions {
           // Calculate cost using feature-specific rate
           g2Cost += featureManDays * featureRate * g2EffortPercent;
         });
+        
+        // 2. Add coverage cost using selected G2 supplier
+        const coverageMDs = currentProject.coverage?.manDays || 0;
+        if (coverageMDs > 0 && selectedSuppliers?.G2) {
+          const g2Supplier = availableSuppliers.find((s: Supplier) => s.id === selectedSuppliers.G2);
+          const g2Rate = g2Supplier ? (g2Supplier.realRate || g2Supplier.officialRate || 0) : resourceRates.G2;
+          g2Cost += coverageMDs * g2Rate * g2EffortPercent;
+        }
       }
       
       // Calculate man days by resource for other types
@@ -436,6 +446,39 @@ export class PhasesActions {
     } catch (error) {
       console.error('Failed to save phases:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Calculate cost by resource for any phase
+   * PATTERN: State/Actions/Dispatcher - Centralizza calcolo costi
+   */
+  calculateCostByResourceForPhase(phase: PhaseData): { G1: number; G2: number; TA: number; PM: number } {
+    try {
+      // Special handling for Development phase
+      if (phase.id === 'development') {
+        return this.calculateDevelopmentCosts(phase);
+      }
+
+      // Generic calculation for other phases
+      const store = this.getStore();
+      if (!store) {
+        return { G1: 0, G2: 0, TA: 0, PM: 0 };
+      }
+
+      const state = store.getState();
+      const { resourceRates } = state;
+      const manDaysByResource = this.calculateManDaysByResource(phase.manDays, phase.effort);
+
+      return {
+        G1: Math.round(manDaysByResource.G1 * resourceRates.G1),
+        G2: Math.round(manDaysByResource.G2 * resourceRates.G2),
+        TA: Math.round(manDaysByResource.TA * resourceRates.TA),
+        PM: Math.round(manDaysByResource.PM * resourceRates.PM)
+      };
+    } catch (error) {
+      console.error('Failed to calculate cost by resource:', error);
+      return { G1: 0, G2: 0, TA: 0, PM: 0 };
     }
   }
 
