@@ -341,6 +341,8 @@ export class ProjectActions {
       await this.loadRecentProjects();
       await this.loadSavedProjects();
       
+      // Update window title for new project (will be handled by store subscription)
+      
       console.log('New project created successfully with form data:', formData);
     } catch (error) {
       console.error('Failed to create new project:', error);
@@ -480,7 +482,51 @@ export class ProjectActions {
       throw error;
     }
   }
+
+  /**
+   * Update window title with project code and name
+   */
+  async updateWindowTitle(projectData: any): Promise<void> {
+    try {
+      const app = this.getApp();
+      if (!app?.managers?.project) {
+        throw new Error('Project manager not available');
+      }
+
+      await app.managers.project.updateWindowTitle(projectData);
+      
+      console.log('Window title updated successfully');
+    } catch (error) {
+      console.error('Failed to update window title:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reset window title to default
+   */
+  async resetWindowTitle(): Promise<void> {
+    try {
+      const app = this.getApp();
+      if (!app?.managers?.project) {
+        throw new Error('Project manager not available');
+      }
+
+      await app.managers.project.resetWindowTitle();
+      
+      console.log('Window title reset successfully');
+    } catch (error) {
+      console.error('Failed to reset window title:', error);
+      throw error;
+    }
+  }
 }
 
 // Create singleton instance
 export const projectActions = new ProjectActions();
+
+// Make available globally for store subscription
+if (typeof window !== 'undefined') {
+  (window as any).projectActions = projectActions;
+  console.log('✅ ProjectActions available globally for store subscription');
+}

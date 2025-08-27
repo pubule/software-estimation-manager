@@ -139,9 +139,11 @@ class ApplicationController extends BaseComponent {
 
     /**
      * Setter for current project (updates store)
+     * Following State/Actions/Dispatcher pattern - NO business logic here!
      */
     set currentProject(project) {
         this.store.getState().setProject(project);
+        // Store change will trigger subscription → Actions → Business Logic
     }
 
     /**
@@ -2227,6 +2229,8 @@ class ApplicationController extends BaseComponent {
             } else {
                 console.log('🔍 SAVE UPDATE - Skipping version update. Conditions not met.');
             }
+
+            // Window title update will be handled by store subscription
 
             if (window.NotificationManager) {
                 NotificationManager.show('Project saved successfully', 'success');

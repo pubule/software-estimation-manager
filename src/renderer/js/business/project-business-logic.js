@@ -218,6 +218,9 @@ class ProjectBusinessLogic extends BaseComponent {
             // Trigger updates in other managers
             this.notifyProjectLoaded(projectData);
 
+            // Update window title with project info
+            await this.updateWindowTitle(projectData);
+
             // Auto-navigate to features section after loading project
             if (this.app.navigationManager) {
                 // Small delay to ensure store updates are processed
@@ -330,6 +333,9 @@ class ProjectBusinessLogic extends BaseComponent {
                 this.app.dataManager.currentProjectPath = null;
             }
 
+            // Reset window title to default
+            await this.resetWindowTitle();
+
             console.log('Project closed successfully');
             NotificationManager.success('Project closed successfully');
 
@@ -428,6 +434,68 @@ class ProjectBusinessLogic extends BaseComponent {
             console.error('❌ Failed to delete project:', error);
             NotificationManager.error(`Failed to delete project: ${error.message}`);
             throw error;
+        }
+    }
+
+    // =====================================
+    // WINDOW TITLE MANAGEMENT
+    // =====================================
+
+    /**
+     * Update window title with project code and name
+     */
+    async updateWindowTitle(projectData) {
+        try {
+            if (!projectData || !projectData.project) {
+                await this.resetWindowTitle();
+                return;
+            }
+
+            const { id, name } = projectData.project;
+            
+            // Format: "PJ-07 - Progetto A"
+            let title;
+            if (id && name) {
+                title = `${id} - ${name}`;
+            } else if (name) {
+                // Fallback se manca il codice
+                title = name;
+            } else {
+                // Fallback se mancano entrambi
+                title = 'Untitled Project';
+            }
+
+            // Set title through Electron API
+            if (window.electronAPI && window.electronAPI.setWindowTitle) {
+                const result = await window.electronAPI.setWindowTitle(title);
+                if (result.success) {
+                    console.log(`✅ Window title updated: "${title}"`);
+                } else {
+                    console.warn('⚠️ Failed to update window title:', result.reason || result.error);
+                }
+            } else {
+                console.warn('⚠️ Electron API not available for window title update');
+            }
+        } catch (error) {
+            console.error('❌ Failed to update window title:', error);
+        }
+    }
+
+    /**
+     * Reset window title to default
+     */
+    async resetWindowTitle() {
+        try {
+            if (window.electronAPI && window.electronAPI.setWindowTitle) {
+                const result = await window.electronAPI.setWindowTitle('Software Estimation Manager');
+                if (result.success) {
+                    console.log('✅ Window title reset to default');
+                } else {
+                    console.warn('⚠️ Failed to reset window title:', result.reason || result.error);
+                }
+            }
+        } catch (error) {
+            console.error('❌ Failed to reset window title:', error);
         }
     }
 }

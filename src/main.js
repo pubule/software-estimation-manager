@@ -363,6 +363,19 @@ ipcMain.handle('confirm-window-close', (event, canClose) => {
     // If canClose is false, we do nothing (window stays open)
 });
 
+// Set window title
+ipcMain.handle('set-window-title', (event, title) => {
+    try {
+        if (mainWindow) {
+            mainWindow.setTitle(title || 'Software Estimation Manager');
+            return { success: true };
+        }
+        return { success: false, reason: 'no-window' };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
 // RIMOZIONE MENU: Aggiungere keyboard shortcuts globali se necessario
 ipcMain.handle('trigger-action', async (event, action) => {
     // Handle keyboard shortcuts that previously were in the menu

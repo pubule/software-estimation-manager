@@ -588,6 +588,58 @@ const appStore = window.zustand.createStore((set, get) => ({
 }));
 
 // ======================
+// WINDOW TITLE SUBSCRIPTION (State/Actions/Dispatcher Pattern)
+// ======================
+
+/**
+ * Subscribe to store changes to update window title and UI elements
+ * Following State/Actions/Dispatcher pattern: Store → Actions → Business Logic
+ */
+const setupProjectSubscription = () => {
+    let previousProject = null;
+    
+    appStore.subscribe((state) => {
+        const currentProject = state.currentProject;
+        
+        // Only update if project actually changed
+        if (currentProject !== previousProject) {
+            previousProject = currentProject;
+            
+            // Update UI element for project name in title bar
+            const projectNameEl = document.getElementById('title-project-name');
+            if (projectNameEl) {
+                const projectName = currentProject?.project?.name || 'New Project';
+                projectNameEl.textContent = projectName;
+                console.log(`📋 UI updated: Project name = "${projectName}"`);
+            }
+            
+            // Dispatch to Actions layer for window title (following State/Actions/Dispatcher)
+            if (window.projectActions) {
+                if (currentProject) {
+                    window.projectActions.updateWindowTitle(currentProject);
+                } else {
+                    window.projectActions.resetWindowTitle();
+                }
+            }
+        }
+    });
+};
+
+// Initialize subscription when projectActions becomes available
+const waitForProjectActions = () => {
+    if (window.projectActions) {
+        setupProjectSubscription();
+        console.log('✅ Project subscription initialized (UI + Window Title)');
+    } else {
+        // Retry after a short delay
+        setTimeout(waitForProjectActions, 100);
+    }
+};
+
+// Start watching for projectActions availability
+waitForProjectActions();
+
+// ======================
 // DEBUGGING HELPERS
 // ======================
 
