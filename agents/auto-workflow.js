@@ -56,6 +56,9 @@ class AutoWorkflow {
             case 'auto-detect':
                 await this.autoDetect(args.slice(1).join(' '));
                 break;
+            case 'analyze':
+                await this.analyzeExisting(args[1] || 'projects');
+                break;
             default:
                 this.showUsage();
         }
@@ -599,6 +602,267 @@ export const ${componentName} = () => {
     }
 
     /**
+     * Analyze existing feature for State/Actions/Dispatcher pattern compliance
+     */
+    async analyzeExisting(featureName) {
+        console.log(`\n🔍 ANALYZING EXISTING FEATURE: ${featureName}`);
+        console.log('================================================================');
+        console.log('🎯 Verifico compliance con pattern State/Actions/Dispatcher\n');
+
+        const componentName = this.pascalCase(featureName);
+        const actionName = this.pascalCase(featureName) + 'Actions';
+        const kebabName = this.kebabCase(featureName);
+
+        console.log('📦 PATTERN CHECK - State/Actions/Dispatcher:');
+        console.log('============================================\n');
+
+        // Check file existence - expand search patterns
+        const files = {
+            actions: `src/renderer/react/actions/${actionName}.ts`,
+            component: `src/renderer/react/components/${componentName}Manager.tsx`,
+            altComponent: `src/renderer/react/components/${componentName}.tsx`,
+            legacyComponent: `src/renderer/js/components/${kebabName}-manager.js`,
+            legacyBusinessLogic: `src/renderer/js/business/${kebabName}-business-logic.js`,
+            store: 'src/renderer/js/store/app-store.js',
+            tests: `features/${kebabName}.feature`
+        };
+        
+        // Search for all possible component files
+        const searchPatterns = [
+            `src/renderer/react/components/*${componentName}*.tsx`,
+            `src/renderer/react/components/*${featureName}*.tsx`, 
+            `src/renderer/js/components/*${kebabName}*.js`,
+            `src/renderer/js/components/*${featureName}*.js`
+        ];
+
+        const analysis = {
+            hasActions: false,
+            hasComponent: false,
+            hasStoreState: false,
+            hasTests: false,
+            violations: [],
+            suggestions: []
+        };
+
+        // Check Actions file
+        try {
+            const actionsPath = path.join(this.projectRoot, files.actions);
+            if (fs.existsSync(actionsPath)) {
+                analysis.hasActions = true;
+                console.log('✅ Actions class found:', files.actions);
+                
+                // Basic pattern check in Actions
+                const actionsContent = fs.readFileSync(actionsPath, 'utf8');
+                if (actionsContent.includes('getStore()')) {
+                    console.log('   ✅ Uses store pattern');
+                } else {
+                    analysis.violations.push('Actions class non usa getStore() pattern');
+                    console.log('   ❌ Non usa getStore() pattern');
+                }
+            } else {
+                analysis.violations.push('Actions class mancante');
+                console.log('❌ Actions class NOT FOUND:', files.actions);
+            }
+        } catch (error) {
+            console.log('❌ Error checking Actions:', error.message);
+        }
+
+        // Check Component files - find all related files
+        const foundComponents = [];
+        
+        // Check predefined paths
+        const candidatePaths = [
+            path.join(this.projectRoot, files.component),
+            path.join(this.projectRoot, files.altComponent), 
+            path.join(this.projectRoot, files.legacyComponent),
+            path.join(this.projectRoot, files.legacyBusinessLogic)
+        ];
+        
+        candidatePaths.forEach(compPath => {
+            if (fs.existsSync(compPath)) {
+                foundComponents.push(compPath);
+            }
+        });
+        
+        // Search additional patterns
+        const searchDirs = [
+            'src/renderer/react/components',
+            'src/renderer/js/components', 
+            'src/renderer/js/business'
+        ];
+        
+        searchDirs.forEach(dir => {
+            const fullDir = path.join(this.projectRoot, dir);
+            if (fs.existsSync(fullDir)) {
+                const files = fs.readdirSync(fullDir);
+                files.forEach(file => {
+                    const lowerFile = file.toLowerCase();
+                    const lowerFeature = featureName.toLowerCase();
+                    if (lowerFile.includes(lowerFeature) && (file.endsWith('.tsx') || file.endsWith('.ts') || file.endsWith('.js'))) {
+                        const fullPath = path.join(fullDir, file);
+                        if (!foundComponents.includes(fullPath)) {
+                            foundComponents.push(fullPath);
+                        }
+                    }
+                });
+            }
+        });
+
+        if (foundComponents.length > 0) {
+            analysis.hasComponent = true;
+            console.log(`✅ Component(s) found: ${foundComponents.length} files`);
+            
+            foundComponents.forEach(compPath => {
+                const fileName = path.basename(compPath);
+                const relativePath = path.relative(this.projectRoot, compPath);
+                console.log(`   📁 ${relativePath}`);
+                
+                try {
+                    // Check for pattern violations
+                    const content = fs.readFileSync(compPath, 'utf8');
+                    
+                    // Check for business logic violations
+                    const businessLogicPatterns = [
+                        /\.push\(/g, /\.splice\(/g, /\.filter\(/g, /\.map\(/g,
+                        /new Date\(/g, /Math\./g, /parseInt\(/g, /parseFloat\(/g,
+                        /if\s*\([^)]*\.length/g, /for\s*\(/g, /while\s*\(/g
+                    ];
+                    
+                    let hasBusinessLogic = false;
+                    businessLogicPatterns.forEach(pattern => {
+                        if (pattern.test(content)) {
+                            hasBusinessLogic = true;
+                        }
+                    });
+                    
+                    if (hasBusinessLogic) {
+                        analysis.violations.push(`Component ${fileName} contiene business logic`);
+                        console.log('     ❌ Contiene business logic (spostare in Actions!)');
+                    } else {
+                        console.log('     ✅ Solo presentazione (corretto)');
+                    }
+                    
+                    // Check for proper Actions usage
+                    if (content.includes('Actions') || content.includes('actions')) {
+                        console.log('     ✅ Usa Actions class/pattern');
+                    } else {
+                        analysis.violations.push(`Component ${fileName} non usa Actions`);
+                        console.log('     ❌ Non usa Actions class');
+                    }
+                    
+                } catch (error) {
+                    console.log(`     ⚠️  Error reading ${fileName}:`, error.message);
+                }
+            });
+        }
+
+        if (!analysis.hasComponent) {
+            analysis.violations.push('Component non trovato');
+            console.log('❌ Component NOT FOUND');
+        }
+
+        // Check Store
+        try {
+            const storePath = path.join(this.projectRoot, files.store);
+            if (fs.existsSync(storePath)) {
+                const storeContent = fs.readFileSync(storePath, 'utf8');
+                
+                // Look for feature-related state
+                const statePatterns = [
+                    new RegExp(kebabName, 'i'),
+                    new RegExp(featureName, 'i'),
+                    /current.*Project/i
+                ];
+                
+                const hasFeatureState = statePatterns.some(pattern => pattern.test(storeContent));
+                
+                if (hasFeatureState) {
+                    analysis.hasStoreState = true;
+                    console.log('✅ Store state found for', featureName);
+                } else {
+                    console.log('⚠️  Store state for', featureName, 'not clearly identifiable');
+                }
+            }
+        } catch (error) {
+            console.log('❌ Error checking Store:', error.message);
+        }
+
+        // Check Tests
+        try {
+            const testPath = path.join(this.projectRoot, files.tests);
+            if (fs.existsSync(testPath)) {
+                analysis.hasTests = true;
+                console.log('✅ Cucumber tests found:', files.tests);
+            } else {
+                analysis.violations.push('Test Cucumber mancanti');
+                console.log('❌ Cucumber tests NOT FOUND:', files.tests);
+            }
+        } catch (error) {
+            console.log('❌ Error checking tests:', error.message);
+        }
+
+        // PATTERN COMPLIANCE REPORT
+        console.log('\n📋 PATTERN COMPLIANCE REPORT:');
+        console.log('=============================');
+        
+        const score = [
+            analysis.hasActions,
+            analysis.hasComponent, 
+            analysis.hasStoreState,
+            analysis.hasTests
+        ].filter(Boolean).length;
+        
+        console.log(`\n🎯 COMPLIANCE SCORE: ${score}/4`);
+        
+        if (score === 4 && analysis.violations.length === 0) {
+            console.log('✅ PERFECT! Feature segue completamente il pattern State/Actions/Dispatcher');
+        } else if (score >= 3 && analysis.violations.length <= 2) {
+            console.log('⚠️  GOOD: Feature mostly compliant, lievi aggiustamenti necessari');
+        } else {
+            console.log('❌ NEEDS WORK: Feature NON segue il pattern, refactoring necessario');
+        }
+
+        if (analysis.violations.length > 0) {
+            console.log('\n🚨 VIOLATIONS FOUND:');
+            analysis.violations.forEach((violation, i) => {
+                console.log(`${i + 1}. ${violation}`);
+            });
+        }
+
+        console.log('\n💡 RECOMMENDED ACTIONS:');
+        
+        if (!analysis.hasActions) {
+            console.log(`1. ✨ CREATE: ${files.actions}`);
+            console.log('   → Sposta TUTTA la business logic qui');
+        }
+        
+        if (!analysis.hasTests) {
+            console.log(`2. 🧪 CREATE: ${files.tests}`);  
+            console.log(`   → Run: node agents/auto-workflow.js test-update ${featureName}`);
+        }
+        
+        if (analysis.violations.some(v => v.includes('business logic'))) {
+            console.log('3. 🔧 REFACTOR: Sposta business logic da component ad Actions');
+        }
+        
+        if (analysis.violations.some(v => v.includes('non usa Actions'))) {
+            console.log('4. 🔗 CONNECT: Component deve usare Actions class');
+        }
+
+        console.log('\n🚀 NEXT STEPS:');
+        console.log(`   → Fix violations: node agents/auto-workflow.js refactor ${featureName}`);
+        console.log(`   → Create/update tests: node agents/auto-workflow.js test-update ${featureName}`);
+        
+        const needsWork = score < 3 || analysis.violations.length > 2;
+        if (needsWork) {
+            const shouldRefactor = await this.confirm('\n🔧 Create refactoring workflow for this feature?');
+            if (shouldRefactor) {
+                await this.handleRefactor(featureName, analysis);
+            }
+        }
+    }
+
+    /**
      * Utility functions
      */
     
@@ -656,12 +920,14 @@ Commands:
   bugfix <name> <description>     Fix bug - test = comportamento CORRETTO (non bug!)
   test-update <feature>          Update Cucumber tests 
   changelog                      Update CHANGELOG.md
+  analyze <feature>              Analyze existing feature for pattern compliance
   interactive                    Interactive mode with pattern guidance
   auto-detect <prompt>          Auto-detect workflow from prompt
 
 Examples:
   node auto-workflow.js feature "user-auth" "User authentication system"
   node auto-workflow.js bugfix "modal-close" "Fix modal not closing"
+  node auto-workflow.js analyze projects
   node auto-workflow.js interactive
   node auto-workflow.js auto-detect "implementa funzionalità di export PDF"
 
