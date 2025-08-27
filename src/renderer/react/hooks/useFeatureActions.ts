@@ -96,6 +96,14 @@ export const useFeatureActions = () => {
     }
   }, []);
 
+  const duplicateFeature = useCallback((feature: any) => {
+    try {
+      featureActions.duplicateFeature(feature);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
   const generateNextId = useCallback(() => {
     try {
       return featureActions.generateNextFeatureId();
@@ -157,6 +165,7 @@ export const useFeatureActions = () => {
     openAddModal,
     openEditModal,
     closeModal,
+    duplicateFeature,
     
     // Modal helpers
     generateNextId,

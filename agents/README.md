@@ -1,186 +1,163 @@
-# AI Agents
+# Agents - Sistema di Workflow Automatizzato
 
-This directory contains specialized AI agents designed to support the complete development lifecycle of the Software Estimation Manager application using Test-Driven Development (TDD) principles with guided requirements analysis.
+Sistema semplificato di agenti per sviluppo automatizzato con test Cucumber e pattern enforcement.
 
-## Agent Architecture
+## 🎯 Filosofia
 
-### 🎯 Analyst Agents (Enhanced!)
-- **`functional-analyst/`** - ✨ **Interactive business requirements analysis and behavioral test creation**
-  - **Interactive Session**: Real-time requirements gathering through structured questions
-  - **Demo Mode**: Automated demonstration with realistic responses for testing
-  - **Test Generation**: Automatic creation of Jest behavioral tests and Cucumber features
-- **`technical-analyst/`** - ✨ **Technical architecture analysis and step definitions planning**
+**SEMPLICE e DIRETTO**: Solo 4 agenti specializzati che lavorano insieme tramite un orchestratore centrale.
 
-### Core TDD Agents
-- **`tdd-developer/`** - Implements features following strict TDD methodology
-- **`test-creator/`** - Creates comprehensive test suites (unit, behavioral, e2e)
-- **`test-runner/`** - Executes tests with intelligent scheduling and reporting
-- **`bugfixer/`** - Systematic debugging and issue resolution
-- **`code-reviewer/`** - Quality assurance and architectural compliance
+## 📦 Struttura
 
-### Specialized Agents
-- **`architecture-guardian/`** - Protects architectural integrity and patterns
-- **`configuration-orchestrator/`** - Manages hierarchical configuration system
-- **`data-migration/`** - Handles data structure evolution safely
-- **`electron-integration/`** - Electron-specific testing and optimization
-- **`performance-monitor/`** - Continuous performance monitoring and optimization
-- **`export-integration-tester/`** - Tests all export formats and integrations
-
-## 🚀 Guided Test-Driven Development Workflow
-
-### New Enhanced Workflow: `test_driven_feature_development`
-
-The new **guided TDD workflow** combines business analysis with test creation for a comprehensive development process:
-
-```bash
-# Start guided feature development
-node agent-runner.js test-driven-feature "user-authentication"
-
-# Or run the complete workflow
-node agent-runner.js workflow test_driven_feature_development
+```
+agents/
+├── auto-workflow.js           # Orchestratore principale
+├── cucumber-test-creator/     # Crea SOLO test Cucumber
+├── pattern-enforcer/          # Verifica State/Actions pattern
+└── changelog-manager/         # Gestisce CHANGELOG.md
 ```
 
-#### Workflow Phases:
+## 🚀 Uso Rapido
 
-1. **📝 Requirements & Testing** (`functional-analyst`)
-   - **Interactive Requirements Gathering**: Structured business questions with real-time responses
-   - **Demo Mode**: Automated simulation with realistic scenarios for testing and demonstration
-   - **Behavioral Test Creation**: Comprehensive Jest test suites generated from requirements
-   - **Cucumber Feature Generation**: Gherkin scenarios for E2E testing
-   - **User Validation Gate**: Review and approve test scenarios before implementation
-
-2. **🏗️ Technical Planning** (`technical-analyst`)
-   - Review behavioral tests for implementation requirements
-   - Analyze architecture impact and integration points
-   - Plan Cucumber step definitions implementation
-   - Design comprehensive mock strategy
-
-3. **✅ Approval Gate**
-   - Present complete analysis to user
-   - Review all tests and technical plans
-   - **User approval required before implementation**
-
-4. **🧪 Test Execution Setup**
-   - Execute behavioral tests (must fail initially)
-   - Implement Cucumber step definitions
-   - Setup test data and mocks
-
-5. **🔧 TDD Implementation** (existing agents)
-   - Implement minimal code to make behavioral tests pass
-   - Follow technical implementation plan
-   - Maintain architectural compliance
-
-6. **🔄 Refactoring & Validation**
-   - Improve code quality while keeping tests green
-   - Complete system integration testing
-
-## Agent Orchestration
-
-The `orchestrator/` directory contains the workflow management system that coordinates agent interactions and ensures proper TDD cycle execution. Now includes:
-
-- **`interaction-protocols.json`** - ✨ **New: User interaction patterns and approval gates**
-- **Enhanced workflow configurations** with analyst agent integration
-
-## Usage
-
-### Quick Start with Guided Development
-
+### Modalità Interattiva (Consigliata)
 ```bash
-# List all available agents (includes new analysts)
-node agent-runner.js list
-
-# Start guided feature development
-node agent-runner.js test-driven-feature "feature-name"
-
-# Run specific analyst tasks
-node agent-runner.js agent functional-analyst requirements-gathering "feature-name"
-node agent-runner.js agent functional-analyst requirements-gathering-demo "feature-name"  # Demo mode
-node agent-runner.js agent technical-analyst architecture-analysis
+npm run workflow
+# oppure
+node agents/auto-workflow.js interactive
 ```
 
-### Individual Agent Usage
-
-Each agent directory contains:
-- `agent-config.json` - Agent configuration and capabilities
-- `prompts/` - Specialized prompts for the agent's domain
-- `tools/` - Agent-specific tools and utilities
-  - ✨ **New: Jest Test Generator** - Creates behavioral test suites from requirements
-  - ✨ **New: Cucumber Feature Generator** - Generates Gherkin scenarios
-- `workflows/` - Predefined workflows for common scenarios
-- ✨ **New: Interactive Session Management**
-  - `interactive-session.js` - Real-time requirements gathering system
-  - `demo-session.js` - Automated demonstration mode
-  - `demo-responses.js` - Pre-defined realistic scenarios
-
-## Integration
-
-Agents integrate with the existing development workflow:
-- Uses existing test infrastructure (Jest, Cucumber, Playwright)
-- ✨ **Enhanced: Creates behavioral tests and Cucumber features automatically from interactive sessions**
-- ✨ **New: Interactive Requirements Gathering** - Real-time business analysis through structured questions
-- ✨ **New: Demo Mode** - Automated demonstrations with realistic responses
-- ✨ **New: Test-First Requirements** - Requirements captured as executable tests
-- Follows established code conventions and patterns
-- Respects the critical script loading order
-- Works with the hierarchical configuration system
-- ✨ **Enhanced: Interactive user approval gates with generated test review**
-
-## Getting Started
-
-### Recommended Approach (Enhanced)
-
-1. **Start with Interactive Analysis**: Use functional analyst with interactive requirements gathering
-2. **Demo Mode Available**: Test the system with `requirements-gathering-demo` for demonstrations
-3. **Test-First Development**: Requirements become executable tests before any code is written
-4. **User Validation Gate**: Review and approve generated tests before implementation starts
-5. **Guided TDD Implementation**: Follow the pre-written, user-validated tests
-6. **Living Documentation**: Tests serve as always-current feature documentation
-
-### Legacy Approach
-
-1. Start with Priority 1 agents: TDD Developer, Test Creator, Architecture Guardian
-2. Configure agent behavior in respective `agent-config.json` files
-3. Use the orchestrator to run complete TDD cycles
-4. Gradually introduce specialized agents as needed
-
-## ✨ Key Benefits of the Enhanced System
-
-- **Interactive Requirements Analysis**: Structured questions ensure comprehensive business understanding
-- **Demo Mode**: Demonstrate capabilities without user input for testing and presentations
-- **Test-First Requirements**: Requirements defined through executable tests before any coding
-- **User Validation Gate**: Approve behavior through generated tests before implementation starts
-- **Clear Success Criteria**: Tests define exactly when feature is "done"
-- **Living Documentation**: Cucumber + Jest create self-documenting, always-current code
-- **Reduced Ambiguity**: Interactive questions eliminate requirements interpretation errors
-- **Quality from Start**: Quality and testing integrated from the analysis phase
-- **Realistic Test Scenarios**: Generated tests include real business workflows and edge cases
-
-## Important Notes
-
-- **✨ Enhanced for this codebase**: Functional Analyst now provides interactive requirements gathering with real-time test generation
-- **✨ New**: Demo mode available for testing and demonstration without user input
-- **✨ New**: Interactive sessions create comprehensive behavioral tests from business conversations
-- **✨ Enhanced**: Technical Analyst ensures architectural compliance from design phase
-- **Critical for this codebase**: Architecture Guardian Agent prevents "BaseComponent is not defined" errors
-- **App-specific**: Configuration Orchestrator handles the complex hierarchical config system
-- **Platform-aware**: Electron Integration Agent handles cross-platform concerns
-- **✨ New**: Test artifacts generated include Jest behavioral tests and Cucumber features
-
-## Available Commands
-
+### Comandi Diretti
 ```bash
-# New guided workflow commands
-node agent-runner.js test-driven-feature <feature-name>    # Start guided development
-node agent-runner.js workflow test_driven_feature_development
+# Nuova feature
+npm run workflow:feature "nome-feature" "descrizione"
 
-# Individual analyst commands
-node agent-runner.js agent functional-analyst requirements-gathering "feature-name"     # Interactive mode
-node agent-runner.js agent functional-analyst requirements-gathering-demo "feature-name" # Demo mode
-node agent-runner.js agent functional-analyst create-behavioral-tests
-node agent-runner.js agent technical-analyst architecture-analysis
-node agent-runner.js agent technical-analyst plan-step-definitions
+# Bugfix
+npm run workflow:bugfix "nome-bug" "descrizione bug"
 
-# Legacy commands (still available)
-node agent-runner.js tdd <feature-name>                    # Legacy TDD workflow
-node agent-runner.js workflow tdd_feature_development      # Legacy workflow
+# Aggiorna test esistenti
+npm run workflow:test-update "nome-feature"
+
+# Aggiorna changelog
+npm run workflow:changelog
 ```
+
+### Auto-Detection
+Il sistema rileva automaticamente il tipo di task dal prompt:
+```bash
+node agents/auto-workflow.js auto-detect "implementa funzionalità di export PDF"
+```
+
+## 🤖 Agenti Disponibili
+
+### 1. **auto-workflow.js** - Orchestratore
+- Coordina tutti gli altri agenti
+- Gestisce il flusso completo di sviluppo
+- Interfaccia interattiva con menu
+- Auto-detection del tipo di task
+
+### 2. **cucumber-test-creator** - Test Creator
+- Genera SOLO test Cucumber (.feature files)
+- Crea step definitions automaticamente
+- Segue pattern Given-When-Then
+- Test dal punto di vista utente
+
+### 3. **pattern-enforcer** - Pattern Guardian
+- Verifica uso corretto di State/Actions pattern
+- Controlla che non ci sia business logic nei componenti
+- Assicura uso di app-store.js (Zustand)
+- Previene creazione di test Jest
+
+### 4. **changelog-manager** - Changelog Updater
+- Aggiorna CHANGELOG.md automaticamente
+- Chiede sempre conferma prima di modificare
+- Segue formato Keep a Changelog
+- Categorizza changes (Added/Fixed/Changed)
+
+## 📋 Workflow Tipico
+
+1. **Ricevi richiesta** → "Implementa feature X"
+2. **Auto-workflow attiva** → Crea test Cucumber
+3. **Pattern enforcer verifica** → Architettura corretta
+4. **Implementi codice** → Seguendo State/Actions
+5. **Test passa** → Feature completa
+6. **Changelog update** → Con conferma utente
+
+## ⚡ Regole Critiche
+
+1. **SOLO test Cucumber** - Mai Jest o unit test
+2. **Sempre State/Actions pattern** - Business logic in Actions
+3. **Workflow obbligatorio** - Niente implementazioni dirette
+4. **Test prima del codice** - TDD con Cucumber
+5. **Conferma per changelog** - Mai modifiche automatiche
+
+## 🎯 Esempi Pratici
+
+### Aggiungere una nuova feature
+```bash
+npm run workflow:feature "user-auth" "Sistema di autenticazione utenti"
+
+# Output:
+# 1. Crea features/user-auth.feature
+# 2. Crea cucumber/step-definitions/user-auth-steps.js
+# 3. Mostra checklist implementazione
+# 4. Chiede se aggiornare CHANGELOG
+```
+
+### Fixare un bug
+```bash
+npm run workflow:bugfix "modal-close" "Modal non si chiude con ESC"
+
+# Output:
+# 1. Crea test per riprodurre bug
+# 2. Verifica pattern architettura
+# 3. Guida al fix
+# 4. Update CHANGELOG (se confermato)
+```
+
+## 🔧 Configurazione
+
+Ogni agente ha il suo `agent-config.json` che definisce:
+- Capacità e constraints
+- Pattern da seguire
+- Template per generazione codice
+- Regole di validazione
+
+## 💡 Tips
+
+- Usa sempre modalità interattiva per workflow guidato
+- I test Cucumber devono fallire inizialmente (TDD)
+- Verifica sempre con `npx cucumber-js` dopo implementazione
+- Non modificare manualmente i file generati dagli agenti
+- Segui sempre il pattern State → Actions → Store → Component
+
+## ❌ Da NON Fare
+
+- **MAI** creare test Jest
+- **MAI** business logic nei componenti React
+- **MAI** implementare senza workflow
+- **MAI** modificare CHANGELOG senza conferma
+- **MAI** state locale per dati business
+
+## 🆘 Troubleshooting
+
+### "Command not found"
+```bash
+# Assicurati di essere nella root del progetto
+cd /path/to/software-estimation-manager
+```
+
+### "Test not created"
+```bash
+# Verifica che la directory features/ esista
+mkdir -p features cucumber/step-definitions
+```
+
+### "Pattern violation detected"
+- Sposta business logic in Actions
+- Usa app-store.js per state
+- Rimuovi test Jest se presenti
+
+## 📚 Riferimenti
+
+- [CLAUDE.md](../CLAUDE.md) - Regole complete di sviluppo
+- [Cucumber.js](https://cucumber.io/docs/cucumber/) - Documentazione Cucumber
+- [Zustand](https://github.com/pmndrs/zustand) - State management

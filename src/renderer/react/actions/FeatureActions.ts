@@ -335,7 +335,32 @@ export class FeatureActions {
   }
 
   /**
-   * Generate next feature ID with BR-XXX pattern
+   * Duplicate an existing feature by opening Add modal with pre-populated data
+   */
+  duplicateFeature(originalFeature: any): void {
+    try {
+      const store = this.getStore();
+      if (!store) {
+        throw new Error('Store not available');
+      }
+      
+      const state = store.getState();
+      
+      // Set duplicate source data in store
+      state.setDuplicateData(originalFeature);
+      
+      // Open Add modal (not Edit modal) to ensure proper save flow
+      state.openFeatureModal(null);
+      
+      console.log('Duplicate feature modal opened in Add mode for:', originalFeature.id);
+    } catch (error) {
+      console.error('Failed to duplicate feature:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate next feature ID with BR-XXX pattern, ensuring uniqueness
    */
   generateNextFeatureId(): string {
     try {
@@ -345,6 +370,7 @@ export class FeatureActions {
       }
       
       const features = store.getState().currentProject?.features || [];
+      const existingIds = new Set(features.map(f => f.id));
       
       const brIds = features
         .map(f => f.id)
@@ -352,8 +378,16 @@ export class FeatureActions {
         .map(id => parseInt(id.replace('BR-', '').replace(/^0+/, '')))
         .filter(n => !isNaN(n));
       
-      const nextNumber = brIds.length > 0 ? Math.max(...brIds) + 1 : 1;
-      return `BR-${String(nextNumber).padStart(3, '0')}`;
+      let nextNumber = brIds.length > 0 ? Math.max(...brIds) + 1 : 1;
+      let candidateId = `BR-${String(nextNumber).padStart(3, '0')}`;
+      
+      // Ensure ID is unique (in case of manual additions)
+      while (existingIds.has(candidateId)) {
+        nextNumber++;
+        candidateId = `BR-${String(nextNumber).padStart(3, '0')}`;
+      }
+      
+      return candidateId;
     } catch (error) {
       console.error('Failed to generate feature ID:', error);
       return 'BR-001';

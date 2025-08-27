@@ -11,8 +11,9 @@ interface FeatureModalProps {
 const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose }) => {
   const isEditing = feature !== null;
   
-  const { currentProject } = useStore(state => ({
-    currentProject: state.currentProject
+  const { currentProject, duplicateSourceData } = useStore(state => ({
+    currentProject: state.currentProject,
+    duplicateSourceData: state.duplicateSourceData
   }));
 
   const { 
@@ -49,11 +50,23 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
   });
   const [availableFeatureTypes, setAvailableFeatureTypes] = useState<any[]>([]);
 
-  // Initialize form when feature changes
+  // Initialize form when feature or duplicate data changes
   useEffect(() => {
     if (feature) {
+      // Edit mode - use existing feature data
       setFormData(feature);
+    } else if (duplicateSourceData) {
+      // Duplicate mode - use source data with new ID
+      const newId = generateNextId();
+      setFormData({
+        ...duplicateSourceData,
+        id: newId,
+        // Reset timestamps for new feature
+        created: undefined,
+        modified: undefined
+      });
     } else {
+      // Add mode - new feature
       const newId = generateNextId();
       setFormData({
         id: newId,
@@ -68,7 +81,7 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
         notes: ''
       });
     }
-  }, [feature, generateNextId]);
+  }, [feature, duplicateSourceData, generateNextId]);
 
   // Load filter options (categories, suppliers)
   useEffect(() => {
@@ -146,6 +159,12 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
       newErrors.id = 'ID is required';
     } else if (!/^[A-Za-z0-9_-]+$/.test(formData.id)) {
       newErrors.id = 'ID must contain only letters, numbers, hyphens and underscores';
+    } else {
+      // Check for duplicate ID (only when not editing existing feature)
+      const existingFeature = currentProject?.features?.find(f => f.id === formData.id);
+      if (existingFeature && (!feature || feature.id !== formData.id)) {
+        newErrors.id = 'This ID already exists. Please choose a different ID.';
+      }
     }
     
     

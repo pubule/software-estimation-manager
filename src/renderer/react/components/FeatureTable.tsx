@@ -5,9 +5,10 @@ interface FeatureTableProps {
   features: Feature[];
   onEdit: (feature: Feature) => void;
   onDelete: (featureId: string) => void;
+  onDuplicate: (feature: Feature) => void;
 }
 
-const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete }) => {
+const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete, onDuplicate }) => {
   if (features.length === 0) {
     return (
       <div className="empty-state">
@@ -56,20 +57,35 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete 
                 <strong>{feature.manDays || 0}</strong>
               </td>
               <td className="feature-actions">
-                <button 
-                  className="btn btn-small btn-secondary"
-                  onClick={() => onEdit(feature)}
-                  title="Edit Feature"
-                >
-                  <i className="fas fa-edit"></i>
-                </button>
-                <button 
-                  className="btn btn-small btn-danger"
-                  onClick={() => onDelete(feature.id)}
-                  title="Delete Feature"
-                >
-                  <i className="fas fa-trash"></i>
-                </button>
+                <div className="row-actions">
+                  <button 
+                    className="btn btn-small btn-secondary edit-btn"
+                    data-action="edit"
+                    data-feature-id={feature.id}
+                    onClick={() => onEdit(feature)}
+                    title="Edit Feature"
+                  >
+                    <i className="fas fa-edit"></i>
+                  </button>
+                  <button 
+                    className="btn btn-small btn-secondary duplicate-btn"
+                    data-action="duplicate"
+                    data-feature-id={feature.id}
+                    onClick={() => onDuplicate(feature)}
+                    title="Duplicate Feature"
+                  >
+                    <i className="fas fa-copy"></i>
+                  </button>
+                  <button 
+                    className="btn btn-small btn-danger delete-btn"
+                    data-action="delete"
+                    data-feature-id={feature.id}
+                    onClick={() => onDelete(feature.id)}
+                    title="Delete Feature"
+                  >
+                    <i className="fas fa-trash"></i>
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

@@ -22,6 +22,7 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
     addFeature,
     updateFeature,
     deleteFeature,
+    duplicateFeature,
     openEditModal, 
     closeModal,
     showSuccessNotification,
@@ -33,6 +34,10 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
 
   const handleEditFeature = (feature: any) => {
     openEditModal(feature);
+  };
+
+  const handleDuplicateFeature = (feature: any) => {
+    duplicateFeature(feature);
   };
 
   const handleDeleteFeature = (featureId: string) => {
@@ -118,6 +123,7 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
         features={displayFeatures}
         onEdit={handleEditFeature}
         onDelete={handleDeleteFeature}
+        onDuplicate={handleDuplicateFeature}
       />
 
       {featureModalOpen && (

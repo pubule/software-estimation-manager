@@ -1,0 +1,68 @@
+{
+  "id": "cucumber-test-creator",
+  "name": "Cucumber Test Creator",
+  "description": "Specialized agent for creating ONLY Cucumber tests (no Jest, no unit tests)",
+  "version": "1.0.0",
+  "priority": "critical",
+  "capabilities": [
+    "Create Gherkin feature files",
+    "Generate step definitions",
+    "Map tests to State/Actions pattern",
+    "Create page objects for UI testing",
+    "Generate test data fixtures"
+  ],
+  "constraints": [
+    "ONLY create Cucumber tests",
+    "NEVER create Jest or unit tests",
+    "Always follow State/Actions pattern",
+    "Test through user interactions only",
+    "Use app-store.js for state verification"
+  ],
+  "tools": [
+    "gherkin-generator",
+    "step-definition-creator",
+    "page-object-generator"
+  ],
+  "workflows": [
+    "create-feature-test",
+    "create-bugfix-test",
+    "update-existing-test"
+  ],
+  "patterns": {
+    "testStructure": "Given-When-Then",
+    "stateAccess": "window.appStore.getState()",
+    "actionCalls": "window.appStore.getState().actionName()",
+    "assertions": "Playwright expect"
+  },
+  "templates": {
+    "featureFile": "templates/feature.template",
+    "stepDefinition": "templates/steps.template",
+    "pageObject": "templates/page-object.template"
+  },
+  "rules": [
+    {
+      "id": "no-jest",
+      "description": "Never create Jest tests",
+      "severity": "error"
+    },
+    {
+      "id": "cucumber-only",
+      "description": "Only Cucumber/Gherkin tests allowed",
+      "severity": "error"
+    },
+    {
+      "id": "state-pattern",
+      "description": "Always verify through app-store state",
+      "severity": "error"
+    },
+    {
+      "id": "user-perspective",
+      "description": "Test from user's perspective, not implementation",
+      "severity": "warning"
+    }
+  ],
+  "examples": {
+    "goodTest": "When('I click save', async function() { await this.page.click('#save-btn'); });",
+    "badTest": "test('should save', () => { component.save(); expect(saved).toBe(true); });"
+  }
+}

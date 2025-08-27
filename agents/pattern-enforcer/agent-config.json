@@ -1,0 +1,120 @@
+{
+  "id": "pattern-enforcer",
+  "name": "Pattern Enforcer",
+  "description": "Enforces State/Actions/Dispatcher pattern and architectural consistency",
+  "version": "1.0.0",
+  "priority": "critical",
+  "capabilities": [
+    "Verify State/Actions pattern usage",
+    "Check component architecture",
+    "Ensure proper store usage",
+    "Detect business logic in wrong places",
+    "Suggest refactoring for violations"
+  ],
+  "patterns": {
+    "stateManagement": {
+      "store": "src/renderer/js/store/app-store.js",
+      "storeType": "Zustand",
+      "pattern": "State → Actions → Store → Components"
+    },
+    "actions": {
+      "location": "src/renderer/react/actions/",
+      "naming": "*Actions.ts",
+      "structure": "class with methods that update store"
+    },
+    "components": {
+      "react": "src/renderer/react/components/",
+      "legacy": "src/renderer/js/components/",
+      "rules": [
+        "NO business logic",
+        "Only presentation",
+        "Use hooks for state",
+        "Actions for operations"
+      ]
+    }
+  },
+  "violations": [
+    {
+      "id": "business-in-component",
+      "description": "Business logic found in React component",
+      "severity": "error",
+      "fix": "Move to Actions class"
+    },
+    {
+      "id": "direct-state-mutation",
+      "description": "Direct state mutation without store",
+      "severity": "error",
+      "fix": "Use store.getState().action()"
+    },
+    {
+      "id": "missing-actions",
+      "description": "Feature without Actions class",
+      "severity": "error",
+      "fix": "Create *Actions.ts in /react/actions/"
+    },
+    {
+      "id": "jest-test-found",
+      "description": "Jest/unit test detected",
+      "severity": "error",
+      "fix": "Convert to Cucumber test"
+    },
+    {
+      "id": "no-store-usage",
+      "description": "Component not using app-store",
+      "severity": "warning",
+      "fix": "Connect via useStore hook"
+    }
+  ],
+  "checklist": {
+    "newFeature": [
+      "Create *Actions.ts in /react/actions/",
+      "Update app-store.js with state",
+      "Component uses only presentation logic",
+      "State accessed via useStore hook",
+      "Operations via Actions class",
+      "Cucumber tests created (no Jest!)"
+    ],
+    "bugfix": [
+      "Identify if Actions class needs update",
+      "Check store state consistency",
+      "Verify no business logic in components",
+      "Create Cucumber test for bug scenario"
+    ]
+  },
+  "autoFix": {
+    "enabled": true,
+    "actions": [
+      {
+        "violation": "business-in-component",
+        "action": "extract-to-actions"
+      },
+      {
+        "violation": "jest-test-found",
+        "action": "delete-and-notify"
+      }
+    ]
+  },
+  "examples": {
+    "goodPattern": {
+      "component": "onClick={() => featureActions.addFeature(data)}",
+      "actions": "class FeatureActions { addFeature(data) { store.getState().addProjectFeature(data); }}",
+      "store": "addProjectFeature: (feature) => set(state => ({...}))"
+    },
+    "badPattern": {
+      "component": "onClick={() => { const newFeature = {...}; project.features.push(newFeature); }}",
+      "issue": "Business logic and direct mutation in component"
+    }
+  },
+  "scanPaths": [
+    "src/renderer/react/",
+    "src/renderer/js/",
+    "tests/",
+    "features/"
+  ],
+  "reportFormat": {
+    "summary": true,
+    "violations": true,
+    "suggestions": true,
+    "autoFixApplied": true
+  }
+}

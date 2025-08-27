@@ -17,9 +17,7 @@
     "dist": "npm run build",
     "pack": "electron-builder --dir",
     "postinstall": "electron-builder install-app-deps",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "npx cucumber-js",
     "cucumber": "cucumber-js",
     "cucumber:report": "cucumber-js --format html:reports/cucumber.html",
     "test:e2e": "cucumber-js",
@@ -27,16 +25,12 @@
     "test:e2e:visible": "HEADLESS=false cucumber-js",
     "test:e2e:slow": "HEADLESS=false SLOW_MO=1000 cucumber-js",
     "test:e2e:debug": "HEADLESS=false DEBUG=true SLOW_MO=500 cucumber-js",
-    "test:all": "npm run test && npm run test:e2e",
-    "agents": "node agents/agent-runner.js",
-    "agents:list": "node agents/agent-runner.js list",
-    "agents:validate": "node agents/agent-runner.js validate",
-    "agents:test": "node agents/agent-runner.js test",
-    "tdd": "node agents/agent-runner.js tdd",
-    "test-driven-feature": "node agents/agent-runner.js test-driven-feature",
-    "guided-tdd": "node agents/agent-runner.js test-driven-feature",
-    "workflow:guided": "node agents/agent-runner.js workflow test_driven_feature_development",
-    "workflow:tdd": "node agents/agent-runner.js workflow tdd_feature_development"
+    "workflow:feature": "node agents/auto-workflow.js feature",
+    "workflow:bugfix": "node agents/auto-workflow.js bugfix",
+    "workflow:interactive": "node agents/auto-workflow.js interactive",
+    "workflow:test-update": "node agents/auto-workflow.js test-update",
+    "workflow:changelog": "node agents/auto-workflow.js changelog",
+    "workflow": "node agents/auto-workflow.js interactive"
   },
   "keywords": [
     "electron",
@@ -70,7 +64,7 @@
     "vite-plugin-electron": "^0.28.4"
   },
   "dependencies": {
-    "@anthropic-ai/claude-code": "^1.0.92",
+    "@anthropic-ai/claude-code": "^1.0.93",
     "@google/gemini-cli": "^0.1.18",
     "electron-store": "^8.1.0",
     "exceljs": "^4.4.0",

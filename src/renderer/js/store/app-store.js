@@ -48,6 +48,7 @@ const appStore = window.zustand.createStore((set, get) => ({
     // ======================
     featureModalOpen: false,
     featureModalEditingItem: null,
+    duplicateSourceData: null, // Data from feature to duplicate
     
     // ======================
     // PROJECT ACTIONS
@@ -478,8 +479,23 @@ const appStore = window.zustand.createStore((set, get) => ({
     closeFeatureModal: () => {
         set({ 
             featureModalOpen: false,
-            featureModalEditingItem: null
+            featureModalEditingItem: null,
+            duplicateSourceData: null
         });
+    },
+    
+    /**
+     * Set duplicate source data for feature duplication
+     */
+    setDuplicateData: (data) => {
+        set({ duplicateSourceData: data });
+    },
+    
+    /**
+     * Clear duplicate source data
+     */
+    clearDuplicateData: () => {
+        set({ duplicateSourceData: null });
     },
     
     // ======================
