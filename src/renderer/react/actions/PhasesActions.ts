@@ -65,6 +65,7 @@ export class PhasesActions {
 
   /**
    * Initialize phases data from current project or defaults
+   * PATTERN: State/Actions/Dispatcher - Business logic centralizzata
    */
   async loadPhaseData(): Promise<void> {
     try {
@@ -75,7 +76,12 @@ export class PhasesActions {
 
       const state = store.getState();
       
-      // Initialize phases
+      // PATTERN: Business logic per determinare se caricare o preservare
+      const currentProject = state.currentProject;
+      console.log('PhasesActions: Loading phases, project has phases:', !!currentProject?.phases);
+      
+      // ALWAYS initialize from project data when loading
+      // This ensures saved data is properly restored
       state.initializePhases();
       
       // Load available suppliers
@@ -448,6 +454,7 @@ export class PhasesActions {
       throw error;
     }
   }
+
 
   /**
    * Calculate cost by resource for any phase

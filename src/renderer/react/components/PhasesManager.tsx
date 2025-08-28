@@ -24,7 +24,7 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
     selectedSuppliers, 
     resourceRates, 
     availableSuppliers, 
-    phasesTotals 
+    phasesTotals
   } = useStore(state => ({
     currentPhases: state.currentPhases,
     selectedSuppliers: state.selectedSuppliers,
@@ -44,18 +44,21 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
     showErrorNotification
   } = usePhasesActions();
 
-  // Smart initialization using NavigationActions (Pattern State/Actions/Dispatcher)
+  // PATTERN: State/Actions/Dispatcher - NO business logic in component!
+  // Track previous project ID to detect real project changes
+  const [previousProjectId, setPreviousProjectId] = useState<string | null>(null);
+  
   useEffect(() => {
     if (currentProject) {
-      setIsLoading(true);
+      // Only reload if project ID actually changed (not just metadata like lastModified)
+      const projectChanged = currentProject.projectId !== previousProjectId;
       
-      // BUSINESS LOGIC: Check if we already have configured phases
-      const hasExistingPhases = currentPhases.length > 0;
-      const hasSelectedSuppliers = Object.values(selectedSuppliers || {}).some(s => s !== null);
-      
-      // Smart loading: only reset if truly necessary
-      if (!hasExistingPhases || !hasSelectedSuppliers) {
-        console.log('PhasesManager: Loading data for first time or incomplete config');
+      if (projectChanged) {
+        setIsLoading(true);
+        setPreviousProjectId(currentProject.projectId);
+        
+        // PATTERN: Delega TUTTA la business logic alle Actions
+        console.log('PhasesManager: Loading phase data - new project detected');
         loadPhaseData()
           .then(() => {
             setIsLoading(false);
@@ -66,13 +69,13 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
             setIsLoading(false);
           });
       } else {
-        console.log('PhasesManager: Using existing phases configuration, no reset needed');
-        setIsLoading(false);
+        console.log('PhasesManager: Skipping reload - only metadata changed');
       }
     } else {
       setIsLoading(false);
+      setPreviousProjectId(null);
     }
-  }, [currentProject]); // REMOVED loadPhaseData dependency to prevent unnecessary reloads
+  }, [currentProject, loadPhaseData, previousProjectId]); // Include all dependencies
 
   // Track component initialization in navigation state
   useEffect(() => {

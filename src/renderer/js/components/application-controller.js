@@ -2196,7 +2196,7 @@ class ApplicationController extends BaseComponent {
     }
 
     /**
-     * Save project
+     * Save project - Single unified flow
      */
     async saveProject() {
         const currentProject = StateSelectors.getCurrentProject();
@@ -2205,7 +2205,7 @@ class ApplicationController extends BaseComponent {
         try {
             this.showLoading('Saving project...');
 
-            // PURE STATE MANAGER: Use store action instead of direct mutation  
+            // Update metadata
             this.store.getState().updateProjectMetadata({ 
                 lastModified: new Date().toISOString() 
             });
@@ -2213,56 +2213,38 @@ class ApplicationController extends BaseComponent {
             // Ensure hierarchical config format  
             if (!currentProject.config.projectOverrides) {
                 const migratedConfig = this.managers.config.migrateProjectConfig(currentProject.config);
-                
-                // PURE STATE MANAGER: Use store action instead of direct mutation
                 this.store.getState().updateProjectConfig(migratedConfig);
             }
 
-            // Save phases configuration
+            // ALWAYS save phases configuration including supplier selections
             await this.saveProjectPhasesConfiguration();
 
-            // Save through data manager
-            await this.managers.data.saveProject(currentProject);
+            // Get FRESH project data after phases have been updated
+            const updatedProject = StateSelectors.getCurrentProject();
+            
+            // Save through data manager with updated data
+            await this.managers.data.saveProject(updatedProject);
 
             StateSelectors.markProjectClean();
-            
-            // REMOVED LEGACY CALL FOR PURE STATE MANAGER:
-            // this.managers.navigation.onProjectDirty(false); → Automatic via subscription
-            
             this.updateProjectStatus();
 
             // Update project manager
             this.managers.project?.loadSavedProjects();
-            // REMOVED LEGACY CALLS FOR PURE STATE MANAGER:
-            // this.managers.project?.updateCurrentProjectUI(); → Automatic via subscription
-            // this.refreshDropdowns(); → Automatic via subscription
 
-            // Check version update conditions
-
-            // Update current version with latest project state after successful save
-            if (this.managers.version && currentProject && currentProject.versions && currentProject.versions.length > 0) {
-                console.log('🔍 SAVE UPDATE - Updating current version with latest project state');
-                console.log('🔍 SAVE UPDATE - Current project features:', currentProject.features?.length || 0);
-                console.log('🔍 SAVE UPDATE - Current project coverage:', currentProject.coverage);
+            // Version management if enabled
+            if (this.managers.version && updatedProject && updatedProject.versions?.length > 0) {
+                console.log('🔍 SAVE UPDATE - Updating version with latest project state');
                 await this.managers.version.updateCurrentVersion();
                 
-                // Save the project again to persist the updated version data
-                console.log('🔍 SAVE UPDATE - Saving updated version data to disk');
-                // Use fresh project state after version update
-                const updatedProject = StateSelectors.getCurrentProject();
-                await this.managers.data.saveProject(updatedProject);
+                // Save updated version data again after version update
+                const finalProject = StateSelectors.getCurrentProject();
+                await this.managers.data.saveProject(finalProject);
                 
-                // Update version manager UI if it's currently visible
+                // Update UI if in versions section
                 if (this.managers.navigation.currentSection === 'versions') {
                     this.managers.version.render();
                 }
-                
-                console.log('🔍 SAVE UPDATE - Current version updated and saved successfully');
-            } else {
-                console.log('🔍 SAVE UPDATE - Skipping version update. Conditions not met.');
             }
-
-            // Window title update will be handled by store subscription
 
             if (window.NotificationManager) {
                 NotificationManager.show('Project saved successfully', 'success');
@@ -2278,17 +2260,23 @@ class ApplicationController extends BaseComponent {
         }
     }
 
+
     /**
-     * Save project phases configuration - React-only approach
+     * Save project phases configuration - ALWAYS save supplier selections
+     * PATTERN: State/Actions/Dispatcher - Delegate to PhasesActions
      */
     async saveProjectPhasesConfiguration() {
         const currentProject = StateSelectors.getCurrentProject();
         if (!currentProject) return;
 
         try {
-            // React components handle all phase configuration
-            // Project state is managed directly by React store
-            console.log('Phase configuration handled by React components - no action needed');
+            // Always save phases data including supplier selections
+            if (window.phasesActions) {
+                await window.phasesActions.savePhases();
+                console.log('Phases configuration saved including supplier selections');
+            } else {
+                console.warn('PhasesActions not available - phases data may not be saved correctly');
+            }
             
         } catch (error) {
             console.error('Failed to save phases configuration:', error);
