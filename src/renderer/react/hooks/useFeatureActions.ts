@@ -128,6 +128,22 @@ export const useFeatureActions = () => {
     }
   }, []);
 
+  const getCategoryNameById = useCallback((categoryId: string) => {
+    try {
+      return featureActions.getCategoryNameById(categoryId);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const getFeatureTypeNameById = useCallback((categoryId: string, featureTypeId: string) => {
+    try {
+      return featureActions.getFeatureTypeNameById(categoryId, featureTypeId);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
   const showSuccessNotification = useCallback((message: string) => {
     try {
       featureActions.showSuccessNotification(message);
@@ -171,6 +187,10 @@ export const useFeatureActions = () => {
     generateNextId,
     getDefaultManDays,
     getFeatureTypesForCategory,
+    
+    // Display helpers
+    getCategoryNameById,
+    getFeatureTypeNameById,
     
     // Notifications
     showSuccessNotification,

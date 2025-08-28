@@ -455,6 +455,55 @@ export class FeatureActions {
   }
 
   /**
+   * Get category name by ID
+   * @param categoryId The category ID
+   * @returns The category name or the ID if not found
+   */
+  getCategoryNameById(categoryId: string): string {
+    try {
+      if (!categoryId) return '';
+      
+      const configManager = this.getConfigManager();
+      if (!configManager) {
+        return categoryId;
+      }
+      
+      const store = this.getStore();
+      const state = store?.getState();
+      const currentProject = state?.currentProject;
+      const projectConfig = currentProject?.configuration;
+      
+      const categories = configManager.getCategories(projectConfig);
+      const category = categories?.find(c => c.id === categoryId);
+      
+      return category?.name || categoryId;
+    } catch (error) {
+      console.error('Failed to get category name:', error);
+      return categoryId;
+    }
+  }
+
+  /**
+   * Get feature type name by ID
+   * @param categoryId The category ID containing the feature type
+   * @param featureTypeId The feature type ID
+   * @returns The feature type name or the ID if not found
+   */
+  getFeatureTypeNameById(categoryId: string, featureTypeId: string): string {
+    try {
+      if (!categoryId || !featureTypeId) return featureTypeId || '';
+      
+      const featureTypes = this.getFeatureTypesForCategory(categoryId);
+      const featureType = featureTypes?.find(ft => ft.id === featureTypeId);
+      
+      return featureType?.name || featureTypeId;
+    } catch (error) {
+      console.error('Failed to get feature type name:', error);
+      return featureTypeId;
+    }
+  }
+
+  /**
    * Create complete notification config object
    */
   private createNotificationConfig(message: string, type: string): any {

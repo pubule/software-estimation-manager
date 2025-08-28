@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Feature } from '../hooks/useStore';
+import { useFeatureActions } from '../hooks/useFeatureActions';
 
 interface FeatureTableProps {
   features: Feature[];
@@ -9,6 +10,7 @@ interface FeatureTableProps {
 }
 
 const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete, onDuplicate }) => {
+  const featureActions = useFeatureActions();
   if (features.length === 0) {
     return (
       <div className="empty-state">
@@ -44,11 +46,11 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
               </td>
               <td className="feature-category">
                 <span className="category-badge">
-                  {feature.category}
+                  {featureActions.getCategoryNameById(feature.category)}
                 </span>
               </td>
               <td className="feature-type">
-                {feature.featureType}
+                {featureActions.getFeatureTypeNameById(feature.category, feature.featureType)}
               </td>
               <td className="feature-real-md">
                 {feature.realManDays || 0}
