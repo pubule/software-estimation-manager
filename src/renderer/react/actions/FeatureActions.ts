@@ -232,12 +232,8 @@ export class FeatureActions {
         throw new Error('No project loaded');
       }
 
-      // Update coverage in project
-      if (!state.currentProject.coverage) {
-        state.currentProject.coverage = {};
-      }
-      
-      state.currentProject.coverage.manDays = coverageValue;
+      // Update coverage in project (direct value instead of object)
+      state.currentProject.coverage = coverageValue;
       state.currentProject.coverageIsAutoCalculated = false;
 
       // Mark project as dirty for auto-save
@@ -412,7 +408,7 @@ export class FeatureActions {
       const categories = configManager.getCategories(projectConfig);
       
       const category = categories.find(c => 
-        c.id === categoryId || c.name === categoryId
+        c.id === categoryId
       );
       
       if (!category || !category.featureTypes) {
@@ -420,7 +416,7 @@ export class FeatureActions {
       }
       
       const featureType = category.featureTypes.find(ft => 
-        ft.id === featureTypeId || ft.name === featureTypeId
+        ft.id === featureTypeId
       );
       
       return featureType?.averageMDs || featureType?.estimatedManDays || 0;
@@ -448,7 +444,7 @@ export class FeatureActions {
       const categories = configManager.getCategories(projectConfig);
       
       const category = categories.find(c => 
-        c.id === categoryId || c.name === categoryId
+        c.id === categoryId
       );
       
       return category?.featureTypes || [];
@@ -527,13 +523,9 @@ export class FeatureActions {
     suppliers: any[];
   }> {
     try {
-      console.log('🔍 [DEBUG] getFilterOptions - Starting...');
-      
       const configManager = this.getConfigManager();
-      console.log('🔍 [DEBUG] configManager:', !!configManager);
       
       if (!configManager) {
-        console.log('❌ [DEBUG] No configManager available');
         return { categories: [], featureTypes: [], suppliers: [] };
       }
 
@@ -543,27 +535,12 @@ export class FeatureActions {
       const currentProject = state?.currentProject;
       const projectConfig = currentProject?.configuration;
       
-      console.log('🔍 [DEBUG] Store state:', {
-        hasStore: !!store,
-        hasState: !!state,
-        hasCurrentProject: !!currentProject,
-        hasProjectConfig: !!projectConfig,
-        projectName: currentProject?.project?.name,
-        globalConfig: !!state?.globalConfig
-      });
 
       // Get configuration data using the proper ConfigurationManager methods with projectConfig
       const categories = configManager.getCategories(projectConfig);
       const suppliers = configManager.getSuppliers(projectConfig);
       const internalResources = configManager.getInternalResources(projectConfig);
       
-      console.log('🔍 [DEBUG] Raw data from ConfigManager:', {
-        categoriesCount: categories?.length || 0,
-        suppliersCount: suppliers?.length || 0,
-        internalResourcesCount: internalResources?.length || 0,
-        suppliers: suppliers?.map(s => ({ id: s.id, name: s.name, role: s.role, status: s.status })),
-        internalResources: internalResources?.map(r => ({ id: r.id, name: r.name, role: r.role, status: r.status }))
-      });
       
       // Feature types - extract all feature types from all categories
       const allFeatureTypes: string[] = [];
@@ -579,44 +556,20 @@ export class FeatureActions {
         });
       }
       
-      console.log('🔍 [DEBUG] Feature types extracted from categories:', {
-        allFeatureTypesCount: allFeatureTypes.length,
-        featureTypes: allFeatureTypes
-      });
 
       // Combine suppliers and internal resources, filter for G2 role only
       const filteredSuppliers = suppliers?.filter(sup => sup.role === 'G2') || [];
       const filteredInternalResources = internalResources?.filter(res => res.role === 'G2') || [];
       
-      console.log('🔍 [DEBUG] After G2/active filtering:', {
-        filteredSuppliersCount: filteredSuppliers.length,
-        filteredInternalResourcesCount: filteredInternalResources.length,
-        filteredSuppliers: filteredSuppliers.map(s => ({ id: s.id, name: s.name, role: s.role, status: s.status })),
-        filteredInternalResources: filteredInternalResources.map(r => ({ id: r.id, name: r.name, role: r.role, status: r.status }))
-      });
 
       const combinedSuppliers = [
         ...filteredSuppliers,
         ...filteredInternalResources.map(res => ({ ...res, type: 'internal' })) // Mark internal resources
       ];
       
-      console.log('🔍 [DEBUG] Final combined suppliers:', {
-        count: combinedSuppliers.length,
-        suppliers: combinedSuppliers.map(s => ({ 
-          id: s.id, 
-          name: s.name, 
-          role: s.role, 
-          status: s.status, 
-          type: s.type,
-          department: s.department,
-          realRate: s.realRate,
-          officialRate: s.officialRate
-        }))
-      });
 
       // If no suppliers found, provide fallback data for debugging
       if (combinedSuppliers.length === 0) {
-        console.log('⚠️ [DEBUG] No suppliers found, using fallback data');
         const fallbackSuppliers = [
           {
             id: 'fallback-1',
@@ -653,8 +606,7 @@ export class FeatureActions {
         suppliers: combinedSuppliers
       };
     } catch (error) {
-      console.error('❌ [DEBUG] Failed to get filter options:', error);
-      console.error('❌ [DEBUG] Error stack:', error.stack);
+      console.error('Failed to get filter options:', error);
       return { categories: [], featureTypes: [], suppliers: [] };
     }
   }

@@ -628,7 +628,7 @@ class CalculationsManager {
         });
 
         // Process coverage MDs as additional G2 development costs
-        const coverageMDs = currentProject.coverage?.manDays || 0;
+        const coverageMDs = currentProject.coverage || 0;
         if (coverageMDs > 0 && g2EffortPercent > 0) {
 
             // For coverage, we need to determine which supplier to use
@@ -9535,18 +9535,6 @@ class CapacityManager extends BaseComponent {
      */
     async calculatePhaseBasedAllocation(teamMember, completeProject, phaseSchedule) {
         try {
-            // 🚀 DEBUG: Verify new algorithm activation
-            console.log('🚀 [DEBUG] calculatePhaseBasedAllocation - STARTING with new sequential algorithm');
-            console.log('🚀 [DEBUG] AutoDistribution instance:', !!this.autoDistribution);
-            console.log('🚀 [DEBUG] Sequential method available:', !!this.autoDistribution?.autoDistributeSequentialPhases);
-            console.log('🚀 [DEBUG] Team member:', teamMember.firstName, teamMember.lastName);
-            console.log('🚀 [DEBUG] Phase schedule:', phaseSchedule.map(p => ({ 
-                id: p.phaseId, 
-                name: p.phaseName, 
-                mds: p.estimatedMDs,
-                startDate: p.startDate,
-                endDate: p.endDate 
-            })));
 
             const memberRole = this.getMemberRole(teamMember);
 
@@ -9563,12 +9551,6 @@ class CapacityManager extends BaseComponent {
                 
                 console.log(`🚀 Using sequential distribution for ${phaseSchedule.length} phases in project "${projectName}"`);
                 
-                // 🔄 DEBUG: Confirm sequential algorithm call
-                console.log('🔄 [DEBUG] About to call autoDistributeSequentialPhases with:', {
-                    phaseCount: phaseSchedule.length,
-                    teamMemberId: teamMember.id,
-                    phases: phaseSchedule.map(p => ({ id: p.phaseId, name: p.phaseName, mds: p.estimatedMDs }))
-                });
                 
                 // Use the new sequential algorithm that handles all phases with consumption logic
                 const sequentialDistribution = this.autoDistribution.autoDistributeSequentialPhases(
@@ -9577,15 +9559,6 @@ class CapacityManager extends BaseComponent {
                     {} // No existing allocations for now - could be enhanced later
                 );
                 
-                // 📊 DEBUG: Verify sequential distribution result
-                console.log('📊 [DEBUG] Sequential distribution result:', sequentialDistribution);
-                console.log('📊 [DEBUG] Has phaseBreakdown:', !!sequentialDistribution.phaseBreakdown);
-                console.log('📊 [DEBUG] Overflow info:', { 
-                    hasOverflow: sequentialDistribution.hasOverflow, 
-                    overflowAmount: sequentialDistribution.overflowAmount 
-                });
-                
-                console.log(`📊 Sequential distribution result:`, sequentialDistribution);
                 
                 // Convert sequential distribution result to the expected format
                 this.mergeSequentialDistribution(allocations, sequentialDistribution, phaseSchedule, projectName);

@@ -106,7 +106,7 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
       setAvailableFeatureTypes(featureTypes);
       
       // Reset feature type if it's not valid for the new category
-      if (formData.featureType && !featureTypes.some(ft => ft.id === formData.featureType || ft.name === formData.featureType)) {
+      if (formData.featureType && !featureTypes.some(ft => ft.id === formData.featureType)) {
         setFormData(prev => ({ ...prev, featureType: '', realManDays: 0 }));
       }
     } else {
@@ -195,6 +195,7 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    
     if (validateForm()) {
       onSave(formData as Feature);
     }
@@ -254,8 +255,8 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
               >
                 <option value="">Select Category</option>
                 {filterOptions.categories.map(category => (
-                  <option key={category.id || category.name} value={category.name || category.id}>
-                    {category.name || category.id}
+                  <option key={category.id} value={category.id}>
+                    {category.name}
                   </option>
                 ))}
               </select>
@@ -273,8 +274,8 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
               >
                 <option value="">Select Feature Type</option>
                 {availableFeatureTypes.map(featureType => (
-                  <option key={featureType.id || featureType.name} value={featureType.name || featureType.id}>
-                    {featureType.name || featureType.id}
+                  <option key={featureType.id} value={featureType.id}>
+                    {featureType.name}
                   </option>
                 ))}
               </select>

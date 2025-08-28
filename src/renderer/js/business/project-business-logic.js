@@ -127,6 +127,7 @@ class ProjectBusinessLogic extends BaseComponent {
             const projectData = {
                 project: {
                     id: formData.code,
+                    code: formData.code,
                     name: formData.name,
                     description: formData.description || '',
                     version: '1.0.0',
@@ -138,8 +139,8 @@ class ProjectBusinessLogic extends BaseComponent {
                 config: {
                     projectOverrides: {}
                 },
-                coverage: {},
-                coverageIsAutoCalculated: true,
+                coverage: 110,
+                coverageIsAutoCalculated: false,
                 versions: []
             };
 

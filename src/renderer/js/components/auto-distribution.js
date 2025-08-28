@@ -58,10 +58,6 @@ class AutoDistribution {
      * @returns {Object} Monthly allocation distribution
      */
     autoDistributeMDs(totalMDs, startDate, endDate, teamMemberId, existingAllocations = {}) {
-        // ⚠️ DEBUG: Old algorithm being called - this should NOT happen with new implementation
-        console.warn('⚠️ [DEBUG] OLD autoDistributeMDs algorithm called - this should be replaced by sequential algorithm!');
-        console.warn('⚠️ [DEBUG] Called with:', { totalMDs, startDate, endDate, teamMemberId });
-        console.trace('⚠️ [DEBUG] Call stack:');
         
         // Validation
         if (totalMDs < 0) {
@@ -348,26 +344,16 @@ class AutoDistribution {
      */
     autoDistributeSequentialPhases(phases, teamMemberId, existingAllocations = {}) {
         // 🔄 DEBUG: Confirm new algorithm is called
-        console.log('🔄 [DEBUG] autoDistributeSequentialPhases CALLED - This is the NEW SEQUENTIAL algorithm!');
-        console.log('🔄 [DEBUG] Input phases:', phases.map(p => ({ 
-            id: p.phaseId, 
-            name: p.phaseName, 
-            mds: p.estimatedMDs,
-            startDate: p.startDate,
-            endDate: p.endDate 
-        })));
-        console.log('🔄 [DEBUG] Team member ID:', teamMemberId);
         
         // Validation
         if (!phases || !Array.isArray(phases) || phases.length === 0) {
-            console.log('🔄 [DEBUG] No phases provided, returning empty result');
             return { hasOverflow: false, overflowAmount: 0 };
         }
 
         // Get team member
         const teamMember = this.teamManager.getTeamMemberById(teamMemberId);
         if (!teamMember) {
-            console.error('🔄 [DEBUG] Team member not found:', teamMemberId);
+            console.error('Team member not found:', teamMemberId);
             throw new Error('Team member not found');
         }
 
@@ -493,8 +479,6 @@ class AutoDistribution {
         console.log(`🏁 Sequential distribution complete. Total overflow: ${totalOverflow} MDs`);
         
         // 🏁 DEBUG: Final result confirmation
-        console.log('🏁 [DEBUG] NEW SEQUENTIAL algorithm completed successfully!');
-        console.log('🏁 [DEBUG] Final result structure:', {
             monthsWithAllocation: Object.keys(result).filter(k => !['hasOverflow', 'overflowAmount', 'phaseBreakdown'].includes(k)).length,
             hasPhaseBreakdown: !!result.phaseBreakdown,
             totalOverflow: totalOverflow

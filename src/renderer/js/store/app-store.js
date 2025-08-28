@@ -730,7 +730,7 @@ const appStore = window.zustand.createStore((set, get) => ({
             return sum + (parseFloat(feature.manDays) || 0);
         }, 0);
         
-        const coverageMDs = currentProject.coverage?.manDays || 0;
+        const coverageMDs = currentProject.coverage || 0;
         const totalDevelopmentMDs = featuresTotal + coverageMDs;
         
         const updatedPhases = currentState.currentPhases.map(phase => 
