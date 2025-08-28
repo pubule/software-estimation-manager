@@ -478,12 +478,6 @@ class AutoDistribution {
 
         console.log(`🏁 Sequential distribution complete. Total overflow: ${totalOverflow} MDs`);
         
-        // 🏁 DEBUG: Final result confirmation
-            monthsWithAllocation: Object.keys(result).filter(k => !['hasOverflow', 'overflowAmount', 'phaseBreakdown'].includes(k)).length,
-            hasPhaseBreakdown: !!result.phaseBreakdown,
-            totalOverflow: totalOverflow
-        });
-        
         return result;
     }
 
