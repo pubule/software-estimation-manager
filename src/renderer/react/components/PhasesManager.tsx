@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useProject } from '../hooks/useStore';
 import { useStore } from '../hooks/useStore';
 import { usePhasesActions } from '../hooks/usePhasesActions';
-import { NavigationActions } from '../actions/NavigationActions';
+import { useNavigationActions } from '../hooks/useNavigationActions';
 import DevelopmentNotice from './DevelopmentNotice';
 import SupplierSelectors from './SupplierSelectors';
 import PhasesTable from './PhasesTable';
@@ -15,8 +15,8 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { currentProject } = useProject();
   
-  // NavigationActions instance (Pattern State/Actions/Dispatcher)
-  const navigationActions = new NavigationActions();
+  // PATTERN: State/Actions/Dispatcher - Use hook for navigation actions
+  const { setComponentInitialized } = useNavigationActions();
   
   // Get phases state from store
   const { 
@@ -79,18 +79,14 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
 
   // Track component initialization in navigation state
   useEffect(() => {
-    const store = (window as any).appStore;
-    if (store) {
-      store.getState().setComponentInitialized('phases', true);
-    }
+    // PATTERN: State/Actions/Dispatcher - Use Actions through hook
+    setComponentInitialized('phases', true);
     
     return () => {
       // Cleanup on unmount
-      if (store) {
-        store.getState().setComponentInitialized('phases', false);
-      }
+      setComponentInitialized('phases', false);
     };
-  }, []);
+  }, [setComponentInitialized]);
 
   // Recalculate development phase when features change
   useEffect(() => {

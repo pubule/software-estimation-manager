@@ -41,6 +41,34 @@ export class NavigationActions {
   }
 
   /**
+   * Set component initialization state
+   * PATTERN: State/Actions/Dispatcher - Delegate to store
+   */
+  setComponentInitialized(component: string, initialized: boolean): void {
+    const store = this.getStore();
+    if (!store) {
+      console.warn('Store not available for setComponentInitialized');
+      return;
+    }
+
+    const state = store.getState();
+    state.setComponentInitialized(component, initialized);
+    
+    console.log(`Navigation: Component ${component} initialized: ${initialized}`);
+  }
+
+  /**
+   * Check if component is initialized
+   */
+  isComponentInitialized(component: string): boolean {
+    const store = this.getStore();
+    if (!store) return false;
+
+    const state = store.getState();
+    return state.isComponentInitialized(component);
+  }
+
+  /**
    * Navigation specifica per phases - preserva configurazioni
    */
   private navigateToPhases(state: any): void {
@@ -253,21 +281,6 @@ export class NavigationActions {
     return state.currentSection || 'projects';
   }
 
-  /**
-   * Check se React component è già inizializzato per sezione
-   */
-  isComponentInitialized(section: string): boolean {
-    // Check se React wrapper esiste già
-    const navigationManager = (window as any).app?.navigationManager;
-    if (!navigationManager) return false;
-
-    if (section === 'phases') {
-      return !!navigationManager.reactPhasesWrapper;
-    }
-    
-    // Altri componenti React...
-    return false;
-  }
 
   /**
    * Force component re-initialization (solo se necessario)
