@@ -152,62 +152,82 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
 
       {/* KPI Cards Section */}
       {kpiData && (
-        <div className="kpi-section">
-          <div className="kpi-cards-grid">
+        <div className="calculations-kpis">
+          <div className="kpi-cards">
             {/* GTO Card */}
             <div className="kpi-card gto-card">
               <div className="kpi-header">
                 <h3>GTO (G2, TA)</h3>
-                <span className="kpi-total">€{kpiData.gto.total.toLocaleString()}</span>
+                <span className="kpi-subtitle">G2 + TA Resources</span>
               </div>
-              <div className="kpi-breakdown">
-                <div className="kpi-item">
-                  <span className="kpi-label">Internal:</span>
-                  <span className="kpi-value">€{kpiData.gto.internal.toLocaleString()}</span>
-                  <span className="kpi-percentage">({kpiData.gto.internalPercentage.toFixed(1)}%)</span>
+              <div className="kpi-metrics">
+                <div className="kpi-metric">
+                  <span className="metric-label">Internal:</span>
+                  <div>
+                    <span className="metric-value">{kpiData.gto.internalPercentage.toFixed(1)}%</span>
+                    <span className="metric-cost">€{kpiData.gto.internal.toLocaleString()}</span>
+                  </div>
                 </div>
-                <div className="kpi-item">
-                  <span className="kpi-label">External:</span>
-                  <span className="kpi-value">€{kpiData.gto.external.toLocaleString()}</span>
-                  <span className="kpi-percentage">({kpiData.gto.externalPercentage.toFixed(1)}%)</span>
+                <div className="kpi-metric">
+                  <span className="metric-label">External:</span>
+                  <div>
+                    <span className="metric-value">{kpiData.gto.externalPercentage.toFixed(1)}%</span>
+                    <span className="metric-cost">€{kpiData.gto.external.toLocaleString()}</span>
+                  </div>
                 </div>
+              </div>
+              <div className="kpi-total">
+                <span className="total-label">Total GTO</span>
+                <span className="total-cost">€{kpiData.gto.total.toLocaleString()}</span>
               </div>
             </div>
-            
+
             {/* GDS Card */}
             <div className="kpi-card gds-card">
               <div className="kpi-header">
                 <h3>GDS (G1, PM)</h3>
-                <span className="kpi-total">€{kpiData.gds.total.toLocaleString()}</span>
+                <span className="kpi-subtitle">G1 + PM Resources</span>
               </div>
-              <div className="kpi-breakdown">
-                <div className="kpi-item">
-                  <span className="kpi-label">Internal:</span>
-                  <span className="kpi-value">€{kpiData.gds.internal.toLocaleString()}</span>
-                  <span className="kpi-percentage">({kpiData.gds.internalPercentage.toFixed(1)}%)</span>
+              <div className="kpi-metrics">
+                <div className="kpi-metric">
+                  <span className="metric-label">Internal:</span>
+                  <div>
+                    <span className="metric-value">{kpiData.gds.internalPercentage.toFixed(1)}%</span>
+                    <span className="metric-cost">€{kpiData.gds.internal.toLocaleString()}</span>
+                  </div>
                 </div>
-                <div className="kpi-item">
-                  <span className="kpi-label">External:</span>
-                  <span className="kpi-value">€{kpiData.gds.external.toLocaleString()}</span>
-                  <span className="kpi-percentage">({kpiData.gds.externalPercentage.toFixed(1)}%)</span>
+                <div className="kpi-metric">
+                  <span className="metric-label">External:</span>
+                  <div>
+                    <span className="metric-value">{kpiData.gds.externalPercentage.toFixed(1)}%</span>
+                    <span className="metric-cost">€{kpiData.gds.external.toLocaleString()}</span>
+                  </div>
                 </div>
+              </div>
+              <div className="kpi-total">
+                <span className="total-label">Total GDS</span>
+                <span className="total-cost">€{kpiData.gds.total.toLocaleString()}</span>
               </div>
             </div>
-            
+
             {/* Total Project Card */}
             <div className="kpi-card total-card">
               <div className="kpi-header">
                 <h3>Total Project</h3>
-                <span className="kpi-total">€{kpiData.totalProject.toLocaleString()}</span>
+                <span className="kpi-subtitle">Complete Cost Breakdown</span>
               </div>
-              <div className="kpi-breakdown">
-                <div className="kpi-item">
-                  <span className="kpi-label">Internal:</span>
-                  <span className="kpi-percentage">{kpiData.totalInternalPercentage.toFixed(1)}%</span>
+              <div className="kpi-total-breakdown">
+                <div className="breakdown-item">
+                  <span className="breakdown-label">GTO Cost</span>
+                  <span className="breakdown-cost">€{kpiData.gto.total.toLocaleString()}</span>
                 </div>
-                <div className="kpi-item">
-                  <span className="kpi-label">External:</span>
-                  <span className="kpi-percentage">{kpiData.totalExternalPercentage.toFixed(1)}%</span>
+                <div className="breakdown-item">
+                  <span className="breakdown-label">GDS Cost</span>
+                  <span className="breakdown-cost">€{kpiData.gds.total.toLocaleString()}</span>
+                </div>
+                <div className="breakdown-total">
+                  <span className="breakdown-label">Total Project</span>
+                  <span className="total-cost">€{kpiData.totalProject.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -262,11 +282,11 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                   <th>Vendor</th>
                   <th>Role</th>
                   <th>Department</th>
+                  <th>Total MDs</th>
+                  <th>Official Tot MDs</th>
+                  <th>Final Tot MDs</th>
                   <th>Official Rate</th>
-                  <th>Real Rate</th>
-                  <th>Estimated MDs</th>
-                  <th>Final MDs</th>
-                  <th>Tot Cost</th>
+                  <th>Total Cost</th>
                   <th>Final Tot Cost</th>
                 </tr>
               </thead>
@@ -283,10 +303,9 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                       </span>
                     </td>
                     <td className="vendor-department">{cost.department}</td>
-                    <td className="official-rate">€{cost.officialRate.toLocaleString()}</td>
-                    <td className="real-rate">€{cost.realRate.toLocaleString()}</td>
-                    <td className="estimated-mds">{cost.estimatedMDs}</td>
-                    <td className="final-mds">
+                    <td className="total-mds">{cost.estimatedMDs}</td>
+                    <td className="official-tot-mds">{cost.estimatedMDs}</td>
+                    <td className="final-tot-mds">
                       <input
                         type="number"
                         value={cost.finalMDs}
@@ -298,7 +317,8 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                         min="0"
                       />
                     </td>
-                    <td className="tot-cost">€{cost.totCost.toLocaleString()}</td>
+                    <td className="official-rate">€{cost.officialRate.toLocaleString()}</td>
+                    <td className="total-cost">€{cost.totCost.toLocaleString()}</td>
                     <td className="final-tot-cost">
                       <strong>€{cost.finalTotCost.toLocaleString()}</strong>
                     </td>
