@@ -593,19 +593,30 @@ window.zustand = {
         const listeners = new Set();
         
         const setState = (partial, replace) => {
+            console.log('DEBUG Zustand: setState called with:', partial, 'replace:', replace);
             const nextState = replace ? partial : { ...state, ...partial };
             if (nextState !== state) {
                 const previousState = state;
                 state = nextState;
-                listeners.forEach((listener) => listener(state, previousState));
+                console.log('DEBUG Zustand: State updated, calling', listeners.size, 'listeners');
+                listeners.forEach((listener) => {
+                    console.log('DEBUG Zustand: Calling listener with state');
+                    listener(state, previousState);
+                });
+            } else {
+                console.log('DEBUG Zustand: State unchanged, no listeners called');
             }
         };
         
         const getState = () => state;
         
         const subscribe = (listener) => {
+            console.log('DEBUG Zustand: Adding listener, total will be:', listeners.size + 1);
             listeners.add(listener);
-            return () => listeners.delete(listener);
+            return () => {
+                console.log('DEBUG Zustand: Removing listener, total will be:', listeners.size - 1);
+                listeners.delete(listener);
+            };
         };
         
         const destroy = () => listeners.clear();
@@ -729,7 +740,6 @@ console.log('✅ Zustand store implementation ready for React components');
 <script src="js/components/assumptions-manager.js"></script>
 
 <!-- Calculations management (depends on data-manager and configuration-manager) -->
-<script src="js/components/calculations-manager.js"></script>
 
 <!-- Capacity planning components -->
 <script src="js/components/team-manager.js"></script>

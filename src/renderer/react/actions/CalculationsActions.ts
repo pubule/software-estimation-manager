@@ -1,0 +1,593 @@
+/**
+ * CalculationsActions - Business Logic per Calculations Dashboard
+ * 
+ * PATTERN OBBLIGATORIO: State/Actions/Dispatcher
+ * - TUTTA la business logic QUI (calcoli, processamento, validazioni)
+ * - Aggiorna SOLO attraverso store methods
+ * - Components chiamano SOLO questi metodi
+ */
+
+interface VendorCost {
+  vendorId: string;
+  vendorName: string;
+  role: 'G1' | 'G2' | 'TA' | 'PM';
+  department: string;
+  officialRate: number;
+  realRate: number;
+  estimatedMDs: number;
+  finalMDs: number;
+  totCost: number;
+  finalTotCost: number;
+  isInternal: boolean;
+}
+
+interface KPIData {
+  gto: {
+    internal: number;
+    external: number;
+    total: number;
+    internalPercentage: number;
+    externalPercentage: number;
+  };
+  gds: {
+    internal: number;
+    external: number;
+    total: number;
+    internalPercentage: number;
+    externalPercentage: number;
+  };
+  totalProject: number;
+  totalInternalPercentage: number;
+  totalExternalPercentage: number;
+}
+
+interface CalculationsFilters {
+  vendor: string;
+  role: string;
+}
+
+export class CalculationsActions {
+  private getStore() { 
+    return (window as any).appStore; 
+  }
+
+  private getConfigManager() {
+    const app = this.getApp();
+    return app?.managers?.config;
+  }
+  
+  private getApp() {
+    return (window as any).app;
+  }
+
+  /**
+   * CORE BUSINESS LOGIC: Calcola tutti i costi del progetto
+   * Processamento completo features + phases → vendor costs
+   */
+  calculateProjectCosts(): void {
+    try {
+      const store = this.getStore();
+      if (!store) {
+        throw new Error('Store not available');
+      }
+
+      const state = store.getState();
+      const currentProject = state.currentProject;
+      
+      if (!currentProject) {
+        throw new Error('No project loaded');
+      }
+
+      // 1. Processa tutti i costi (features + phases)
+      const vendorCosts = this.processAllCosts(currentProject);
+      
+      // 2. Applica override Final MDs se esistono
+      const costsWithOverrides = this.applyFinalMDsOverrides(vendorCosts);
+      
+      // 3. Calcola KPI
+      const kpiData = this.calculateKPIs(costsWithOverrides);
+      
+      // 4. Aggiorna store
+      
+      state.setCalculationsData({
+        vendorCosts: costsWithOverrides,
+        kpiData: kpiData
+      });
+      
+
+      console.log('Calculations updated successfully');
+    } catch (error) {
+      console.error('Failed to calculate project costs:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Processa tutti i costi (features + phases)
+   */
+  private processAllCosts(project: any): VendorCost[] {
+    const allCosts: VendorCost[] = [];
+    
+    // 1. Processa costi dalle features
+    if (project.features && project.features.length > 0) {
+      const featuresCosts = this.processFeaturesCosts(project.features);
+      allCosts.push(...featuresCosts);
+    }
+    
+    // 2. Processa costi dalle phases
+    if (project.phases) {
+      // Handle both object format (legacy) and array format (new)
+      const phasesData = Array.isArray(project.phases) 
+        ? project.phases 
+        : Object.entries(project.phases).map(([key, value]) => ({ ...value, phaseKey: key }));
+      
+      if (phasesData.length > 0) {
+        const phasesCosts = this.processPhasesCosts(phasesData);
+        allCosts.push(...phasesCosts);
+      }
+    }
+    
+    // 3. Raggruppa per vendor + role + department
+    return this.consolidateVendorCosts(allCosts);
+  }
+
+  /**
+   * Processa costi dalle features
+   */
+  private processFeaturesCosts(features: any[]): VendorCost[] {
+    const costs: VendorCost[] = [];
+    
+    features.forEach(feature => {
+      const supplierData = this.getSupplierData(feature.supplier);
+      if (!supplierData) return;
+      
+      const cost: VendorCost = {
+        vendorId: feature.supplier,
+        vendorName: supplierData.name,
+        role: supplierData.role,
+        department: supplierData.department || 'General',
+        officialRate: supplierData.officialRate || 0,
+        realRate: supplierData.realRate || 0,
+        estimatedMDs: feature.manDays || 0,
+        finalMDs: feature.manDays || 0,
+        totCost: (feature.manDays || 0) * (supplierData.realRate || 0),
+        finalTotCost: (feature.manDays || 0) * (supplierData.officialRate || 0),
+        isInternal: supplierData.type === 'internal'
+      };
+      
+      costs.push(cost);
+    });
+    
+    return costs;
+  }
+
+  /**
+   * Processa costi dalle phases
+   */
+  private processPhasesCosts(phases: any[]): VendorCost[] {
+    const costs: VendorCost[] = [];
+    
+    // Extract selectedSuppliers mapping from project phases
+    const selectedSuppliers = phases.find(p => p.selectedSuppliers)?.selectedSuppliers || {};
+    
+    phases.forEach(phase => {
+      // Skip selectedSuppliers entry
+      if (phase.selectedSuppliers) return;
+      
+      if (phase.manDays && phase.manDays > 0 && phase.effort) {
+        // Process each role in the phase effort distribution
+        Object.entries(phase.effort).forEach(([role, percentage]: [string, any]) => {
+          if (!percentage || percentage === 0) return;
+          
+          const supplierId = selectedSuppliers[role];
+          if (!supplierId) return;
+          
+          const supplierData = this.getSupplierData(supplierId);
+          if (!supplierData) return;
+          
+          // Calculate MDs for this role in this phase
+          const phaseMDs = (phase.manDays * (percentage / 100));
+          
+          const cost: VendorCost = {
+            vendorId: supplierId,
+            vendorName: supplierData.name || supplierId,
+            role: role as 'G1' | 'G2' | 'TA' | 'PM',
+            department: supplierData.department || role,
+            officialRate: supplierData.officialRate || 0,
+            realRate: supplierData.realRate || 0,
+            estimatedMDs: phaseMDs,
+            finalMDs: phaseMDs,
+            totCost: phaseMDs * (supplierData.realRate || 0),
+            finalTotCost: phaseMDs * (supplierData.officialRate || 0),
+            isInternal: supplierData.type === 'internal' || false
+          };
+          
+          costs.push(cost);
+        });
+      }
+    });
+    
+    return costs;
+  }
+
+  /**
+   * Consolida costi per vendor + role + department
+   */
+  private consolidateVendorCosts(costs: VendorCost[]): VendorCost[] {
+    const consolidated = new Map<string, VendorCost>();
+    
+    costs.forEach(cost => {
+      const key = `${cost.vendorId}-${cost.role}-${cost.department}`;
+      
+      if (consolidated.has(key)) {
+        const existing = consolidated.get(key)!;
+        existing.estimatedMDs += cost.estimatedMDs;
+        existing.finalMDs += cost.finalMDs;
+        existing.totCost += cost.totCost;
+        existing.finalTotCost += cost.finalTotCost;
+      } else {
+        consolidated.set(key, { ...cost });
+      }
+    });
+    
+    return Array.from(consolidated.values());
+  }
+
+  /**
+   * Calcola KPI (GTO/GDS, Internal/External)
+   */
+  private calculateKPIs(vendorCosts: VendorCost[]): KPIData {
+    const gtoRoles = ['G2', 'TA'];
+    const gdsRoles = ['G1', 'PM'];
+
+    // GTO calculations
+    const gtoInternal = vendorCosts
+      .filter(vc => gtoRoles.includes(vc.role) && vc.isInternal)
+      .reduce((sum, vc) => sum + vc.finalTotCost, 0);
+
+    const gtoExternal = vendorCosts
+      .filter(vc => gtoRoles.includes(vc.role) && !vc.isInternal)
+      .reduce((sum, vc) => sum + vc.finalTotCost, 0);
+
+    const gtoTotal = gtoInternal + gtoExternal;
+
+    // GDS calculations
+    const gdsInternal = vendorCosts
+      .filter(vc => gdsRoles.includes(vc.role) && vc.isInternal)
+      .reduce((sum, vc) => sum + vc.finalTotCost, 0);
+
+    const gdsExternal = vendorCosts
+      .filter(vc => gdsRoles.includes(vc.role) && !vc.isInternal)
+      .reduce((sum, vc) => sum + vc.finalTotCost, 0);
+
+    const gdsTotal = gdsInternal + gdsExternal;
+    const totalProject = gtoTotal + gdsTotal;
+
+    // Calculate percentages
+    const totalInternal = gtoInternal + gdsInternal;
+    const totalExternal = gtoExternal + gdsExternal;
+
+    return {
+      gto: {
+        internal: gtoInternal,
+        external: gtoExternal,
+        total: gtoTotal,
+        internalPercentage: gtoTotal > 0 ? (gtoInternal / gtoTotal) * 100 : 0,
+        externalPercentage: gtoTotal > 0 ? (gtoExternal / gtoTotal) * 100 : 0
+      },
+      gds: {
+        internal: gdsInternal,
+        external: gdsExternal,
+        total: gdsTotal,
+        internalPercentage: gdsTotal > 0 ? (gdsInternal / gdsTotal) * 100 : 0,
+        externalPercentage: gdsTotal > 0 ? (gdsExternal / gdsTotal) * 100 : 0
+      },
+      totalProject: totalProject,
+      totalInternalPercentage: totalProject > 0 ? (totalInternal / totalProject) * 100 : 0,
+      totalExternalPercentage: totalProject > 0 ? (totalExternal / totalProject) * 100 : 0
+    };
+  }
+
+  /**
+   * Applica override manuali Final MDs
+   */
+  private applyFinalMDsOverrides(vendorCosts: VendorCost[]): VendorCost[] {
+    const store = this.getStore();
+    const state = store.getState();
+    const overrides = state.calculationsData?.finalMDsOverrides || {};
+    
+    return vendorCosts.map(cost => {
+      const key = `${cost.vendorId}-${cost.role}-${cost.department}`;
+      const override = overrides[key];
+      
+      if (override !== undefined) {
+        return {
+          ...cost,
+          finalMDs: override,
+          finalTotCost: override * cost.officialRate
+        };
+      }
+      
+      return cost;
+    });
+  }
+
+  /**
+   * EDITING: Update Final MDs per vendor
+   */
+  updateFinalMDs(vendorId: string, role: string, department: string, newValue: number): void {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+      
+      // Salva override
+      const key = `${vendorId}-${role}-${department}`;
+      state.updateFinalMDsOverride(key, newValue);
+      
+      // Ricalcola tutto (calcoli ogni volta come richiesto)
+      this.calculateProjectCosts();
+      
+      console.log('Final MDs updated successfully:', { vendorId, role, department, newValue });
+    } catch (error) {
+      console.error('Failed to update Final MDs:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * FILTRI: Applica filtri vendor e role
+   */
+  applyFilters(vendorFilter: string, roleFilter: string): void {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+      
+      state.setCalculationsFilters({ vendor: vendorFilter, role: roleFilter });
+      
+      console.log('Filters applied:', { vendor: vendorFilter, role: roleFilter });
+    } catch (error) {
+      console.error('Failed to apply filters:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Ottiene costi filtrati per la UI
+   */
+  getFilteredCosts(): VendorCost[] {
+    const store = this.getStore();
+    const state = store.getState();
+    const { vendorCosts = [], filters = { vendor: 'all', role: 'all' } } = state.calculationsData || {};
+    
+    return vendorCosts.filter(cost => {
+      const vendorMatch = filters.vendor === 'all' || cost.vendorId === filters.vendor;
+      const roleMatch = filters.role === 'all' || cost.role === filters.role;
+      return vendorMatch && roleMatch;
+    });
+  }
+
+  /**
+   * SHARE: Condivisione email (formato Excel mantenuto)
+   */
+  shareByEmail(): void {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+      const currentProject = state.currentProject;
+      const { vendorCosts = [], kpiData } = state.calculationsData || {};
+      
+      if (!currentProject) {
+        throw new Error('No project loaded');
+      }
+
+      // Genera email con formato Excel attuale
+      const emailData = this.generateEmailContent(currentProject, vendorCosts, kpiData);
+      
+      // Apri client email
+      const emailUrl = `mailto:?subject=${encodeURIComponent(emailData.subject)}&body=${encodeURIComponent(emailData.body)}`;
+      window.open(emailUrl);
+      
+      console.log('Email sharing initiated');
+    } catch (error) {
+      console.error('Failed to share by email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * COPY: Copia dati in clipboard
+   */
+  async copyToClipboard(): Promise<void> {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+      const { vendorCosts = [], filters = { vendor: 'all', role: 'all' } } = state.calculationsData || {};
+      
+      // Apply filters directly here
+      const filteredCosts = vendorCosts.filter(cost => {
+        const vendorMatch = filters.vendor === 'all' || cost.vendorId === filters.vendor;
+        const roleMatch = filters.role === 'all' || cost.role === filters.role;
+        return vendorMatch && roleMatch;
+      });
+      
+      const tabularData = this.generateTabularData(filteredCosts);
+      
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(tabularData);
+      } else {
+        this.fallbackCopyToClipboard(tabularData);
+      }
+      
+      console.log('Data copied to clipboard');
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Helper: Ottiene dati supplier
+   */
+  private getSupplierData(supplierId: string): any {
+    const configManager = this.getConfigManager();
+    if (!configManager) {
+      console.error(`ConfigManager not available for supplier: ${supplierId}`);
+      return null;
+    }
+    
+    // Get project configuration from current project (following FeatureActions pattern)
+    const store = this.getStore();
+    const state = store?.getState();
+    const currentProject = state?.currentProject;
+    const projectConfig = currentProject?.configuration;
+    
+    
+    // Cerca nei suppliers (external)
+    const suppliers = configManager.getSuppliers(projectConfig) || [];
+    let supplier = suppliers.find(s => s.id === supplierId);
+    
+    if (supplier) {
+      return supplier;
+    }
+    
+    // Se non trovato, cerca negli internal resources
+    const internalResources = configManager.getInternalResources(projectConfig) || [];
+    supplier = internalResources.find(r => r.id === supplierId);
+    
+    if (supplier) {
+      supplier.type = 'internal';
+      return supplier;
+    }
+    
+    return null;
+  }
+
+  /**
+   * Helper: Ottiene dati team member
+   */
+  private getTeamMemberData(memberId: string): any {
+    const teamManager = (window as any).teamManager;
+    return teamManager?.getTeamMemberById(memberId);
+  }
+
+  /**
+   * Helper: Genera contenuto email
+   */
+  private generateEmailContent(project: any, vendorCosts: VendorCost[], kpiData: KPIData): { subject: string, body: string } {
+    const projectName = project.project?.name || 'Unknown Project';
+    const subject = `Calculations Summary - ${projectName}`;
+    
+    // Formato Excel mantenuto
+    let body = `Project: ${projectName}\\n\\n`;
+    
+    // KPI Summary
+    body += `=== KPI SUMMARY ===\\n`;
+    body += `Total Project Cost: €${kpiData.totalProject.toLocaleString()}\\n`;
+    body += `GTO Total: €${kpiData.gto.total.toLocaleString()} (Internal: ${kpiData.gto.internalPercentage.toFixed(1)}%, External: ${kpiData.gto.externalPercentage.toFixed(1)}%)\\n`;
+    body += `GDS Total: €${kpiData.gds.total.toLocaleString()} (Internal: ${kpiData.gds.internalPercentage.toFixed(1)}%, External: ${kpiData.gds.externalPercentage.toFixed(1)}%)\\n\\n`;
+    
+    // Tabella dettagliata
+    body += `=== DETAILED COSTS ===\\n`;
+    body += `Vendor\\tRole\\tDepartment\\tOfficial Rate\\tReal Rate\\tEstimated MDs\\tFinal MDs\\tTot Cost\\tFinal Tot Cost\\n`;
+    
+    vendorCosts.forEach(cost => {
+      body += `${cost.vendorName}\\t${cost.role}\\t${cost.department}\\t€${cost.officialRate}\\t€${cost.realRate}\\t${cost.estimatedMDs}\\t${cost.finalMDs}\\t€${cost.totCost}\\t€${cost.finalTotCost}\\n`;
+    });
+    
+    return { subject, body };
+  }
+
+  /**
+   * Helper: Genera dati tabulari per clipboard
+   */
+  private generateTabularData(vendorCosts: VendorCost[]): string {
+    let data = 'Vendor\\tRole\\tDepartment\\tOfficial Rate\\tReal Rate\\tEstimated MDs\\tFinal MDs\\tTot Cost\\tFinal Tot Cost\\n';
+    
+    vendorCosts.forEach(cost => {
+      data += `${cost.vendorName}\\t${cost.role}\\t${cost.department}\\t€${cost.officialRate}\\t€${cost.realRate}\\t${cost.estimatedMDs}\\t${cost.finalMDs}\\t€${cost.totCost.toLocaleString()}\\t€${cost.finalTotCost.toLocaleString()}\\n`;
+    });
+    
+    return data;
+  }
+
+  /**
+   * Fallback copy to clipboard
+   */
+  private fallbackCopyToClipboard(text: string): void {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      console.log('Fallback copy successful');
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
+    }
+    
+    document.body.removeChild(textArea);
+  }
+
+  /**
+   * Reset tutti i Final MDs ai valori stimati
+   */
+  resetAllFinalMDs(): void {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+      
+      // Rimuovi tutti gli override
+      state.clearFinalMDsOverrides();
+      
+      // Ricalcola
+      this.calculateProjectCosts();
+      
+      console.log('All Final MDs reset to estimated values');
+    } catch (error) {
+      console.error('Failed to reset Final MDs:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Ottiene lista unica vendors per filtri
+   */
+  getUniqueVendors(): Array<{ id: string, name: string }> {
+    const store = this.getStore();
+    const state = store.getState();
+    const { vendorCosts = [] } = state.calculationsData || {};
+    
+    const vendors = new Map();
+    vendorCosts.forEach(cost => {
+      if (!vendors.has(cost.vendorId)) {
+        vendors.set(cost.vendorId, { id: cost.vendorId, name: cost.vendorName });
+      }
+    });
+    
+    return Array.from(vendors.values());
+  }
+
+  /**
+   * Ottiene lista unica roles per filtri
+   */
+  getUniqueRoles(): string[] {
+    const store = this.getStore();
+    const state = store.getState();
+    const { vendorCosts = [] } = state.calculationsData || {};
+    
+    const roles = new Set<string>();
+    vendorCosts.forEach(cost => {
+      roles.add(cost.role);
+    });
+    
+    return Array.from(roles);
+  }
+}
+
+// Create singleton instance
+export const calculationsActions = new CalculationsActions();

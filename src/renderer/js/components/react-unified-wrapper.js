@@ -28,6 +28,16 @@ class ReactFeaturesWrapper extends window.ReactPageWrapper {
 }
 
 /**
+ * ReactCalculationsWrapper - Calculations page wrapper
+ * Pattern State/Actions/Dispatcher: Delega tutto a ReactPageWrapper generico
+ */
+class ReactCalculationsWrapper extends window.ReactPageWrapper {
+    constructor() {
+        super('calculations');
+    }
+}
+
+/**
  * ReactProjectManagerWrapper - Projects page wrapper
  * Pattern State/Actions/Dispatcher: Delega tutto a ReactPageWrapper generico
  * + Legacy compatibility methods per progetti
@@ -132,7 +142,8 @@ class ReactProjectManagerWrapper extends window.ReactPageWrapper {
 // Make wrapper classes available globally (backward compatibility)
 if (typeof window !== 'undefined') {
     window.ReactPhasesWrapper = ReactPhasesWrapper;
-    window.ReactFeaturesWrapper = ReactFeaturesWrapper; 
+    window.ReactFeaturesWrapper = ReactFeaturesWrapper;
+    window.ReactCalculationsWrapper = ReactCalculationsWrapper;
     window.ReactProjectManagerWrapper = ReactProjectManagerWrapper;
     
     console.log('✅ React Unified Wrappers registered globally (State/Actions/Dispatcher pattern)');

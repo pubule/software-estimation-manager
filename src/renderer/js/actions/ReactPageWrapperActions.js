@@ -206,6 +206,12 @@ class ReactPageWrapperActions {
                 componentName: 'ProjectManager',
                 containerId: 'react-project-manager-root',
                 wrapperName: 'ReactProjectManagerWrapper'
+            },
+            calculations: {
+                pageId: 'calculations-page',
+                componentName: 'CalculationsPage',
+                containerId: 'react-calculations-root',
+                wrapperName: 'ReactCalculationsWrapper'
             }
         };
         

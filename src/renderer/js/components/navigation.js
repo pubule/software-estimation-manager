@@ -57,6 +57,7 @@ class EnhancedNavigationManager extends NavigationManager {
         this.reactProjectWrapper = null;
         this.reactFeaturesWrapper = null;
         this.reactPhasesWrapper = null;
+        this.reactCalculationsWrapper = null;
 
         this.initializeNestedNavigation();
         this.setupStoreSubscription();
@@ -199,6 +200,12 @@ class EnhancedNavigationManager extends NavigationManager {
         if (this.reactPhasesWrapper) {
             this.reactPhasesWrapper.destroy();
             this.reactPhasesWrapper = null;
+        }
+
+        // Cleanup React Calculations wrapper
+        if (this.reactCalculationsWrapper) {
+            this.reactCalculationsWrapper.destroy();
+            this.reactCalculationsWrapper = null;
         }
     }
 
@@ -1106,8 +1113,10 @@ class EnhancedNavigationManager extends NavigationManager {
         console.log('Navigated to Phases page with React wrapper');
     }
 
-    // Special method for calculations page
-    showCalculationsPage() {
+    // Special method for calculations page - Using React wrapper
+    async showCalculationsPage() {
+        console.log('🔄 NavigationManager: showCalculationsPage - Using State/Actions/Dispatcher pattern');
+
         // Check if store is available
         if (!this.store || !this.store.getState) {
             console.warn('Store not available for NavigationManager.showCalculationsPage, navigation aborted');
@@ -1124,6 +1133,14 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
+        // Use NavigationActions for business logic (Pattern State/Actions/Dispatcher)
+        try {
+            const navigationActions = new window.NavigationActions();
+            navigationActions.navigateToCalculations();
+        } catch (error) {
+            console.error('Navigation to calculations failed:', error);
+        }
+
         // Hide all pages
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
@@ -1133,23 +1150,62 @@ class EnhancedNavigationManager extends NavigationManager {
         this.updateActiveStates('calculations');
 
         // Show target page
-        const targetPage = document.getElementById('calculations-page');
-        if (targetPage) {
-            targetPage.classList.add('active');
-
-            // Initialize calculations manager if not exists
-            if (!this.app.calculationsManager) {
-                this.app.calculationsManager = new CalculationsManager(this.app, this.configManager);
-            }
-
-            // Render calculations content
-            setTimeout(() => {
-                this.app.calculationsManager.render();
-            }, 100);
+        const calculationsPage = document.getElementById('calculations-page');
+        if (calculationsPage) {
+            calculationsPage.classList.add('active');
         }
 
-        // Store current section
-        this.currentSection = 'calculations';
+        // Initialize React wrapper for calculations
+        const isComponentAlreadyInitialized = state.isComponentInitialized('calculations');
+        const hasExistingWrapper = !!this.reactCalculationsWrapper;
+        
+        if (!hasExistingWrapper || !isComponentAlreadyInitialized) {
+            console.log('🔄 Initializing React Calculations wrapper...');
+            console.log('ReactCalculationsWrapper available:', !!window.ReactCalculationsWrapper);
+            
+            if (window.ReactCalculationsWrapper) {
+                this.reactCalculationsWrapper = new window.ReactCalculationsWrapper();
+                
+                try {
+                    await this.reactCalculationsWrapper.init();
+                    console.log('✅ React Calculations wrapper initialized successfully');
+                    
+                    // Mark component as initialized in store
+                    state.setComponentInitialized('calculations', true);
+                    
+                } catch (error) {
+                    console.error('❌ Failed to initialize React Calculations wrapper:', error);
+                    // Show fallback content
+                    if (calculationsPage) {
+                        calculationsPage.innerHTML = `
+                            <div style="padding: 2rem; text-align: center; color: #ff6b6b;">
+                                <h3>❌ Calculations Page Error</h3>
+                                <p>Failed to load React components</p>
+                                <p><small>Error: ${error.message}</small></p>
+                                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                                    Reload Application
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            } else {
+                console.error('❌ ReactCalculationsWrapper not available on window object');
+                console.log('Available on window:', Object.keys(window).filter(k => k.includes('React')));
+            }
+        } else {
+            console.log('✅ React Calculations wrapper already initialized - PRESERVING STATE');
+            
+            // Ensure we're using the existing wrapper without re-init
+            if (this.reactCalculationsWrapper && this.reactCalculationsWrapper.isInitialized) {
+                console.log('🔄 Using existing calculations wrapper - no reset needed');
+            }
+        }
+
+        // Update global state
+        if (this.store && this.store.getState) {
+            this.store.getState().setSection('calculations');
+        }
 
         // Ensure projects is expanded
         if (!this.projectsExpanded) {
@@ -1157,7 +1213,7 @@ class EnhancedNavigationManager extends NavigationManager {
             this.updateProjectsExpansion();
         }
 
-        console.log('Navigated to calculations page');
+        console.log('Navigated to Calculations page with React wrapper');
     }
 
     // Special method for version history page

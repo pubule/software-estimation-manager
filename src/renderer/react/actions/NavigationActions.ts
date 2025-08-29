@@ -148,6 +148,27 @@ export class NavigationActions {
     if (!store) return;
     
     const state = store.getState();
+    
+    // Verifica che ci sia un progetto caricato
+    if (!state.currentProject) {
+      console.warn('Cannot navigate to calculations: No project loaded');
+      // Potresti aggiungere una notification qui se necessario
+      return;
+    }
+    
+    // Preserva stato della sezione corrente se necessario
+    this.preserveCurrentSectionState();
+    
+    // Verifica se calculations wrapper React è già inizializzato
+    const isInitialized = state.isComponentInitialized('calculations');
+    
+    if (!isInitialized) {
+      console.log('Calculations page will initialize for first time');
+      // Il wrapper verrà inizializzato dal ReactCalculationsWrapper
+    } else {
+      console.log('Calculations wrapper already initialized, preserving state');
+    }
+    
     state.setCurrentSection('calculations');
     console.log('Navigated to calculations page');
   }

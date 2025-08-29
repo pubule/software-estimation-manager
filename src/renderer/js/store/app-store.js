@@ -141,6 +141,17 @@ const appStore = window.zustand.createStore((set, get) => ({
     duplicateSourceData: null, // Data from feature to duplicate
     
     // ======================
+    // CALCULATIONS STATE
+    // ======================
+    calculationsData: {
+        vendorCosts: [],
+        kpiData: null,
+        filters: { vendor: 'all', role: 'all' },
+        finalMDsOverrides: {}, // Manual overrides per vendor-role-dept
+        version: 0 // Version counter to force React re-renders
+    },
+    
+    // ======================
     // PROJECT ACTIONS
     // ======================
     
@@ -999,7 +1010,75 @@ const appStore = window.zustand.createStore((set, get) => ({
             
             return currentSort.direction === 'desc' ? -comparison : comparison;
         });
-    }
+    },
+    
+    // ======================
+    // CALCULATIONS ACTIONS (State/Actions/Dispatcher Pattern)
+    // ======================
+    
+    /**
+     * Set calculations data (vendor costs + KPI)
+     */
+    setCalculationsData: (data) => {
+        const currentState = get();
+        set({
+            calculationsData: {
+                ...(currentState.calculationsData || {}),
+                ...data,
+                version: (currentState.calculationsData?.version || 0) + 1
+            }
+        });
+    },
+    
+    /**
+     * Update Final MDs override per vendor
+     */
+    updateFinalMDsOverride: (key, value) => set(state => ({
+        calculationsData: {
+            ...state.calculationsData,
+            finalMDsOverrides: {
+                ...state.calculationsData.finalMDsOverrides,
+                [key]: value
+            },
+            version: (state.calculationsData?.version || 0) + 1 // Increment version
+        }
+    })),
+    
+    /**
+     * Set calculations filters
+     */
+    setCalculationsFilters: (filters) => set(state => ({
+        calculationsData: {
+            ...state.calculationsData,
+            filters: {
+                ...state.calculationsData.filters,
+                ...filters
+            }
+        }
+    })),
+    
+    /**
+     * Clear all Final MDs overrides
+     */
+    clearFinalMDsOverrides: () => set(state => ({
+        calculationsData: {
+            ...state.calculationsData,
+            finalMDsOverrides: {}
+        }
+    })),
+    
+    /**
+     * Clear calculations data
+     */
+    clearCalculations: () => set(state => ({
+        calculationsData: {
+            vendorCosts: [],
+            kpiData: null,
+            filters: { vendor: 'all', role: 'all' },
+            finalMDsOverrides: {},
+            version: (state.calculationsData?.version || 0) + 1 // Increment version
+        }
+    }))
 }));
 
 // ======================

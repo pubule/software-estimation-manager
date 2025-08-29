@@ -22,6 +22,13 @@ import PhasesTotals from './components/PhasesTotals';
 import DevelopmentNotice from './components/DevelopmentNotice';
 import SupplierSelectors from './components/SupplierSelectors';
 
+// Import calculations components
+import CalculationsPage from './components/CalculationsPage';
+
+// Import Actions classes for global registration
+import { NavigationActions } from './actions/NavigationActions';
+import '../js/actions/ReactPageWrapperActions.js';
+
 // Import the existing store
 import '../js/store/app-store.js';
 
@@ -46,7 +53,10 @@ declare global {
       PhasesTotals: typeof PhasesTotals;
       DevelopmentNotice: typeof DevelopmentNotice;
       SupplierSelectors: typeof SupplierSelectors;
+      CalculationsPage: typeof CalculationsPage;
     };
+    NavigationActions: typeof NavigationActions;
+    ReactPageWrapperActions: any;
   }
 }
 
@@ -68,7 +78,12 @@ window.ReactComponents = {
   PhaseRow,
   PhasesTotals,
   DevelopmentNotice,
-  SupplierSelectors
+  SupplierSelectors,
+  CalculationsPage
 };
 
+// Make Actions classes available globally
+window.NavigationActions = NavigationActions;
+
 console.log('✅ React components exported globally:', Object.keys(window.ReactComponents));
+console.log('✅ NavigationActions exported globally');

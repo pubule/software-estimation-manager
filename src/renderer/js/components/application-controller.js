@@ -189,7 +189,7 @@ class ApplicationController extends BaseComponent {
         try {
             // Validate essential dependencies (more flexible for refactored components)
             const requiredDependencies = [
-                'CalculationsManager', 'EnhancedNavigationManager', 'ModalManager',
+                'EnhancedNavigationManager', 'ModalManager',
                 'ProjectBusinessLogic', 'NotificationManager', 'Helpers'
             ];
             
@@ -302,8 +302,7 @@ class ApplicationController extends BaseComponent {
         this.managers.assumptions = new AssumptionsManager();
         await this.managers.assumptions.init();
         
-        // Calculations manager
-        this.managers.calculations = new CalculationsManager(this, this.managers.config);
+        // CalculationsManager removed - migrated to React with State/Actions/Dispatcher pattern
         
         // Project business logic
         this.managers.project = new ProjectBusinessLogic(this);

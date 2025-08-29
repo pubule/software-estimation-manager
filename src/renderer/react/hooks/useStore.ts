@@ -96,11 +96,27 @@ export function useStore<T>(selector: (state: AppState) => T): T {
 
     // Subscribe to store changes
     const unsubscribe = store.subscribe((newState: AppState) => {
-      setState(selector(newState));
+      const newValue = selector(newState);
+      
+      // Force update by using a callback to ensure React detects changes
+      setState(prevValue => {
+        // Deep comparison for objects to detect nested changes
+        if (typeof newValue === 'object' && typeof prevValue === 'object') {
+          if (JSON.stringify(newValue) !== JSON.stringify(prevValue)) {
+            return newValue;
+          }
+          return prevValue;
+        }
+        // Primitive comparison
+        if (newValue !== prevValue) {
+          return newValue;
+        }
+        return prevValue;
+      });
     });
 
     return unsubscribe;
-  }, [selector]);
+  }, []); // Empty dependency array since we handle selector internally
 
   return state;
 }
