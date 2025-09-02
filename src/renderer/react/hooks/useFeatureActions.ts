@@ -144,6 +144,14 @@ export const useFeatureActions = () => {
     }
   }, []);
 
+  const getSupplierDisplayName = useCallback((supplierId: string) => {
+    try {
+      return featureActions.getSupplierDisplayName(supplierId);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
   const showSuccessNotification = useCallback((message: string) => {
     try {
       featureActions.showSuccessNotification(message);
@@ -191,6 +199,7 @@ export const useFeatureActions = () => {
     // Display helpers
     getCategoryNameById,
     getFeatureTypeNameById,
+    getSupplierDisplayName,
     
     // Notifications
     showSuccessNotification,

@@ -29,7 +29,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
             <th>ID</th>
             <th>Description</th>
             <th>Category</th>
-            <th>Type</th>
+            <th>Supplier</th>
             <th>Real MD</th>
             <th>Calculated MD</th>
             <th>Actions</th>
@@ -49,8 +49,8 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
                   {featureActions.getCategoryNameById(feature.category)}
                 </span>
               </td>
-              <td className="feature-type">
-                {featureActions.getFeatureTypeNameById(feature.category, feature.featureType)}
+              <td className="feature-supplier">
+                {featureActions.getSupplierDisplayName(feature.supplier)}
               </td>
               <td className="feature-real-md">
                 {feature.realManDays || 0}
