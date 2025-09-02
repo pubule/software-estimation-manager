@@ -16,6 +16,9 @@ interface CalculationsPageProps {
 }
 
 const CalculationsPage: React.FC<CalculationsPageProps> = () => {
+  // State for copy feedback
+  const [isCopied, setIsCopied] = React.useState(false);
+  
   // SOLO lettura dallo store - Selettori specifici per massima reattività
   const currentProject = useStore(state => state.currentProject);
   const calculationsData = useStore(state => state.calculationsData);
@@ -103,6 +106,12 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     // MAI business logic qui! Solo chiamata ad Actions
     try {
       await copyToClipboard();
+      setIsCopied(true);
+      
+      // Reset after 2 seconds
+      setTimeout(() => {
+        setIsCopied(false);
+      }, 2000);
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
     }
@@ -305,11 +314,12 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
         <div className="vendor-cost-header">
           <h3>Vendor Cost Summary</h3>
           <button 
-            className="btn btn-primary btn-share"
+            className={`btn ${isCopied ? 'btn-success' : 'btn-primary'} btn-share`}
             onClick={handleCopyTemplate}
             title="Copy template to Clipboard"
+            disabled={isCopied}
           >
-            <i className="fas fa-copy"></i> Share
+            <i className={`fas ${isCopied ? 'fa-check' : 'fa-copy'}`}></i> {isCopied ? 'Copied!' : 'Share'}
           </button>
         </div>
         
