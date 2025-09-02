@@ -135,36 +135,63 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
               <tr className="feature-expanded-row">
                 <td colSpan={8} className="expanded-content">
                   <div className="expanded-details">
-                    <div className="expanded-left">
-                      <div className="detail-item">
-                        <span className="detail-label">Feature Type:</span>
-                        <span className="detail-value">
-                          {featureActions.getFeatureTypeNameById(feature.category, feature.featureType)}
-                        </span>
+                    {/* Technical Information Card */}
+                    <div className="detail-card technical-card">
+                      <div className="card-header">
+                        <i className="fas fa-cog card-icon"></i>
+                        <h4>Technical Details</h4>
                       </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Expertise:</span>
-                        <span className="detail-value">{formatPercentage(feature.expertise)}</span>
-                      </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Risk Margin:</span>
-                        <span className="detail-value">{formatPercentage(feature.riskMargin)}</span>
+                      <div className="card-content">
+                        <div className="detail-item">
+                          <i className="fas fa-tag detail-icon"></i>
+                          <span className="detail-label">Feature Type</span>
+                          <span className="detail-value">
+                            {featureActions.getFeatureTypeNameById(feature.category, feature.featureType)}
+                          </span>
+                        </div>
+                        <div className="detail-item">
+                          <i className="fas fa-chart-line detail-icon"></i>
+                          <span className="detail-label">Expertise</span>
+                          <span className="detail-value expertise-value">{formatPercentage(feature.expertise)}</span>
+                        </div>
+                        <div className="detail-item">
+                          <i className="fas fa-exclamation-triangle detail-icon"></i>
+                          <span className="detail-label">Risk Margin</span>
+                          <span className="detail-value risk-value">{formatPercentage(feature.riskMargin)}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="expanded-right">
-                      <div className="detail-item">
-                        <span className="detail-label">Notes:</span>
-                        <span className="detail-value notes-value">
-                          {feature.notes || 'No notes'}
-                        </span>
+
+                    {/* Notes Card */}
+                    <div className="detail-card notes-card">
+                      <div className="card-header">
+                        <i className="fas fa-sticky-note card-icon"></i>
+                        <h4>Notes</h4>
                       </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Created:</span>
-                        <span className="detail-value">{formatDate(feature.created)}</span>
+                      <div className="card-content">
+                        <div className="notes-content">
+                          {feature.notes || 'No notes available'}
+                        </div>
                       </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Modified:</span>
-                        <span className="detail-value">{formatDate(feature.modified)}</span>
+                    </div>
+
+                    {/* Timeline Card */}
+                    <div className="detail-card timeline-card">
+                      <div className="card-header">
+                        <i className="fas fa-calendar card-icon"></i>
+                        <h4>Timeline</h4>
+                      </div>
+                      <div className="card-content">
+                        <div className="detail-item">
+                          <i className="fas fa-plus-circle detail-icon"></i>
+                          <span className="detail-label">Created</span>
+                          <span className="detail-value">{formatDate(feature.created)}</span>
+                        </div>
+                        <div className="detail-item">
+                          <i className="fas fa-edit detail-icon"></i>
+                          <span className="detail-label">Modified</span>
+                          <span className="detail-value">{formatDate(feature.modified)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
