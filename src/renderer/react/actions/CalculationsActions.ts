@@ -624,16 +624,40 @@ export class CalculationsActions {
   }
 
   /**
-   * Helper: Genera dati tabulari per clipboard
+   * Helper: Genera template email professionale
    */
   private generateTabularData(vendorCosts: VendorCost[]): string {
-    let data = 'Vendor\\tRole\\tDepartment\\tOfficial Rate\\tReal Rate\\tEstimated MDs\\tFinal MDs\\tTot Cost\\tFinal Tot Cost\\n';
+    const store = this.getStore();
+    const state = store.getState();
+    const currentProject = state.currentProject;
+    const { kpiData } = state.calculationsData || {};
     
-    vendorCosts.forEach(cost => {
-      data += `${cost.vendorName}\\t${cost.role}\\t${cost.department}\\t€${cost.officialRate}\\t€${cost.realRate}\\t${cost.estimatedMDs}\\t${cost.finalMDs}\\t€${cost.totCost.toLocaleString()}\\t€${cost.finalTotCost.toLocaleString()}\\n`;
-    });
+    if (!currentProject) {
+      return 'No project loaded';
+    }
     
-    return data;
+    // Try to get project name from project.project.name or project.name
+    const projectName = currentProject.project?.name || currentProject.name || 'Project';
+    // Use GTO total instead of totalProject
+    const gtoTotal = kpiData?.gto?.total || 0;
+    
+    // Get assumptions from project
+    const assumptions = currentProject.assumptions || [];
+    const assumptionsList = assumptions.length > 0
+      ? assumptions.map(assumption => `- ${assumption.description}`).join('\n')
+      : '- [To be defined]';
+    
+    const emailTemplate = `Dear colleagues,
+Please find below the estimation details for the implementation of ${projectName} based on the provided requirements.
+
+The estimated budget for the technical part is ${gtoTotal.toLocaleString()} € vat incl.
+
+This includes all necessary activities such as technical analysis, development, SIT, support UAT phases, deployment, and post go live support.
+
+Assumptions and out of scopes:
+${assumptionsList}`;
+    
+    return emailTemplate;
   }
 
   /**

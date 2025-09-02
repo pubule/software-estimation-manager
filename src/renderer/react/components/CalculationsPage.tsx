@@ -99,9 +99,13 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     applyFilters(vendorFilter, roleFilter);
   };
   
-  const handleShareByEmail = () => {
+  const handleCopyTemplate = async () => {
     // MAI business logic qui! Solo chiamata ad Actions
-    shareByEmail();
+    try {
+      await copyToClipboard();
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
   };
   
   const handleCopyToClipboard = async () => {
@@ -302,10 +306,10 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
           <h3>Vendor Cost Summary</h3>
           <button 
             className="btn btn-primary btn-share"
-            onClick={handleShareByEmail}
-            title="Share by Email"
+            onClick={handleCopyTemplate}
+            title="Copy template to Clipboard"
           >
-            <i className="fas fa-share"></i> Share
+            <i className="fas fa-copy"></i> Share
           </button>
         </div>
         
