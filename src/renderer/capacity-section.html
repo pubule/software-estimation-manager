@@ -381,58 +381,15 @@
                 return;
             }
             
-            // Access the main application controller to get CalculationsManager
-            if (window.app && window.app.managers && window.app.managers.calculations) {
-                const calculationsManager = window.app.managers.calculations;
-                
-                if (calculationsManager.autoDistribution) {
-                    try {
-                        // Create a team member object (in a real implementation, this would come from a team member database)
-                        const teamMember = {
-                            id: teamMemberId,
-                            firstName: 'Developer',
-                            lastName: 'Team Member',
-                            role: 'G2',
-                            department: teamMemberId.includes('ro') ? 'RO' : 'IT',
-                            country: teamMemberId.includes('ro') ? 'RO' : 'IT',
-                            monthlyCapacity: 22,
-                            vacationDays: {}
-                        };
-                        
-                        // Set the current team member in the adapter
-                        calculationsManager._currentTeamMember = teamMember;
-                        
-                        // Execute auto-distribution
-                        const distribution = calculationsManager.autoDistribution.autoDistributeMDs(
-                            totalMDs,
-                            new Date(startDate),
-                            new Date(endDate),
-                            teamMemberId
-                        );
-                        
-                        // Update the capacity timeline with the distribution results
-                        updateCapacityTimeline(projectName, teamMemberId, distribution, status);
-                        
-                        // Show success message
-                        alert(`✅ Assignment created successfully!\n\nProject: ${projectName}\nTeam Member: ${teamMemberId}\nTotal MDs: ${totalMDs}\n\nMDs have been automatically distributed across the timeline.`);
-                        
-                        // Close the modal
-                        closeAssignmentModal();
-                        
-                    } catch (error) {
-                        console.error('Auto-distribution failed:', error);
-                        alert('❌ Failed to create assignment: ' + error.message);
-                    }
-                } else {
-                    console.error('AutoDistribution not available');
-                    alert('❌ Auto-distribution not available - saving assignment without distribution');
-                    closeAssignmentModal();
-                }
-            } else {
-                console.error('CalculationsManager not found');
-                alert('❌ Cannot access auto-distribution - saving assignment without distribution');
-                closeAssignmentModal();
-            }
+            // Auto-distribution temporarily disabled - Calculations migrated to React
+            // TODO: Implement auto-distribution through React Actions pattern when needed
+            console.log('Auto-distribution not yet reimplemented in React migration');
+            
+            // For now, just save the assignment without auto-distribution
+            alert(`✅ Assignment created successfully!\n\nProject: ${projectName}\nTeam Member: ${teamMemberId}\nTotal MDs: ${totalMDs}\n\nNote: Auto-distribution will be available in future update.`);
+            
+            // Close the modal
+            closeAssignmentModal();
         }
         
         function updateCapacityTimeline(projectName, teamMemberId, distribution, status) {

@@ -329,7 +329,7 @@ class ApplicationController extends BaseComponent {
         
         // Set up additional backward compatibility aliases
         this.featureManager = null; // React implementation - no longer needed
-        this.calculationsManager = this.managers.calculations;
+        this.calculationsManager = null; // Migrated to React - use window.appStore.getState().calculationsData
         this.projectManager = this.managers.project;
         // REMOVED: React-only approach
         // this.projectPhasesManager = this.managers.projectPhases;

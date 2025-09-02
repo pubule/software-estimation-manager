@@ -113,9 +113,13 @@ class VersionManager {
 
         // Trigger calculations update to ensure data is current
         // Use app reference for manager access (non-state related)
-        if (this.app?.calculationsManager) {
-            this.app.calculationsManager.calculateVendorCosts();
-            this.app.calculationsManager.calculateKPIs();
+        // Calculations now handled by React component with State/Actions pattern
+        // Triggering recalculation through store update
+        if (window.appStore) {
+            const calculationsActions = window.calculationsActions;
+            if (calculationsActions) {
+                calculationsActions.recalculateAll();
+            }
         }
 
         // Initialize versions array if it doesn't exist
@@ -928,9 +932,11 @@ class VersionManager {
         delete snapshot.versions; // Remove versions to avoid storing versions within versions
         
         // Include current calculation data if available, but exclude timestamp for comparison consistency
-        if (this.app.calculationsManager?.vendorCosts) {
+        // Get calculations data from store (migrated to React)
+        const calculationsData = window.appStore?.getState()?.calculationsData;
+        if (calculationsData?.vendorCosts) {
             snapshot.calculationData = {
-                vendorCosts: JSON.parse(JSON.stringify(this.app.calculationsManager.vendorCosts))
+                vendorCosts: JSON.parse(JSON.stringify(calculationsData.vendorCosts))
                 // NOTE: Excluding timestamp to avoid false changes in version comparison
             };
         }
@@ -2123,9 +2129,9 @@ class VersionManager {
 
     renderCalculationsComparison(versionToCompare) {
         
-        // Get current calculations data directly from the calculations manager if available
-        const currentCalculationsManager = this.app.calculationsManager;
-        const currentVendorCosts = currentCalculationsManager?.vendorCosts || [];
+        // Get current calculations data from store (migrated to React)
+        const currentCalculationsData = window.appStore?.getState()?.calculationsData;
+        const currentVendorCosts = currentCalculationsData?.vendorCosts || [];
         
         
         // Get compare version data from snapshot
