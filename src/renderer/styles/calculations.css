@@ -628,6 +628,13 @@
     padding: var(--spacing-xs) !important;
 }
 
+.final-tot-mds {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    justify-content: flex-start;
+}
+
 .final-mds-input {
     width: 60px;
     padding: var(--spacing-xs);
@@ -637,7 +644,7 @@
     color: var(--text-primary);
     font-size: var(--font-size-sm);
     text-align: center;
-    margin-right: var(--spacing-xs);
+    flex-shrink: 0;
 }
 
 .final-mds-input:focus {

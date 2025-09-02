@@ -180,8 +180,8 @@ export class CalculationsActions {
           const supplierData = this.getSupplierData(supplierId);
           if (!supplierData) return;
           
-          // Calculate MDs for this role in this phase
-          const phaseMDs = (phaseData.manDays * (percentage / 100));
+          // Calculate MDs for this role in this phase (round to 1 decimal)
+          const phaseMDs = Math.round((phaseData.manDays * (percentage / 100)) * 10) / 10;
           
           const cost: VendorCost = {
             vendorId: supplierId,
@@ -192,8 +192,8 @@ export class CalculationsActions {
             realRate: supplierData.realRate || 0,
             estimatedMDs: phaseMDs,
             finalMDs: phaseMDs,
-            totCost: phaseMDs * (supplierData.realRate || 0),
-            finalTotCost: phaseMDs * (supplierData.officialRate || 0),
+            totCost: Math.round(phaseMDs * (supplierData.realRate || 0)),
+            finalTotCost: Math.round(phaseMDs * (supplierData.officialRate || 0)),
             isInternal: supplierData.type === 'internal' || false
           };
           
@@ -211,21 +211,38 @@ export class CalculationsActions {
   private consolidateVendorCosts(costs: VendorCost[]): VendorCost[] {
     const consolidated = new Map<string, VendorCost>();
     
+    console.log('🔍 CONSOLIDATE DEBUG - Input costs:', costs.map(c => ({
+      vendorId: c.vendorId,
+      role: c.role,
+      dept: c.department,
+      key: `${c.vendorId}_${c.role}_${c.department}`,
+      finalMDs: c.finalMDs
+    })));
+    
     costs.forEach(cost => {
-      const key = `${cost.vendorId}-${cost.role}-${cost.department}`;
+      const key = `${cost.vendorId}_${cost.role}_${cost.department}`;
       
       if (consolidated.has(key)) {
         const existing = consolidated.get(key)!;
-        existing.estimatedMDs += cost.estimatedMDs;
-        existing.finalMDs += cost.finalMDs;
-        existing.totCost += cost.totCost;
-        existing.finalTotCost += cost.finalTotCost;
+        existing.estimatedMDs = Math.round((existing.estimatedMDs + cost.estimatedMDs) * 10) / 10;
+        existing.finalMDs = Math.round((existing.finalMDs + cost.finalMDs) * 10) / 10;
+        existing.totCost = Math.round(existing.totCost + cost.totCost);
+        existing.finalTotCost = Math.round(existing.finalTotCost + cost.finalTotCost);
       } else {
         consolidated.set(key, { ...cost });
       }
     });
     
-    return Array.from(consolidated.values());
+    const result = Array.from(consolidated.values());
+    console.log('🔍 CONSOLIDATE DEBUG - Output costs:', result.map(c => ({
+      vendorId: c.vendorId,
+      role: c.role,
+      dept: c.department,
+      key: `${c.vendorId}_${c.role}_${c.department}`,
+      finalMDs: c.finalMDs
+    })));
+    
+    return result;
   }
 
   /**
@@ -284,18 +301,35 @@ export class CalculationsActions {
   }
 
   /**
-   * Applica override manuali Final MDs
+   * Applica override manuali Final MDs (da store)
    */
   private applyFinalMDsOverrides(vendorCosts: VendorCost[]): VendorCost[] {
     const store = this.getStore();
     const state = store.getState();
     const overrides = state.calculationsData?.finalMDsOverrides || {};
     
-    return vendorCosts.map(cost => {
-      const key = `${cost.vendorId}-${cost.role}-${cost.department}`;
+    return this.applyFinalMDsOverridesWithCustom(vendorCosts, overrides);
+  }
+
+  /**
+   * Applica override manuali Final MDs (con override custom)
+   */
+  private applyFinalMDsOverridesWithCustom(vendorCosts: VendorCost[], overrides: Record<string, number>): VendorCost[] {
+    console.log('🔍 OVERRIDE DEBUG - Applying overrides:', overrides);
+    console.log('🔍 OVERRIDE DEBUG - VendorCosts before override:', vendorCosts.map(c => ({
+      vendorId: c.vendorId,
+      role: c.role,
+      dept: c.department,
+      key: `${c.vendorId}_${c.role}_${c.department}`,
+      finalMDs: c.finalMDs
+    })));
+    
+    const result = vendorCosts.map(cost => {
+      const key = `${cost.vendorId}_${cost.role}_${cost.department}`;
       const override = overrides[key];
       
       if (override !== undefined) {
+        console.log('🔍 OVERRIDE DEBUG - Applying override:', { key, override, originalMDs: cost.finalMDs });
         return {
           ...cost,
           finalMDs: override,
@@ -305,24 +339,57 @@ export class CalculationsActions {
       
       return cost;
     });
+    
+    console.log('🔍 OVERRIDE DEBUG - VendorCosts after override:', result.map(c => ({
+      vendorId: c.vendorId,
+      role: c.role,
+      dept: c.department,
+      finalMDs: c.finalMDs
+    })));
+    
+    return result;
   }
 
   /**
-   * EDITING: Update Final MDs per vendor
+   * EDITING: Update Final MDs per vendor - ATOMIC UPDATE
    */
   updateFinalMDs(vendorId: string, role: string, department: string, newValue: number): void {
     try {
       const store = this.getStore();
       const state = store.getState();
+      const currentProject = state.currentProject;
       
-      // Salva override
-      const key = `${vendorId}-${role}-${department}`;
-      state.updateFinalMDsOverride(key, newValue);
+      if (!currentProject) {
+        throw new Error('No project loaded');
+      }
+
+      // Get current overrides and add new one
+      const currentOverrides = state.calculationsData?.finalMDsOverrides || {};
+      const key = `${vendorId}_${role}_${department}`;
+      const updatedOverrides = {
+        ...currentOverrides,
+        [key]: newValue
+      };
       
-      // Ricalcola tutto (calcoli ogni volta come richiesto)
-      this.calculateProjectCosts();
+      console.log('🔍 ATOMIC UPDATE - Key:', key, 'Value:', newValue);
       
-      console.log('Final MDs updated successfully:', { vendorId, role, department, newValue });
+      // 1. Process all costs (same as calculateProjectCosts)
+      const vendorCosts = this.processAllCosts(currentProject);
+      
+      // 2. Apply ALL overrides (including the new one)
+      const costsWithOverrides = this.applyFinalMDsOverridesWithCustom(vendorCosts, updatedOverrides);
+      
+      // 3. Calculate KPIs
+      const kpiData = this.calculateKPIs(costsWithOverrides);
+      
+      // 4. SINGLE store update with everything
+      state.setCalculationsData({
+        vendorCosts: costsWithOverrides,
+        kpiData: kpiData,
+        finalMDsOverrides: updatedOverrides
+      });
+      
+      console.log('Final MDs updated atomically:', { vendorId, role, department, newValue });
     } catch (error) {
       console.error('Failed to update Final MDs:', error);
       throw error;
@@ -592,7 +659,7 @@ export class CalculationsActions {
     try {
       const store = this.getStore();
       const state = store.getState();
-      const key = `${vendorId}-${role}-${department}`;
+      const key = `${vendorId}_${role}_${department}`;
       
       // Rimuovi override specifico
       const currentOverrides = state.calculationsData?.finalMDsOverrides || {};

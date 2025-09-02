@@ -57,6 +57,14 @@ export const useCalculationsActions = () => {
     }
   }, []);
 
+  const getFilteredCosts = useCallback(() => {
+    try {
+      return calculationsActions.getFilteredCosts();
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
   const shareByEmail = useCallback(() => {
     try {
       calculationsActions.shareByEmail();
@@ -94,6 +102,7 @@ export const useCalculationsActions = () => {
     applyFilters,
     applyCategoryFilter,
     getVendorCountsByCategory,
+    getFilteredCosts,
     
     // Export/Share
     shareByEmail,

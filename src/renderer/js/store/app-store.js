@@ -1021,10 +1021,14 @@ const appStore = window.zustand.createStore((set, get) => ({
      */
     setCalculationsData: (data) => {
         const currentState = get();
+        const preservedOverrides = currentState.calculationsData?.finalMDsOverrides || {};
+        
         set({
             calculationsData: {
                 ...(currentState.calculationsData || {}),
                 ...data,
+                // Use overrides from data if provided, otherwise preserve current ones
+                finalMDsOverrides: data.finalMDsOverrides || preservedOverrides,
                 version: (currentState.calculationsData?.version || 0) + 1
             }
         });

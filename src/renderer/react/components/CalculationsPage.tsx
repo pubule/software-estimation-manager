@@ -16,16 +16,16 @@ interface CalculationsPageProps {
 }
 
 const CalculationsPage: React.FC<CalculationsPageProps> = () => {
-  // SOLO lettura dallo store
+  // SOLO lettura dallo store - Selettori specifici per massima reattività
   const currentProject = useStore(state => state.currentProject);
   const calculationsData = useStore(state => state.calculationsData);
   
-  // Version counter to force re-renders when calculations update
+  // Selettori specifici per ogni proprietà per forzare re-render
   const calculationsVersion = useStore(state => state.calculationsData?.version || 0);
-  
-  // Additional specific selectors to ensure reactivity  
   const vendorCosts = useStore(state => state.calculationsData?.vendorCosts || []);
   const kpiData = useStore(state => state.calculationsData?.kpiData);
+  const filters = useStore(state => state.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' });
+  const finalMDsOverrides = useStore(state => state.calculationsData?.finalMDsOverrides || {});
   
   
   
@@ -82,9 +82,8 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     resetAllFinalMDs();
   };
   
-  // Computed values per UI (derived state)
+  // Computed values per UI (derived state) - LOCAL reactive filtering
   const filteredCosts = useMemo(() => {
-    const filters = calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' };
     return vendorCosts.filter(cost => {
       const vendorMatch = filters.vendor === 'all' || cost.vendorId === filters.vendor;
       const roleMatch = filters.role === 'all' || cost.role === filters.role;
@@ -99,19 +98,16 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       
       return vendorMatch && roleMatch && categoryMatch;
     });
-  }, [vendorCosts, calculationsData?.filters, calculationsVersion]); // Add version to force recalculation
+  }, [vendorCosts, filters]);
   
-  // Get vendor counts for category filters
+  // Get vendor counts for category filters using Actions
   const vendorCounts = useMemo(() => {
-    const gtoCount = vendorCosts.filter(cost => cost.role === 'G2' || cost.role === 'TA').length;
-    const gdsCount = vendorCosts.filter(cost => cost.role === 'G1' || cost.role === 'PM').length;
-    
-    return {
-      all: vendorCosts.length,
-      gto: gtoCount,
-      gds: gdsCount
-    };
-  }, [vendorCosts, calculationsVersion]);
+    try {
+      return getVendorCountsByCategory();
+    } catch {
+      return { all: 0, gto: 0, gds: 0 };
+    }
+  }, [getVendorCountsByCategory]);
   
   const uniqueVendors = useMemo(() => {
     const vendors = new Map<string, { id: string, name: string }>();
@@ -121,7 +117,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       }
     });
     return Array.from(vendors.values());
-  }, [vendorCosts, calculationsVersion]); // Add version to force recalculation
+  }, [vendorCosts]);
   
   const uniqueRoles = useMemo(() => {
     const roles = new Set<string>();
@@ -129,7 +125,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       roles.add(cost.role);
     });
     return Array.from(roles);
-  }, [vendorCosts, calculationsVersion]); // Add version to force recalculation
+  }, [vendorCosts]);
   
   // No project state
   if (!currentProject) {
@@ -252,21 +248,21 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
         {/* Category Filter Buttons */}
         <div className="filter-buttons-group">
           <button 
-            className={`filter-btn filter-btn-all ${calculationsData?.filters?.category === 'all' ? 'active' : ''}`}
+            className={`filter-btn filter-btn-all ${filters.category === 'all' ? 'active' : ''}`}
             onClick={() => applyCategoryFilter('all')}
           >
             ALL
             <span className="filter-count">({vendorCounts.all})</span>
           </button>
           <button 
-            className={`filter-btn filter-btn-gto ${calculationsData?.filters?.category === 'gto' ? 'active' : ''}`}
+            className={`filter-btn filter-btn-gto ${filters.category === 'gto' ? 'active' : ''}`}
             onClick={() => applyCategoryFilter('gto')}
           >
             GTO
             <span className="filter-count">({vendorCounts.gto})</span>
           </button>
           <button 
-            className={`filter-btn filter-btn-gds ${calculationsData?.filters?.category === 'gds' ? 'active' : ''}`}
+            className={`filter-btn filter-btn-gds ${filters.category === 'gds' ? 'active' : ''}`}
             onClick={() => applyCategoryFilter('gds')}
           >
             GDS
@@ -281,8 +277,8 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
               <label htmlFor="vendor-filter">VENDOR:</label>
               <select 
                 id="vendor-filter"
-                value={calculationsData?.filters?.vendor || 'all'}
-                onChange={(e) => handleFilterChange(e.target.value, calculationsData?.filters?.role || 'all')}
+                value={filters.vendor}
+                onChange={(e) => handleFilterChange(e.target.value, filters.role)}
               >
                 <option value="all">All Vendors</option>
                 {uniqueVendors.map(vendor => (
@@ -297,8 +293,8 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
               <label htmlFor="role-filter">ROLE:</label>
               <select 
                 id="role-filter"
-                value={calculationsData?.filters?.role || 'all'}
-                onChange={(e) => handleFilterChange(calculationsData?.filters?.vendor || 'all', e.target.value)}
+                value={filters.role}
+                onChange={(e) => handleFilterChange(filters.vendor, e.target.value)}
               >
                 <option value="all">All Roles</option>
                 {uniqueRoles.map(role => (
@@ -332,7 +328,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
               </thead>
               <tbody>
                 {filteredCosts.map((cost, index) => (
-                  <tr key={`${cost.vendorId}-${cost.role}-${cost.department}`}>
+                  <tr key={`${cost.vendorId}_${cost.role}_${cost.department}`}>
                     <td className="vendor-name">
                       {cost.vendorName}
                       {cost.isInternal && <span className="internal-badge"> (Internal)</span>}
@@ -350,11 +346,13 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                         type="number"
                         value={cost.finalMDs}
                         onChange={(e) => {
-                          const value = parseInt(e.target.value) || 0;
+                          const value = parseFloat(e.target.value) || 0;
                           handleFinalMDsChange(cost.vendorId, cost.role, cost.department, value);
                         }}
                         className="final-mds-input"
                         min="0"
+                        step="0.1"
+                        key={`${cost.vendorId}_${cost.role}_${cost.department}`}
                       />
                       <button
                         className="reset-mds-btn"
