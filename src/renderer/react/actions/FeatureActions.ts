@@ -220,7 +220,7 @@ export class FeatureActions {
   /**
    * Update coverage value
    */
-  updateCoverage(coverageValue: number): void {
+  updateCoverage(coverageValue: number, isAutoCalculated: boolean = false): void {
     try {
       const store = this.getStore();
       if (!store) {
@@ -234,7 +234,7 @@ export class FeatureActions {
 
       // Update coverage in project (direct value instead of object)
       state.currentProject.coverage = coverageValue;
-      state.currentProject.coverageIsAutoCalculated = false;
+      state.currentProject.coverageIsAutoCalculated = isAutoCalculated;
 
       // Mark project as dirty for auto-save
       state.markDirty();
@@ -267,7 +267,7 @@ export class FeatureActions {
       );
       
       const defaultCoverage = totalManDays * 0.3;
-      this.updateCoverage(defaultCoverage);
+      this.updateCoverage(defaultCoverage, true); // Set as auto-calculated
 
       console.log('Coverage reset to 30% of total:', defaultCoverage);
     } catch (error) {

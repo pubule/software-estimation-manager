@@ -8,8 +8,9 @@ interface FeaturesSummaryProps {
 
 const FeaturesSummary: React.FC<FeaturesSummaryProps> = ({ filteredFeatures }) => {
   const { calculateSummary, updateCoverage, resetCoverage } = useFeatureActions();
-  const { currentProject } = useStore(state => ({
-    currentProject: state.currentProject
+  const { currentProject, coverageIsAutoCalculated } = useStore(state => ({
+    currentProject: state.currentProject,
+    coverageIsAutoCalculated: state.currentProject?.coverageIsAutoCalculated
   }));
   
   const [coverageValue, setCoverageValue] = useState<number>(0);
@@ -19,14 +20,15 @@ const FeaturesSummary: React.FC<FeaturesSummaryProps> = ({ filteredFeatures }) =
 
   // Initialize coverage value from project
   useEffect(() => {
-    if (currentProject?.coverage?.manDays !== undefined) {
-      setCoverageValue(currentProject.coverage.manDays);
+    if (coverageIsAutoCalculated === false && currentProject?.coverage !== undefined) {
+      // Use manual override value
+      setCoverageValue(currentProject.coverage);
     } else {
-      // Auto-calculate 30% if not set
+      // Auto-calculate 30% if auto-calculated or not set
       const autoCalculated = summary.totalManDays * 0.3;
       setCoverageValue(autoCalculated);
     }
-  }, [currentProject?.coverage?.manDays, summary.totalManDays]);
+  }, [currentProject?.coverage, coverageIsAutoCalculated, summary.totalManDays]);
 
   const handleCoverageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = parseFloat(e.target.value) || 0;
