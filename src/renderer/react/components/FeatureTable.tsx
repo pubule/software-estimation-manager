@@ -168,10 +168,8 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
                         <i className="fas fa-sticky-note card-icon"></i>
                         <h4>Notes</h4>
                       </div>
-                      <div className="card-content">
-                        <div className="notes-content">
-                          {feature.notes || 'No notes available'}
-                        </div>
+                      <div className="card-content notes-content">
+                        {feature.notes || 'No notes available'}
                       </div>
                     </div>
 

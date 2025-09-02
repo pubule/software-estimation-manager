@@ -5740,6 +5740,8 @@
 
 .card-content {
     padding: var(--spacing-md);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .detail-item {
@@ -5796,19 +5798,25 @@
 }
 
 /* Notes card special styling */
-.notes-card .card-content {
-    padding: var(--spacing-md);
+.notes-card {
+    min-width: 100%;
 }
 
-.notes-content {
+.notes-card .card-content.notes-content {
+    padding: var(--spacing-md);
     color: var(--text-primary);
-    font-style: italic;
-    line-height: 1.5;
-    min-height: 24px;
-    background-color: var(--bg-tertiary);
-    padding: var(--spacing-sm);
-    border-radius: var(--radius-sm);
-    border-left: 3px solid var(--primary);
+    line-height: 1.6;
+    min-height: 60px;
+    display: block;
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    text-align: left;
+    font-style: normal;
 }
 
 /* Responsive design for expanded content */
