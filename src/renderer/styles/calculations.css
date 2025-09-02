@@ -1,5 +1,11 @@
 /* Calculations Dashboard Styles */
 
+.calculations-page {
+    overflow-y: auto;
+    max-height: calc(100vh - 100px);
+    padding: 0;
+}
+
 .calculations-content {
     padding: 0;
     overflow-y: auto;
@@ -102,6 +108,7 @@
     color: var(--text-muted);
     font-size: var(--font-size-sm);
     font-family: monospace;
+    margin-left: var(--spacing-sm);
 }
 
 .kpi-total {
@@ -111,7 +118,7 @@
     padding: var(--spacing-md) var(--spacing-sm);
     background-color: var(--bg-quaternary);
     border-radius: var(--radius-sm);
-    border: 2px solid var(--text-accent);
+    border: 1px solid var(--border-primary);
     margin-top: var(--spacing-sm);
 }
 
@@ -151,7 +158,7 @@
     padding: var(--spacing-md) var(--spacing-sm);
     background-color: var(--bg-quaternary);
     border-radius: var(--radius-sm);
-    border: 2px solid var(--success);
+    border: 1px solid var(--border-primary);
     margin-top: var(--spacing-sm);
 }
 
@@ -188,15 +195,100 @@
 
 /* Color coding for KPI cards */
 .gto-card {
-    border-left: 4px solid var(--info);
+    border-left: 4px solid #2196f3; /* Blue */
 }
 
 .gds-card {
-    border-left: 4px solid var(--warning);
+    border-left: 4px solid #ff9800; /* Orange */
 }
 
 .total-card {
-    border-left: 4px solid var(--success);
+    border-left: 4px solid #4caf50; /* Green */
+}
+
+/* Filter Buttons Section */
+.vendor-cost-summary {
+    padding: var(--spacing-lg);
+    background-color: var(--bg-primary);
+}
+
+.vendor-cost-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.vendor-cost-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.filter-buttons-group {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.filter-btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.filter-btn:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+
+.filter-btn.active {
+    background-color: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+.filter-btn-all.active {
+    background-color: var(--accent-primary);
+}
+
+.filter-btn-gto.active {
+    background-color: #2196f3;
+    border-color: #2196f3;
+}
+
+.filter-btn-gds.active {
+    background-color: #ff9800;
+    border-color: #ff9800;
+}
+
+.filter-count {
+    margin-left: var(--spacing-xs);
+    font-weight: 600;
+}
+
+/* Share Button */
+.btn-share {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-share:hover {
+    background-color: #1976d2;
 }
 
 /* Table Section */
@@ -291,6 +383,11 @@
     border-right: 1px solid var(--border-primary);
     color: var(--text-primary);
     font-size: var(--font-size-sm);
+}
+
+.calculations-table td.official-tot-mds {
+    text-align: center;
+    font-weight: 500;
 }
 
 .calculations-table td:last-child {
@@ -549,7 +646,7 @@
     box-shadow: 0 0 0 2px var(--accent-primary-alpha);
 }
 
-.reset-final-mds-btn {
+.reset-mds-btn {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     color: var(--text-secondary);
@@ -557,22 +654,23 @@
     border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: var(--font-size-xs);
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
     vertical-align: middle;
+    margin-left: var(--spacing-xs);
 }
 
-.reset-final-mds-btn:hover {
+.reset-mds-btn:hover {
     background-color: var(--bg-hover);
     color: var(--text-primary);
     border-color: var(--border-secondary);
 }
 
-.reset-final-mds-btn:active {
+.reset-mds-btn:active {
     transform: translateY(1px);
 }
 

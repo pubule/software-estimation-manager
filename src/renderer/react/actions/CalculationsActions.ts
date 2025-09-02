@@ -44,6 +44,7 @@ interface KPIData {
 interface CalculationsFilters {
   vendor: string;
   role: string;
+  category: string; // 'all' | 'gto' | 'gds'
 }
 
 export class CalculationsActions {
@@ -116,15 +117,8 @@ export class CalculationsActions {
     
     // 2. Processa costi dalle phases
     if (project.phases) {
-      // Handle both object format (legacy) and array format (new)
-      const phasesData = Array.isArray(project.phases) 
-        ? project.phases 
-        : Object.entries(project.phases).map(([key, value]) => ({ ...value, phaseKey: key }));
-      
-      if (phasesData.length > 0) {
-        const phasesCosts = this.processPhasesCosts(phasesData);
-        allCosts.push(...phasesCosts);
-      }
+      const phasesCosts = this.processPhasesCosts(project.phases);
+      allCosts.push(...phasesCosts);
     }
     
     // 3. Raggruppa per vendor + role + department
@@ -164,19 +158,20 @@ export class CalculationsActions {
   /**
    * Processa costi dalle phases
    */
-  private processPhasesCosts(phases: any[]): VendorCost[] {
+  private processPhasesCosts(phases: any): VendorCost[] {
     const costs: VendorCost[] = [];
     
-    // Extract selectedSuppliers mapping from project phases
-    const selectedSuppliers = phases.find(p => p.selectedSuppliers)?.selectedSuppliers || {};
+    // Extract selectedSuppliers from phases object (not from array)
+    const selectedSuppliers = phases.selectedSuppliers || {};
     
-    phases.forEach(phase => {
+    // Process each phase (skip selectedSuppliers entry)
+    Object.entries(phases).forEach(([phaseKey, phaseData]: [string, any]) => {
       // Skip selectedSuppliers entry
-      if (phase.selectedSuppliers) return;
+      if (phaseKey === 'selectedSuppliers') return;
       
-      if (phase.manDays && phase.manDays > 0 && phase.effort) {
+      if (phaseData.manDays && phaseData.manDays > 0 && phaseData.effort) {
         // Process each role in the phase effort distribution
-        Object.entries(phase.effort).forEach(([role, percentage]: [string, any]) => {
+        Object.entries(phaseData.effort).forEach(([role, percentage]: [string, any]) => {
           if (!percentage || percentage === 0) return;
           
           const supplierId = selectedSuppliers[role];
@@ -186,7 +181,7 @@ export class CalculationsActions {
           if (!supplierData) return;
           
           // Calculate MDs for this role in this phase
-          const phaseMDs = (phase.manDays * (percentage / 100));
+          const phaseMDs = (phaseData.manDays * (percentage / 100));
           
           const cost: VendorCost = {
             vendorId: supplierId,
@@ -335,18 +330,45 @@ export class CalculationsActions {
   }
 
   /**
-   * FILTRI: Applica filtri vendor e role
+   * FILTRI: Applica filtri vendor, role e category
    */
-  applyFilters(vendorFilter: string, roleFilter: string): void {
+  applyFilters(vendorFilter: string, roleFilter: string, categoryFilter?: string): void {
     try {
       const store = this.getStore();
       const state = store.getState();
       
-      state.setCalculationsFilters({ vendor: vendorFilter, role: roleFilter });
+      const filters = {
+        vendor: vendorFilter,
+        role: roleFilter,
+        category: categoryFilter || state.calculationsData?.filters?.category || 'all'
+      };
       
-      console.log('Filters applied:', { vendor: vendorFilter, role: roleFilter });
+      state.setCalculationsFilters(filters);
+      
+      console.log('Filters applied:', filters);
     } catch (error) {
       console.error('Failed to apply filters:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * FILTRI: Applica filtro categoria (ALL/GTO/GDS)
+   */
+  applyCategoryFilter(category: 'all' | 'gto' | 'gds'): void {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+      const currentFilters = state.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' };
+      
+      state.setCalculationsFilters({
+        ...currentFilters,
+        category: category
+      });
+      
+      console.log('Category filter applied:', category);
+    } catch (error) {
+      console.error('Failed to apply category filter:', error);
       throw error;
     }
   }
@@ -357,12 +379,21 @@ export class CalculationsActions {
   getFilteredCosts(): VendorCost[] {
     const store = this.getStore();
     const state = store.getState();
-    const { vendorCosts = [], filters = { vendor: 'all', role: 'all' } } = state.calculationsData || {};
+    const { vendorCosts = [], filters = { vendor: 'all', role: 'all', category: 'all' } } = state.calculationsData || {};
     
     return vendorCosts.filter(cost => {
       const vendorMatch = filters.vendor === 'all' || cost.vendorId === filters.vendor;
       const roleMatch = filters.role === 'all' || cost.role === filters.role;
-      return vendorMatch && roleMatch;
+      
+      // Category filter (GTO = G2 + TA, GDS = G1 + PM)
+      let categoryMatch = true;
+      if (filters.category === 'gto') {
+        categoryMatch = cost.role === 'G2' || cost.role === 'TA';
+      } else if (filters.category === 'gds') {
+        categoryMatch = cost.role === 'G1' || cost.role === 'PM';
+      }
+      
+      return vendorMatch && roleMatch && categoryMatch;
     });
   }
 
@@ -555,6 +586,37 @@ export class CalculationsActions {
   }
 
   /**
+   * Reset singolo Final MD al valore stimato
+   */
+  resetSingleFinalMD(vendorId: string, role: string, department: string): void {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+      const key = `${vendorId}-${role}-${department}`;
+      
+      // Rimuovi override specifico
+      const currentOverrides = state.calculationsData?.finalMDsOverrides || {};
+      const newOverrides = { ...currentOverrides };
+      delete newOverrides[key];
+      
+      // Aggiorna store con gli override modificati
+      state.setCalculationsData({
+        ...state.calculationsData,
+        finalMDsOverrides: newOverrides,
+        version: (state.calculationsData?.version || 0) + 1
+      });
+      
+      // Ricalcola
+      this.calculateProjectCosts();
+      
+      console.log('Single Final MD reset:', { vendorId, role, department });
+    } catch (error) {
+      console.error('Failed to reset single Final MD:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Ottiene lista unica vendors per filtri
    */
   getUniqueVendors(): Array<{ id: string, name: string }> {
@@ -586,6 +648,24 @@ export class CalculationsActions {
     });
     
     return Array.from(roles);
+  }
+
+  /**
+   * Conta i vendor per categoria
+   */
+  getVendorCountsByCategory(): { all: number, gto: number, gds: number } {
+    const store = this.getStore();
+    const state = store.getState();
+    const { vendorCosts = [] } = state.calculationsData || {};
+    
+    const gtoCount = vendorCosts.filter(cost => cost.role === 'G2' || cost.role === 'TA').length;
+    const gdsCount = vendorCosts.filter(cost => cost.role === 'G1' || cost.role === 'PM').length;
+    
+    return {
+      all: vendorCosts.length,
+      gto: gtoCount,
+      gds: gdsCount
+    };
   }
 }
 

@@ -146,7 +146,7 @@ const appStore = window.zustand.createStore((set, get) => ({
     calculationsData: {
         vendorCosts: [],
         kpiData: null,
-        filters: { vendor: 'all', role: 'all' },
+        filters: { vendor: 'all', role: 'all', category: 'all' }, // Added category filter for ALL/GTO/GDS
         finalMDsOverrides: {}, // Manual overrides per vendor-role-dept
         version: 0 // Version counter to force React re-renders
     },

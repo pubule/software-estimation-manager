@@ -36,9 +36,12 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     calculateProjectCosts,
     updateFinalMDs,
     applyFilters,
+    applyCategoryFilter,
     shareByEmail,
     copyToClipboard,
-    resetAllFinalMDs
+    resetAllFinalMDs,
+    resetSingleFinalMD,
+    getVendorCountsByCategory
   } = useCalculationsActions();
   
   // Calcola al mount e quando cambia progetto (calcoli ogni volta come richiesto)
@@ -81,13 +84,34 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   
   // Computed values per UI (derived state)
   const filteredCosts = useMemo(() => {
-    const filters = calculationsData?.filters || { vendor: 'all', role: 'all' };
+    const filters = calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' };
     return vendorCosts.filter(cost => {
       const vendorMatch = filters.vendor === 'all' || cost.vendorId === filters.vendor;
       const roleMatch = filters.role === 'all' || cost.role === filters.role;
-      return vendorMatch && roleMatch;
+      
+      // Category filter (GTO = G2 + TA, GDS = G1 + PM)
+      let categoryMatch = true;
+      if (filters.category === 'gto') {
+        categoryMatch = cost.role === 'G2' || cost.role === 'TA';
+      } else if (filters.category === 'gds') {
+        categoryMatch = cost.role === 'G1' || cost.role === 'PM';
+      }
+      
+      return vendorMatch && roleMatch && categoryMatch;
     });
   }, [vendorCosts, calculationsData?.filters, calculationsVersion]); // Add version to force recalculation
+  
+  // Get vendor counts for category filters
+  const vendorCounts = useMemo(() => {
+    const gtoCount = vendorCosts.filter(cost => cost.role === 'G2' || cost.role === 'TA').length;
+    const gdsCount = vendorCosts.filter(cost => cost.role === 'G1' || cost.role === 'PM').length;
+    
+    return {
+      all: vendorCosts.length,
+      gto: gtoCount,
+      gds: gdsCount
+    };
+  }, [vendorCosts, calculationsVersion]);
   
   const uniqueVendors = useMemo(() => {
     const vendors = new Map<string, { id: string, name: string }>();
@@ -125,29 +149,6 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       {/* Page Header */}
       <div className="page-header">
         <h2>Calculations Dashboard</h2>
-        <div className="page-actions">
-          <button 
-            className="btn btn-secondary"
-            onClick={handleShareByEmail}
-            title="Share by Email"
-          >
-            <i className="fas fa-envelope"></i> Share
-          </button>
-          <button 
-            className="btn btn-secondary"
-            onClick={handleCopyToClipboard}
-            title="Copy to Clipboard"
-          >
-            <i className="fas fa-copy"></i> Copy
-          </button>
-          <button 
-            className="btn btn-warning"
-            onClick={handleResetFinalMDs}
-            title="Reset All Final MDs"
-          >
-            <i className="fas fa-undo"></i> Reset
-          </button>
-        </div>
       </div>
 
       {/* KPI Cards Section */}
@@ -235,39 +236,78 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
         </div>
       )}
 
-      {/* Filters Section */}
-      <div className="filters-section">
-        <div className="filters-bar">
-          <div className="filter-group">
-            <label htmlFor="vendor-filter">Vendor:</label>
-            <select 
-              id="vendor-filter"
-              value={calculationsData?.filters?.vendor || 'all'}
-              onChange={(e) => handleFilterChange(e.target.value, calculationsData?.filters?.role || 'all')}
-            >
-              <option value="all">All Vendors</option>
-              {uniqueVendors.map(vendor => (
-                <option key={vendor.id} value={vendor.id}>
-                  {vendor.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="filter-group">
-            <label htmlFor="role-filter">Role:</label>
-            <select 
-              id="role-filter"
-              value={calculationsData?.filters?.role || 'all'}
-              onChange={(e) => handleFilterChange(calculationsData?.filters?.vendor || 'all', e.target.value)}
-            >
-              <option value="all">All Roles</option>
-              {uniqueRoles.map(role => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
+      {/* Vendor Cost Summary Section */}
+      <div className="vendor-cost-summary">
+        <div className="vendor-cost-header">
+          <h3>Vendor Cost Summary</h3>
+          <button 
+            className="btn btn-primary btn-share"
+            onClick={handleShareByEmail}
+            title="Share by Email"
+          >
+            <i className="fas fa-share"></i> Share
+          </button>
+        </div>
+        
+        {/* Category Filter Buttons */}
+        <div className="filter-buttons-group">
+          <button 
+            className={`filter-btn filter-btn-all ${calculationsData?.filters?.category === 'all' ? 'active' : ''}`}
+            onClick={() => applyCategoryFilter('all')}
+          >
+            ALL
+            <span className="filter-count">({vendorCounts.all})</span>
+          </button>
+          <button 
+            className={`filter-btn filter-btn-gto ${calculationsData?.filters?.category === 'gto' ? 'active' : ''}`}
+            onClick={() => applyCategoryFilter('gto')}
+          >
+            GTO
+            <span className="filter-count">({vendorCounts.gto})</span>
+          </button>
+          <button 
+            className={`filter-btn filter-btn-gds ${calculationsData?.filters?.category === 'gds' ? 'active' : ''}`}
+            onClick={() => applyCategoryFilter('gds')}
+          >
+            GDS
+            <span className="filter-count">({vendorCounts.gds})</span>
+          </button>
+        </div>
+        
+        {/* Filters Section */}
+        <div className="filters-section">
+          <div className="filters-bar">
+            <div className="filter-group">
+              <label htmlFor="vendor-filter">VENDOR:</label>
+              <select 
+                id="vendor-filter"
+                value={calculationsData?.filters?.vendor || 'all'}
+                onChange={(e) => handleFilterChange(e.target.value, calculationsData?.filters?.role || 'all')}
+              >
+                <option value="all">All Vendors</option>
+                {uniqueVendors.map(vendor => (
+                  <option key={vendor.id} value={vendor.id}>
+                    {vendor.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="filter-group">
+              <label htmlFor="role-filter">ROLE:</label>
+              <select 
+                id="role-filter"
+                value={calculationsData?.filters?.role || 'all'}
+                onChange={(e) => handleFilterChange(calculationsData?.filters?.vendor || 'all', e.target.value)}
+              >
+                <option value="all">All Roles</option>
+                {uniqueRoles.map(role => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -295,7 +335,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                   <tr key={`${cost.vendorId}-${cost.role}-${cost.department}`}>
                     <td className="vendor-name">
                       {cost.vendorName}
-                      {cost.isInternal && <span className="internal-badge">Internal</span>}
+                      {cost.isInternal && <span className="internal-badge"> (Internal)</span>}
                     </td>
                     <td className="vendor-role">
                       <span className={`role-badge role-${cost.role.toLowerCase()}`}>
@@ -316,6 +356,13 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                         className="final-mds-input"
                         min="0"
                       />
+                      <button
+                        className="reset-mds-btn"
+                        onClick={() => resetSingleFinalMD(cost.vendorId, cost.role, cost.department)}
+                        title="Reset to Official value"
+                      >
+                        ↻
+                      </button>
                     </td>
                     <td className="official-rate">€{cost.officialRate.toLocaleString()}</td>
                     <td className="total-cost">€{cost.totCost.toLocaleString()}</td>

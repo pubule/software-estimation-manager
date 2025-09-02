@@ -25,9 +25,33 @@ export const useCalculationsActions = () => {
     }
   }, []);
 
-  const applyFilters = useCallback((vendorFilter: string, roleFilter: string) => {
+  const applyFilters = useCallback((vendorFilter: string, roleFilter: string, categoryFilter?: string) => {
     try {
-      calculationsActions.applyFilters(vendorFilter, roleFilter);
+      calculationsActions.applyFilters(vendorFilter, roleFilter, categoryFilter);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const applyCategoryFilter = useCallback((category: 'all' | 'gto' | 'gds') => {
+    try {
+      calculationsActions.applyCategoryFilter(category);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const resetSingleFinalMD = useCallback((vendorId: string, role: string, department: string) => {
+    try {
+      calculationsActions.resetSingleFinalMD(vendorId, role, department);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const getVendorCountsByCategory = useCallback(() => {
+    try {
+      return calculationsActions.getVendorCountsByCategory();
     } catch (error) {
       throw error;
     }
@@ -64,9 +88,12 @@ export const useCalculationsActions = () => {
     // Data editing
     updateFinalMDs,
     resetAllFinalMDs,
+    resetSingleFinalMD,
     
     // Filtering
     applyFilters,
+    applyCategoryFilter,
+    getVendorCountsByCategory,
     
     // Export/Share
     shareByEmail,
