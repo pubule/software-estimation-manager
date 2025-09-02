@@ -50,6 +50,8 @@
     border-radius: var(--radius-md);
     padding: var(--spacing-lg);
     transition: all var(--transition-fast);
+    display: flex;
+    flex-direction: column;
 }
 
 .kpi-card:hover {
@@ -119,7 +121,7 @@
     background-color: var(--bg-quaternary);
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-primary);
-    margin-top: var(--spacing-sm);
+    margin-top: auto;
 }
 
 .total-label {
@@ -159,7 +161,7 @@
     background-color: var(--bg-quaternary);
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-primary);
-    margin-top: var(--spacing-sm);
+    margin-top: auto;
 }
 
 .breakdown-label {
