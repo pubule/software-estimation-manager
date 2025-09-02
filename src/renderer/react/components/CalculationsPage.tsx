@@ -155,14 +155,23 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     return result;
   }, [vendorCosts, filters]);
   
-  // Get vendor counts for category filters using Actions
+  // Calculate vendor counts for category filters (reactive to vendorCosts)
   const vendorCounts = useMemo(() => {
-    try {
-      return getVendorCountsByCategory();
-    } catch {
+    if (!vendorCosts || vendorCosts.length === 0) {
       return { all: 0, gto: 0, gds: 0 };
     }
-  }, [getVendorCountsByCategory]);
+    
+    // Count unique vendors per category
+    const uniqueVendors = new Set(vendorCosts.map(cost => cost.vendorId));
+    const gtoVendors = new Set(vendorCosts.filter(cost => cost.role === 'G2' || cost.role === 'TA').map(cost => cost.vendorId));
+    const gdsVendors = new Set(vendorCosts.filter(cost => cost.role === 'G1' || cost.role === 'PM').map(cost => cost.vendorId));
+    
+    return {
+      all: uniqueVendors.size,
+      gto: gtoVendors.size,
+      gds: gdsVendors.size
+    };
+  }, [vendorCosts]);
   
   const uniqueVendors = useMemo(() => {
     const vendors = new Map<string, { id: string, name: string }>();
