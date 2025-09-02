@@ -22,9 +22,39 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   
   // Selettori specifici per ogni proprietà per forzare re-render
   const calculationsVersion = useStore(state => state.calculationsData?.version || 0);
-  const vendorCosts = useStore(state => state.calculationsData?.vendorCosts || []);
+  const vendorCosts = useStore(state => {
+    const costs = state.calculationsData?.vendorCosts || [];
+    console.log('🔍 VENDOR_COSTS SELECTOR - Count:', costs.length);
+    return costs;
+  });
   const kpiData = useStore(state => state.calculationsData?.kpiData);
-  const filters = useStore(state => state.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' });
+  // Force selectors to refresh using calculationsVersion
+  const categoryFilter = useStore(state => {
+    const version = state.calculationsData?.version || 0;
+    const category = state.calculationsData?.filters?.category || 'all';
+    console.log('🔍 CATEGORY_SELECTOR - Version:', version, 'Category:', category);
+    return category;
+  });
+  const vendorFilter = useStore(state => {
+    const version = state.calculationsData?.version || 0;
+    const vendor = state.calculationsData?.filters?.vendor || 'all';
+    console.log('🔍 VENDOR_SELECTOR - Version:', version, 'Vendor:', vendor);
+    return vendor;
+  });
+  const roleFilter = useStore(state => {
+    const version = state.calculationsData?.version || 0;
+    const role = state.calculationsData?.filters?.role || 'all';
+    console.log('🔍 ROLE_SELECTOR - Version:', version, 'Role:', role);
+    return role;
+  });
+  
+  // Combine for compatibility
+  const filters = useMemo(() => {
+    const result = { vendor: vendorFilter, role: roleFilter, category: categoryFilter };
+    console.log('🔍 FILTERS COMBINED - Recalculating with:', { vendorFilter, roleFilter, categoryFilter });
+    console.log('🔍 FILTERS COMBINED - Result filters:', result);
+    return result;
+  }, [vendorFilter, roleFilter, categoryFilter]);
   const finalMDsOverrides = useStore(state => state.calculationsData?.finalMDsOverrides || {});
   
   
@@ -46,8 +76,15 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   
   // Calcola al mount e quando cambia progetto (calcoli ogni volta come richiesto)
   useEffect(() => {
+    console.log('🔍 USE_EFFECT DEBUG - Current project:', currentProject);
+    console.log('🔍 USE_EFFECT DEBUG - Project features:', currentProject?.features?.length || 0);
+    console.log('🔍 USE_EFFECT DEBUG - Project phases:', currentProject?.phases ? Object.keys(currentProject.phases).length : 0);
+    
     if (currentProject) {
+      console.log('🔍 USE_EFFECT DEBUG - Calling calculateProjectCosts()');
       calculateProjectCosts();
+    } else {
+      console.log('🔍 USE_EFFECT DEBUG - No current project, skipping calculation');
     }
   }, [currentProject, calculateProjectCosts]);
   
@@ -84,7 +121,10 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   
   // Computed values per UI (derived state) - LOCAL reactive filtering
   const filteredCosts = useMemo(() => {
-    return vendorCosts.filter(cost => {
+    console.log('🔍 FILTERED COSTS - Recalculating with filters:', filters);
+    console.log('🔍 FILTERED COSTS - VendorCosts count:', vendorCosts.length);
+    
+    const result = vendorCosts.filter(cost => {
       const vendorMatch = filters.vendor === 'all' || cost.vendorId === filters.vendor;
       const roleMatch = filters.role === 'all' || cost.role === filters.role;
       
@@ -96,8 +136,23 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
         categoryMatch = cost.role === 'G1' || cost.role === 'PM';
       }
       
-      return vendorMatch && roleMatch && categoryMatch;
+      const matches = vendorMatch && roleMatch && categoryMatch;
+      if (!matches) {
+        console.log('🔍 FILTERED COSTS - Filtering out:', { 
+          vendor: cost.vendorName, 
+          role: cost.role, 
+          vendorMatch, 
+          roleMatch, 
+          categoryMatch,
+          filterCategory: filters.category
+        });
+      }
+      
+      return matches;
     });
+    
+    console.log('🔍 FILTERED COSTS - Result count:', result.length, 'from', vendorCosts.length);
+    return result;
   }, [vendorCosts, filters]);
   
   // Get vendor counts for category filters using Actions
@@ -248,21 +303,21 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
         {/* Category Filter Buttons */}
         <div className="filter-buttons-group">
           <button 
-            className={`filter-btn filter-btn-all ${filters.category === 'all' ? 'active' : ''}`}
+            className={`filter-btn filter-btn-all ${categoryFilter === 'all' ? 'active' : ''}`}
             onClick={() => applyCategoryFilter('all')}
           >
             ALL
             <span className="filter-count">({vendorCounts.all})</span>
           </button>
           <button 
-            className={`filter-btn filter-btn-gto ${filters.category === 'gto' ? 'active' : ''}`}
+            className={`filter-btn filter-btn-gto ${categoryFilter === 'gto' ? 'active' : ''}`}
             onClick={() => applyCategoryFilter('gto')}
           >
             GTO
             <span className="filter-count">({vendorCounts.gto})</span>
           </button>
           <button 
-            className={`filter-btn filter-btn-gds ${filters.category === 'gds' ? 'active' : ''}`}
+            className={`filter-btn filter-btn-gds ${categoryFilter === 'gds' ? 'active' : ''}`}
             onClick={() => applyCategoryFilter('gds')}
           >
             GDS

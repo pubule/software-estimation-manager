@@ -1022,6 +1022,10 @@ const appStore = window.zustand.createStore((set, get) => ({
     setCalculationsData: (data) => {
         const currentState = get();
         const preservedOverrides = currentState.calculationsData?.finalMDsOverrides || {};
+        const preservedFilters = currentState.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' };
+        
+        console.log('🔍 SET_CALC_DATA DEBUG - Called with data:', data);
+        console.log('🔍 SET_CALC_DATA DEBUG - Preserved filters:', preservedFilters);
         
         set({
             calculationsData: {
@@ -1029,9 +1033,13 @@ const appStore = window.zustand.createStore((set, get) => ({
                 ...data,
                 // Use overrides from data if provided, otherwise preserve current ones
                 finalMDsOverrides: data.finalMDsOverrides || preservedOverrides,
+                // PRESERVE filters unless explicitly provided in data
+                filters: data.filters || preservedFilters,
                 version: (currentState.calculationsData?.version || 0) + 1
             }
         });
+        
+        console.log('🔍 SET_CALC_DATA DEBUG - Final state filters:', get().calculationsData?.filters);
     },
     
     /**
@@ -1051,15 +1059,23 @@ const appStore = window.zustand.createStore((set, get) => ({
     /**
      * Set calculations filters
      */
-    setCalculationsFilters: (filters) => set(state => ({
-        calculationsData: {
-            ...state.calculationsData,
-            filters: {
-                ...state.calculationsData.filters,
-                ...filters
+    setCalculationsFilters: (filters) => {
+        const currentState = get();
+        const currentFilters = currentState.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' };
+        const newFilters = { ...currentFilters, ...filters };
+        
+        console.log('🔍 STORE_FILTERS DEBUG - Current:', currentFilters);
+        console.log('🔍 STORE_FILTERS DEBUG - New filters param:', filters);
+        console.log('🔍 STORE_FILTERS DEBUG - Final merged:', newFilters);
+        
+        set({
+            calculationsData: {
+                ...currentState.calculationsData,
+                filters: newFilters,
+                version: (currentState.calculationsData?.version || 0) + 1
             }
-        }
-    })),
+        });
+    },
     
     /**
      * Clear all Final MDs overrides

@@ -75,27 +75,31 @@ export class CalculationsActions {
       const state = store.getState();
       const currentProject = state.currentProject;
       
+      console.log('🔍 CALCULATE DEBUG - Current project:', currentProject);
+      
       if (!currentProject) {
         throw new Error('No project loaded');
       }
 
       // 1. Processa tutti i costi (features + phases)
       const vendorCosts = this.processAllCosts(currentProject);
+      console.log('🔍 CALCULATE DEBUG - Vendor costs processed:', vendorCosts.length);
       
       // 2. Applica override Final MDs se esistono
       const costsWithOverrides = this.applyFinalMDsOverrides(vendorCosts);
+      console.log('🔍 CALCULATE DEBUG - Costs with overrides:', costsWithOverrides.length);
       
       // 3. Calcola KPI
       const kpiData = this.calculateKPIs(costsWithOverrides);
+      console.log('🔍 CALCULATE DEBUG - KPI calculated:', kpiData);
       
       // 4. Aggiorna store
-      
       state.setCalculationsData({
         vendorCosts: costsWithOverrides,
         kpiData: kpiData
       });
       
-
+      console.log('🔍 CALCULATE DEBUG - Store updated with vendor costs:', costsWithOverrides.length);
       console.log('Calculations updated successfully');
     } catch (error) {
       console.error('Failed to calculate project costs:', error);
@@ -109,20 +113,32 @@ export class CalculationsActions {
   private processAllCosts(project: any): VendorCost[] {
     const allCosts: VendorCost[] = [];
     
+    console.log('🔍 PROCESS_ALL DEBUG - Project features:', project.features?.length || 0);
+    console.log('🔍 PROCESS_ALL DEBUG - Project phases:', project.phases ? Object.keys(project.phases).length : 0);
+    
     // 1. Processa costi dalle features
     if (project.features && project.features.length > 0) {
+      console.log('🔍 PROCESS_ALL DEBUG - Processing features...');
       const featuresCosts = this.processFeaturesCosts(project.features);
+      console.log('🔍 PROCESS_ALL DEBUG - Features costs:', featuresCosts.length);
       allCosts.push(...featuresCosts);
     }
     
     // 2. Processa costi dalle phases
     if (project.phases) {
+      console.log('🔍 PROCESS_ALL DEBUG - Processing phases...');
       const phasesCosts = this.processPhasesCosts(project.phases);
+      console.log('🔍 PROCESS_ALL DEBUG - Phases costs:', phasesCosts.length);
       allCosts.push(...phasesCosts);
     }
     
+    console.log('🔍 PROCESS_ALL DEBUG - Total costs before consolidation:', allCosts.length);
+    
     // 3. Raggruppa per vendor + role + department
-    return this.consolidateVendorCosts(allCosts);
+    const consolidatedCosts = this.consolidateVendorCosts(allCosts);
+    console.log('🔍 PROCESS_ALL DEBUG - Final consolidated costs:', consolidatedCosts.length);
+    
+    return consolidatedCosts;
   }
 
   /**
@@ -371,7 +387,9 @@ export class CalculationsActions {
         [key]: newValue
       };
       
-      console.log('🔍 ATOMIC UPDATE - Key:', key, 'Value:', newValue);
+      console.log('🔍 OVERRIDE DEBUG - Saving:', { key, newValue, vendorId, role, department });
+      console.log('🔍 OVERRIDE DEBUG - Current overrides before update:', currentOverrides);
+      console.log('🔍 OVERRIDE DEBUG - Updated overrides:', updatedOverrides);
       
       // 1. Process all costs (same as calculateProjectCosts)
       const vendorCosts = this.processAllCosts(currentProject);
@@ -428,11 +446,21 @@ export class CalculationsActions {
       const state = store.getState();
       const currentFilters = state.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' };
       
-      state.setCalculationsFilters({
+      console.log('🔍 APPLY_CATEGORY DEBUG - Current filters before update:', currentFilters);
+      console.log('🔍 APPLY_CATEGORY DEBUG - Setting category to:', category);
+      
+      const newFilters = {
         ...currentFilters,
         category: category
-      });
+      };
       
+      console.log('🔍 APPLY_CATEGORY DEBUG - New filters object:', newFilters);
+      
+      state.setCalculationsFilters(newFilters);
+      
+      // Debug: Verify state after update
+      const stateAfterUpdate = store.getState();
+      console.log('🔍 ZUSTAND RAW STATE - After filter update:', stateAfterUpdate.calculationsData?.filters);
       console.log('Category filter applied:', category);
     } catch (error) {
       console.error('Failed to apply category filter:', error);
