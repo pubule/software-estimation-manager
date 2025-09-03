@@ -282,6 +282,9 @@ export class VersionHistoryActions {
       state.markDirty();
 
       console.log(`Version ${nextVersionId} created successfully`);
+      
+      // Chiudi la modal dopo aver creato la versione con successo
+      this.closeCreateVersionModal();
     } catch (error) {
       console.error('Failed to create version:', error);
       throw error;
@@ -1463,24 +1466,31 @@ export class VersionHistoryActions {
       const compareVendor = compareVendors.find((cv: any) => cv.vendorId === currentVendor.vendorId);
       
       if (!compareVendor) {
-        // Added vendor
-        const change: VendorCostChange = {
-          vendorId: currentVendor.vendorId,
-          vendor: currentVendor.vendor,
-          role: currentVendor.role,
-          department: currentVendor.department,
-          changeType: 'added',
-          currentValue: {
-            manDays: currentVendor.manDays || 0,
-            rate: currentVendor.rate || 0,
-            cost: currentVendor.cost || 0,
-            finalMDs: currentVendor.finalMDs || 0
-          },
-          costDifference: currentVendor.cost || 0,
-          mdsDifference: currentVendor.manDays || 0
-        };
-        vendorCostChanges.push(change);
-        addedVendors.push(currentVendor);
+        // Added vendor - but only include if it has meaningful values
+        const cost = currentVendor.cost || 0;
+        const manDays = currentVendor.manDays || 0;
+        const rate = currentVendor.rate || 0;
+        
+        // Skip vendor if all values are 0 (no actual calculation data)
+        if (cost > 0 || manDays > 0 || rate > 0) {
+          const change: VendorCostChange = {
+            vendorId: currentVendor.vendorId,
+            vendor: currentVendor.vendor,
+            role: currentVendor.role,
+            department: currentVendor.department,
+            changeType: 'added',
+            currentValue: {
+              manDays: manDays,
+              rate: rate,
+              cost: cost,
+              finalMDs: currentVendor.finalMDs || 0
+            },
+            costDifference: cost,
+            mdsDifference: manDays
+          };
+          vendorCostChanges.push(change);
+          addedVendors.push(currentVendor);
+        }
       } else {
         // Check if modified
         const hasChanges = 
@@ -1490,29 +1500,40 @@ export class VersionHistoryActions {
           currentVendor.finalMDs !== compareVendor.finalMDs;
           
         if (hasChanges) {
-          const change: VendorCostChange = {
-            vendorId: currentVendor.vendorId,
-            vendor: currentVendor.vendor,
-            role: currentVendor.role,
-            department: currentVendor.department,
-            changeType: 'modified',
-            previousValue: {
-              manDays: compareVendor.manDays || 0,
-              rate: compareVendor.rate || 0,
-              cost: compareVendor.cost || 0,
-              finalMDs: compareVendor.finalMDs || 0
-            },
-            currentValue: {
-              manDays: currentVendor.manDays || 0,
-              rate: currentVendor.rate || 0,
-              cost: currentVendor.cost || 0,
-              finalMDs: currentVendor.finalMDs || 0
-            },
-            costDifference: (currentVendor.cost || 0) - (compareVendor.cost || 0),
-            mdsDifference: (currentVendor.manDays || 0) - (compareVendor.manDays || 0)
-          };
-          vendorCostChanges.push(change);
-          modifiedVendors.push(currentVendor);
+          const currentCost = currentVendor.cost || 0;
+          const currentManDays = currentVendor.manDays || 0;
+          const currentRate = currentVendor.rate || 0;
+          const previousCost = compareVendor.cost || 0;
+          const previousManDays = compareVendor.manDays || 0;
+          const previousRate = compareVendor.rate || 0;
+          
+          // Only include modification if at least one version has meaningful values
+          if (currentCost > 0 || currentManDays > 0 || currentRate > 0 ||
+              previousCost > 0 || previousManDays > 0 || previousRate > 0) {
+            const change: VendorCostChange = {
+              vendorId: currentVendor.vendorId,
+              vendor: currentVendor.vendor,
+              role: currentVendor.role,
+              department: currentVendor.department,
+              changeType: 'modified',
+              previousValue: {
+                manDays: previousManDays,
+                rate: previousRate,
+                cost: previousCost,
+                finalMDs: compareVendor.finalMDs || 0
+              },
+              currentValue: {
+                manDays: currentManDays,
+                rate: currentRate,
+                cost: currentCost,
+                finalMDs: currentVendor.finalMDs || 0
+              },
+              costDifference: currentCost - previousCost,
+              mdsDifference: currentManDays - previousManDays
+            };
+            vendorCostChanges.push(change);
+            modifiedVendors.push(currentVendor);
+          }
         }
       }
     });
@@ -1522,24 +1543,31 @@ export class VersionHistoryActions {
       const currentVendor = currentVendors.find((cv: any) => cv.vendorId === compareVendor.vendorId);
       
       if (!currentVendor) {
-        // Removed vendor
-        const change: VendorCostChange = {
-          vendorId: compareVendor.vendorId,
-          vendor: compareVendor.vendor,
-          role: compareVendor.role,
-          department: compareVendor.department,
-          changeType: 'removed',
-          previousValue: {
-            manDays: compareVendor.manDays || 0,
-            rate: compareVendor.rate || 0,
-            cost: compareVendor.cost || 0,
-            finalMDs: compareVendor.finalMDs || 0
-          },
-          costDifference: -(compareVendor.cost || 0),
-          mdsDifference: -(compareVendor.manDays || 0)
-        };
-        vendorCostChanges.push(change);
-        removedVendors.push(compareVendor);
+        // Removed vendor - but only include if it had meaningful values
+        const cost = compareVendor.cost || 0;
+        const manDays = compareVendor.manDays || 0;
+        const rate = compareVendor.rate || 0;
+        
+        // Skip vendor if all values were 0 (no actual calculation data)
+        if (cost > 0 || manDays > 0 || rate > 0) {
+          const change: VendorCostChange = {
+            vendorId: compareVendor.vendorId,
+            vendor: compareVendor.vendor,
+            role: compareVendor.role,
+            department: compareVendor.department,
+            changeType: 'removed',
+            previousValue: {
+              manDays: manDays,
+              rate: rate,
+              cost: cost,
+              finalMDs: compareVendor.finalMDs || 0
+            },
+            costDifference: -cost,
+            mdsDifference: -manDays
+          };
+          vendorCostChanges.push(change);
+          removedVendors.push(compareVendor);
+        }
       }
     });
     

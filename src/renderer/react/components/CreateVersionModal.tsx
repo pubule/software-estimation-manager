@@ -137,6 +137,42 @@ const CreateVersionModal: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Current Calculations Preview */}
+            {currentProject?.calculationData?.vendorCosts && currentProject.calculationData.vendorCosts.length > 0 && (
+              <div className="initial-content-section">
+                <h5><i className="fas fa-calculator"></i> Cost Calculations ({currentProject.calculationData.vendorCosts.length} vendors)</h5>
+                <div className="initial-vendors-list">
+                  {currentProject.calculationData.vendorCosts.map((vendor: any, index: number) => (
+                    <div key={vendor.vendorId || index} className="initial-vendor-item">
+                      <div className="vendor-main-info">
+                        <span className="vendor-name">{vendor.vendor}</span>
+                        <span className="vendor-role-dept">{vendor.role} - {vendor.department}</span>
+                      </div>
+                      <div className="vendor-metrics">
+                        <span className="vendor-mds">{(vendor.manDays || 0).toFixed(1)} MD</span>
+                        <span className="vendor-rate">€{vendor.rate || 0}/day</span>
+                        <span className="vendor-total">€{(vendor.cost || 0).toLocaleString('en-US')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="calculations-summary">
+                  <div className="summary-totals">
+                    <span className="total-effort">
+                      Total MDs: <strong>{currentProject.calculationData.vendorCosts
+                        .reduce((sum: number, vendor: any) => sum + (vendor.manDays || 0), 0)
+                        .toFixed(1)} MD</strong>
+                    </span>
+                    <span className="total-cost">
+                      Total Cost: <strong>€{currentProject.calculationData.vendorCosts
+                        .reduce((sum: number, vendor: any) => sum + (vendor.cost || 0), 0)
+                        .toLocaleString('en-US')}</strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="modal-footer">
