@@ -90,7 +90,7 @@ const RestoreVersionModal: React.FC = () => {
           <div className="restore-warning">
             <i className="fas fa-exclamation-triangle"></i>
             <div>
-              <strong>Warning:</strong> Restoring this version will create a backup of your current state and replace it with the selected version's data.
+              <strong>Warning:</strong> Restoring this version will create a new version with the selected version's data and replace your current project state.
               This action will affect all features, assumptions, and configuration.
             </div>
           </div>
@@ -202,11 +202,11 @@ const RestoreVersionModal: React.FC = () => {
             </div>
           )}
 
-          {/* Backup Information */}
+          {/* Version Information */}
           <div className="restore-backup-info">
-            <i className="fas fa-shield-alt"></i>
+            <i className="fas fa-code-branch"></i>
             <div>
-              <strong>Automatic Backup:</strong> Your current project state will be automatically saved as a backup version before restoration.
+              <strong>New Version:</strong> A new version will be created with the data from the selected version. Your version history will be preserved.
             </div>
           </div>
 
@@ -220,7 +220,7 @@ const RestoreVersionModal: React.FC = () => {
                 disabled={isLoading}
               />
               <span className="checkmark"></span>
-              I understand that this will replace my current project data with the selected version, and a backup will be created automatically.
+              I understand that this will create a new version with the data from the selected version, replacing my current project state.
             </label>
           </div>
         </div>

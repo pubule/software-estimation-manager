@@ -408,7 +408,7 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Ripristina versione specifica
+   * Ripristina versione specifica creando una nuova versione
    */
   async restoreVersion(versionId: string): Promise<void> {
     try {
@@ -433,24 +433,42 @@ export class VersionHistoryActions {
 
       this.setLoadingState(true);
 
-      // Business logic: crea backup automatico prima del ripristino
-      const backupReason = `Backup before restoring ${versionToRestore.id}`;
-      await this.createVersion(backupReason);
-
-      // Business logic: ripristina i dati (senza array versions per evitare ricorsione)
-      const restoredData = JSON.parse(JSON.stringify(versionToRestore.projectSnapshot));
+      // Business logic: crea una NUOVA versione con i dati ripristinati
+      const restoredSnapshot = JSON.parse(JSON.stringify(versionToRestore.projectSnapshot));
       
-      // Mantieni le versioni attuali
-      restoredData.versions = currentProject.versions;
+      // Genera nuovo ID per la versione ripristinata
+      const nextVersionId = this.generateNextVersionId(currentProject.versions || []);
+      
+      // Crea nuova versione che rappresenta il ripristino
+      const restoredVersion: Version = {
+        id: nextVersionId,
+        timestamp: new Date().toISOString(),
+        reason: `Restored from ${versionToRestore.id}`,
+        projectSnapshot: restoredSnapshot,
+        checksum: this.generateChecksum(restoredSnapshot),
+        fileSize: this.calculateDataSize(restoredSnapshot)
+      };
+      
+      // Aggiungi la nuova versione all'array esistente
+      const updatedVersions = [...(currentProject.versions || []), restoredVersion];
+      
+      // Applica limite massimo versioni se necessario
+      const finalVersions = this.enforceVersionLimit(updatedVersions);
+      
+      // Prepara i dati del progetto ripristinato con le versioni aggiornate
+      const projectWithRestoredData = {
+        ...restoredSnapshot,
+        versions: finalVersions
+      };
 
-      // Aggiorna store con dati ripristinati
-      state.setCurrentProject(restoredData);
+      // Aggiorna store con dati ripristinati e nuova versione
+      state.setProject(projectWithRestoredData);
       state.markDirty();
 
       // Chiudi modal
       this.closeRestoreModal();
 
-      console.log(`Version ${versionToRestore.id} restored successfully`);
+      console.log(`Created new version ${nextVersionId} with data restored from ${versionToRestore.id}`);
     } catch (error) {
       console.error('Failed to restore version:', error);
       throw error;
