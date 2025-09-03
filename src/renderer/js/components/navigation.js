@@ -117,6 +117,12 @@ class EnhancedNavigationManager extends NavigationManager {
     handleProjectLoadedChange(hasProject) {
         console.log(`Navigation: Project loaded state changed to ${hasProject}`);
         
+        // CRITICAL FIX: Dispatch event when project becomes available
+        if (hasProject) {
+            console.log('🔄 Navigation dispatching project ready event');
+            window.dispatchEvent(new CustomEvent('navigation-project-ready'));
+        }
+        
         // Auto-expand projects section when project is loaded (from old onProjectLoaded logic)
         if (hasProject && !this.projectsExpanded) {
             this.projectsExpanded = true;

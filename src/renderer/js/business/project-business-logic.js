@@ -208,8 +208,10 @@ class ProjectBusinessLogic extends BaseComponent {
             this.validateProjectData(projectData);
 
             // Update application store with forced synchronization and reference validation
-            if (this.app.store) {
-                this.app.store.getState().setProject(projectData);
+            // CRITICAL FIX: Force use of global store to ensure consistency
+            const globalStore = window.appStore;
+            if (globalStore) {
+                globalStore.getState().setProject(projectData);
                 
                 // Force store reference consistency across all components
                 this.validateAndRefreshStoreReferences();
@@ -659,115 +661,98 @@ class ProjectBusinessLogic extends BaseComponent {
      * Wait for project to be available in store before navigation
      * Enhanced with event-based verification and fresh store references
      */
-    async waitForProjectInStore(timeout = 5000, maxRetries = 3) {
+    /**
+     * Wait for project to be available in store before navigation
+     * UNIFIED STORE APPROACH: Uses only window.appStore + navigation events
+     */
+    async waitForProjectInStore(timeout = 3000, maxRetries = 2) {
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
-            let checkInterval = 25; // Start with faster polling
-            let retryCount = 0;
+            let navigationEventReceived = false;
+            
+            // Listen for navigation event that indicates project is ready
+            const navigationListener = () => {
+                navigationEventReceived = true;
+                console.log('✅ Navigation event received - project should be ready');
+            };
+            
+            // Add temporary listener for navigation ready event
+            window.addEventListener('navigation-project-ready', navigationListener, { once: true });
             
             const checkProject = () => {
-                let projectInBusinessLogic = false;
-                let projectInNavigation = false;
-                let projectInNavigationManager = false;
+                const globalStore = window.appStore;
+                let projectAvailable = false;
                 
-                // Check if project is available in business logic store (this.app.store)
-                if (this.app.store) {
-                    const businessState = this.app.store.getState();
-                    projectInBusinessLogic = businessState.currentProject !== null;
-                }
-                
-                // Check if project is available in navigation store (FRESH window.appStore reference)
-                const freshAppStore = window.appStore;
-                if (freshAppStore) {
-                    const navigationState = freshAppStore.getState();
-                    projectInNavigation = navigationState.currentProject !== null;
-                }
-                
-                // Check navigation manager's store reference (and refresh it)
-                if (this.app.navigationManager) {
-                    // Force fresh store reference in navigation manager
-                    this.app.navigationManager.store = window.appStore || this.app.navigationManager.store;
-                    if (this.app.navigationManager.store) {
-                        const navManagerState = this.app.navigationManager.store.getState();
-                        projectInNavigationManager = navManagerState.currentProject !== null;
+                if (globalStore) {
+                    try {
+                        const state = globalStore.getState();
+                        projectAvailable = state.currentProject !== null;
+                        
+                        if (projectAvailable) {
+                            console.log('✅ Project confirmed in global store, ready for operations');
+                            window.removeEventListener('navigation-project-ready', navigationListener);
+                            resolve(true);
+                            return;
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Error checking global store:', error);
                     }
-                }
-                
-                // Debug logging for race condition investigation
-                if (projectInBusinessLogic !== projectInNavigation || projectInBusinessLogic !== projectInNavigationManager) {
-                    console.log(`🔍 SYNC CHECK - Business: ${projectInBusinessLogic}, Navigation: ${projectInNavigation}, NavManager: ${projectInNavigationManager}`);
-                    
-                    // Log store instance comparison for debugging
-                    console.log(`🔍 STORE REFS - Business: ${this.app.store === freshAppStore}, NavManager: ${this.app.navigationManager?.store === freshAppStore}`);
-                }
-                
-                // Wait for ALL systems to see the project (or at least business logic + navigation manager)
-                // Accept if navigation store is the only one failing (likely reference issue)
-                const criticalSystemsReady = projectInBusinessLogic && projectInNavigationManager;
-                const allSystemsReady = projectInBusinessLogic && projectInNavigation && projectInNavigationManager;
-                
-                if (allSystemsReady) {
-                    console.log('✅ Project confirmed in ALL store references, ready for operations');
-                    resolve(true);
-                    return;
-                } else if (criticalSystemsReady) {
-                    console.log('✅ Project confirmed in CRITICAL systems (business + navManager), proceeding with navigation fix');
-                    // Apply navigation fix immediately
-                    if (this.app.navigationManager) {
-                        this.app.navigationManager.store = window.appStore;
-                    }
-                    resolve(true);
-                    return;
+                } else {
+                    console.warn('⚠️ Global store not available');
                 }
                 
                 const elapsed = Date.now() - startTime;
                 
+                // If we received navigation event but store still shows no project,
+                // it might be a very small timing issue - give it one more moment
+                if (navigationEventReceived && !projectAvailable && elapsed < timeout + 500) {
+                    console.log('🔄 Navigation event received but project not in store yet, waiting briefly...');
+                    setTimeout(checkProject, 50);
+                    return;
+                }
+                
                 // Check timeout
                 if (elapsed > timeout) {
-                    if (retryCount < maxRetries) {
-                        console.log(`⚠️ Retry ${retryCount + 1}/${maxRetries}: Waiting for project sync across all systems...`);
-                        console.log(`   Business Logic: ${projectInBusinessLogic}, Navigation: ${projectInNavigation}, NavManager: ${projectInNavigationManager}`);
-                        
-                        // Force store refresh on retry
-                        if (this.app.navigationManager) {
-                            this.app.navigationManager.store = window.appStore;
-                        }
-                        
-                        retryCount++;
-                        // Reset timer but keep trying
-                        setTimeout(checkProject, checkInterval);
-                        return;
-                    }
+                    window.removeEventListener('navigation-project-ready', navigationListener);
                     
-                    // If critical systems are ready but navigation store is failing, proceed anyway
-                    if (criticalSystemsReady) {
-                        console.log('⚠️ Navigation store sync failed, but critical systems ready - proceeding');
+                    // If we got navigation event, proceed anyway (likely just a timing issue)
+                    if (navigationEventReceived) {
+                        console.log('⚠️ Navigation event received - proceeding despite store timing issue');
                         resolve(true);
                         return;
                     }
                     
-                    console.error(`❌ Failed to sync project across systems after ${timeout}ms and ${maxRetries} retries`);
-                    console.error(`   Final state - Business: ${projectInBusinessLogic}, Navigation: ${projectInNavigation}, NavManager: ${projectInNavigationManager}`);
-                    reject(new Error(`Timeout waiting for project sync after ${timeout}ms (${maxRetries} retries)`));
+                    console.error(`❌ Project sync timeout after ${timeout}ms - no project found in global store`);
+                    reject(new Error(`Timeout waiting for project in global store after ${timeout}ms`));
                     return;
                 }
                 
-                // Exponential backoff: Increase interval slightly as time passes
-                if (elapsed > 1000) {
-                    checkInterval = Math.min(100, checkInterval * 1.1);
-                }
-                
-                // Continue polling
-                setTimeout(checkProject, checkInterval);
+                // Continue polling with shorter intervals
+                setTimeout(checkProject, 25);
             };
             
+            // Start checking immediately
             checkProject();
+            
+            // Also trigger the navigation event manually if we detect the project is already there
+            // This handles cases where the event was fired before we started listening
+            setTimeout(() => {
+                const globalStore = window.appStore;
+                if (globalStore && globalStore.getState().currentProject && !navigationEventReceived) {
+                    console.log('🔄 Project detected in store, triggering navigation ready event');
+                    window.dispatchEvent(new CustomEvent('navigation-project-ready'));
+                }
+            }, 100);
         });
     }
 
     /**
      * Validate and refresh store references across all components
      * Ensures all parts of the application use the same store instance
+     */
+    /**
+     * Validate and refresh store references across all components
+     * UNIFIED STORE APPROACH: Force all components to use window.appStore
      */
     validateAndRefreshStoreReferences() {
         const globalStore = window.appStore;
@@ -776,23 +761,16 @@ class ProjectBusinessLogic extends BaseComponent {
             return;
         }
 
-        // Refresh navigation manager store reference
+        // Force navigation manager to use global store
         if (this.app.navigationManager) {
-            const oldRef = this.app.navigationManager.store;
             this.app.navigationManager.store = globalStore;
-            
-            if (oldRef !== globalStore) {
-                console.log('🔄 Navigation manager store reference refreshed');
-            }
+            console.log('🔄 Navigation manager now uses global store');
         }
 
-        // Validate that this.app.store is also the global store
-        if (this.app.store !== globalStore) {
-            console.warn('⚠️ Business logic store reference differs from global store');
-            // Don't change it as it might break other functionality, just warn
-        }
+        // Force business logic to also use global store for consistency
+        this.app.store = globalStore;
 
-        console.log('✅ Store reference validation completed');
+        console.log('✅ All components now use unified global store reference');
     }
 }
 
