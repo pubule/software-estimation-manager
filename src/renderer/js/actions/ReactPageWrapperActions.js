@@ -218,6 +218,12 @@ class ReactPageWrapperActions {
                 componentName: 'AssumptionsPage',
                 containerId: 'assumptions-react-root',
                 wrapperName: 'ReactAssumptionsWrapper'
+            },
+            'version-history': {
+                pageId: 'history-page',
+                componentName: 'VersionHistoryPage',
+                containerId: 'version-history-react-root',
+                wrapperName: 'ReactVersionHistoryWrapper'
             }
         };
         

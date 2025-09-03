@@ -58,6 +58,7 @@ class EnhancedNavigationManager extends NavigationManager {
         this.reactFeaturesWrapper = null;
         this.reactPhasesWrapper = null;
         this.reactCalculationsWrapper = null;
+        this.reactVersionHistoryWrapper = null;
 
         this.initializeNestedNavigation();
         this.setupStoreSubscription();
@@ -206,6 +207,12 @@ class EnhancedNavigationManager extends NavigationManager {
         if (this.reactCalculationsWrapper) {
             this.reactCalculationsWrapper.destroy();
             this.reactCalculationsWrapper = null;
+        }
+
+        // Cleanup React Version History wrapper
+        if (this.reactVersionHistoryWrapper) {
+            this.reactVersionHistoryWrapper.destroy();
+            this.reactVersionHistoryWrapper = null;
         }
     }
 
@@ -649,6 +656,7 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
         
+        // Read fresh state to avoid race condition with project loading
         const state = this.store.getState();
         
         // Check if user is trying to access a project sub-section without a loaded project
@@ -1317,8 +1325,10 @@ class EnhancedNavigationManager extends NavigationManager {
         console.log('Navigated to Assumptions page with React wrapper');
     }
 
-    // Special method for version history page
-    showHistoryPage() {
+    // Special method for version history page - Using React wrapper
+    async showHistoryPage() {
+        console.log('🔄 NavigationManager: showHistoryPage - Using State/Actions/Dispatcher pattern');
+
         // Check if store is available
         if (!this.store || !this.store.getState) {
             console.warn('Store not available for NavigationManager.showHistoryPage, navigation aborted');
@@ -1344,23 +1354,62 @@ class EnhancedNavigationManager extends NavigationManager {
         this.updateActiveStates('history');
 
         // Show target page
-        const targetPage = document.getElementById('history-page');
-        if (targetPage) {
-            targetPage.classList.add('active');
+        const historyPage = document.getElementById('history-page');
+        if (historyPage) {
+            historyPage.classList.add('active');
+        }
 
-            // Version manager should already be initialized in main app
-            if (this.app.versionManager) {
-                // Render version history content
-                setTimeout(() => {
-                    this.app.versionManager.render();
-                }, 100);
+        // Initialize React wrapper for version history
+        const isComponentAlreadyInitialized = state.isComponentInitialized('version-history');
+        const hasExistingWrapper = !!this.reactVersionHistoryWrapper;
+        
+        if (!hasExistingWrapper || !isComponentAlreadyInitialized) {
+            console.log('🔄 Initializing React Version History wrapper...');
+            console.log('ReactVersionHistoryWrapper available:', !!window.ReactVersionHistoryWrapper);
+            
+            if (window.ReactVersionHistoryWrapper) {
+                this.reactVersionHistoryWrapper = new window.ReactVersionHistoryWrapper();
+                
+                try {
+                    await this.reactVersionHistoryWrapper.init();
+                    console.log('✅ React Version History wrapper initialized successfully');
+                    
+                    // Mark component as initialized in store
+                    state.setComponentInitialized('version-history', true);
+                    
+                } catch (error) {
+                    console.error('❌ Failed to initialize React Version History wrapper:', error);
+                    // Show fallback content
+                    if (historyPage) {
+                        historyPage.innerHTML = `
+                            <div style="padding: 2rem; text-align: center; color: #ff6b6b;">
+                                <h3>❌ Version History Page Error</h3>
+                                <p>Failed to load React components</p>
+                                <p><small>Error: ${error.message}</small></p>
+                                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                                    Reload Application
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
             } else {
-                console.error('Version manager not initialized');
+                console.error('❌ ReactVersionHistoryWrapper not available on window object');
+                console.log('Available on window:', Object.keys(window).filter(k => k.includes('React')));
+            }
+        } else {
+            console.log('✅ React Version History wrapper already initialized - PRESERVING STATE');
+            
+            // Ensure we're using the existing wrapper without re-init
+            if (this.reactVersionHistoryWrapper && this.reactVersionHistoryWrapper.isInitialized) {
+                console.log('🔄 Using existing version history wrapper - no reset needed');
             }
         }
 
-        // Store current section
-        this.currentSection = 'history';
+        // Update global state
+        if (this.store && this.store.getState) {
+            this.store.getState().setSection('history');
+        }
 
         // Ensure projects is expanded
         if (!this.projectsExpanded) {
@@ -1368,7 +1417,7 @@ class EnhancedNavigationManager extends NavigationManager {
             this.updateProjectsExpansion();
         }
 
-        console.log('Navigated to version history page');
+        console.log('Navigated to Version History page with React wrapper');
     }
 
     // Special method for capacity page

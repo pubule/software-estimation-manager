@@ -286,14 +286,10 @@
             </div>
 
 
-            <!-- Version History Page -->
+            <!-- Version History Page - React Component -->
             <div id="history-page" class="page">
-                <div class="page-header">
-                    <h2>Version History</h2>
-                </div>
-                <div class="history-content">
-                    <p>Version history will be implemented here...</p>
-                </div>
+                <!-- React VersionHistoryPage component will be rendered here -->
+                <div id="version-history-react-root"></div>
             </div>
 
             <!-- Resource Capacity Overview Page -->
@@ -677,8 +673,7 @@ console.log('✅ Zustand store implementation ready for React components');
 <!-- Project business logic (depends on other managers) -->
 <script src="js/business/project-business-logic.js"></script>
 
-<!-- Version management (depends on other managers) -->
-<script src="js/components/version-manager.js"></script>
+<!-- Version management (migrated to React) -->
 
 <!-- ExcelJS library for Excel export with styling support -->
 <script>

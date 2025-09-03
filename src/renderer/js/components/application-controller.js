@@ -23,7 +23,6 @@ class ApplicationController extends BaseComponent {
             modal: null,
             project: null,
             configurationUI: null,
-            version: null,
             projectPhases: null
         };
 
@@ -308,8 +307,7 @@ class ApplicationController extends BaseComponent {
         // REMOVED: React-only approach - ProjectPhasesManager no longer used
         // this.managers.projectPhases = new ProjectPhasesManager(this, this.managers.config);
         
-        // Version manager
-        this.managers.version = new VersionManager(this);
+        // REMOVED: Version manager (migrated to React)
         
         // Default config manager for loading defaults.json
         if (window.DefaultConfigManager) {
@@ -331,7 +329,7 @@ class ApplicationController extends BaseComponent {
         this.projectManager = this.managers.project;
         // REMOVED: React-only approach
         // this.projectPhasesManager = this.managers.projectPhases;
-        this.versionManager = this.managers.version;
+        // REMOVED: Version manager (migrated to React)
         this.defaultConfigManager = this.managers.defaultConfig;
         this.teamsManager = this.managers.teams;
         
@@ -2172,14 +2170,7 @@ class ApplicationController extends BaseComponent {
         //     this.managers.projectPhases?.resetAllPhaseData();
         // }, 100);
 
-        // Create initial version
-        setTimeout(async () => {
-            try {
-                await this.managers.version?.createVersion('Initial project creation');
-            } catch (error) {
-                console.error('Failed to create initial version:', error);
-            }
-        }, 600);
+        // REMOVED: Initial version creation (now handled by React VersionHistoryActions)
 
         if (window.NotificationManager) {
             NotificationManager.show('New project created successfully', 'success');
@@ -2222,20 +2213,7 @@ class ApplicationController extends BaseComponent {
             // Update project manager
             this.managers.project?.loadSavedProjects();
 
-            // Version management if enabled
-            if (this.managers.version && updatedProject && updatedProject.versions?.length > 0) {
-                console.log('🔍 SAVE UPDATE - Updating version with latest project state');
-                await this.managers.version.updateCurrentVersion();
-                
-                // Save updated version data again after version update
-                const finalProject = StateSelectors.getCurrentProject();
-                await this.managers.data.saveProject(finalProject);
-                
-                // Update UI if in versions section
-                if (this.managers.navigation.currentSection === 'versions') {
-                    this.managers.version.render();
-                }
-            }
+            // REMOVED: Version management (now handled by React VersionHistoryActions)
 
             if (window.NotificationManager) {
                 NotificationManager.show('Project saved successfully', 'success');
@@ -2497,7 +2475,7 @@ class ApplicationController extends BaseComponent {
             if (lastProject) {
                 currentProject = await this.migrateProjectConfig(lastProject);
                 
-                this.managers.version?.onProjectChanged(this.currentProject);
+                // REMOVED: Version manager onProjectChanged (now handled by React)
                 // REMOVED: Phase sync now handled by React components
                 // this.managers.projectPhases?.synchronizeWithProject();
                 this.managers.calculations?.calculateVendorCosts();
@@ -2621,7 +2599,7 @@ class ApplicationController extends BaseComponent {
         this.currentProject = await this.createNewProject();
         StateSelectors.markProjectClean();
         
-        this.managers.version?.onProjectChanged(null);
+        // REMOVED: Version manager onProjectChanged (now handled by React)
         // REMOVED: Phase reset now handled by React components
         // this.managers.projectPhases?.resetAllPhaseData();
         

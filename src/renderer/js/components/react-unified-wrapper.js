@@ -48,6 +48,16 @@ class ReactAssumptionsWrapper extends window.ReactPageWrapper {
 }
 
 /**
+ * ReactVersionHistoryWrapper - Version History page wrapper
+ * Pattern State/Actions/Dispatcher: Delega tutto a ReactPageWrapper generico
+ */
+class ReactVersionHistoryWrapper extends window.ReactPageWrapper {
+    constructor() {
+        super('version-history');
+    }
+}
+
+/**
  * ReactProjectManagerWrapper - Projects page wrapper
  * Pattern State/Actions/Dispatcher: Delega tutto a ReactPageWrapper generico
  * + Legacy compatibility methods per progetti
@@ -155,6 +165,7 @@ if (typeof window !== 'undefined') {
     window.ReactFeaturesWrapper = ReactFeaturesWrapper;
     window.ReactCalculationsWrapper = ReactCalculationsWrapper;
     window.ReactAssumptionsWrapper = ReactAssumptionsWrapper;
+    window.ReactVersionHistoryWrapper = ReactVersionHistoryWrapper;
     window.ReactProjectManagerWrapper = ReactProjectManagerWrapper;
     
     console.log('✅ React Unified Wrappers registered globally (State/Actions/Dispatcher pattern)');

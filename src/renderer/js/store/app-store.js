@@ -164,6 +164,28 @@ const appStore = window.zustand.createStore((set, get) => ({
     },
     
     // ======================
+    // VERSION HISTORY STATE (State/Actions/Dispatcher Pattern)
+    // ======================
+    versionHistoryData: {
+        filters: { dateRange: '', reason: '' }, // Filters for version history table
+        modalStates: {
+            createModal: {
+                isOpen: false,
+                selectedVersion: null
+            },
+            compareModal: {
+                isOpen: false,
+                selectedVersion: null
+            },
+            restoreModal: {
+                isOpen: false,
+                selectedVersion: null
+            }
+        },
+        isLoading: false
+    },
+    
+    // ======================
     // PROJECT ACTIONS
     // ======================
     
@@ -1216,6 +1238,106 @@ const appStore = window.zustand.createStore((set, get) => ({
                     ...currentAssumptionsData.modalState, 
                     ...modalState 
                 }
+            }
+        });
+    },
+
+    // ======================
+    // VERSION HISTORY ACTIONS (State/Actions/Dispatcher Pattern)
+    // ======================
+    
+    /**
+     * Set version history filters
+     */
+    setVersionHistoryFilters: (filters) => {
+        const currentState = get();
+        const currentVersionHistoryData = currentState.versionHistoryData || {
+            filters: { dateRange: '', reason: '' },
+            modalStates: {
+                createModal: { isOpen: false, selectedVersion: null },
+                compareModal: { isOpen: false, selectedVersion: null },
+                restoreModal: { isOpen: false, selectedVersion: null }
+            },
+            isLoading: false
+        };
+        
+        set({
+            versionHistoryData: {
+                ...currentVersionHistoryData,
+                filters: { 
+                    ...currentVersionHistoryData.filters, 
+                    ...filters 
+                }
+            }
+        });
+    },
+
+    /**
+     * Set version history modal state
+     */
+    setVersionHistoryModalState: (modalType, modalState) => {
+        const currentState = get();
+        const currentVersionHistoryData = currentState.versionHistoryData || {
+            filters: { dateRange: '', reason: '' },
+            modalStates: {
+                createModal: { isOpen: false, selectedVersion: null },
+                compareModal: { isOpen: false, selectedVersion: null },
+                restoreModal: { isOpen: false, selectedVersion: null }
+            },
+            isLoading: false
+        };
+        
+        set({
+            versionHistoryData: {
+                ...currentVersionHistoryData,
+                modalStates: {
+                    ...currentVersionHistoryData.modalStates,
+                    [modalType]: {
+                        ...currentVersionHistoryData.modalStates[modalType],
+                        ...modalState
+                    }
+                }
+            }
+        });
+    },
+
+    /**
+     * Set version history loading state
+     */
+    setVersionHistoryLoading: (isLoading) => {
+        const currentState = get();
+        const currentVersionHistoryData = currentState.versionHistoryData || {
+            filters: { dateRange: '', reason: '' },
+            modalStates: {
+                createModal: { isOpen: false, selectedVersion: null },
+                compareModal: { isOpen: false, selectedVersion: null },
+                restoreModal: { isOpen: false, selectedVersion: null }
+            },
+            isLoading: false
+        };
+        
+        set({
+            versionHistoryData: {
+                ...currentVersionHistoryData,
+                isLoading
+            }
+        });
+    },
+
+    /**
+     * Update project versions array
+     */
+    updateProjectVersions: (versions) => {
+        const currentState = get();
+        if (!currentState.currentProject) {
+            console.warn('Cannot update versions: No project loaded');
+            return;
+        }
+        
+        set({
+            currentProject: {
+                ...currentState.currentProject,
+                versions
             }
         });
     }

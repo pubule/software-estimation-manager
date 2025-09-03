@@ -28,8 +28,17 @@ import CalculationsPage from './components/CalculationsPage';
 // Import assumptions components
 import AssumptionsPage from './components/AssumptionsPage';
 
+// Import version history components
+import VersionHistoryPage from './components/VersionHistoryPage';
+import VersionHistoryTable from './components/VersionHistoryTable';
+import VersionFilters from './components/VersionFilters';
+import CreateVersionModal from './components/CreateVersionModal';
+import VersionComparisonModal from './components/VersionComparisonModal';
+import RestoreVersionModal from './components/RestoreVersionModal';
+
 // Import Actions classes for global registration
 import { NavigationActions } from './actions/NavigationActions';
+import { versionHistoryActions } from './actions/VersionHistoryActions';
 import '../js/actions/ReactPageWrapperActions.js';
 
 // Import the existing store
@@ -58,6 +67,12 @@ declare global {
       SupplierSelectors: typeof SupplierSelectors;
       CalculationsPage: typeof CalculationsPage;
       AssumptionsPage: typeof AssumptionsPage;
+      VersionHistoryPage: typeof VersionHistoryPage;
+      VersionHistoryTable: typeof VersionHistoryTable;
+      VersionFilters: typeof VersionFilters;
+      CreateVersionModal: typeof CreateVersionModal;
+      VersionComparisonModal: typeof VersionComparisonModal;
+      RestoreVersionModal: typeof RestoreVersionModal;
     };
     NavigationActions: typeof NavigationActions;
     ReactPageWrapperActions: any;
@@ -84,7 +99,13 @@ window.ReactComponents = {
   DevelopmentNotice,
   SupplierSelectors,
   CalculationsPage,
-  AssumptionsPage
+  AssumptionsPage,
+  VersionHistoryPage,
+  VersionHistoryTable,
+  VersionFilters,
+  CreateVersionModal,
+  VersionComparisonModal,
+  RestoreVersionModal
 };
 
 // Make Actions classes available globally
