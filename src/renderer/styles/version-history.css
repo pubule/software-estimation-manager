@@ -95,7 +95,7 @@
 
 /* Version Table */
 .version-table-container {
-    padding: var(--spacing-lg);
+    padding: 0;
     background-color: var(--bg-primary);
 }
 
@@ -906,7 +906,7 @@
     }
     
     .version-table-container {
-        padding: var(--spacing-md);
+        padding: 0;
     }
     
     .version-table {

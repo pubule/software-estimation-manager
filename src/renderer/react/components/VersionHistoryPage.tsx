@@ -149,13 +149,6 @@ const VersionHistoryPage: React.FC<VersionHistoryPageProps> = () => {
         />
       </div>
 
-      {/* Footer Stats */}
-      <div className="version-footer">
-        <div className="version-stats">
-          <span>Total Versions: <strong>{currentProject.versions?.length || 0}</strong></span>
-          <span>Filtered: <strong>{filteredVersions.length}</strong></span>
-        </div>
-      </div>
 
       {/* Modals */}
       {modalStates.createModal?.isOpen && (
