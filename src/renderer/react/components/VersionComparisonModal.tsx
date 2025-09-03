@@ -375,6 +375,124 @@ const VersionComparisonModal: React.FC = () => {
               </div>
             )}
 
+            {/* CALCULATIONS CHANGES */}
+            {comparisonData.calculationChanges.vendorCostChanges.length > 0 && (
+              <div className="change-category calculations">
+                <div className="category-header">
+                  <h5>
+                    <i className="fas fa-calculator"></i>
+                    COST CALCULATIONS ({comparisonData.calculationChanges.vendorCostChanges.length} changes)
+                  </h5>
+                  <div className="calculation-summary">
+                    <div className="calculation-totals">
+                      <span className="total-cost">
+                        Total Cost: <strong className={comparisonData.calculationChanges.totalCostDifference >= 0 ? 'positive' : 'negative'}>
+                          {comparisonData.calculationChanges.totalCostDifference >= 0 ? '+' : ''}
+                          {comparisonData.calculationChanges.totalCostDifference.toLocaleString('en-US')}€
+                        </strong>
+                      </span>
+                      <span className="total-mds">
+                        Total MDs: <strong className={comparisonData.calculationChanges.totalMDsDifference >= 0 ? 'positive' : 'negative'}>
+                          {comparisonData.calculationChanges.totalMDsDifference >= 0 ? '+' : ''}
+                          {comparisonData.calculationChanges.totalMDsDifference.toFixed(1)} MD
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="category-content">
+                  {/* Added Vendors */}
+                  {comparisonData.calculationChanges.addedVendors.length > 0 && (
+                    <div className="change-group calculations">
+                      <h6><i className="fas fa-plus-circle"></i> Added Vendors ({comparisonData.calculationChanges.addedVendors.length})</h6>
+                      <div className="vendor-changes">
+                        {comparisonData.calculationChanges.vendorCostChanges
+                          .filter((change: any) => change.changeType === 'added')
+                          .map((change: any, index: number) => (
+                            <div key={change.vendorId} className="vendor-change-item added">
+                              <div className="vendor-info">
+                                <span className="vendor-name">{change.vendor}</span>
+                                <span className="vendor-role">{change.role} - {change.department}</span>
+                              </div>
+                              <div className="vendor-details">
+                                <span className="vendor-mds">{change.currentValue?.manDays || 0} MD</span>
+                                <span className="vendor-rate">€{change.currentValue?.rate || 0}/day</span>
+                                <span className="vendor-cost">€{(change.currentValue?.cost || 0).toLocaleString('en-US')}</span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Removed Vendors */}
+                  {comparisonData.calculationChanges.removedVendors.length > 0 && (
+                    <div className="change-group calculations">
+                      <h6><i className="fas fa-minus-circle"></i> Removed Vendors ({comparisonData.calculationChanges.removedVendors.length})</h6>
+                      <div className="vendor-changes">
+                        {comparisonData.calculationChanges.vendorCostChanges
+                          .filter((change: any) => change.changeType === 'removed')
+                          .map((change: any, index: number) => (
+                            <div key={change.vendorId} className="vendor-change-item removed">
+                              <div className="vendor-info">
+                                <span className="vendor-name">{change.vendor}</span>
+                                <span className="vendor-role">{change.role} - {change.department}</span>
+                              </div>
+                              <div className="vendor-details">
+                                <span className="vendor-mds">-{change.previousValue?.manDays || 0} MD</span>
+                                <span className="vendor-rate">€{change.previousValue?.rate || 0}/day</span>
+                                <span className="vendor-cost">-€{(change.previousValue?.cost || 0).toLocaleString('en-US')}</span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Modified Vendors */}
+                  {comparisonData.calculationChanges.modifiedVendors.length > 0 && (
+                    <div className="change-group calculations">
+                      <h6><i className="fas fa-edit"></i> Modified Vendors ({comparisonData.calculationChanges.modifiedVendors.length})</h6>
+                      <div className="vendor-changes">
+                        {comparisonData.calculationChanges.vendorCostChanges
+                          .filter((change: any) => change.changeType === 'modified')
+                          .map((change: any, index: number) => (
+                            <div key={change.vendorId} className="vendor-change-item modified">
+                              <div className="vendor-info">
+                                <span className="vendor-name">{change.vendor}</span>
+                                <span className="vendor-role">{change.role} - {change.department}</span>
+                              </div>
+                              <div className="vendor-comparison">
+                                <div className="vendor-before">
+                                  <span className="label">Before:</span>
+                                  <span className="vendor-mds">{change.previousValue?.manDays || 0} MD</span>
+                                  <span className="vendor-rate">€{change.previousValue?.rate || 0}/day</span>
+                                  <span className="vendor-cost">€{(change.previousValue?.cost || 0).toLocaleString('en-US')}</span>
+                                </div>
+                                <div className="vendor-after">
+                                  <span className="label">After:</span>
+                                  <span className="vendor-mds">{change.currentValue?.manDays || 0} MD</span>
+                                  <span className="vendor-rate">€{change.currentValue?.rate || 0}/day</span>
+                                  <span className="vendor-cost">€{(change.currentValue?.cost || 0).toLocaleString('en-US')}</span>
+                                </div>
+                                <div className="vendor-difference">
+                                  <span className="diff-cost">
+                                    {change.costDifference >= 0 ? '+' : ''}€{change.costDifference.toLocaleString('en-US')}
+                                  </span>
+                                  <span className="diff-mds">
+                                    {change.mdsDifference >= 0 ? '+' : ''}{change.mdsDifference.toFixed(1)} MD
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* NO CHANGES STATE */}
             {evolutionSummary.totalChanges === 0 && (
               <div className="no-changes-state">

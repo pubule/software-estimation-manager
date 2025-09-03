@@ -198,6 +198,87 @@ const RestoreVersionModal: React.FC = () => {
                     ))}
                   </div>
                 </div>
+
+                {/* Calculations Changes Summary */}
+                {comparisonData.calculationChanges.vendorCostChanges.length > 0 && (
+                  <div className="restore-change-section">
+                    <h5><i className="fas fa-calculator"></i> Cost Calculations</h5>
+                    <div className="calculation-summary">
+                      <div className="calculation-totals">
+                        <span className="total-cost-change">
+                          Total Cost Change: <strong className={comparisonData.calculationChanges.totalCostDifference < 0 ? 'positive' : 'negative'}>
+                            {comparisonData.calculationChanges.totalCostDifference < 0 ? '+' : ''}
+                            {Math.abs(comparisonData.calculationChanges.totalCostDifference).toLocaleString('en-US')}€
+                          </strong>
+                        </span>
+                        <span className="total-mds-change">
+                          Total MDs Change: <strong className={comparisonData.calculationChanges.totalMDsDifference < 0 ? 'positive' : 'negative'}>
+                            {comparisonData.calculationChanges.totalMDsDifference < 0 ? '+' : ''}
+                            {Math.abs(comparisonData.calculationChanges.totalMDsDifference).toFixed(1)} MD
+                          </strong>
+                        </span>
+                      </div>
+                      
+                      {/* Vendor Changes Summary */}
+                      <div className="vendor-changes-summary">
+                        {comparisonData.calculationChanges.addedVendors.length > 0 && (
+                          <span className="change-count added">
+                            +{comparisonData.calculationChanges.addedVendors.length} vendor{comparisonData.calculationChanges.addedVendors.length > 1 ? 's' : ''} will be restored
+                          </span>
+                        )}
+                        {comparisonData.calculationChanges.removedVendors.length > 0 && (
+                          <span className="change-count removed">
+                            -{comparisonData.calculationChanges.removedVendors.length} vendor{comparisonData.calculationChanges.removedVendors.length > 1 ? 's' : ''} will be removed
+                          </span>
+                        )}
+                        {comparisonData.calculationChanges.modifiedVendors.length > 0 && (
+                          <span className="change-count modified">
+                            {comparisonData.calculationChanges.modifiedVendors.length} vendor{comparisonData.calculationChanges.modifiedVendors.length > 1 ? 's' : ''} will be modified
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Top vendor changes (show max 3) */}
+                      {comparisonData.calculationChanges.vendorCostChanges.length > 0 && (
+                        <div className="vendor-changes-preview">
+                          <h6>Key Changes:</h6>
+                          {comparisonData.calculationChanges.vendorCostChanges
+                            .sort((a: any, b: any) => Math.abs(b.costDifference) - Math.abs(a.costDifference))
+                            .slice(0, 3)
+                            .map((change: any, index: number) => (
+                              <div key={change.vendorId} className={`vendor-change-preview ${change.changeType}`}>
+                                <span className="vendor-info">
+                                  <strong>{change.vendor}</strong> ({change.role})
+                                </span>
+                                <span className="change-info">
+                                  {change.changeType === 'added' && (
+                                    <span className="change-value added">
+                                      +€{(change.currentValue?.cost || 0).toLocaleString('en-US')}
+                                    </span>
+                                  )}
+                                  {change.changeType === 'removed' && (
+                                    <span className="change-value removed">
+                                      -€{(change.previousValue?.cost || 0).toLocaleString('en-US')}
+                                    </span>
+                                  )}
+                                  {change.changeType === 'modified' && (
+                                    <span className="change-value modified">
+                                      {change.costDifference >= 0 ? '+' : ''}€{change.costDifference.toLocaleString('en-US')}
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            ))}
+                          {comparisonData.calculationChanges.vendorCostChanges.length > 3 && (
+                            <div className="more-changes">
+                              +{comparisonData.calculationChanges.vendorCostChanges.length - 3} more vendor changes...
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

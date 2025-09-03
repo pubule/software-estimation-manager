@@ -125,9 +125,35 @@ export interface ConfigComparison {
   categories: ComparisonField;
 }
 
+export interface VendorCostChange {
+  vendorId: string;
+  vendor: string;
+  role: string;
+  department: string;
+  changeType: 'added' | 'removed' | 'modified';
+  previousValue?: {
+    manDays: number;
+    rate: number;
+    cost: number;
+    finalMDs: number;
+  };
+  currentValue?: {
+    manDays: number;
+    rate: number;
+    cost: number;
+    finalMDs: number;
+  };
+  costDifference: number;
+  mdsDifference: number;
+}
+
 export interface CalculationComparison {
   totalCostDifference: number;
-  vendorCostChanges: any[];
+  totalMDsDifference: number;
+  vendorCostChanges: VendorCostChange[];
+  addedVendors: any[];
+  removedVendors: any[];
+  modifiedVendors: any[];
 }
 
 export class VersionHistoryActions {
@@ -1395,12 +1421,114 @@ export class VersionHistoryActions {
     const currentCalc = current.calculationData || {};
     const compareCalc = compare.calculationData || {};
     
-    const currentTotal = (currentCalc.vendorCosts || []).reduce((sum: number, vc: any) => sum + (vc.totalCost || 0), 0);
-    const compareTotal = (compareCalc.vendorCosts || []).reduce((sum: number, vc: any) => sum + (vc.totalCost || 0), 0);
+    const currentVendors = currentCalc.vendorCosts || [];
+    const compareVendors = compareCalc.vendorCosts || [];
+    
+    // Calculate totals
+    const currentTotal = currentVendors.reduce((sum: number, vc: any) => sum + (vc.cost || 0), 0);
+    const compareTotal = compareVendors.reduce((sum: number, vc: any) => sum + (vc.cost || 0), 0);
+    
+    const currentTotalMDs = currentVendors.reduce((sum: number, vc: any) => sum + (vc.manDays || 0), 0);
+    const compareTotalMDs = compareVendors.reduce((sum: number, vc: any) => sum + (vc.manDays || 0), 0);
+    
+    // Find changes
+    const vendorCostChanges: VendorCostChange[] = [];
+    const addedVendors: any[] = [];
+    const removedVendors: any[] = [];
+    const modifiedVendors: any[] = [];
+    
+    // Find added and modified vendors
+    currentVendors.forEach((currentVendor: any) => {
+      const compareVendor = compareVendors.find((cv: any) => cv.vendorId === currentVendor.vendorId);
+      
+      if (!compareVendor) {
+        // Added vendor
+        const change: VendorCostChange = {
+          vendorId: currentVendor.vendorId,
+          vendor: currentVendor.vendor,
+          role: currentVendor.role,
+          department: currentVendor.department,
+          changeType: 'added',
+          currentValue: {
+            manDays: currentVendor.manDays || 0,
+            rate: currentVendor.rate || 0,
+            cost: currentVendor.cost || 0,
+            finalMDs: currentVendor.finalMDs || 0
+          },
+          costDifference: currentVendor.cost || 0,
+          mdsDifference: currentVendor.manDays || 0
+        };
+        vendorCostChanges.push(change);
+        addedVendors.push(currentVendor);
+      } else {
+        // Check if modified
+        const hasChanges = 
+          currentVendor.manDays !== compareVendor.manDays ||
+          currentVendor.rate !== compareVendor.rate ||
+          currentVendor.cost !== compareVendor.cost ||
+          currentVendor.finalMDs !== compareVendor.finalMDs;
+          
+        if (hasChanges) {
+          const change: VendorCostChange = {
+            vendorId: currentVendor.vendorId,
+            vendor: currentVendor.vendor,
+            role: currentVendor.role,
+            department: currentVendor.department,
+            changeType: 'modified',
+            previousValue: {
+              manDays: compareVendor.manDays || 0,
+              rate: compareVendor.rate || 0,
+              cost: compareVendor.cost || 0,
+              finalMDs: compareVendor.finalMDs || 0
+            },
+            currentValue: {
+              manDays: currentVendor.manDays || 0,
+              rate: currentVendor.rate || 0,
+              cost: currentVendor.cost || 0,
+              finalMDs: currentVendor.finalMDs || 0
+            },
+            costDifference: (currentVendor.cost || 0) - (compareVendor.cost || 0),
+            mdsDifference: (currentVendor.manDays || 0) - (compareVendor.manDays || 0)
+          };
+          vendorCostChanges.push(change);
+          modifiedVendors.push(currentVendor);
+        }
+      }
+    });
+    
+    // Find removed vendors
+    compareVendors.forEach((compareVendor: any) => {
+      const currentVendor = currentVendors.find((cv: any) => cv.vendorId === compareVendor.vendorId);
+      
+      if (!currentVendor) {
+        // Removed vendor
+        const change: VendorCostChange = {
+          vendorId: compareVendor.vendorId,
+          vendor: compareVendor.vendor,
+          role: compareVendor.role,
+          department: compareVendor.department,
+          changeType: 'removed',
+          previousValue: {
+            manDays: compareVendor.manDays || 0,
+            rate: compareVendor.rate || 0,
+            cost: compareVendor.cost || 0,
+            finalMDs: compareVendor.finalMDs || 0
+          },
+          costDifference: -(compareVendor.cost || 0),
+          mdsDifference: -(compareVendor.manDays || 0)
+        };
+        vendorCostChanges.push(change);
+        removedVendors.push(compareVendor);
+      }
+    });
     
     return {
       totalCostDifference: currentTotal - compareTotal,
-      vendorCostChanges: [] // Implementazione semplificata
+      totalMDsDifference: currentTotalMDs - compareTotalMDs,
+      vendorCostChanges,
+      addedVendors,
+      removedVendors,
+      modifiedVendors
     };
   }
 
