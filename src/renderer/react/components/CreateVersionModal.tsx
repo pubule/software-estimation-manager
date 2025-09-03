@@ -66,7 +66,7 @@ const CreateVersionModal: React.FC = () => {
   }
 
   return (
-    <div className="modal active">
+    <div className="modal active create-version-modal">
       <div className="modal-content">
         <div className="modal-header">
           <h3>Create New Version</h3>

@@ -4846,9 +4846,336 @@
     border: 1px solid rgba(255, 193, 7, 0.4);
 }
 
-/* CreateVersionModal calculations styling */
+/* Modern CreateVersionModal Styling - Aligned with other versioning modals */
+.create-version-modal .modal-content {
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.create-version-modal .modal-header {
+    background: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px 24px 16px 24px;
+}
+
+.create-version-modal .modal-header h3 {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.create-version-modal .modal-body {
+    padding: 20px 24px;
+    background: transparent;
+}
+
+/* Version Create Info Section */
+.version-create-info {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.version-create-project {
+    color: #ffffff;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.version-create-project strong {
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+.version-create-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: #9ca3af;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.version-create-warning i {
+    color: #ffc107;
+    margin-top: 2px;
+    font-size: 12px;
+}
+
+/* Form Group Styling */
+.create-version-modal .form-group {
+    margin-bottom: 20px;
+}
+
+.create-version-modal .form-group label {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.create-version-modal textarea {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 12px;
+    color: #ffffff;
+    font-size: 13px;
+    resize: vertical;
+    min-height: 80px;
+}
+
+.create-version-modal textarea:focus {
+    outline: none;
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.create-version-modal textarea::placeholder {
+    color: #6b7280;
+}
+
+.create-version-modal .form-help {
+    color: #9ca3af;
+    font-size: 11px;
+    margin-top: 4px;
+    text-align: right;
+}
+
+/* Version Preview Section */
+.version-preview {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.version-preview h4 {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+}
+
+.version-preview-items {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.version-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.version-preview-item i {
+    color: #9ca3af;
+    font-size: 12px;
+    width: 12px;
+}
+
+.version-preview-item span {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* Initial Content Section - Modern styling */
+.initial-content-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.initial-content-section h5 {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.initial-content-section h5 i {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
 .initial-content-section .calculations-summary {
-    margin-top: var(--spacing-md);
+    margin-top: 0;
+}
+
+/* Modal Footer */
+.create-version-modal .modal-footer {
+    background: transparent;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px 24px 20px 24px;
+}
+
+.create-version-modal .btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.create-version-modal .btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #9ca3af;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.create-version-modal .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.create-version-modal .btn-primary {
+    background: #3b82f6;
+    color: #ffffff;
+}
+
+.create-version-modal .btn-primary:hover:not(:disabled) {
+    background: #2563eb;
+}
+
+.create-version-modal .btn-primary:disabled {
+    background: rgba(59, 130, 246, 0.5);
+    cursor: not-allowed;
+}
+
+/* Modern Calculations Section for CreateVersionModal */
+.create-version-modal .initial-content-section {
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.create-version-modal .initial-content-section h5 {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.create-version-modal .initial-content-section h5 i {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+/* Initial Vendors List - Modern styling */
+.create-version-modal .initial-vendors-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.create-version-modal .initial-vendor-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.create-version-modal .vendor-main-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.create-version-modal .vendor-name {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.create-version-modal .vendor-role-dept {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+.create-version-modal .vendor-metrics {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.create-version-modal .vendor-mds,
+.create-version-modal .vendor-rate,
+.create-version-modal .vendor-total {
+    font-family: 'JetBrains Mono', monospace;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.create-version-modal .vendor-total {
+    font-weight: 600;
+    color: #10b981;
+}
+
+/* Calculations Summary */
+.create-version-modal .calculations-summary {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.create-version-modal .summary-totals {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    align-items: center;
+}
+
+.create-version-modal .total-effort,
+.create-version-modal .total-cost {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.create-version-modal .total-effort strong,
+.create-version-modal .total-cost strong {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 4px;
+    color: #10b981;
 }
 
 /* Vendor changes preview for RestoreVersionModal */
