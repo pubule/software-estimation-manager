@@ -235,7 +235,7 @@
 
 /* Comparison Modal */
 .version-compare-modal .modal-content {
-    max-width: 1200px;
+    max-width: 2400px;
     max-height: 90vh;
 }
 
@@ -944,54 +944,114 @@
     flex-direction: column;
 }
 
-.version-compare-modal .vendor-change-item {
-    background-color: var(--bg-tertiary);
-    border-radius: var(--radius-sm);
-    padding: var(--spacing-md);
-    border-left: 4px solid transparent;
-    transition: all 0.2s ease;
+/* Modern Vendor Change Items */
+.change-category.calculations .vendor-change-item {
+    background: transparent;
+    border: none;
+    padding: 12px 0;
+    margin-bottom: 12px;
 }
 
-.version-compare-modal .vendor-change-item:hover {
-    background-color: var(--bg-hover);
-    transform: translateX(2px);
+.change-category.calculations .vendor-change-item.modified {
+    border: none;
 }
 
-.version-compare-modal .vendor-change-item.added {
-    border-left-color: var(--success);
-    background-color: rgba(76, 175, 80, 0.08);
+/* Vendor Main Info */
+.change-category.calculations .vendor-main-info {
+    margin-bottom: 10px;
 }
 
-.version-compare-modal .vendor-change-item.removed {
-    border-left-color: var(--error);
-    background-color: rgba(244, 67, 54, 0.08);
+.change-category.calculations .vendor-name {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+    display: block;
+    margin-bottom: 2px;
 }
 
-.version-compare-modal .vendor-change-item.modified {
-    border-left-color: var(--warning);
-    background-color: rgba(255, 193, 7, 0.08);
+.change-category.calculations .vendor-role-dept {
+    color: #9ca3af;
+    font-size: 12px;
+    display: block;
 }
 
-.version-compare-modal .vendor-info {
+/* Vendor Comparison Section - Modern Card Style */
+.change-category.calculations .vendor-comparison {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 8px;
+}
+
+/* Before and After sections */
+.change-category.calculations .vendor-before,
+.change-category.calculations .vendor-after {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 6px;
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    margin-bottom: var(--spacing-sm);
+    justify-content: space-between;
+    align-items: center;
 }
 
-.version-compare-modal .vendor-name,
+.change-category.calculations .vendor-before {
+    border-left: 3px solid #ef4444;
+}
+
+.change-category.calculations .vendor-after {
+    border-left: 3px solid #10b981;
+}
+
+.change-category.calculations .vendor-before .label,
+.change-category.calculations .vendor-after .label {
+    color: #9ca3af;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: 50px;
+}
+
+.change-category.calculations .vendor-mds,
+.change-category.calculations .vendor-rate,
+.change-category.calculations .vendor-cost {
+    font-family: 'JetBrains Mono', monospace;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Vendor Difference - Highlight Changes */
+.change-category.calculations .vendor-difference {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 6px;
+    padding: 8px 16px;
+    margin-top: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 24px;
+}
+
+.change-category.calculations .diff-cost,
+.change-category.calculations .diff-mds {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffc107;
+    padding: 6px 12px;
+    background: rgba(255, 193, 7, 0.1);
+    border-radius: 4px;
+}
+
+/* Restore modal vendor info styles */
 .version-restore-modal .vendor-info strong {
     font-weight: 600;
     color: var(--text-primary);
-    font-size: var(--font-size-base);
-}
-
-.version-restore-modal .vendor-info strong {
-    font-size: var(--font-size-sm);
-}
-
-.version-compare-modal .vendor-role {
-    color: var(--text-secondary);
     font-size: var(--font-size-sm);
 }
 
@@ -1872,7 +1932,7 @@
 
 /* Enhanced modal styling */
 .version-compare-modal .modal-content {
-    max-width: 1200px;
+    max-width: 2400px;
     width: 95vw;
     max-height: 90vh;
 }
@@ -3366,67 +3426,23 @@
     grid-template-columns: auto 1fr auto;
     gap: var(--spacing-md);
     padding: var(--spacing-md);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-primary);
-    transition: all 0.3s ease;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--border-secondary);
+    background-color: var(--bg-tertiary);
     align-items: center;
-    position: relative;
-    overflow: hidden;
-}
-
-.change-item::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 4px;
-    transition: all 0.3s ease;
+    margin-bottom: var(--spacing-sm);
 }
 
 .change-item.added {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.08) 0%, rgba(76, 175, 80, 0.02) 100%);
-    border-color: rgba(76, 175, 80, 0.2);
-}
-
-.change-item.added::before {
-    background: var(--success);
-}
-
-.change-item.added:hover {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(76, 175, 80, 0.05) 100%);
-    transform: translateX(4px);
-    border-color: rgba(76, 175, 80, 0.4);
+    border-left: 3px solid var(--success);
 }
 
 .change-item.modified {
-    background: linear-gradient(135deg, rgba(255, 152, 0, 0.08) 0%, rgba(255, 152, 0, 0.02) 100%);
-    border-color: rgba(255, 152, 0, 0.2);
-}
-
-.change-item.modified::before {
-    background: #ff9800;
-}
-
-.change-item.modified:hover {
-    background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 152, 0, 0.05) 100%);
-    transform: translateX(4px);
-    border-color: rgba(255, 152, 0, 0.4);
+    border-left: 3px solid var(--warning);
 }
 
 .change-item.removed {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.08) 0%, rgba(244, 67, 54, 0.02) 100%);
-    border-color: rgba(244, 67, 54, 0.2);
-}
-
-.change-item.removed::before {
-    background: var(--error);
-}
-
-.change-item.removed:hover {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.15) 0%, rgba(244, 67, 54, 0.05) 100%);
-    transform: translateX(4px);
-    border-color: rgba(244, 67, 54, 0.4);
+    border-left: 3px solid var(--error);
 }
 
 .change-id {
@@ -4366,49 +4382,143 @@
     font-style: italic;
 }
 
-/* Metrics container - replaces vendor-details */
+/* Enhanced User-Friendly Metrics Container */
 .vendor-metrics {
     display: flex;
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
     align-items: center;
     flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .vendor-mds, 
 .vendor-rate, 
 .vendor-total {
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 4px 8px;
-    border-radius: var(--radius-xs);
     font-family: 'JetBrains Mono', monospace;
     font-size: var(--font-size-sm);
-    font-weight: 500;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     color: var(--text-primary);
     white-space: nowrap;
+    text-align: center;
+    min-width: 70px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.vendor-mds {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.2) 0%, rgba(33, 150, 243, 0.1) 100%);
+    border-color: rgba(33, 150, 243, 0.3);
+    color: #2196F3;
+}
+
+.vendor-rate {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 193, 7, 0.1) 100%);
+    border-color: rgba(255, 193, 7, 0.3);
+    color: #FFC107;
 }
 
 .vendor-total {
-    background-color: rgba(76, 175, 80, 0.15);
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.25) 0%, rgba(76, 175, 80, 0.15) 100%);
+    border: 2px solid rgba(76, 175, 80, 0.4);
     color: var(--success);
-    border: 1px solid rgba(76, 175, 80, 0.3);
+    font-weight: 700;
+    font-size: var(--font-size-base);
+    min-width: 90px;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
 }
 
-/* Initial version specific vendor styling */
+.vendor-mds:hover,
+.vendor-rate:hover,
+.vendor-total:hover {
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.vendor-total:hover {
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+/* Add subtle animation */
+.vendor-mds::before,
+.vendor-rate::before,
+.vendor-total::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.vendor-mds:hover::before,
+.vendor-rate:hover::before,
+.vendor-total:hover::before {
+    left: 100%;
+}
+
+/* Enhanced User-Friendly Initial Version Vendor Styling */
 .initial-vendor-item {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--spacing-lg);
     align-items: center;
-    padding: var(--spacing-sm) var(--spacing-md);
-    background-color: rgba(255, 255, 255, 0.03);
+    padding: var(--spacing-md);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
     border: 1px solid var(--border-secondary);
+    border-left: 4px solid var(--success);
     border-radius: var(--radius-sm);
     margin-bottom: var(--spacing-sm);
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
 .initial-vendor-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%);
     border-color: var(--border-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.initial-vendor-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(76, 175, 80, 0.5), transparent);
+}
+
+/* Enhanced vendor info styling */
+.vendor-main-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.vendor-name {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.vendor-role-dept {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-style: normal;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    width: fit-content;
 }
 
 .initial-vendors-list {
@@ -4447,23 +4557,392 @@
     margin-left: var(--spacing-xs);
 }
 
-/* Responsive adjustments for vendor sections */
+/* Enhanced Styling for ALL Versioning Modals Calculations */
+
+/* General calculation summary improvements for all modals */
+.change-category.calculations .calculation-summary,
+.calculations-summary {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Calculation totals styling for all modals */
+.change-category.calculations .calculation-totals,
+.calculations-summary .summary-totals {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+
+/* Text styling for calculation totals - all modals */
+.change-category.calculations .total-cost,
+.change-category.calculations .total-mds,
+.calculations-summary .total-effort,
+.calculations-summary .total-cost,
+.version-restore-modal .total-cost-change,
+.version-restore-modal .total-mds-change {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.change-category.calculations .total-cost strong,
+.change-category.calculations .total-mds strong,
+.calculations-summary .total-effort strong,
+.calculations-summary .total-cost strong,
+.version-restore-modal .total-cost-change strong,
+.version-restore-modal .total-mds-change strong {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: var(--font-size-base);
+    margin-left: var(--spacing-xs);
+    color: var(--success);
+}
+
+/* Modern Dark Card Design for Calculations Section */
+.change-category.calculations {
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.change-category.calculations .category-header h5 {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.change-category.calculations .category-header h5 i {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+/* Calculation Summary Section */
+.change-category.calculations .calculation-summary {
+    background: transparent;
+    margin-top: 8px;
+}
+
+.change-category.calculations .calculation-totals {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 12px;
+    display: flex;
+    justify-content: space-around;
+    gap: 24px;
+    margin-bottom: 12px;
+}
+
+.change-category.calculations .total-cost,
+.change-category.calculations .total-mds {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.change-category.calculations .total-cost strong,
+.change-category.calculations .total-mds strong {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+.change-category.calculations .total-cost strong.positive {
+    color: #f97316;
+}
+
+.change-category.calculations .total-mds strong.positive {
+    color: #f97316;
+}
+
+.change-category.calculations .total-cost strong.negative {
+    color: #10b981;
+}
+
+.change-category.calculations .total-mds strong.negative {
+    color: #10b981;
+}
+
+/* Modified Vendors Section */
+.change-category.calculations .change-group h6 {
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.change-category.calculations .change-group h6 i {
+    color: #9ca3af;
+    margin-right: 6px;
+    font-size: 10px;
+}
+
+/* Clean and Organized Vendor Comparison Styling */
+.version-compare-modal .vendor-comparison {
+    background-color: transparent;
+    padding: 0;
+    margin-top: var(--spacing-md);
+}
+
+.version-compare-modal .vendor-before, 
+.version-compare-modal .vendor-after {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-xs);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    display: grid;
+    grid-template-columns: 80px 1fr 90px 100px 120px;
+    gap: var(--spacing-md);
+    align-items: center;
+    font-size: var(--font-size-sm);
+}
+
+.version-compare-modal .vendor-before {
+    border-left: 3px solid var(--error);
+}
+
+.version-compare-modal .vendor-after {
+    border-left: 3px solid var(--success);
+}
+
+.version-compare-modal .vendor-before .label, 
+.version-compare-modal .vendor-after .label {
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 8px;
+    border-radius: var(--radius-xs);
+    text-align: center;
+}
+
+.version-compare-modal .vendor-before .label {
+    color: var(--error);
+    background-color: rgba(244, 67, 54, 0.15);
+}
+
+.version-compare-modal .vendor-after .label {
+    color: var(--success);
+    background-color: rgba(76, 175, 80, 0.15);
+}
+
+.version-compare-modal .vendor-mds, 
+.version-compare-modal .vendor-rate, 
+.version-compare-modal .vendor-cost {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+    text-align: right;
+    padding-right: var(--spacing-xs);
+}
+
+.version-compare-modal .vendor-cost {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.version-compare-modal .vendor-difference {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg);
+    align-items: center;
+}
+
+.version-compare-modal .diff-cost,
+.version-compare-modal .diff-mds {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--success);
+    font-size: var(--font-size-base);
+    padding: var(--spacing-sm);
+    text-align: center;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-xs);
+}
+
+/* RestoreVersionModal calculations styling */
+.version-restore-modal .calculation-summary {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+}
+
+.version-restore-modal .calculation-totals {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.version-restore-modal .vendor-changes-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.version-restore-modal .change-count {
+    padding: 4px 8px;
+    border-radius: var(--radius-xs);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.version-restore-modal .change-count.added {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: var(--success);
+    border: 1px solid rgba(76, 175, 80, 0.4);
+}
+
+.version-restore-modal .change-count.removed {
+    background-color: rgba(244, 67, 54, 0.2);
+    color: var(--error);
+    border: 1px solid rgba(244, 67, 54, 0.4);
+}
+
+.version-restore-modal .change-count.modified {
+    background-color: rgba(255, 193, 7, 0.2);
+    color: var(--warning);
+    border: 1px solid rgba(255, 193, 7, 0.4);
+}
+
+/* CreateVersionModal calculations styling */
+.initial-content-section .calculations-summary {
+    margin-top: var(--spacing-md);
+}
+
+/* Vendor changes preview for RestoreVersionModal */
+.version-restore-modal .vendor-changes-preview {
+    margin-top: var(--spacing-md);
+}
+
+.version-restore-modal .vendor-changes-preview h6 {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.version-restore-modal .vendor-change-preview {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-xs);
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.version-restore-modal .vendor-change-preview .vendor-info {
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.version-restore-modal .vendor-change-preview .change-info {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+}
+
+.version-restore-modal .vendor-change-preview .change-value.added {
+    color: var(--success);
+}
+
+.version-restore-modal .vendor-change-preview .change-value.removed {
+    color: var(--error);
+}
+
+.version-restore-modal .vendor-change-preview .change-value.modified {
+    color: var(--warning);
+}
+
+.version-restore-modal .more-changes {
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-sm);
+}
+
+/* Enhanced Responsive Design for Better Mobile UX */
 @media (max-width: 768px) {
     .vendor-metrics {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: var(--spacing-sm);
+        justify-content: flex-start;
+        gap: var(--spacing-xs);
+    }
+    
+    .vendor-mds, 
+    .vendor-rate, 
+    .vendor-total {
+        min-width: 60px;
+        padding: 4px 8px;
+        font-size: var(--font-size-xs);
     }
     
     .initial-vendor-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: var(--spacing-sm);
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+        text-align: left;
+    }
+    
+    .vendor-main-info {
+        margin-bottom: var(--spacing-sm);
     }
     
     .summary-totals {
         flex-direction: column;
         align-items: center;
         gap: var(--spacing-sm);
+    }
+    
+    .change-category.calculations .calculation-totals,
+    .calculations-summary .summary-totals,
+    .version-restore-modal .calculation-totals {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    
+    .version-compare-modal .vendor-before, 
+    .version-compare-modal .vendor-after {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+    }
+    
+    .version-restore-modal .vendor-changes-summary {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .version-restore-modal .vendor-change-preview {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
     }
 }
