@@ -150,7 +150,10 @@ export class AssumptionsActions {
    */
   duplicateAssumption(id: string): void {
     try {
+      const store = this.getStore();
+      const state = store.getState();
       const assumption = this.getCurrentAssumption(id);
+      
       if (!assumption) {
         throw new Error('Assumption not found');
       }
@@ -164,10 +167,14 @@ export class AssumptionsActions {
         notes: assumption.notes
       };
 
-      // Apri modal con dati duplicati
-      this.openEditAssumptionModal(duplicateData);
+      // Apri modal in modalità 'add' con dati duplicati (non 'edit')
+      state.setAssumptionsModalState({
+        isOpen: true,
+        mode: 'add', // Modalità corretta per creare nuova assumption
+        selectedAssumption: duplicateData
+      });
       
-      console.log('Assumption duplicated for editing:', id);
+      console.log('Assumption duplicated for creation:', id);
     } catch (error) {
       console.error('Failed to duplicate assumption:', error);
       throw error;
@@ -272,32 +279,22 @@ export class AssumptionsActions {
       return 'ASS-001';
     }
 
-    // Business logic: trova ultimo ID e incrementa
-    const lastAssumption = currentProject.assumptions[currentProject.assumptions.length - 1];
-    
-    if (!lastAssumption?.id) {
+    // Business logic: trova il massimo ID numerico tra tutte le assumptions
+    const maxId = Math.max(...currentProject.assumptions.map(assumption => {
+      if (!assumption?.id) return 0;
+      
+      const match = assumption.id.match(/ASS-(\d+)/);
+      return match ? parseInt(match[1], 10) : 0;
+    }));
+
+    // Se non ci sono ID validi, inizia da 1
+    if (maxId === 0) {
       return 'ASS-001';
     }
 
-    // Estrai parte numerica
-    const match = lastAssumption.id.match(/ASS-(\d+)/);
-    if (match) {
-      const lastNumber = parseInt(match[1], 10);
-      const nextNumber = lastNumber + 1;
-      return `ASS-${nextNumber.toString().padStart(3, '0')}`;
-    }
-
-    // Fallback: trova primo ID disponibile
-    const existingIds = currentProject.assumptions.map(a => a.id);
-    let counter = 1;
-    let newId;
-
-    do {
-      newId = `ASS-${counter.toString().padStart(3, '0')}`;
-      counter++;
-    } while (existingIds.includes(newId));
-
-    return newId;
+    // Incrementa il massimo ID trovato
+    const nextNumber = maxId + 1;
+    return `ASS-${nextNumber.toString().padStart(3, '0')}`;
   }
 
   /**
