@@ -527,34 +527,41 @@ export class VersionHistoryActions {
       return [];
     }
 
-    return currentProject.versions.filter((version: Version) => {
-      // Filtro per reason
-      const reasonMatch = !filters.reason || 
-        version.reason.toLowerCase().includes(filters.reason.toLowerCase());
+    return currentProject.versions
+      .filter((version: Version) => {
+        // Filtro per reason
+        const reasonMatch = !filters.reason || 
+          version.reason.toLowerCase().includes(filters.reason.toLowerCase());
 
-      // Filtro per data range (implementazione semplificata)
-      let dateMatch = true;
-      if (filters.dateRange) {
-        const versionDate = new Date(version.timestamp);
-        const now = new Date();
-        
-        switch (filters.dateRange) {
-          case 'today':
-            dateMatch = this.isSameDay(versionDate, now);
-            break;
-          case 'week':
-            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            dateMatch = versionDate >= weekAgo;
-            break;
-          case 'month':
-            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-            dateMatch = versionDate >= monthAgo;
-            break;
+        // Filtro per data range (implementazione semplificata)
+        let dateMatch = true;
+        if (filters.dateRange) {
+          const versionDate = new Date(version.timestamp);
+          const now = new Date();
+          
+          switch (filters.dateRange) {
+            case 'today':
+              dateMatch = this.isSameDay(versionDate, now);
+              break;
+            case 'week':
+              const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+              dateMatch = versionDate >= weekAgo;
+              break;
+            case 'month':
+              const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+              dateMatch = versionDate >= monthAgo;
+              break;
+          }
         }
-      }
 
-      return reasonMatch && dateMatch;
-    });
+        return reasonMatch && dateMatch;
+      })
+      // Sort by timestamp in descending order (most recent first)
+      .sort((a: Version, b: Version) => {
+        const dateA = new Date(a.timestamp).getTime();
+        const dateB = new Date(b.timestamp).getTime();
+        return dateB - dateA; // Descending order: newest first
+      });
   }
 
   /**
