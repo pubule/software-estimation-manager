@@ -341,6 +341,23 @@ class ProjectBusinessLogic extends BaseComponent {
                 // Refresh saved projects list
                 await this.loadSavedProjects();
                 
+                // 🔧 FIX: Aggiorna la versione corrente con i dati di calcolo aggiornati
+                try {
+                    if (state.currentProject.versions && state.currentProject.versions.length > 0) {
+                        console.log('🔄 Updating current version with latest calculationData after save...');
+                        
+                        // Importa dinamicamente VersionHistoryActions
+                        const { VersionHistoryActions } = await import('../react/actions/VersionHistoryActions.js');
+                        const versionActions = new VersionHistoryActions();
+                        await versionActions.updateCurrentVersion();
+                        
+                        console.log('✅ Current version updated successfully with latest data');
+                    }
+                } catch (versionError) {
+                    console.error('⚠️  Failed to update current version after save (non-critical):', versionError);
+                    // Non fallire il salvataggio se l'aggiornamento versione fallisce
+                }
+                
                 console.log('Project saved successfully');
                 NotificationManager.success('Project saved successfully');
             } else {

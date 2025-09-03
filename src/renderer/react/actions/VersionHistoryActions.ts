@@ -1185,6 +1185,7 @@ export class VersionHistoryActions {
 
   /**
    * Crea snapshot del progetto corrente
+   * ENHANCED: Cattura sempre i calculationData più aggiornati dallo store
    */
   private createProjectSnapshot(project: any): any {
     // DEBUG: Log del progetto prima del deep copy
@@ -1200,12 +1201,44 @@ export class VersionHistoryActions {
     // Rimuovi array versions per evitare ricorsione
     delete snapshot.versions;
     
-    // Includi dati di calcolo se disponibili
-    const calculationsData = (window as any).appStore?.getState()?.calculationsData;
-    if (calculationsData?.vendorCosts) {
-      snapshot.calculationData = {
-        vendorCosts: JSON.parse(JSON.stringify(calculationsData.vendorCosts))
-      };
+    // 🔧 ENHANCED: Cattura sempre i calculationData più aggiornati dallo store
+    try {
+      const store = this.getStore();
+      const currentState = store.getState();
+      const calculationsData = currentState.calculationsData;
+      
+      console.log('📊 DEBUG - Capturing latest calculationData from store:', {
+        hasVendorCosts: !!calculationsData?.vendorCosts,
+        vendorCount: calculationsData?.vendorCosts?.length || 0,
+        hasOverrides: !!calculationsData?.finalMDsOverrides,
+        storeVersion: calculationsData?.version || 0
+      });
+      
+      if (calculationsData?.vendorCosts && calculationsData.vendorCosts.length > 0) {
+        // Includi tutti i dati di calcolo aggiornati
+        snapshot.calculationData = {
+          vendorCosts: JSON.parse(JSON.stringify(calculationsData.vendorCosts)),
+          finalMDsOverrides: JSON.parse(JSON.stringify(calculationsData.finalMDsOverrides || {})),
+          filters: JSON.parse(JSON.stringify(calculationsData.filters || {})),
+          kpiData: calculationsData.kpiData ? JSON.parse(JSON.stringify(calculationsData.kpiData)) : null,
+          timestamp: new Date().toISOString(), // Timestamp per tracking
+          version: calculationsData.version || 0
+        };
+        
+        console.log('✅ Successfully captured calculationData with', calculationsData.vendorCosts.length, 'vendors');
+      } else {
+        console.log('⚠️  No vendor costs found in store - keeping existing calculationData in snapshot');
+        // Non rimuovere calculationData esistente se non ci sono nuovi dati
+      }
+    } catch (error) {
+      console.error('❌ Failed to capture latest calculationData from store:', error);
+      // Fallback: prova con il metodo precedente
+      const calculationsData = (window as any).appStore?.getState()?.calculationsData;
+      if (calculationsData?.vendorCosts) {
+        snapshot.calculationData = {
+          vendorCosts: JSON.parse(JSON.stringify(calculationsData.vendorCosts))
+        };
+      }
     }
     
     return snapshot;
