@@ -512,6 +512,177 @@
     opacity: 0.5;
 }
 
+/* React Assumptions Page Full Height Layout - Same as Features */
+#assumptions-react-root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#assumptions-react-root .assumptions-page {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 100px); /* Account for app header and margins */
+    flex: 1;
+    overflow: hidden;
+}
+
+#assumptions-react-root .assumptions-header,
+#assumptions-react-root .assumptions-filters {
+    flex: none; /* Fixed size, don't grow or shrink */
+}
+
+#assumptions-react-root .assumptions-content {
+    flex: 1; /* Take all remaining space */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0; /* Allow flex shrinking */
+}
+
+#assumptions-react-root .assumption-table-container {
+    flex: 1; /* Take all available space */
+    overflow: auto; /* Allow scrolling when content exceeds space */
+    min-height: 0; /* Allow flex shrinking */
+}
+
+#assumptions-react-root .assumptions-footer {
+    flex: none; /* Fixed size footer */
+    border-top: 1px solid var(--table-border, var(--border-primary, #e0e0e0));
+    background-color: var(--bg-tertiary);
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+}
+
+/* Assumptions Page Header Styling */
+.assumptions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md, 16px) var(--spacing-lg, 24px);
+    background-color: var(--bg-primary);
+    border-bottom: 1px solid var(--border-primary);
+    margin-bottom: 0;
+}
+
+.assumptions-header .page-title {
+    margin: 0;
+    font-size: var(--font-size-xl, 24px);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.btn-add-assumption {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs, 4px);
+}
+
+/* Assumptions Filters Styling */
+.assumptions-filters {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md, 16px);
+    padding: var(--spacing-md, 16px) var(--spacing-lg, 24px);
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 8px);
+}
+
+.filter-group.search-group {
+    flex: 1;
+    max-width: 300px;
+}
+
+.filter-group label {
+    font-size: var(--font-size-sm, 14px);
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.search-input {
+    flex: 1;
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md, 4px);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: var(--font-size-md, 16px);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+.filter-select {
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md, 4px);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: var(--font-size-md, 16px);
+    min-width: 120px;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+.btn-clear-filters {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs, 4px);
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-md, 4px);
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm, 14px);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-clear-filters:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--border-primary);
+    color: var(--text-primary);
+}
+
+/* Assumptions Footer Stats */
+.assumptions-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md, 16px) var(--spacing-lg, 24px);
+}
+
+.footer-stats {
+    display: flex;
+    gap: var(--spacing-lg, 24px);
+    font-size: var(--font-size-sm, 14px);
+    color: var(--text-secondary);
+}
+
+.footer-stats span {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs, 4px);
+}
+
+.footer-stats strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
 .empty-state-title {
     font-size: var(--font-size-lg);
     font-weight: 600;
