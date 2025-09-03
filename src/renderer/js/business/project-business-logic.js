@@ -207,9 +207,18 @@ class ProjectBusinessLogic extends BaseComponent {
             // Validate project data
             this.validateProjectData(projectData);
 
-            // Update application store
+            // Update application store with forced synchronization and reference validation
             if (this.app.store) {
                 this.app.store.getState().setProject(projectData);
+                
+                // Force store reference consistency across all components
+                this.validateAndRefreshStoreReferences();
+                
+                // Force a small delay to ensure store update propagates through all listeners
+                // This prevents race conditions between different parts of the system
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                console.log('🔄 Store update forced to propagate, project should be available to all systems');
             }
 
             // Extract filePath from source and update DataManager currentProjectPath for React components
@@ -641,6 +650,15 @@ class ProjectBusinessLogic extends BaseComponent {
      * Prevents race conditions between store updates and navigation
      * Enhanced with longer timeout and exponential backoff
      */
+    /**
+     * Wait for project to be available in store before navigation
+     * Prevents race conditions between store updates and navigation
+     * Enhanced to ensure both business logic AND navigation system see the project
+     */
+    /**
+     * Wait for project to be available in store before navigation
+     * Enhanced with event-based verification and fresh store references
+     */
     async waitForProjectInStore(timeout = 5000, maxRetries = 3) {
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
@@ -648,14 +666,58 @@ class ProjectBusinessLogic extends BaseComponent {
             let retryCount = 0;
             
             const checkProject = () => {
-                // Read fresh state to avoid race condition
+                let projectInBusinessLogic = false;
+                let projectInNavigation = false;
+                let projectInNavigationManager = false;
+                
+                // Check if project is available in business logic store (this.app.store)
                 if (this.app.store) {
-                    const state = this.app.store.getState();
-                    if (state.currentProject) {
-                        console.log('✅ Project confirmed in store, ready for operations');
-                        resolve(true);
-                        return;
+                    const businessState = this.app.store.getState();
+                    projectInBusinessLogic = businessState.currentProject !== null;
+                }
+                
+                // Check if project is available in navigation store (FRESH window.appStore reference)
+                const freshAppStore = window.appStore;
+                if (freshAppStore) {
+                    const navigationState = freshAppStore.getState();
+                    projectInNavigation = navigationState.currentProject !== null;
+                }
+                
+                // Check navigation manager's store reference (and refresh it)
+                if (this.app.navigationManager) {
+                    // Force fresh store reference in navigation manager
+                    this.app.navigationManager.store = window.appStore || this.app.navigationManager.store;
+                    if (this.app.navigationManager.store) {
+                        const navManagerState = this.app.navigationManager.store.getState();
+                        projectInNavigationManager = navManagerState.currentProject !== null;
                     }
+                }
+                
+                // Debug logging for race condition investigation
+                if (projectInBusinessLogic !== projectInNavigation || projectInBusinessLogic !== projectInNavigationManager) {
+                    console.log(`🔍 SYNC CHECK - Business: ${projectInBusinessLogic}, Navigation: ${projectInNavigation}, NavManager: ${projectInNavigationManager}`);
+                    
+                    // Log store instance comparison for debugging
+                    console.log(`🔍 STORE REFS - Business: ${this.app.store === freshAppStore}, NavManager: ${this.app.navigationManager?.store === freshAppStore}`);
+                }
+                
+                // Wait for ALL systems to see the project (or at least business logic + navigation manager)
+                // Accept if navigation store is the only one failing (likely reference issue)
+                const criticalSystemsReady = projectInBusinessLogic && projectInNavigationManager;
+                const allSystemsReady = projectInBusinessLogic && projectInNavigation && projectInNavigationManager;
+                
+                if (allSystemsReady) {
+                    console.log('✅ Project confirmed in ALL store references, ready for operations');
+                    resolve(true);
+                    return;
+                } else if (criticalSystemsReady) {
+                    console.log('✅ Project confirmed in CRITICAL systems (business + navManager), proceeding with navigation fix');
+                    // Apply navigation fix immediately
+                    if (this.app.navigationManager) {
+                        this.app.navigationManager.store = window.appStore;
+                    }
+                    resolve(true);
+                    return;
                 }
                 
                 const elapsed = Date.now() - startTime;
@@ -663,15 +725,30 @@ class ProjectBusinessLogic extends BaseComponent {
                 // Check timeout
                 if (elapsed > timeout) {
                     if (retryCount < maxRetries) {
-                        console.log(`⚠️ Retry ${retryCount + 1}/${maxRetries}: Waiting for project in store...`);
+                        console.log(`⚠️ Retry ${retryCount + 1}/${maxRetries}: Waiting for project sync across all systems...`);
+                        console.log(`   Business Logic: ${projectInBusinessLogic}, Navigation: ${projectInNavigation}, NavManager: ${projectInNavigationManager}`);
+                        
+                        // Force store refresh on retry
+                        if (this.app.navigationManager) {
+                            this.app.navigationManager.store = window.appStore;
+                        }
+                        
                         retryCount++;
                         // Reset timer but keep trying
                         setTimeout(checkProject, checkInterval);
                         return;
                     }
                     
-                    console.error(`❌ Failed to find project in store after ${timeout}ms and ${maxRetries} retries`);
-                    reject(new Error(`Timeout waiting for project in store after ${timeout}ms (${maxRetries} retries)`));
+                    // If critical systems are ready but navigation store is failing, proceed anyway
+                    if (criticalSystemsReady) {
+                        console.log('⚠️ Navigation store sync failed, but critical systems ready - proceeding');
+                        resolve(true);
+                        return;
+                    }
+                    
+                    console.error(`❌ Failed to sync project across systems after ${timeout}ms and ${maxRetries} retries`);
+                    console.error(`   Final state - Business: ${projectInBusinessLogic}, Navigation: ${projectInNavigation}, NavManager: ${projectInNavigationManager}`);
+                    reject(new Error(`Timeout waiting for project sync after ${timeout}ms (${maxRetries} retries)`));
                     return;
                 }
                 
@@ -686,6 +763,36 @@ class ProjectBusinessLogic extends BaseComponent {
             
             checkProject();
         });
+    }
+
+    /**
+     * Validate and refresh store references across all components
+     * Ensures all parts of the application use the same store instance
+     */
+    validateAndRefreshStoreReferences() {
+        const globalStore = window.appStore;
+        if (!globalStore) {
+            console.warn('⚠️ Global store not available for reference validation');
+            return;
+        }
+
+        // Refresh navigation manager store reference
+        if (this.app.navigationManager) {
+            const oldRef = this.app.navigationManager.store;
+            this.app.navigationManager.store = globalStore;
+            
+            if (oldRef !== globalStore) {
+                console.log('🔄 Navigation manager store reference refreshed');
+            }
+        }
+
+        // Validate that this.app.store is also the global store
+        if (this.app.store !== globalStore) {
+            console.warn('⚠️ Business logic store reference differs from global store');
+            // Don't change it as it might break other functionality, just warn
+        }
+
+        console.log('✅ Store reference validation completed');
     }
 }
 

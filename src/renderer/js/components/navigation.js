@@ -660,7 +660,10 @@ class EnhancedNavigationManager extends NavigationManager {
         const state = this.store.getState();
         
         // Check if user is trying to access a project sub-section without a loaded project
-        const hasProject = state.currentProject !== null;
+        // CRITICAL FIX: Always use fresh store reference to avoid race conditions
+        this.store = window.appStore || this.store;
+        const freshState = this.store.getState();
+        const hasProject = freshState.currentProject !== null;
         if (this.isProjectSubSection(sectionName) && !hasProject) {
             console.warn(`Cannot navigate to ${sectionName}: No project loaded`);
             NotificationManager.warning('Please load or create a project first');

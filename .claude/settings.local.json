@@ -10,7 +10,9 @@
       "Bash(grep:*)",
       "Bash(npm run build:react:*)",
       "Bash(npm start)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "mcp__serena__find_file",
+      "mcp__serena__insert_after_symbol"
     ],
     "deny": [],
     "ask": []
