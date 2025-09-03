@@ -196,13 +196,6 @@ const AssumptionTable: React.FC<AssumptionTableProps> = ({
           ))}
         </tbody>
       </table>
-      
-      {/* Table Footer with count */}
-      <div className="table-footer">
-        <div className="table-info">
-          Showing {sortedAssumptions.length} assumption{sortedAssumptions.length !== 1 ? 's' : ''}
-        </div>
-      </div>
     </div>
   );
 };

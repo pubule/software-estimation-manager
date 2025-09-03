@@ -158,16 +158,6 @@ const AssumptionsPage: React.FC<AssumptionsPageProps> = () => {
             ))}
           </select>
         </div>
-
-        {(filters.search || filters.type || filters.impact) && (
-          <button 
-            className="btn-clear-filters"
-            onClick={handleResetFilters}
-            title="Clear filters"
-          >
-            <i className="fas fa-times"></i> Clear
-          </button>
-        )}
       </div>
 
       {/* Table Section */}
