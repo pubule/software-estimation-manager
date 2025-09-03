@@ -50,7 +50,6 @@ const AssumptionsPage: React.FC<AssumptionsPageProps> = () => {
   // Handler eventi (SOLO chiamate ad Actions)
   const handleAddClick = () => {
     // MAI business logic qui! Solo chiamata ad Actions
-    console.log('Add Assumption button clicked');
     actions.openAddAssumptionModal();
   };
 
@@ -106,103 +105,89 @@ const AssumptionsPage: React.FC<AssumptionsPageProps> = () => {
     <div className="assumptions-page">
       {/* Header Section */}
       <div className="assumptions-header">
-        <div className="page-title-section">
-          <h2>Project Assumptions</h2>
-          <button 
-            className="btn btn-primary btn-add-assumption"
-            onClick={handleAddClick}
-            title="Add New Assumption"
-          >
-            <i className="fas fa-plus"></i> Add Assumption
-          </button>
-        </div>
-        
-        {/* Summary Stats */}
-        <div className="assumptions-summary">
-          <div className="summary-cards">
-            <div className="summary-card">
-              <div className="summary-value">{summaryStats.total}</div>
-              <div className="summary-label">Total Assumptions</div>
-            </div>
-            <div className="summary-card high-impact">
-              <div className="summary-value">{summaryStats.high}</div>
-              <div className="summary-label">High Impact</div>
-            </div>
-            <div className="summary-card medium-impact">
-              <div className="summary-value">{summaryStats.medium}</div>
-              <div className="summary-label">Medium Impact</div>
-            </div>
-            <div className="summary-card low-impact">
-              <div className="summary-value">{summaryStats.low}</div>
-              <div className="summary-label">Low Impact</div>
-            </div>
-          </div>
-        </div>
+        <h1 className="page-title">Project Assumptions</h1>
+        <button 
+          className="btn btn-primary btn-add-assumption"
+          onClick={handleAddClick}
+          title="Add New Assumption"
+        >
+          <i className="fas fa-plus"></i> Add Assumption
+        </button>
       </div>
 
       {/* Filters Section */}
       <div className="assumptions-filters">
-        <div className="filters-bar">
-          <div className="filter-group">
-            <label htmlFor="assumptions-search">SEARCH:</label>
-            <input
-              id="assumptions-search"
-              type="text"
-              placeholder="Search assumptions..."
-              value={filters.search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="search-input"
-            />
-          </div>
-          
-          <div className="filter-group">
-            <label htmlFor="type-filter">TYPE:</label>
-            <select
-              id="type-filter"
-              value={filters.type}
-              onChange={(e) => handleTypeFilterChange(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Types</option>
-              {uniqueTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="filter-group">
-            <label htmlFor="impact-filter">IMPACT:</label>
-            <select
-              id="impact-filter"
-              value={filters.impact}
-              onChange={(e) => handleImpactFilterChange(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Impacts</option>
-              {uniqueImpacts.map(impact => (
-                <option key={impact} value={impact}>{impact}</option>
-              ))}
-            </select>
-          </div>
+        <div className="filter-group search-group">
+          <label htmlFor="assumptions-search">Search:</label>
+          <input
+            id="assumptions-search"
+            type="text"
+            placeholder="Search assumptions..."
+            value={filters.search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="search-input"
+          />
+        </div>
+        
+        <div className="filter-group">
+          <label htmlFor="type-filter">TYPE:</label>
+          <select
+            id="type-filter"
+            value={filters.type}
+            onChange={(e) => handleTypeFilterChange(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Types</option>
+            {uniqueTypes.map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="filter-group">
+          <label htmlFor="impact-filter">IMPACT:</label>
+          <select
+            id="impact-filter"
+            value={filters.impact}
+            onChange={(e) => handleImpactFilterChange(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Impacts</option>
+            {uniqueImpacts.map(impact => (
+              <option key={impact} value={impact}>{impact}</option>
+            ))}
+          </select>
+        </div>
 
+        {(filters.search || filters.type || filters.impact) && (
           <button 
-            className="btn btn-secondary btn-reset-filters"
+            className="btn-clear-filters"
             onClick={handleResetFilters}
-            title="Reset Filters"
+            title="Clear filters"
           >
             <i className="fas fa-times"></i> Clear
           </button>
-        </div>
+        )}
       </div>
 
       {/* Table Section */}
-      <div className="assumptions-table-section">
+      <div className="assumptions-content">
         <AssumptionTable
           assumptions={filteredAssumptions}
           onEdit={handleEditClick}
           onDuplicate={handleDuplicateClick}
           onDelete={handleDeleteClick}
         />
+      </div>
+
+      {/* Footer Stats */}
+      <div className="assumptions-footer">
+        <div className="footer-stats">
+          <span>Total Assumptions: <strong>{summaryStats.total}</strong></span>
+          <span>High Impact: <strong>{summaryStats.high}</strong></span>
+          <span>Medium Impact: <strong>{summaryStats.medium}</strong></span>
+          <span>Low Impact: <strong>{summaryStats.low}</strong></span>
+        </div>
       </div>
 
       {/* Modal */}

@@ -193,16 +193,11 @@ export class AssumptionsActions {
       notes: ''
     };
 
-    console.log('Opening Add Assumption Modal with:', newAssumption);
-    
     state.setAssumptionsModalState({
       isOpen: true,
       mode: 'add',
       selectedAssumption: newAssumption
     });
-    
-    // Log the state after update
-    console.log('Modal state after update:', store.getState().assumptionsData?.modalState);
   }
 
   /**

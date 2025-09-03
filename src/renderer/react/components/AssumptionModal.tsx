@@ -109,201 +109,132 @@ const AssumptionModal: React.FC = () => {
     actions.closeAssumptionModal();
   };
 
-  // Handle backdrop click
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
-  };
-
-  // Debug log modal state
-  console.log('AssumptionModal - modalState:', modalState);
-  
   // Don't render if modal is not open
   if (!modalState.isOpen) {
-    console.log('AssumptionModal - Not rendering (isOpen is false)');
     return null;
   }
-  
-  console.log('AssumptionModal - Rendering modal');
 
   const isEditMode = modalState.mode === 'edit';
-  const title = isEditMode ? 'Edit Assumption' : 'Add New Assumption';
+  const title = isEditMode ? 'Edit Assumption' : 'Add Assumption';
   const submitText = isEditMode ? 'Update Assumption' : 'Create Assumption';
 
   return (
-    <div className="modal-overlay" onClick={handleBackdropClick}>
-      <div className="modal-dialog assumption-modal">
-        <div className="modal-content">
-          {/* Modal Header */}
-          <div className="modal-header">
-            <h3 className="modal-title">
-              <i className="fas fa-clipboard-list"></i>
-              {title}
-            </h3>
-            <button
-              type="button"
-              className="btn-close"
-              onClick={handleClose}
-              title="Close"
-              disabled={isSubmitting}
-            >
-              <i className="fas fa-times"></i>
-            </button>
-          </div>
-
-          {/* Modal Body */}
+    <div className="modal active">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h3>{title}</h3>
+          <button className="modal-close" onClick={handleClose}>
+            &times;
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            <form onSubmit={handleSubmit} className="assumption-form">
-              {/* General Error */}
-              {errors.general && (
-                <div className="form-error general-error">
-                  <i className="fas fa-exclamation-triangle"></i>
-                  {errors.general}
-                </div>
-              )}
-
-              {/* ID Field */}
-              <div className="form-group">
-                <label htmlFor="assumption-id" className="form-label">
-                  ID <span className="required">*</span>
-                </label>
-                <input
-                  id="assumption-id"
-                  type="text"
-                  className={`form-input ${errors.id ? 'error' : ''}`}
-                  value={formData.id}
-                  onChange={(e) => handleFormChange('id', e.target.value)}
-                  placeholder="ASS-001"
-                  disabled={isSubmitting}
-                  maxLength={7}
-                />
-                {errors.id && (
-                  <div className="field-error">
-                    <i className="fas fa-exclamation-circle"></i>
-                    {errors.id}
-                  </div>
-                )}
-                <div className="field-help">Format: ASS-XXX (e.g., ASS-001)</div>
+            {/* General Error */}
+            {errors.general && (
+              <div className="error-message">
+                {errors.general}
               </div>
+            )}
 
-              {/* Description Field */}
-              <div className="form-group">
-                <label htmlFor="assumption-description" className="form-label">
-                  Description <span className="required">*</span>
-                </label>
-                <textarea
-                  id="assumption-description"
-                  className={`form-textarea ${errors.description ? 'error' : ''}`}
-                  value={formData.description}
-                  onChange={(e) => handleFormChange('description', e.target.value)}
-                  placeholder="Describe the assumption..."
-                  disabled={isSubmitting}
-                  rows={3}
-                  maxLength={500}
-                />
-                {errors.description && (
-                  <div className="field-error">
-                    <i className="fas fa-exclamation-circle"></i>
-                    {errors.description}
-                  </div>
-                )}
-                <div className="field-help">{formData.description.length}/500 characters</div>
-              </div>
+            {/* ID Field */}
+            <div className="form-group">
+              <label htmlFor="assumption-id">ID:</label>
+              <input
+                type="text"
+                id="assumption-id"
+                value={formData.id}
+                onChange={(e) => handleFormChange('id', e.target.value)}
+                className={errors.id ? 'error' : ''}
+                placeholder="ASS-001"
+                disabled={isSubmitting || isEditMode}
+                maxLength={7}
+                required
+              />
+              {errors.id && <span className="error-message">{errors.id}</span>}
+              <small className="form-help">Format: ASS-XXX (e.g., ASS-001)</small>
+            </div>
 
-              {/* Type and Impact Row */}
-              <div className="form-row">
-                {/* Type Field */}
-                <div className="form-group">
-                  <label htmlFor="assumption-type" className="form-label">
-                    Type <span className="required">*</span>
-                  </label>
-                  <select
-                    id="assumption-type"
-                    className={`form-select ${errors.type ? 'error' : ''}`}
-                    value={formData.type}
-                    onChange={(e) => handleFormChange('type', e.target.value)}
-                    disabled={isSubmitting}
-                  >
-                    <option value="Technical">Technical</option>
-                    <option value="Business">Business</option>
-                    <option value="Resource">Resource</option>
-                    <option value="Timeline">Timeline</option>
-                  </select>
-                  {errors.type && (
-                    <div className="field-error">
-                      <i className="fas fa-exclamation-circle"></i>
-                      {errors.type}
-                    </div>
-                  )}
-                </div>
+            {/* Description Field */}
+            <div className="form-group">
+              <label htmlFor="assumption-description">Description:</label>
+              <textarea
+                id="assumption-description"
+                value={formData.description}
+                onChange={(e) => handleFormChange('description', e.target.value)}
+                className={errors.description ? 'error' : ''}
+                placeholder="Describe the assumption..."
+                disabled={isSubmitting}
+                rows={3}
+                maxLength={500}
+                required
+              />
+              {errors.description && <span className="error-message">{errors.description}</span>}
+              <small className="form-help">{formData.description.length}/500 characters</small>
+            </div>
 
-                {/* Impact Field */}
-                <div className="form-group">
-                  <label htmlFor="assumption-impact" className="form-label">
-                    Impact <span className="required">*</span>
-                  </label>
-                  <select
-                    id="assumption-impact"
-                    className={`form-select ${errors.impact ? 'error' : ''}`}
-                    value={formData.impact}
-                    onChange={(e) => handleFormChange('impact', e.target.value)}
-                    disabled={isSubmitting}
-                  >
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
-                  </select>
-                  {errors.impact && (
-                    <div className="field-error">
-                      <i className="fas fa-exclamation-circle"></i>
-                      {errors.impact}
-                    </div>
-                  )}
-                </div>
-              </div>
+            {/* Type Field */}
+            <div className="form-group">
+              <label htmlFor="assumption-type">Type:</label>
+              <select
+                id="assumption-type"
+                value={formData.type}
+                onChange={(e) => handleFormChange('type', e.target.value)}
+                className={errors.type ? 'error' : ''}
+                disabled={isSubmitting}
+                required
+              >
+                <option value="Technical">Technical</option>
+                <option value="Business">Business</option>
+                <option value="Resource">Resource</option>
+                <option value="Timeline">Timeline</option>
+              </select>
+              {errors.type && <span className="error-message">{errors.type}</span>}
+            </div>
 
-              {/* Notes Field */}
-              <div className="form-group">
-                <label htmlFor="assumption-notes" className="form-label">
-                  Notes
-                </label>
-                <textarea
-                  id="assumption-notes"
-                  className="form-textarea"
-                  value={formData.notes}
-                  onChange={(e) => handleFormChange('notes', e.target.value)}
-                  placeholder="Additional notes or details..."
-                  disabled={isSubmitting}
-                  rows={4}
-                  maxLength={1000}
-                />
-                <div className="field-help">{formData.notes.length}/1000 characters</div>
-              </div>
-            </form>
+            {/* Impact Field */}
+            <div className="form-group">
+              <label htmlFor="assumption-impact">Impact:</label>
+              <select
+                id="assumption-impact"
+                value={formData.impact}
+                onChange={(e) => handleFormChange('impact', e.target.value)}
+                className={errors.impact ? 'error' : ''}
+                disabled={isSubmitting}
+                required
+              >
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+              {errors.impact && <span className="error-message">{errors.impact}</span>}
+            </div>
+
+            {/* Notes Field */}
+            <div className="form-group">
+              <label htmlFor="assumption-notes">Notes:</label>
+              <textarea
+                id="assumption-notes"
+                value={formData.notes}
+                onChange={(e) => handleFormChange('notes', e.target.value)}
+                placeholder="Additional notes or details..."
+                disabled={isSubmitting}
+                rows={4}
+                maxLength={1000}
+              />
+              <small className="form-help">{formData.notes.length}/1000 characters</small>
+            </div>
           </div>
-
-          {/* Modal Footer */}
+          
           <div className="modal-footer">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handleClose}
-              disabled={isSubmitting}
-            >
+            <button type="button" className="btn btn-secondary" onClick={handleClose}>
               Cancel
             </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting && <i className="fas fa-spinner fa-spin"></i>}
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
               {isSubmitting ? 'Saving...' : submitText}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
