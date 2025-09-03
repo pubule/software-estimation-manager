@@ -100,15 +100,15 @@ const VersionComparisonModal: React.FC = () => {
                 <h5><i className="fas fa-rocket"></i> Project Foundation</h5>
                 <div className="foundation-metrics">
                   <div className="metric">
-                    <span className="metric-value">{comparisonData.featureChanges.added.length}</span>
+                    <span className="version-metric-value">{comparisonData.featureChanges.added.length}</span>
                     <span className="metric-label">Initial Features</span>
                   </div>
                   <div className="metric">
-                    <span className="metric-value">{evolutionSummary.effortAfter}</span>
+                    <span className="version-metric-value">{evolutionSummary.effortAfter}</span>
                     <span className="metric-label">Total Man Days</span>
                   </div>
                   <div className="metric">
-                    <span className="metric-value">{comparisonData.assumptionChanges.added.length}</span>
+                    <span className="version-metric-value">{comparisonData.assumptionChanges.added.length}</span>
                     <span className="metric-label">Assumptions</span>
                   </div>
                 </div>
@@ -121,7 +121,7 @@ const VersionComparisonModal: React.FC = () => {
               <div className="initial-features-list">
                 {comparisonData.featureChanges.added.map((feature: any, index) => (
                   <div key={feature.id || index} className="initial-feature-item">
-                    <span className="feature-id">{feature.id}</span>
+                    <span className="version-feature-id">{feature.id}</span>
                     <span className="feature-description">{feature.description}</span>
                     <span className="feature-effort">{feature.manDays || 0} MD</span>
                   </div>
@@ -230,14 +230,14 @@ const VersionComparisonModal: React.FC = () => {
             <div className="impact-metrics">
               <div className="metric effort">
                 <span className="metric-label">Effort Change</span>
-                <span className={`metric-value ${evolutionSummary.effortDifference > 0 ? 'positive' : evolutionSummary.effortDifference < 0 ? 'negative' : 'neutral'}`}>
+                <span className={`version-metric-value ${evolutionSummary.effortDifference > 0 ? 'positive' : evolutionSummary.effortDifference < 0 ? 'negative' : 'neutral'}`}>
                   {evolutionSummary.effortDifference > 0 ? '+' : ''}{evolutionSummary.effortDifference.toFixed(1)} MD
                   ({evolutionSummary.effortPercentageChange > 0 ? '+' : ''}{evolutionSummary.effortPercentageChange}%)
                 </span>
               </div>
               <div className="metric changes">
                 <span className="metric-label">Total Changes</span>
-                <span className="metric-value">{evolutionSummary.totalChanges}</span>
+                <span className="version-metric-value">{evolutionSummary.totalChanges}</span>
               </div>
             </div>
           </div>
