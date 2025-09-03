@@ -2225,18 +2225,15 @@ class ApplicationController extends BaseComponent {
             // Update project manager
             this.managers.project?.loadSavedProjects();
 
-            // Update current version with latest project data using React VersionHistoryActions
-            try {
-                if (window.versionHistoryActions && updatedProject && updatedProject.versions?.length > 0) {
-                    console.log('🔍 SAVE UPDATE - Updating current version with latest project state');
-                    await window.versionHistoryActions.updateCurrentVersion();
-                } else {
-                    console.log('No versions to update or versionHistoryActions not available');
+            // STATE/ACTIONS/DISPATCHER PATTERN: Dispatch project-saved event instead of direct call
+            console.log('🔄 Save completed - dispatching project-saved event');
+            window.dispatchEvent(new CustomEvent('project-saved', {
+                detail: {
+                    projectData: updatedProject,
+                    hasVersions: updatedProject && updatedProject.versions?.length > 0,
+                    versionHistoryAvailable: !!window.versionHistoryActions
                 }
-            } catch (error) {
-                console.error('Failed to update current version:', error);
-                // Don't fail the save operation if version update fails
-            }
+            }));
 
             if (window.NotificationManager) {
                 NotificationManager.show('Project saved successfully', 'success');

@@ -80,6 +80,38 @@ export interface CalculationComparison {
 export class VersionHistoryActions {
   private maxVersions = 50;
   private maxFileSize = 10 * 1024 * 1024; // 10MB
+  constructor() {
+    // STATE/ACTIONS/DISPATCHER PATTERN: Listen for project-saved events
+    this.initializeEventListeners();
+  }
+
+  /**
+   * Initialize event listeners for State/Actions/Dispatcher pattern
+   */
+  private initializeEventListeners(): void {
+    // Listen for project-saved event to trigger version updates
+    window.addEventListener('project-saved', this.handleProjectSaved.bind(this));
+    console.log('✅ VersionHistoryActions: Event listeners initialized (State/Actions/Dispatcher pattern)');
+  }
+
+  /**
+   * Handle project-saved event - triggers version update
+   */
+  private async handleProjectSaved(event: CustomEvent): Promise<void> {
+    const { hasVersions, versionHistoryAvailable } = event.detail;
+    
+    try {
+      if (versionHistoryAvailable && hasVersions) {
+        console.log('🔄 Project saved event received - updating current version');
+        await this.updateCurrentVersion();
+      } else {
+        console.log('No versions to update or versionHistoryActions not available');
+      }
+    } catch (error) {
+      console.error('Failed to update current version from project-saved event:', error);
+      // Don't propagate error - save operation should not fail if version update fails
+    }
+  }
 
   /**
    * Pattern obbligatorio: accesso store attraverso getStore()
@@ -155,6 +187,15 @@ export class VersionHistoryActions {
    * Aggiorna la versione più recente con lo stato corrente del progetto
    * Utilizzato quando si salva il progetto per mantenere la versione corrente sincronizzata
    */
+  /**
+   * Aggiorna la versione più recente con lo stato corrente del progetto
+   * Utilizzato quando si salva il progetto per mantenere la versione corrente sincronizzata
+   * ENHANCED: Fixed timing issue with features not being included in snapshots
+   */
+  /**
+   * Aggiorna la versione più recente con lo stato corrente del progetto
+   * STATE/ACTIONS/DISPATCHER PATTERN: No delays, solo eventi e stato
+   */
   async updateCurrentVersion(): Promise<void> {
     try {
       const store = this.getStore();
@@ -166,18 +207,28 @@ export class VersionHistoryActions {
         return;
       }
 
+      console.log('🔄 Updating current version with fresh store state');
+      console.log(`📊 Project has ${currentProject.features?.length || 0} features to include in snapshot`);
+
       // Trova la versione più recente (quella con timestamp più recente)
       const mostRecentVersion = currentProject.versions.reduce((latest: Version, current: Version) => {
         return new Date(current.timestamp) > new Date(latest.timestamp) ? current : latest;
       });
 
-      console.log(`Updating current version ${mostRecentVersion.id} with latest project data`);
+      console.log(`Updating version ${mostRecentVersion.id} with latest project state`);
 
       // Avvia loading
       this.setLoadingState(true);
 
-      // Business logic: genera snapshot aggiornato del progetto
+      // STATE PATTERN: Genera snapshot dal current state (single source of truth)
       const updatedSnapshot = this.createProjectSnapshot(currentProject);
+      
+      // Log snapshot validation
+      console.log(`✅ Snapshot created with ${updatedSnapshot.features?.length || 0} features`);
+      if (updatedSnapshot.features?.length > 0) {
+        console.log('✅ Features in snapshot:', updatedSnapshot.features.map((f: any) => ({ id: f.id, description: f.description })));
+      }
+      
       const updatedChecksum = this.generateChecksum(updatedSnapshot);
       const updatedFileSize = this.calculateDataSize(updatedSnapshot);
 
@@ -200,11 +251,11 @@ export class VersionHistoryActions {
         v.id === mostRecentVersion.id ? updatedVersion : v
       );
 
-      // Aggiorna store
+      // ACTIONS PATTERN: Update store through actions
       state.updateProjectVersions(updatedVersions);
-      // Non marcare come dirty perché stiamo salvando
-
-      console.log(`✅ Current version ${mostRecentVersion.id} updated successfully`);
+      
+      console.log(`✅ Version ${mostRecentVersion.id} updated successfully via State/Actions pattern`);
+      console.log(`✅ Version snapshot now contains ${updatedSnapshot.features?.length || 0} features`);
     } catch (error) {
       console.error('Failed to update current version:', error);
       throw error;
