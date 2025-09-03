@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="styles/categories-config.css">
     <link rel="stylesheet" href="styles/teams-config.css">
     <link rel="stylesheet" href="styles/calculations.css">
+    <link rel="stylesheet" href="styles/assumptions.css">
     <link rel="stylesheet" href="styles/version-history.css">
     <link rel="stylesheet" href="styles/capacity.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -247,86 +248,10 @@
                 </div>
             </div>
 
-            <!-- Assumptions Page -->
+            <!-- Assumptions Page - React Component -->
             <div id="assumptions-page" class="page">
-                <div class="page-header">
-                    <h2>Project Assumptions</h2>
-                    <div class="page-actions">
-                        <button class="btn btn-primary" id="add-assumption-btn">
-                            <i class="fas fa-plus"></i> Add Assumption
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Search Bar -->
-                <div class="search-bar">
-                    <div class="search-group">
-                        <label>Search:</label>
-                        <input type="text" id="assumptions-search-input" placeholder="Search assumptions...">
-                    </div>
-                </div>
-
-                <!-- Filters -->
-                <div class="filters-bar">
-                    <div class="filter-group">
-                        <label>Type:</label>
-                        <select id="assumption-type-filter">
-                            <option value="">All Types</option>
-                            <option value="Technical">Technical</option>
-                            <option value="Business">Business</option>
-                            <option value="Resource">Resource</option>
-                            <option value="Timeline">Timeline</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Impact:</label>
-                        <select id="assumption-impact-filter">
-                            <option value="">All Impacts</option>
-                            <option value="High">High</option>
-                            <option value="Medium">Medium</option>
-                            <option value="Low">Low</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Assumptions Table -->
-                <div class="table-container">
-                    <table id="assumptions-table" class="data-table">
-                        <thead>
-                        <tr>
-                            <th data-sort="id">ID <i class="fas fa-sort"></i></th>
-                            <th data-sort="description">Description <i class="fas fa-sort"></i></th>
-                            <th data-sort="type">Type <i class="fas fa-sort"></i></th>
-                            <th data-sort="impact">Impact <i class="fas fa-sort"></i></th>
-                            <th>Notes</th>
-                            <th>Actions</th>
-                        </tr>
-                        </thead>
-                        <tbody id="assumptions-tbody">
-                        <!-- Assumptions will be populated here -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Assumptions Summary -->
-                <div class="summary-bar">
-                    <div class="summary-item">
-                        <label>Total Assumptions:</label>
-                        <span id="total-assumptions">0</span>
-                    </div>
-                    <div class="summary-item">
-                        <label>High Impact:</label>
-                        <span id="high-impact-assumptions">0</span>
-                    </div>
-                    <div class="summary-item">
-                        <label>Medium Impact:</label>
-                        <span id="medium-impact-assumptions">0</span>
-                    </div>
-                    <div class="summary-item">
-                        <label>Low Impact:</label>
-                        <span id="low-impact-assumptions">0</span>
-                    </div>
-                </div>
+                <!-- React AssumptionsPage component will be rendered here -->
+                <div id="assumptions-react-root"></div>
             </div>
 
             <!-- Configuration Page -->
@@ -736,8 +661,6 @@ console.log('✅ Zustand store implementation ready for React components');
 <script src="js/utils/ReactPageWrapper.js"></script>
 <script src="js/components/react-unified-wrapper.js"></script>
 
-<!-- Assumptions management (depends on data-manager) -->
-<script src="js/components/assumptions-manager.js"></script>
 
 <!-- Calculations management (depends on data-manager and configuration-manager) -->
 

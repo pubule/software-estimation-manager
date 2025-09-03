@@ -5,7 +5,9 @@
       "mcp__serena__find_symbol",
       "mcp__serena__get_symbols_overview",
       "mcp__serena__search_for_pattern",
-      "mcp__serena__replace_symbol_body"
+      "mcp__serena__replace_symbol_body",
+      "Bash(node agents/auto-workflow.js feature assumptions \"Migrate assumptions from vanilla JS to React following State/Actions/Dispatcher pattern\")",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

@@ -298,9 +298,7 @@ class ApplicationController extends BaseComponent {
         // ReactFeaturesWrapper will be initialized by NavigationManager when needed
         this.managers.feature = null; // Placeholder for compatibility
         
-        // Assumptions manager
-        this.managers.assumptions = new AssumptionsManager();
-        await this.managers.assumptions.init();
+        // AssumptionsManager removed - migrated to React with State/Actions/Dispatcher pattern
         
         // CalculationsManager removed - migrated to React with State/Actions/Dispatcher pattern
         
@@ -446,13 +444,7 @@ class ApplicationController extends BaseComponent {
             });
         }
 
-        // Add assumption button
-        const addAssumptionBtn = this.getElement('add-assumption-btn');
-        if (addAssumptionBtn) {
-            this.addEventListener(addAssumptionBtn, 'click', () => {
-                this.managers.assumptions?.showAddAssumptionModal();
-            });
-        }
+        // Add assumption button - now handled by React AssumptionsPage
 
         // Search and filters
         this.setupSearchAndFilters();

@@ -212,6 +212,12 @@ class ReactPageWrapperActions {
                 componentName: 'CalculationsPage',
                 containerId: 'react-calculations-root',
                 wrapperName: 'ReactCalculationsWrapper'
+            },
+            assumptions: {
+                pageId: 'assumptions-page',
+                componentName: 'AssumptionsPage',
+                containerId: 'assumptions-react-root',
+                wrapperName: 'ReactAssumptionsWrapper'
             }
         };
         

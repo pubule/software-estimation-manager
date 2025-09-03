@@ -698,6 +698,12 @@ class EnhancedNavigationManager extends NavigationManager {
             this.showCalculationsPage();
             return;
         }
+        
+        // Special handling for assumptions navigation
+        if (sectionName === 'assumptions') {
+            this.showAssumptionsPage();
+            return;
+        }
 
         // Special handling for version history navigation
         if (sectionName === 'history') {
@@ -1214,6 +1220,101 @@ class EnhancedNavigationManager extends NavigationManager {
         }
 
         console.log('Navigated to Calculations page with React wrapper');
+    }
+
+    // Special method for assumptions page - Using React wrapper
+    async showAssumptionsPage() {
+        console.log('🔄 NavigationManager: showAssumptionsPage - Using State/Actions/Dispatcher pattern');
+
+        // Check if store is available
+        if (!this.store || !this.store.getState) {
+            console.warn('Store not available for NavigationManager.showAssumptionsPage, navigation aborted');
+            return;
+        }
+        
+        const state = this.store.getState();
+        const hasProject = state.currentProject !== null;
+        
+        // Verify project is loaded
+        if (!hasProject) {
+            console.warn('Cannot navigate to assumptions: No project loaded');
+            NotificationManager.warning('Please load or create a project first to view assumptions');
+            return;
+        }
+
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // Update active states
+        this.updateActiveStates('assumptions');
+
+        // Show target page
+        const assumptionsPage = document.getElementById('assumptions-page');
+        if (assumptionsPage) {
+            assumptionsPage.classList.add('active');
+        }
+
+        // Initialize React wrapper for assumptions
+        const isComponentAlreadyInitialized = state.isComponentInitialized('assumptions');
+        const hasExistingWrapper = !!this.reactAssumptionsWrapper;
+        
+        if (!hasExistingWrapper || !isComponentAlreadyInitialized) {
+            console.log('🔄 Initializing React Assumptions wrapper...');
+            console.log('ReactAssumptionsWrapper available:', !!window.ReactAssumptionsWrapper);
+            
+            if (window.ReactAssumptionsWrapper) {
+                this.reactAssumptionsWrapper = new window.ReactAssumptionsWrapper();
+                
+                try {
+                    await this.reactAssumptionsWrapper.init();
+                    console.log('✅ React Assumptions wrapper initialized successfully');
+                    
+                    // Mark component as initialized in store
+                    state.setComponentInitialized('assumptions', true);
+                    
+                } catch (error) {
+                    console.error('❌ Failed to initialize React Assumptions wrapper:', error);
+                    // Show fallback content
+                    if (assumptionsPage) {
+                        assumptionsPage.innerHTML = `
+                            <div style="padding: 2rem; text-align: center; color: #ff6b6b;">
+                                <h3>❌ Assumptions Page Error</h3>
+                                <p>Failed to load React components</p>
+                                <p><small>Error: ${error.message}</small></p>
+                                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                                    Reload Application
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            } else {
+                console.error('❌ ReactAssumptionsWrapper not available on window object');
+                console.log('Available on window:', Object.keys(window).filter(k => k.includes('React')));
+            }
+        } else {
+            console.log('✅ React Assumptions wrapper already initialized - PRESERVING STATE');
+            
+            // Ensure we're using the existing wrapper without re-init
+            if (this.reactAssumptionsWrapper && this.reactAssumptionsWrapper.isInitialized) {
+                console.log('🔄 Using existing assumptions wrapper - no reset needed');
+            }
+        }
+
+        // Update global state
+        if (this.store && this.store.getState) {
+            this.store.getState().setSection('assumptions');
+        }
+
+        // Ensure projects is expanded
+        if (!this.projectsExpanded) {
+            this.projectsExpanded = true;
+            this.updateProjectsExpansion();
+        }
+
+        console.log('Navigated to Assumptions page with React wrapper');
     }
 
     // Special method for version history page

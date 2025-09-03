@@ -25,6 +25,9 @@ import SupplierSelectors from './components/SupplierSelectors';
 // Import calculations components
 import CalculationsPage from './components/CalculationsPage';
 
+// Import assumptions components
+import AssumptionsPage from './components/AssumptionsPage';
+
 // Import Actions classes for global registration
 import { NavigationActions } from './actions/NavigationActions';
 import '../js/actions/ReactPageWrapperActions.js';
@@ -54,6 +57,7 @@ declare global {
       DevelopmentNotice: typeof DevelopmentNotice;
       SupplierSelectors: typeof SupplierSelectors;
       CalculationsPage: typeof CalculationsPage;
+      AssumptionsPage: typeof AssumptionsPage;
     };
     NavigationActions: typeof NavigationActions;
     ReactPageWrapperActions: any;
@@ -79,7 +83,8 @@ window.ReactComponents = {
   PhasesTotals,
   DevelopmentNotice,
   SupplierSelectors,
-  CalculationsPage
+  CalculationsPage,
+  AssumptionsPage
 };
 
 // Make Actions classes available globally

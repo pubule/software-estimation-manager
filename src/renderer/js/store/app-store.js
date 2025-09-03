@@ -152,6 +152,18 @@ const appStore = window.zustand.createStore((set, get) => ({
     },
     
     // ======================
+    // ASSUMPTIONS STATE (State/Actions/Dispatcher Pattern)
+    // ======================
+    assumptionsData: {
+        filters: { search: '', type: '', impact: '' }, // Filters for assumptions table
+        modalState: {
+            isOpen: false,
+            mode: 'add', // 'add' | 'edit'
+            selectedAssumption: null
+        }
+    },
+    
+    // ======================
     // PROJECT ACTIONS
     // ======================
     
@@ -1098,7 +1110,115 @@ const appStore = window.zustand.createStore((set, get) => ({
             finalMDsOverrides: {},
             version: (state.calculationsData?.version || 0) + 1 // Increment version
         }
-    }))
+    })),
+    
+    // ======================
+    // ASSUMPTIONS ACTIONS (State/Actions/Dispatcher Pattern)
+    // Called ONLY by AssumptionsActions class
+    // ======================
+    
+    /**
+     * Add assumption to current project
+     */
+    addProjectAssumption: (assumption) => {
+        const currentState = get();
+        if (!currentState.currentProject) return;
+        
+        const updatedAssumptions = [...(currentState.currentProject.assumptions || []), assumption];
+        const updatedProject = {
+            ...currentState.currentProject,
+            assumptions: updatedAssumptions
+        };
+        
+        set({ 
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+    
+    /**
+     * Update assumption in current project
+     */
+    updateProjectAssumption: (id, updatedAssumption) => {
+        const currentState = get();
+        if (!currentState.currentProject?.assumptions) return;
+        
+        const updatedAssumptions = currentState.currentProject.assumptions.map(assumption => 
+            assumption.id === id ? updatedAssumption : assumption
+        );
+        const updatedProject = {
+            ...currentState.currentProject,
+            assumptions: updatedAssumptions
+        };
+        
+        set({ 
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+    
+    /**
+     * Delete assumption from current project
+     */
+    deleteProjectAssumption: (id) => {
+        const currentState = get();
+        if (!currentState.currentProject?.assumptions) return;
+        
+        const updatedAssumptions = currentState.currentProject.assumptions.filter(assumption => 
+            assumption.id !== id
+        );
+        const updatedProject = {
+            ...currentState.currentProject,
+            assumptions: updatedAssumptions
+        };
+        
+        set({ 
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+    
+    /**
+     * Set assumptions filters
+     */
+    setAssumptionsFilters: (filters) => {
+        const currentState = get();
+        const currentAssumptionsData = currentState.assumptionsData || {
+            filters: { search: '', type: '', impact: '' },
+            modalState: { isOpen: false, mode: 'add', selectedAssumption: null }
+        };
+        
+        set({
+            assumptionsData: {
+                ...currentAssumptionsData,
+                filters: { 
+                    ...currentAssumptionsData.filters, 
+                    ...filters 
+                }
+            }
+        });
+    },
+    
+    /**
+     * Set assumptions modal state
+     */
+    setAssumptionsModalState: (modalState) => {
+        const currentState = get();
+        const currentAssumptionsData = currentState.assumptionsData || {
+            filters: { search: '', type: '', impact: '' },
+            modalState: { isOpen: false, mode: 'add', selectedAssumption: null }
+        };
+        
+        set({
+            assumptionsData: {
+                ...currentAssumptionsData,
+                modalState: { 
+                    ...currentAssumptionsData.modalState, 
+                    ...modalState 
+                }
+            }
+        });
+    }
 }));
 
 // ======================
