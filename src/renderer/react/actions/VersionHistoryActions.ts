@@ -144,6 +144,10 @@ export class VersionHistoryActions {
   private initializeEventListeners(): void {
     // Listen for project-saved event to trigger version updates
     window.addEventListener('project-saved', this.handleProjectSaved.bind(this));
+    
+    // Listen for project-modified event to auto-sync current version
+    window.addEventListener('project-modified', this.handleProjectModified.bind(this));
+    
     console.log('✅ VersionHistoryActions: Event listeners initialized (State/Actions/Dispatcher pattern)');
   }
 
@@ -163,6 +167,30 @@ export class VersionHistoryActions {
     } catch (error) {
       console.error('Failed to update current version from project-saved event:', error);
       // Don't propagate error - save operation should not fail if version update fails
+    }
+  }
+
+  /**
+   * Handle project-modified event - auto-sync current version with in-memory changes
+   */
+  private async handleProjectModified(event: CustomEvent): Promise<void> {
+    const { action, featureId, hasVersions } = event.detail;
+    
+    try {
+      if (hasVersions) {
+        console.log(`🔄 Project modified (${action}) event received - auto-syncing current version`);
+        console.log(`📝 Feature ${featureId} was ${action.replace('feature-', '')}`);
+        
+        // Piccolo delay per assicurarsi che lo store sia aggiornato
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        await this.updateCurrentVersion();
+      } else {
+        console.log('No versions to update for modified project');
+      }
+    } catch (error) {
+      console.error('Failed to update current version from project-modified event:', error);
+      // Don't propagate error - feature operation should not fail if version update fails
     }
   }
 
@@ -262,12 +290,31 @@ export class VersionHistoryActions {
 
       console.log('🔄 Updating current version with fresh store state');
       console.log(`📊 Project has ${currentProject.features?.length || 0} features to include in snapshot`);
+      
+      // DEBUG: Log delle features prima della creazione snapshot
+      if (currentProject.features && currentProject.features.length > 0) {
+        console.log('🔍 DEBUG - Features in currentProject before snapshot:', 
+          currentProject.features.map((f: any) => ({ id: f.id, created: f.created })));
+      } else {
+        console.log('🚨 DEBUG - NO FEATURES found in currentProject!');
+      }
 
-      // Trova la versione più recente (quella con timestamp più recente)
+      // Trova la versione corrente (quella con l'ID più alto)
+      console.log('🔍 DEBUG - All versions in project:', 
+        currentProject.versions.map((v: any) => ({ 
+          id: v.id, 
+          timestamp: v.timestamp, 
+          featureCount: v.projectSnapshot?.features?.length || 0 
+        })));
+      
       const mostRecentVersion = currentProject.versions.reduce((latest: Version, current: Version) => {
-        return new Date(current.timestamp) > new Date(latest.timestamp) ? current : latest;
+        const latestNum = parseInt(latest.id.replace('V-', ''));
+        const currentNum = parseInt(current.id.replace('V-', ''));
+        return currentNum > latestNum ? current : latest;
       });
 
+      console.log(`🔍 DEBUG - Selected current version by highest ID: ${mostRecentVersion.id} (${mostRecentVersion.timestamp})`);
+      console.log(`🔍 DEBUG - Selected version currently has ${mostRecentVersion.projectSnapshot?.features?.length || 0} features`);
       console.log(`Updating version ${mostRecentVersion.id} with latest project state`);
 
       // Avvia loading
@@ -296,13 +343,20 @@ export class VersionHistoryActions {
         projectSnapshot: updatedSnapshot,
         checksum: updatedChecksum,
         fileSize: updatedFileSize,
-        reason: mostRecentVersion.reason + ' (updated)'
+        // Non modificare la reason se contiene già (updated)
+        reason: mostRecentVersion.reason.includes('(updated)') 
+          ? mostRecentVersion.reason 
+          : mostRecentVersion.reason + ' (updated)'
       };
 
       // Sostituisci la versione nel array
       const updatedVersions = currentProject.versions.map((v: Version) => 
         v.id === mostRecentVersion.id ? updatedVersion : v
       );
+      
+      // DEBUG: Verifica dell'aggiornamento
+      const updatedVersionCheck = updatedVersions.find((v: Version) => v.id === mostRecentVersion.id);
+      console.log(`🔍 DEBUG - Updated version in array now has ${updatedVersionCheck?.projectSnapshot?.features?.length || 0} features`);
 
       // ACTIONS PATTERN: Update store through actions
       state.updateProjectVersions(updatedVersions);
@@ -1086,7 +1140,15 @@ export class VersionHistoryActions {
    * Crea snapshot del progetto corrente
    */
   private createProjectSnapshot(project: any): any {
+    // DEBUG: Log del progetto prima del deep copy
+    console.log('🔍 DEBUG - createProjectSnapshot input project features:', 
+      project.features?.map((f: any) => ({ id: f.id, created: f.created })) || 'NO FEATURES');
+    
     const snapshot = JSON.parse(JSON.stringify(project));
+    
+    // DEBUG: Log dello snapshot dopo deep copy
+    console.log('🔍 DEBUG - createProjectSnapshot output snapshot features:', 
+      snapshot.features?.map((f: any) => ({ id: f.id, created: f.created })) || 'NO FEATURES');
     
     // Rimuovi array versions per evitare ricorsione
     delete snapshot.versions;

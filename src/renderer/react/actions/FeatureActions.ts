@@ -68,6 +68,15 @@ export class FeatureActions {
       // Mark project as dirty for auto-save
       state.markDirty();
 
+      // STATE/ACTIONS/DISPATCHER PATTERN: Dispatch project-modified event for version sync
+      window.dispatchEvent(new CustomEvent('project-modified', {
+        detail: {
+          action: 'feature-added',
+          featureId: newFeature.id,
+          hasVersions: state.currentProject.versions?.length > 0
+        }
+      }));
+
       console.log('Feature added successfully:', newFeature.id);
     } catch (error) {
       console.error('Failed to add feature:', error);
@@ -101,6 +110,15 @@ export class FeatureActions {
       // Mark project as dirty for auto-save
       state.markDirty();
 
+      // STATE/ACTIONS/DISPATCHER PATTERN: Dispatch project-modified event for version sync
+      window.dispatchEvent(new CustomEvent('project-modified', {
+        detail: {
+          action: 'feature-updated',
+          featureId: updatedFeature.id,
+          hasVersions: state.currentProject.versions?.length > 0
+        }
+      }));
+
       console.log('Feature updated successfully:', updatedFeature.id);
     } catch (error) {
       console.error('Failed to update feature:', error);
@@ -133,6 +151,15 @@ export class FeatureActions {
 
       // Mark project as dirty for auto-save
       state.markDirty();
+
+      // STATE/ACTIONS/DISPATCHER PATTERN: Dispatch project-modified event for version sync
+      window.dispatchEvent(new CustomEvent('project-modified', {
+        detail: {
+          action: 'feature-deleted',
+          featureId: feature.id,
+          hasVersions: state.currentProject.versions?.length > 0
+        }
+      }));
 
       console.log('Feature deleted successfully:', feature.id);
     } catch (error) {
