@@ -3542,6 +3542,142 @@
     }
 }
 
+/* ===================================
+   CURRENT VERSION HIGHLIGHTING
+   =================================== */
+
+/* Current Version Row Styling */
+.version-row.current-version {
+    background: linear-gradient(135deg, 
+        rgba(33, 150, 243, 0.12) 0%, 
+        rgba(33, 150, 243, 0.18) 100%);
+    border-left: 4px solid #2196f3;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+    position: relative;
+    border-radius: 0 4px 4px 0;
+}
+
+.version-row.current-version:hover {
+    background: linear-gradient(135deg, 
+        rgba(33, 150, 243, 0.18) 0%, 
+        rgba(33, 150, 243, 0.25) 100%);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+/* Version ID Container for Current Badge */
+.version-id-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+/* Current Version Badge */
+.current-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #2196f3, #1976d2);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.4);
+    animation: currentVersionPulse 2s ease-in-out infinite;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.current-badge i {
+    font-size: 9px;
+    color: #f39c12;
+    text-shadow: 0 0 2px rgba(243, 156, 18, 0.5);
+}
+
+/* Current Version Animation */
+@keyframes currentVersionPulse {
+    0%, 100% {
+        box-shadow: 0 2px 4px rgba(33, 150, 243, 0.4);
+    }
+    50% {
+        box-shadow: 0 3px 8px rgba(33, 150, 243, 0.6);
+        transform: translateY(-1px);
+    }
+}
+
+/* Current Version Row Cells Enhancement */
+.version-row.current-version .version-id code {
+    font-weight: 600;
+    color: var(--info);
+}
+
+.version-row.current-version .timestamp-date {
+    font-weight: 600;
+}
+
+.version-row.current-version .timestamp-relative {
+    color: var(--info);
+    font-weight: 500;
+}
+
+.version-row.current-version .reason-text {
+    font-weight: 500;
+}
+
+/* Current Version Action Buttons */
+.version-row.current-version .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    position: relative;
+}
+
+.version-row.current-version .btn:disabled:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 4px;
+}
+
+/* Responsive Adjustments for Current Version */
+@media (max-width: 768px) {
+    .version-id-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .current-badge {
+        font-size: 9px;
+        padding: 3px 6px;
+    }
+    
+    .version-row.current-version {
+        border-left: 3px solid #2196f3;
+    }
+}
+
+@media (max-width: 480px) {
+    .current-badge {
+        font-size: 8px;
+        padding: 2px 5px;
+    }
+    
+    .current-badge i {
+        font-size: 8px;
+    }
+}
+
 /* Small Mobile Styles */
 @media (max-width: 480px) {
     .evolution-header h3 {

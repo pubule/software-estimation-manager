@@ -96,10 +96,21 @@ const VersionHistoryTable: React.FC<VersionHistoryTableProps> = ({
           </tr>
         </thead>
         <tbody>
-          {versions.map((version) => (
-            <tr key={version.id} className="version-row">
+          {versions.map((version, index) => (
+            <tr 
+              key={version.id} 
+              className={`version-row ${index === 0 ? 'current-version' : ''}`}
+            >
               <td className="version-id">
-                <code>{version.id}</code>
+                <div className="version-id-container">
+                  <code>{version.id}</code>
+                  {index === 0 && (
+                    <span className="current-badge">
+                      <i className="fas fa-star"></i>
+                      CURRENT
+                    </span>
+                  )}
+                </div>
               </td>
               <td className="version-timestamp">
                 <div className="timestamp-content">
@@ -126,15 +137,15 @@ const VersionHistoryTable: React.FC<VersionHistoryTableProps> = ({
                     className="btn btn-small btn-secondary compare-btn"
                     onClick={() => onCompare(version.id)}
                     disabled={isLoading}
-                    title="Compare with current version"
+                    title={index === 0 ? "Compare with previous version" : "Compare with previous version"}
                   >
                     <i className="fas fa-balance-scale"></i>
                   </button>
                   <button 
                     className="btn btn-small btn-warning restore-btn"
                     onClick={() => onRestore(version.id)}
-                    disabled={isLoading}
-                    title="Restore this version"
+                    disabled={isLoading || index === 0}
+                    title={index === 0 ? "This is the current version" : "Restore this version"}
                   >
                     <i className="fas fa-undo"></i>
                   </button>
@@ -149,8 +160,8 @@ const VersionHistoryTable: React.FC<VersionHistoryTableProps> = ({
                   <button 
                     className="btn btn-small btn-danger delete-btn"
                     onClick={() => onDelete(version.id)}
-                    disabled={isLoading}
-                    title="Delete version"
+                    disabled={isLoading || index === 0}
+                    title={index === 0 ? "Cannot delete current version" : "Delete version"}
                   >
                     <i className="fas fa-trash"></i>
                   </button>
