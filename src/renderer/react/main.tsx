@@ -75,6 +75,7 @@ declare global {
       RestoreVersionModal: typeof RestoreVersionModal;
     };
     NavigationActions: typeof NavigationActions;
+    versionHistoryActions: typeof versionHistoryActions;
     ReactPageWrapperActions: any;
   }
 }
@@ -110,6 +111,8 @@ window.ReactComponents = {
 
 // Make Actions classes available globally
 window.NavigationActions = NavigationActions;
+window.versionHistoryActions = versionHistoryActions;
 
 console.log('✅ React components exported globally:', Object.keys(window.ReactComponents));
 console.log('✅ NavigationActions exported globally');
+console.log('✅ versionHistoryActions exported globally');

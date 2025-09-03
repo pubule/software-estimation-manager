@@ -2170,7 +2170,19 @@ class ApplicationController extends BaseComponent {
         //     this.managers.projectPhases?.resetAllPhaseData();
         // }, 100);
 
-        // REMOVED: Initial version creation (now handled by React VersionHistoryActions)
+        // Create initial version using React VersionHistoryActions
+        setTimeout(async () => {
+            try {
+                if (window.versionHistoryActions) {
+                    await window.versionHistoryActions.createVersion('Initial project creation');
+                    console.log('✅ Initial version created for new project');
+                } else {
+                    console.warn('versionHistoryActions not available, skipping initial version creation');
+                }
+            } catch (error) {
+                console.error('Failed to create initial version:', error);
+            }
+        }, 600);
 
         if (window.NotificationManager) {
             NotificationManager.show('New project created successfully', 'success');
@@ -2213,7 +2225,18 @@ class ApplicationController extends BaseComponent {
             // Update project manager
             this.managers.project?.loadSavedProjects();
 
-            // REMOVED: Version management (now handled by React VersionHistoryActions)
+            // Update current version with latest project data using React VersionHistoryActions
+            try {
+                if (window.versionHistoryActions && updatedProject && updatedProject.versions?.length > 0) {
+                    console.log('🔍 SAVE UPDATE - Updating current version with latest project state');
+                    await window.versionHistoryActions.updateCurrentVersion();
+                } else {
+                    console.log('No versions to update or versionHistoryActions not available');
+                }
+            } catch (error) {
+                console.error('Failed to update current version:', error);
+                // Don't fail the save operation if version update fails
+            }
 
             if (window.NotificationManager) {
                 NotificationManager.show('Project saved successfully', 'success');

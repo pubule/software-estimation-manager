@@ -58,12 +58,7 @@ const CreateVersionModal: React.FC = () => {
     actions.closeCreateVersionModal();
   };
 
-  // Handle backdrop click
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
-  };
+  // REMOVED: Handle backdrop click - Modal should not close when clicking outside
 
   // Don't render if modal is not open
   if (!modalState.isOpen) {
@@ -71,7 +66,7 @@ const CreateVersionModal: React.FC = () => {
   }
 
   return (
-    <div className="modal active" onClick={handleBackdropClick}>
+    <div className="modal active">
       <div className="modal-content">
         <div className="modal-header">
           <h3>Create New Version</h3>

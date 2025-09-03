@@ -152,6 +152,68 @@ export class VersionHistoryActions {
   }
 
   /**
+   * Aggiorna la versione più recente con lo stato corrente del progetto
+   * Utilizzato quando si salva il progetto per mantenere la versione corrente sincronizzata
+   */
+  async updateCurrentVersion(): Promise<void> {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+      const currentProject = state.currentProject;
+
+      if (!currentProject || !currentProject.versions || currentProject.versions.length === 0) {
+        console.log('No versions to update - skipping current version update');
+        return;
+      }
+
+      // Trova la versione più recente (quella con timestamp più recente)
+      const mostRecentVersion = currentProject.versions.reduce((latest: Version, current: Version) => {
+        return new Date(current.timestamp) > new Date(latest.timestamp) ? current : latest;
+      });
+
+      console.log(`Updating current version ${mostRecentVersion.id} with latest project data`);
+
+      // Avvia loading
+      this.setLoadingState(true);
+
+      // Business logic: genera snapshot aggiornato del progetto
+      const updatedSnapshot = this.createProjectSnapshot(currentProject);
+      const updatedChecksum = this.generateChecksum(updatedSnapshot);
+      const updatedFileSize = this.calculateDataSize(updatedSnapshot);
+
+      // Validazione dimensione
+      if (updatedFileSize > this.maxFileSize) {
+        throw new Error('Project data too large for versioning');
+      }
+
+      // Aggiorna la versione corrente mantenendo ID e timestamp originali
+      const updatedVersion: Version = {
+        ...mostRecentVersion,
+        projectSnapshot: updatedSnapshot,
+        checksum: updatedChecksum,
+        fileSize: updatedFileSize,
+        reason: mostRecentVersion.reason + ' (updated)'
+      };
+
+      // Sostituisci la versione nel array
+      const updatedVersions = currentProject.versions.map((v: Version) => 
+        v.id === mostRecentVersion.id ? updatedVersion : v
+      );
+
+      // Aggiorna store
+      state.updateProjectVersions(updatedVersions);
+      // Non marcare come dirty perché stiamo salvando
+
+      console.log(`✅ Current version ${mostRecentVersion.id} updated successfully`);
+    } catch (error) {
+      console.error('Failed to update current version:', error);
+      throw error;
+    } finally {
+      this.setLoadingState(false);
+    }
+  }
+
+  /**
    * Confronta versione specifica con lo stato corrente
    */
   compareVersion(versionId: string): void {

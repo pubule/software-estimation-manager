@@ -222,12 +222,29 @@ class ProjectBusinessLogic extends BaseComponent {
             // Update window title with project info
             await this.updateWindowTitle(projectData);
 
+            // Create initial version for new projects
+            if (source && source.startsWith('new-project-')) {
+                try {
+                    if (window.versionHistoryActions) {
+                        await window.versionHistoryActions.createVersion('Initial project creation');
+                        console.log('✅ Initial version created for new project');
+                    } else {
+                        console.warn('⚠️ versionHistoryActions not available, initial version not created');
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to create initial version:', error);
+                    // Don't throw error to avoid breaking project creation
+                }
+            }
+
             // Auto-navigate to features section after loading project
             if (this.app.navigationManager) {
-                // Small delay to ensure store updates are processed
-                setTimeout(() => {
+                // Wait for store to have project loaded before navigating (avoid race condition)
+                this.waitForProjectInStore().then(() => {
                     this.app.navigationManager.navigateTo('features');
-                }, 100);
+                }).catch(error => {
+                    console.error('Failed to navigate to features after project load:', error);
+                });
             }
 
             console.log(`✅ Project "${projectData.project.name}" loaded successfully`);
@@ -498,6 +515,39 @@ class ProjectBusinessLogic extends BaseComponent {
         } catch (error) {
             console.error('❌ Failed to reset window title:', error);
         }
+    }
+
+    /**
+     * Wait for project to be available in store before navigation
+     * Prevents race conditions between store updates and navigation
+     */
+    async waitForProjectInStore(timeout = 2000) {
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+            
+            const checkProject = () => {
+                // Read fresh state to avoid race condition
+                if (this.app.store) {
+                    const state = this.app.store.getState();
+                    if (state.currentProject) {
+                        console.log('✅ Project confirmed in store, ready for navigation');
+                        resolve(true);
+                        return;
+                    }
+                }
+                
+                // Check timeout
+                if (Date.now() - startTime > timeout) {
+                    reject(new Error(`Timeout waiting for project in store after ${timeout}ms`));
+                    return;
+                }
+                
+                // Continue polling
+                setTimeout(checkProject, 50);
+            };
+            
+            checkProject();
+        });
     }
 }
 

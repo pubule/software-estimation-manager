@@ -62,12 +62,7 @@ const RestoreVersionModal: React.FC = () => {
     setError('');
   };
 
-  // Handle backdrop click
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
-  };
+  // REMOVED: Handle backdrop click - Modal should not close when clicking outside
 
   // Don't render if modal is not open or no version selected
   if (!modalState.isOpen || !modalState.selectedVersion) {
@@ -77,7 +72,7 @@ const RestoreVersionModal: React.FC = () => {
   const selectedVersion = modalState.selectedVersion;
 
   return (
-    <div className="modal active" onClick={handleBackdropClick}>
+    <div className="modal active">
       <div className="modal-content restore-modal-content">
         <div className="modal-header">
           <h3>Restore Version {selectedVersion.id}</h3>
