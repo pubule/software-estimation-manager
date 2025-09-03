@@ -4343,3 +4343,127 @@
         gap: var(--spacing-sm);
     }
 }
+
+/* Enhanced Vendor Styling for All Modals */
+
+/* Main vendor info container - replaces vendor-info */
+.vendor-main-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-sm);
+}
+
+.vendor-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+}
+
+.vendor-role-dept {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-style: italic;
+}
+
+/* Metrics container - replaces vendor-details */
+.vendor-metrics {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.vendor-mds, 
+.vendor-rate, 
+.vendor-total {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: var(--radius-xs);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.vendor-total {
+    background-color: rgba(76, 175, 80, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+/* Initial version specific vendor styling */
+.initial-vendor-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-sm);
+    transition: all 0.2s ease;
+}
+
+.initial-vendor-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: var(--border-primary);
+}
+
+.initial-vendors-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Calculations summary styling */
+.calculations-summary {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-secondary);
+}
+
+.summary-totals {
+    display: flex;
+    gap: var(--spacing-lg);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.total-effort, 
+.total-cost {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.total-effort strong, 
+.total-cost strong {
+    color: var(--success);
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: var(--spacing-xs);
+}
+
+/* Responsive adjustments for vendor sections */
+@media (max-width: 768px) {
+    .vendor-metrics {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-sm);
+    }
+    
+    .initial-vendor-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-sm);
+    }
+    
+    .summary-totals {
+        flex-direction: column;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+}

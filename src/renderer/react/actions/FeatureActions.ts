@@ -430,7 +430,8 @@ export class FeatureActions {
       const store = this.getStore();
       const state = store?.getState();
       const currentProject = state?.currentProject;
-      const projectConfig = currentProject?.configuration;
+      // Support both legacy (config) and new (configuration) structure
+      const projectConfig = currentProject?.configuration || currentProject?.config;
       
       const categories = configManager.getCategories(projectConfig);
       
@@ -466,7 +467,8 @@ export class FeatureActions {
       const store = this.getStore();
       const state = store?.getState();
       const currentProject = state?.currentProject;
-      const projectConfig = currentProject?.configuration;
+      // Support both legacy (config) and new (configuration) structure
+      const projectConfig = currentProject?.configuration || currentProject?.config;
       
       const categories = configManager.getCategories(projectConfig);
       
@@ -498,7 +500,8 @@ export class FeatureActions {
       const store = this.getStore();
       const state = store?.getState();
       const currentProject = state?.currentProject;
-      const projectConfig = currentProject?.configuration;
+      // Support both legacy (config) and new (configuration) structure
+      const projectConfig = currentProject?.configuration || currentProject?.config;
       
       const categories = configManager.getCategories(projectConfig);
       const category = categories?.find(c => c.id === categoryId);
@@ -550,9 +553,10 @@ export class FeatureActions {
       const store = this.getStore();
       const state = store?.getState();
       const currentProject = state?.currentProject;
-      const projectConfig = currentProject?.configuration;
+      // Support both legacy (config) and new (configuration) structure
+      const projectConfig = currentProject?.configuration || currentProject?.config;
       
-      console.log('🔍 SUPPLIER DEBUG - ProjectConfig:', projectConfig);
+      console.log('🔍 SUPPLIER DEBUG - ProjectConfig:', projectConfig ? 'Found' : 'undefined');
       
       // Check external suppliers first (use global config when project config is undefined)
       const suppliers = configManager.getSuppliers(projectConfig) || [];
@@ -680,7 +684,8 @@ export class FeatureActions {
       const store = this.getStore();
       const state = store?.getState();
       const currentProject = state?.currentProject;
-      const projectConfig = currentProject?.configuration;
+      // Support both legacy (config) and new (configuration) structure
+      const projectConfig = currentProject?.configuration || currentProject?.config;
       
 
       // Get configuration data using the proper ConfigurationManager methods with projectConfig

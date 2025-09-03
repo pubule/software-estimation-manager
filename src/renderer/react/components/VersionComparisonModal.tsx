@@ -104,7 +104,7 @@ const VersionComparisonModal: React.FC = () => {
                     <span className="metric-label">Initial Features</span>
                   </div>
                   <div className="metric">
-                    <span className="version-metric-value">{evolutionSummary.effortAfter}</span>
+                    <span className="version-metric-value">{evolutionSummary.effortAfter.toFixed(1)}</span>
                     <span className="metric-label">Total Man Days</span>
                   </div>
                   <div className="metric">
@@ -114,6 +114,46 @@ const VersionComparisonModal: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Cost Calculations */}
+            {comparisonData.calculationChanges.vendorCostChanges.length > 0 && (
+              <div className="initial-content-section">
+                <h5><i className="fas fa-calculator"></i> Cost Calculations ({comparisonData.calculationChanges.addedVendors.length} vendors)</h5>
+                <div className="initial-vendors-list">
+                  {comparisonData.calculationChanges.vendorCostChanges
+                    .filter((change: any) => change.changeType === 'added')
+                    .map((change: any, index: number) => (
+                      <div key={change.vendorId} className="initial-vendor-item">
+                        <div className="vendor-main-info">
+                          <span className="vendor-name">{change.vendor}</span>
+                          <span className="vendor-role-dept">{change.role} - {change.department}</span>
+                        </div>
+                        <div className="vendor-metrics">
+                          <span className="vendor-mds">{(change.currentValue?.manDays || 0).toFixed(1)} MD</span>
+                          <span className="vendor-rate">€{change.currentValue?.rate || 0}/day</span>
+                          <span className="vendor-total">€{(change.currentValue?.cost || 0).toLocaleString('en-US')}</span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                <div className="calculations-summary">
+                  <div className="summary-totals">
+                    <span className="total-effort">
+                      Total MDs: <strong>{comparisonData.calculationChanges.vendorCostChanges
+                        .filter((change: any) => change.changeType === 'added')
+                        .reduce((sum: number, change: any) => sum + (change.currentValue?.manDays || 0), 0)
+                        .toFixed(1)} MD</strong>
+                    </span>
+                    <span className="total-cost">
+                      Total Cost: <strong>€{(comparisonData.calculationChanges.vendorCostChanges
+                        .filter((change: any) => change.changeType === 'added')
+                        .reduce((sum: number, change: any) => sum + (change.currentValue?.cost || 0), 0)
+                      ).toLocaleString('en-US')}</strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Features Baseline */}
             <div className="initial-content-section">
@@ -410,14 +450,14 @@ const VersionComparisonModal: React.FC = () => {
                           .filter((change: any) => change.changeType === 'added')
                           .map((change: any, index: number) => (
                             <div key={change.vendorId} className="vendor-change-item added">
-                              <div className="vendor-info">
+                              <div className="vendor-main-info">
                                 <span className="vendor-name">{change.vendor}</span>
-                                <span className="vendor-role">{change.role} - {change.department}</span>
+                                <span className="vendor-role-dept">{change.role} - {change.department}</span>
                               </div>
-                              <div className="vendor-details">
-                                <span className="vendor-mds">{change.currentValue?.manDays || 0} MD</span>
+                              <div className="vendor-metrics">
+                                <span className="vendor-mds">{(change.currentValue?.manDays || 0).toFixed(1)} MD</span>
                                 <span className="vendor-rate">€{change.currentValue?.rate || 0}/day</span>
-                                <span className="vendor-cost">€{(change.currentValue?.cost || 0).toLocaleString('en-US')}</span>
+                                <span className="vendor-total">€{(change.currentValue?.cost || 0).toLocaleString('en-US')}</span>
                               </div>
                             </div>
                           ))}
@@ -434,14 +474,14 @@ const VersionComparisonModal: React.FC = () => {
                           .filter((change: any) => change.changeType === 'removed')
                           .map((change: any, index: number) => (
                             <div key={change.vendorId} className="vendor-change-item removed">
-                              <div className="vendor-info">
+                              <div className="vendor-main-info">
                                 <span className="vendor-name">{change.vendor}</span>
-                                <span className="vendor-role">{change.role} - {change.department}</span>
+                                <span className="vendor-role-dept">{change.role} - {change.department}</span>
                               </div>
-                              <div className="vendor-details">
-                                <span className="vendor-mds">-{change.previousValue?.manDays || 0} MD</span>
+                              <div className="vendor-metrics">
+                                <span className="vendor-mds">-{(change.previousValue?.manDays || 0).toFixed(1)} MD</span>
                                 <span className="vendor-rate">€{change.previousValue?.rate || 0}/day</span>
-                                <span className="vendor-cost">-€{(change.previousValue?.cost || 0).toLocaleString('en-US')}</span>
+                                <span className="vendor-total">-€{(change.previousValue?.cost || 0).toLocaleString('en-US')}</span>
                               </div>
                             </div>
                           ))}
@@ -458,20 +498,20 @@ const VersionComparisonModal: React.FC = () => {
                           .filter((change: any) => change.changeType === 'modified')
                           .map((change: any, index: number) => (
                             <div key={change.vendorId} className="vendor-change-item modified">
-                              <div className="vendor-info">
+                              <div className="vendor-main-info">
                                 <span className="vendor-name">{change.vendor}</span>
-                                <span className="vendor-role">{change.role} - {change.department}</span>
+                                <span className="vendor-role-dept">{change.role} - {change.department}</span>
                               </div>
                               <div className="vendor-comparison">
                                 <div className="vendor-before">
                                   <span className="label">Before:</span>
-                                  <span className="vendor-mds">{change.previousValue?.manDays || 0} MD</span>
+                                  <span className="vendor-mds">{(change.previousValue?.manDays || 0).toFixed(1)} MD</span>
                                   <span className="vendor-rate">€{change.previousValue?.rate || 0}/day</span>
                                   <span className="vendor-cost">€{(change.previousValue?.cost || 0).toLocaleString('en-US')}</span>
                                 </div>
                                 <div className="vendor-after">
                                   <span className="label">After:</span>
-                                  <span className="vendor-mds">{change.currentValue?.manDays || 0} MD</span>
+                                  <span className="vendor-mds">{(change.currentValue?.manDays || 0).toFixed(1)} MD</span>
                                   <span className="vendor-rate">€{change.currentValue?.rate || 0}/day</span>
                                   <span className="vendor-cost">€{(change.currentValue?.cost || 0).toLocaleString('en-US')}</span>
                                 </div>

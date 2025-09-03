@@ -565,7 +565,8 @@ export class CalculationsActions {
     const store = this.getStore();
     const state = store?.getState();
     const currentProject = state?.currentProject;
-    const projectConfig = currentProject?.configuration;
+    // Support both legacy (config) and new (configuration) structure
+    const projectConfig = currentProject?.configuration || currentProject?.config;
     
     
     // Cerca nei suppliers (external)
