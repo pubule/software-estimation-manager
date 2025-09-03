@@ -15,18 +15,17 @@ import { ComparisonData, ComparisonField } from '../actions/VersionHistoryAction
 const VersionComparisonModal: React.FC = () => {
   // SOLO lettura dallo store - Selettori specifici per massima reattività
   const modalState = useStore(state => state.versionHistoryData?.modalStates?.compareModal || { isOpen: false, selectedVersion: null });
-  const currentProject = useStore(state => state.currentProject);
   
   // Actions per operazioni business (attraverso hook)
   const actions = useVersionHistoryActions();
 
-  // Computed comparison data (derived state)
-  const comparisonData: ComparisonData | null = useMemo(() => {
+  // Computed comparison data with navigation (derived state)
+  const comparisonData = useMemo(() => {
     if (!modalState.selectedVersion || !modalState.isOpen) return null;
     
     try {
       // MAI business logic qui! Solo chiamata ad Actions per calcolo
-      return actions.generateComparisonData(modalState.selectedVersion);
+      return actions.generateComparisonDataWithNavigation(modalState.selectedVersion);
     } catch (error) {
       console.error('Error generating comparison data:', error);
       return null;
@@ -35,21 +34,29 @@ const VersionComparisonModal: React.FC = () => {
 
   // Handle modal close (SOLO chiamata ad Actions)
   const handleClose = () => {
-    // MAI business logic qui! Solo chiamata ad Actions
     actions.closeCompareModal();
   };
 
   // Handle restore from comparison (SOLO chiamata ad Actions)
   const handleRestoreFromComparison = () => {
     if (modalState.selectedVersion) {
-      // Close comparison modal first
       actions.closeCompareModal();
-      // Open restore modal
       actions.openRestoreModal(modalState.selectedVersion);
     }
   };
 
-  // REMOVED: Handle backdrop click - Modal should not close when clicking outside
+  // Handle version navigation (SOLO chiamate ad Actions)
+  const handlePreviousVersion = () => {
+    if (modalState.selectedVersion) {
+      actions.navigateToPreviousVersion(modalState.selectedVersion.id);
+    }
+  };
+
+  const handleNextVersion = () => {
+    if (modalState.selectedVersion) {
+      actions.navigateToNextVersion(modalState.selectedVersion.id);
+    }
+  };
 
   // Don't render if modal is not open or no version selected
   if (!modalState.isOpen || !modalState.selectedVersion || !comparisonData) {
@@ -57,225 +64,333 @@ const VersionComparisonModal: React.FC = () => {
   }
 
   const selectedVersion = modalState.selectedVersion;
+  const { evolutionSummary, navigationContext } = comparisonData;
 
+  // Render different layouts based on comparison type
+  if (comparisonData.comparisonType === 'initial-version') {
+    return (
+      <div className="modal active">
+        <div className="modal-content comparison-modal-content initial-version-modal">
+          <div className="modal-header">
+            <h3>Initial Version Analysis</h3>
+            <button className="modal-close" onClick={handleClose}>
+              &times;
+            </button>
+          </div>
+          
+          <div className="modal-body">
+            {/* Initial Version Header */}
+            <div className="initial-version-header">
+              <div className="version-badge initial">
+                <i className="fas fa-star"></i>
+                <span>Version {selectedVersion.id}</span>
+              </div>
+              <div className="version-info">
+                <h4>Project Baseline Established</h4>
+                <p className="version-timestamp">
+                  {new Date(selectedVersion.timestamp).toLocaleDateString()} at {new Date(selectedVersion.timestamp).toLocaleTimeString()}
+                </p>
+                <p className="version-reason">{selectedVersion.reason}</p>
+              </div>
+            </div>
+
+            {/* Initial Version Summary */}
+            <div className="initial-version-summary">
+              <div className="summary-card">
+                <h5><i className="fas fa-rocket"></i> Project Foundation</h5>
+                <div className="foundation-metrics">
+                  <div className="metric">
+                    <span className="metric-value">{comparisonData.featureChanges.added.length}</span>
+                    <span className="metric-label">Initial Features</span>
+                  </div>
+                  <div className="metric">
+                    <span className="metric-value">{evolutionSummary.effortAfter}</span>
+                    <span className="metric-label">Total Man Days</span>
+                  </div>
+                  <div className="metric">
+                    <span className="metric-value">{comparisonData.assumptionChanges.added.length}</span>
+                    <span className="metric-label">Assumptions</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Features Baseline */}
+            <div className="initial-content-section">
+              <h5><i className="fas fa-list-ul"></i> Initial Features ({comparisonData.featureChanges.added.length})</h5>
+              <div className="initial-features-list">
+                {comparisonData.featureChanges.added.map((feature: any, index) => (
+                  <div key={feature.id || index} className="initial-feature-item">
+                    <span className="feature-id">{feature.id}</span>
+                    <span className="feature-description">{feature.description}</span>
+                    <span className="feature-effort">{feature.manDays || 0} MD</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={handleClose}>
+              Close Analysis
+            </button>
+            {navigationContext.canNavigateNext && (
+              <button type="button" className="btn btn-primary" onClick={handleNextVersion}>
+                <i className="fas fa-arrow-right"></i>
+                Next Version
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main Change-Focused Layout (Proposal 3)
   return (
     <div className="modal active">
-      <div className="modal-content comparison-modal-content">
+      <div className="modal-content comparison-modal-content change-focused-modal">
         <div className="modal-header">
-          <h3>Version Comparison</h3>
+          <div className="evolution-header">
+            <h3>Version Evolution Analysis</h3>
+            <div className="version-navigation">
+              <span className="version-position">{navigationContext.position}</span>
+              <div className="nav-buttons">
+                <button 
+                  className={`nav-btn previous ${!navigationContext.canNavigatePrevious ? 'disabled' : ''}`}
+                  onClick={handlePreviousVersion}
+                  disabled={!navigationContext.canNavigatePrevious}
+                >
+                  <i className="fas fa-chevron-left"></i>
+                </button>
+                <button 
+                  className={`nav-btn next ${!navigationContext.canNavigateNext ? 'disabled' : ''}`}
+                  onClick={handleNextVersion}
+                  disabled={!navigationContext.canNavigateNext}
+                >
+                  <i className="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
           <button className="modal-close" onClick={handleClose}>
             &times;
           </button>
         </div>
         
         <div className="modal-body">
-          <div className="comparison-header">
-            <div className="comparison-versions">
-              <div className="comparison-version current">
-                <h4>Current Version</h4>
-                <span className="version-info">Live project state</span>
+          {/* Evolution Timeline Header */}
+          <div className="evolution-timeline">
+            <div className="timeline-progression">
+              <div className="version-point from">
+                <div className="version-badge">
+                  {comparisonData.fromVersion?.id || 'Initial'}
+                </div>
+                <div className="version-details">
+                  <span className="version-timestamp">
+                    {comparisonData.fromVersion ? 
+                      new Date(comparisonData.fromVersion.timestamp).toLocaleDateString() : 
+                      'Project Start'
+                    }
+                  </span>
+                </div>
               </div>
-              <div className="comparison-separator">
-                <i className="fas fa-arrows-alt-h"></i>
+              
+              <div className="timeline-arrow">
+                <i className="fas fa-arrow-right"></i>
+                <span className="time-elapsed">{evolutionSummary.timeElapsed}</span>
               </div>
-              <div className="comparison-version compare">
-                <h4>Version {selectedVersion.id}</h4>
-                <span className="version-info">
-                  {new Date(selectedVersion.timestamp).toLocaleString()}
-                </span>
+              
+              <div className="version-point to active">
+                <div className="version-badge">
+                  {selectedVersion.id}
+                </div>
+                <div className="version-details">
+                  <span className="version-timestamp">
+                    {new Date(selectedVersion.timestamp).toLocaleDateString()}
+                  </span>
+                  <span className="version-reason">{selectedVersion.reason}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="comparison-content">
-            {/* Project Metadata Comparison */}
-            {comparisonData.projectChanges.some(change => change.hasDifference) && (
-              <div className="comparison-section">
-                <div className="comparison-section-header">
-                  <h5><i className="fas fa-project-diagram"></i> Project Information</h5>
-                  <small>{comparisonData.projectChanges.filter(c => c.hasDifference).length} field(s) with differences</small>
+          {/* Evolution Impact Summary */}
+          <div className="evolution-impact-summary">
+            <div className={`impact-badge ${evolutionSummary.impactLevel}`}>
+              <i className={`fas ${evolutionSummary.impactLevel === 'high' ? 'fa-exclamation-circle' : 
+                                evolutionSummary.impactLevel === 'medium' ? 'fa-info-circle' : 'fa-check-circle'}`}></i>
+              <span>{evolutionSummary.impactLevel.toUpperCase()} IMPACT</span>
+            </div>
+            
+            <div className="summary-message">
+              <p>{evolutionSummary.summaryMessage}</p>
+            </div>
+
+            <div className="impact-metrics">
+              <div className="metric effort">
+                <span className="metric-label">Effort Change</span>
+                <span className={`metric-value ${evolutionSummary.effortDifference > 0 ? 'positive' : evolutionSummary.effortDifference < 0 ? 'negative' : 'neutral'}`}>
+                  {evolutionSummary.effortDifference > 0 ? '+' : ''}{evolutionSummary.effortDifference.toFixed(1)} MD
+                  ({evolutionSummary.effortPercentageChange > 0 ? '+' : ''}{evolutionSummary.effortPercentageChange}%)
+                </span>
+              </div>
+              <div className="metric changes">
+                <span className="metric-label">Total Changes</span>
+                <span className="metric-value">{evolutionSummary.totalChanges}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Change Categories - PROPOSAL 3 CORE LAYOUT */}
+          <div className="change-categories">
+            
+            {/* ADDITIONS */}
+            {evolutionSummary.additionsCount > 0 && (
+              <div className="change-category additions">
+                <div className="category-header">
+                  <h5>
+                    <i className="fas fa-plus-circle"></i>
+                    ADDITIONS ({evolutionSummary.additionsCount} changes)
+                  </h5>
                 </div>
-                <div className="comparison-section-body">
-                  {comparisonData.projectChanges
-                    .filter(change => change.hasDifference)
-                    .map((change, index) => (
-                      <div key={index} className="comparison-field">
-                        <div className="comparison-field-name">{change.label}</div>
-                        <div className="comparison-field-values">
-                          <div className="comparison-value current">
-                            <span className="comparison-label">Current:</span>
-                            <span className="comparison-text">{change.currentValue || '(empty)'}</span>
+                <div className="category-content">
+                  {comparisonData.featureChanges.added.length > 0 && (
+                    <div className="change-group features">
+                      <h6><i className="fas fa-list-ul"></i> New Features ({comparisonData.featureChanges.added.length})</h6>
+                      <div className="change-items">
+                        {comparisonData.featureChanges.added.map((feature: any) => (
+                          <div key={feature.id} className="change-item added">
+                            <span className="change-id">{feature.id}</span>
+                            <span className="change-description">{feature.description}</span>
+                            <span className="change-impact">+{feature.manDays || 0} MD</span>
                           </div>
-                          <div className="comparison-value compare">
-                            <span className="comparison-label">Version {selectedVersion.id}:</span>
-                            <span className="comparison-text">{change.compareValue || '(empty)'}</span>
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                    ))
-                  }
+                    </div>
+                  )}
+                  
+                  {comparisonData.assumptionChanges.added.length > 0 && (
+                    <div className="change-group assumptions">
+                      <h6><i className="fas fa-clipboard-list"></i> New Assumptions ({comparisonData.assumptionChanges.added.length})</h6>
+                      <div className="change-items">
+                        {comparisonData.assumptionChanges.added.map((assumption: any, index) => (
+                          <div key={assumption.id || index} className="change-item added">
+                            <span className="change-description">{assumption.description}</span>
+                            <span className="change-type">{assumption.type}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Features Comparison */}
-            <div className="comparison-section">
-              <div className="comparison-section-header">
-                <h5><i className="fas fa-list-ul"></i> Features</h5>
-                <small>
-                  {comparisonData.featureChanges.added.length + 
-                   comparisonData.featureChanges.removed.length + 
-                   comparisonData.featureChanges.modified.length} changes
-                </small>
-              </div>
-              <div className="comparison-section-body">
-                <div className="comparison-stats">
-                  <div className="comparison-stat">
-                    <span className="stat-label">Total Man Days Change:</span>
-                    <span className={`stat-value ${comparisonData.featureChanges.totalMDDifference > 0 ? 'positive' : comparisonData.featureChanges.totalMDDifference < 0 ? 'negative' : 'neutral'}`}>
-                      {comparisonData.featureChanges.totalMDDifference > 0 ? '+' : ''}{comparisonData.featureChanges.totalMDDifference.toFixed(1)} MD
-                    </span>
-                  </div>
+            {/* MODIFICATIONS */}
+            {evolutionSummary.modificationsCount > 0 && (
+              <div className="change-category modifications">
+                <div className="category-header">
+                  <h5>
+                    <i className="fas fa-edit"></i>
+                    MODIFICATIONS ({evolutionSummary.modificationsCount} changes)
+                  </h5>
                 </div>
-
-                {/* Added Features */}
-                {comparisonData.featureChanges.added.length > 0 && (
-                  <div className="comparison-changes">
-                    <h6 className="changes-header added">
-                      <i className="fas fa-plus-circle"></i>
-                      Added Features ({comparisonData.featureChanges.added.length})
-                    </h6>
-                    <div className="changes-list">
-                      {comparisonData.featureChanges.added.map((feature: any) => (
-                        <div key={feature.id} className="change-item added">
-                          <span className="change-id">{feature.id}</span>
-                          <span className="change-description">{feature.description}</span>
-                          <span className="change-md">{feature.manDays || 0} MD</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Removed Features */}
-                {comparisonData.featureChanges.removed.length > 0 && (
-                  <div className="comparison-changes">
-                    <h6 className="changes-header removed">
-                      <i className="fas fa-minus-circle"></i>
-                      Removed Features ({comparisonData.featureChanges.removed.length})
-                    </h6>
-                    <div className="changes-list">
-                      {comparisonData.featureChanges.removed.map((feature: any) => (
-                        <div key={feature.id} className="change-item removed">
-                          <span className="change-id">{feature.id}</span>
-                          <span className="change-description">{feature.description}</span>
-                          <span className="change-md">{feature.manDays || 0} MD</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Modified Features */}
-                {comparisonData.featureChanges.modified.length > 0 && (
-                  <div className="comparison-changes">
-                    <h6 className="changes-header modified">
-                      <i className="fas fa-edit"></i>
-                      Modified Features ({comparisonData.featureChanges.modified.length})
-                    </h6>
-                    <div className="changes-list">
-                      {comparisonData.featureChanges.modified.map((feature: any) => (
-                        <div key={feature.id} className="change-item modified">
-                          <span className="change-id">{feature.id}</span>
-                          <span className="change-description">{feature.description}</span>
-                          <span className="change-status">Modified</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Assumptions Comparison */}
-            <div className="comparison-section">
-              <div className="comparison-section-header">
-                <h5><i className="fas fa-clipboard-list"></i> Assumptions</h5>
-                <small>
-                  {comparisonData.assumptionChanges.added.length + 
-                   comparisonData.assumptionChanges.removed.length + 
-                   comparisonData.assumptionChanges.modified.length} changes
-                </small>
-              </div>
-              <div className="comparison-section-body">
-                {/* Similar structure for assumptions */}
-                {comparisonData.assumptionChanges.added.length === 0 && 
-                 comparisonData.assumptionChanges.removed.length === 0 && 
-                 comparisonData.assumptionChanges.modified.length === 0 ? (
-                  <div className="no-changes">
-                    <i className="fas fa-check-circle"></i>
-                    <span>No changes in assumptions</span>
-                  </div>
-                ) : (
-                  <>
-                    {comparisonData.assumptionChanges.added.length > 0 && (
-                      <div className="comparison-changes">
-                        <h6 className="changes-header added">
-                          <i className="fas fa-plus-circle"></i>
-                          Added Assumptions ({comparisonData.assumptionChanges.added.length})
-                        </h6>
+                <div className="category-content">
+                  {comparisonData.featureChanges.modified.length > 0 && (
+                    <div className="change-group features">
+                      <h6><i className="fas fa-list-ul"></i> Modified Features ({comparisonData.featureChanges.modified.length})</h6>
+                      <div className="change-items">
+                        {comparisonData.featureChanges.modified.map((feature: any) => (
+                          <div key={feature.id} className="change-item modified">
+                            <span className="change-id">{feature.id}</span>
+                            <span className="change-description">{feature.description}</span>
+                            <span className="change-status">Modified</span>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                    {comparisonData.assumptionChanges.removed.length > 0 && (
-                      <div className="comparison-changes">
-                        <h6 className="changes-header removed">
-                          <i className="fas fa-minus-circle"></i>
-                          Removed Assumptions ({comparisonData.assumptionChanges.removed.length})
-                        </h6>
-                      </div>
-                    )}
-                    {comparisonData.assumptionChanges.modified.length > 0 && (
-                      <div className="comparison-changes">
-                        <h6 className="changes-header modified">
-                          <i className="fas fa-edit"></i>
-                          Modified Assumptions ({comparisonData.assumptionChanges.modified.length})
-                        </h6>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Configuration Comparison */}
-            <div className="comparison-section">
-              <div className="comparison-section-header">
-                <h5><i className="fas fa-cog"></i> Configuration</h5>
-              </div>
-              <div className="comparison-section-body">
-                <div className="config-comparison">
-                  {Object.values(comparisonData.configurationChanges).map((config: any, index) => (
-                    <div key={index} className={`config-item ${config.hasDifference ? 'has-difference' : ''}`}>
-                      <span className="config-label">{config.label}:</span>
-                      <span className="config-values">
-                        {config.currentValue} → {config.compareValue}
-                        {config.hasDifference && (
-                          <span className={`config-diff ${config.currentValue - config.compareValue > 0 ? 'positive' : 'negative'}`}>
-                            ({config.currentValue - config.compareValue > 0 ? '+' : ''}{config.currentValue - config.compareValue})
-                          </span>
-                        )}
-                      </span>
                     </div>
-                  ))}
+                  )}
+
+                  {comparisonData.projectChanges.some(change => change.hasDifference) && (
+                    <div className="change-group project-metadata">
+                      <h6><i className="fas fa-project-diagram"></i> Project Changes</h6>
+                      <div className="change-items">
+                        {comparisonData.projectChanges
+                          .filter(change => change.hasDifference)
+                          .map((change, index) => (
+                            <div key={index} className="change-item modified">
+                              <span className="change-field">{change.label}</span>
+                              <span className="change-evolution">
+                                {change.currentValue} ← {change.compareValue}
+                              </span>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* REMOVALS */}
+            {evolutionSummary.removalsCount > 0 && (
+              <div className="change-category removals">
+                <div className="category-header">
+                  <h5>
+                    <i className="fas fa-minus-circle"></i>
+                    REMOVALS ({evolutionSummary.removalsCount} changes)
+                  </h5>
+                </div>
+                <div className="category-content">
+                  {comparisonData.featureChanges.removed.length > 0 && (
+                    <div className="change-group features">
+                      <h6><i className="fas fa-list-ul"></i> Removed Features ({comparisonData.featureChanges.removed.length})</h6>
+                      <div className="change-items">
+                        {comparisonData.featureChanges.removed.map((feature: any) => (
+                          <div key={feature.id} className="change-item removed">
+                            <span className="change-id">{feature.id}</span>
+                            <span className="change-description">{feature.description}</span>
+                            <span className="change-impact">-{feature.manDays || 0} MD</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {comparisonData.assumptionChanges.removed.length > 0 && (
+                    <div className="change-group assumptions">
+                      <h6><i className="fas fa-clipboard-list"></i> Removed Assumptions ({comparisonData.assumptionChanges.removed.length})</h6>
+                      <div className="change-items">
+                        {comparisonData.assumptionChanges.removed.map((assumption: any, index) => (
+                          <div key={assumption.id || index} className="change-item removed">
+                            <span className="change-description">{assumption.description}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* NO CHANGES STATE */}
+            {evolutionSummary.totalChanges === 0 && (
+              <div className="no-changes-state">
+                <div className="no-changes-icon">
+                  <i className="fas fa-check-circle"></i>
+                </div>
+                <h5>No Changes Detected</h5>
+                <p>This version is identical to the previous version.</p>
+              </div>
+            )}
           </div>
         </div>
         
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={handleClose}>
-            Close Comparison
+            Close Analysis
           </button>
           <button type="button" className="btn btn-warning" onClick={handleRestoreFromComparison}>
             <i className="fas fa-undo"></i>

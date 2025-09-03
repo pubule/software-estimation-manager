@@ -38,11 +38,64 @@ export interface VersionHistoryState {
 }
 
 export interface ComparisonData {
+  // Evolution context
+  comparisonType: 'version-to-version' | 'initial-version' | 'self-comparison';
+  fromVersion: Version | null; // Previous version (null for initial)
+  toVersion: Version; // Selected version
+  evolutionSummary: EvolutionSummary;
+  
+  // Change details
   projectChanges: ComparisonField[];
   featureChanges: FeatureComparison;
   assumptionChanges: AssumptionComparison;
   configurationChanges: ConfigComparison;
   calculationChanges: CalculationComparison;
+}
+
+/**
+ * Evolution summary for Change-Focused Layout (Proposal 3)
+ */
+export interface EvolutionSummary {
+  totalChanges: number;
+  timeElapsed: string; // Human readable time between versions
+  impactLevel: 'low' | 'medium' | 'high'; // Based on scope of changes
+  
+  // Effort impact
+  effortBefore: number; // Total MD in previous version
+  effortAfter: number; // Total MD in current version  
+  effortDifference: number; // +/- change in MD
+  effortPercentageChange: number; // % change
+  
+  // Change categories
+  additionsCount: number; // New features/assumptions
+  modificationsCount: number; // Changed items
+  removalsCount: number; // Deleted items
+  
+  // Summary message for UI
+  summaryMessage: string; // e.g., "Major expansion with 3 new features"
+}
+
+/**
+ * Extended feature comparison with evolution context
+ */
+export interface FeatureEvolution {
+  added: any[];
+  removed: any[];
+  modified: FeatureModification[];
+  totalMDDifference: number;
+  impactAnalysis: string; // Human-readable impact description
+}
+
+/**
+ * Detailed modification info for features
+ */
+export interface FeatureModification {
+  id: string;
+  description: string;
+  previousValue: any;
+  newValue: any;
+  changeType: 'effort-change' | 'description-change' | 'category-change';
+  impactDescription: string;
 }
 
 export interface ComparisonField {
@@ -520,14 +573,432 @@ export class VersionHistoryActions {
       throw new Error('No current project available for comparison');
     }
 
-    const compareProject = versionToCompare.projectSnapshot;
+    // STATE PATTERN: Get all versions from single source of truth
+    const allVersions = currentProject.versions || [];
+    
+    // BUSINESS LOGIC: Find previous version for version-to-version comparison  
+    const selectedVersionIndex = allVersions.findIndex(v => v.id === versionToCompare.id);
+    
+    if (selectedVersionIndex === -1) {
+      throw new Error('Selected version not found in project versions');
+    }
+
+    // Determine comparison type and get previous version
+    let previousVersion: Version | null = null;
+    let comparisonType: 'version-to-version' | 'initial-version' | 'self-comparison';
+    
+    if (selectedVersionIndex === 0) {
+      // First version - compare with empty baseline
+      comparisonType = 'initial-version';
+      previousVersion = null;
+    } else {
+      // Get previous version chronologically
+      const sortedVersions = [...allVersions].sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+      
+      const sortedIndex = sortedVersions.findIndex(v => v.id === versionToCompare.id);
+      
+      if (sortedIndex > 0) {
+        comparisonType = 'version-to-version';
+        previousVersion = sortedVersions[sortedIndex - 1];
+      } else {
+        comparisonType = 'initial-version';
+        previousVersion = null;
+      }
+    }
+
+    // Generate evolution comparison data
+    return this.generateVersionEvolutionData(previousVersion, versionToCompare, comparisonType);
+  }
+
+  /**
+   * Generate version evolution data for Change-Focused Layout (Proposal 3)
+   * STATE/ACTIONS/DISPATCHER PATTERN: Pure business logic, no UI concerns
+   */
+  private generateVersionEvolutionData(
+    fromVersion: Version | null, 
+    toVersion: Version,
+    comparisonType: 'version-to-version' | 'initial-version' | 'self-comparison'
+  ): ComparisonData {
+    
+    // For initial version, create empty baseline for comparison
+    const previousProject = fromVersion?.projectSnapshot || this.createEmptyBaseline();
+    const currentProject = toVersion.projectSnapshot;
+
+    // Calculate detailed comparisons
+    const projectChanges = this.compareProjectMetadata(currentProject, previousProject);
+    const featureChanges = this.compareFeatures(currentProject, previousProject);
+    const assumptionChanges = this.compareAssumptions(currentProject, previousProject);
+    const configurationChanges = this.compareConfiguration(currentProject, previousProject);
+    const calculationChanges = this.compareCalculations(currentProject, previousProject);
+
+    // Generate evolution summary for Change-Focused Layout
+    const evolutionSummary = this.generateEvolutionSummary(
+      fromVersion,
+      toVersion,
+      comparisonType,
+      featureChanges,
+      assumptionChanges,
+      projectChanges
+    );
 
     return {
-      projectChanges: this.compareProjectMetadata(currentProject, compareProject),
-      featureChanges: this.compareFeatures(currentProject, compareProject),
-      assumptionChanges: this.compareAssumptions(currentProject, compareProject),
-      configurationChanges: this.compareConfiguration(currentProject, compareProject),
-      calculationChanges: this.compareCalculations(currentProject, compareProject)
+      comparisonType,
+      fromVersion,
+      toVersion,
+      evolutionSummary,
+      projectChanges,
+      featureChanges,
+      assumptionChanges,
+      configurationChanges,
+      calculationChanges
+    };
+  }
+
+  /**
+   * Generate evolution summary with impact analysis
+   * BUSINESS LOGIC: Calculate metrics and impact levels
+   */
+  private generateEvolutionSummary(
+    fromVersion: Version | null,
+    toVersion: Version,
+    comparisonType: string,
+    featureChanges: FeatureComparison,
+    assumptionChanges: AssumptionComparison,
+    projectChanges: ComparisonField[]
+  ): EvolutionSummary {
+
+    // Calculate effort metrics
+    const effortBefore = fromVersion ? 
+      (fromVersion.projectSnapshot.features || []).reduce((sum: number, f: any) => sum + (f.manDays || 0), 0) : 
+      0;
+    
+    const effortAfter = (toVersion.projectSnapshot.features || []).reduce((sum: number, f: any) => sum + (f.manDays || 0), 0);
+    const effortDifference = effortAfter - effortBefore;
+    const effortPercentageChange = effortBefore > 0 ? Math.round((effortDifference / effortBefore) * 100) : 100;
+
+    // Calculate change counts
+    const additionsCount = featureChanges.added.length + assumptionChanges.added.length;
+    const modificationsCount = featureChanges.modified.length + assumptionChanges.modified.length + 
+      projectChanges.filter(c => c.hasDifference).length;
+    const removalsCount = featureChanges.removed.length + assumptionChanges.removed.length;
+    
+    const totalChanges = additionsCount + modificationsCount + removalsCount;
+
+    // Calculate time elapsed
+    const timeElapsed = fromVersion ? 
+      this.calculateTimeElapsed(fromVersion.timestamp, toVersion.timestamp) : 
+      'Project inception';
+
+    // Determine impact level
+    let impactLevel: 'low' | 'medium' | 'high';
+    if (comparisonType === 'initial-version') {
+      impactLevel = 'high'; // Project creation always high impact
+    } else if (totalChanges === 0) {
+      impactLevel = 'low';
+    } else if (totalChanges <= 3 && Math.abs(effortPercentageChange) <= 20) {
+      impactLevel = 'low';
+    } else if (totalChanges <= 8 && Math.abs(effortPercentageChange) <= 50) {
+      impactLevel = 'medium';
+    } else {
+      impactLevel = 'high';
+    }
+
+    // Generate summary message
+    const summaryMessage = this.generateSummaryMessage(
+      comparisonType,
+      additionsCount,
+      modificationsCount,
+      removalsCount,
+      effortDifference,
+      effortPercentageChange
+    );
+
+    return {
+      totalChanges,
+      timeElapsed,
+      impactLevel,
+      effortBefore,
+      effortAfter,
+      effortDifference,
+      effortPercentageChange,
+      additionsCount,
+      modificationsCount,
+      removalsCount,
+      summaryMessage
+    };
+  }
+
+  /**
+   * Create empty baseline for initial version comparison
+   */
+  private createEmptyBaseline(): any {
+    return {
+      project: {
+        name: '',
+        description: '',
+        client: '',
+        startDate: '',
+        endDate: ''
+      },
+      features: [],
+      assumptions: [],
+      configuration: {
+        suppliers: [],
+        internalResources: [],
+        categories: []
+      },
+      calculationData: {
+        vendorCosts: []
+      }
+    };
+  }
+
+  /**
+   * Calculate human-readable time elapsed between versions
+   */
+  private calculateTimeElapsed(fromTimestamp: string, toTimestamp: string): string {
+    const from = new Date(fromTimestamp);
+    const to = new Date(toTimestamp);
+    const diffMs = to.getTime() - from.getTime();
+    
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (diffDays > 0) {
+      return `${diffDays} day${diffDays === 1 ? '' : 's'}${diffHours > 0 ? ` ${diffHours}h` : ''}`;
+    } else if (diffHours > 0) {
+      return `${diffHours} hour${diffHours === 1 ? '' : 's'}${diffMinutes > 0 ? ` ${diffMinutes}m` : ''}`;
+    } else if (diffMinutes > 0) {
+      return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'}`;
+    } else {
+      return 'Just now';
+    }
+  }
+
+  /**
+   * Generate human-readable summary message for evolution
+   */
+  private generateSummaryMessage(
+    comparisonType: string,
+    additions: number,
+    modifications: number,
+    removals: number,
+    effortDiff: number,
+    percentageChange: number
+  ): string {
+    
+    if (comparisonType === 'initial-version') {
+      return 'Project baseline established with initial features and configuration';
+    }
+    
+    if (additions === 0 && modifications === 0 && removals === 0) {
+      return 'No changes detected between versions';
+    }
+
+    const changeParts: string[] = [];
+    
+    if (additions > 0) {
+      changeParts.push(`${additions} new item${additions === 1 ? '' : 's'} added`);
+    }
+    
+    if (modifications > 0) {
+      changeParts.push(`${modifications} item${modifications === 1 ? '' : 's'} modified`);
+    }
+    
+    if (removals > 0) {
+      changeParts.push(`${removals} item${removals === 1 ? '' : 's'} removed`);
+    }
+
+    let changeDescription = changeParts.join(', ');
+    
+    // Add effort impact
+    if (Math.abs(effortDiff) > 0.1) {
+      const effortDirection = effortDiff > 0 ? 'increased' : 'decreased';
+      const effortText = Math.abs(percentageChange) >= 100 
+        ? `effort ${effortDirection} significantly` 
+        : `effort ${effortDirection} by ${Math.abs(percentageChange)}%`;
+      
+      changeDescription += `, ${effortText}`;
+    }
+
+    return changeDescription.charAt(0).toUpperCase() + changeDescription.slice(1);
+  }
+
+  /**
+   * VERSION NAVIGATION & CONTEXT METHODS
+   * For Change-Focused Layout navigation and edge case handling
+   */
+
+  /**
+   * Get version context information for UI navigation
+   * STATE PATTERN: Read from single source of truth
+   */
+  getVersionContext(versionId: string): {
+    isFirst: boolean;
+    isLast: boolean;
+    position: number;
+    total: number;
+    previousVersion: Version | null;
+    nextVersion: Version | null;
+  } {
+    const store = this.getStore();
+    const state = store.getState();
+    const currentProject = state.currentProject;
+
+    if (!currentProject?.versions) {
+      throw new Error('No versions available');
+    }
+
+    // Sort versions chronologically
+    const sortedVersions = [...currentProject.versions].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    const currentIndex = sortedVersions.findIndex(v => v.id === versionId);
+    
+    if (currentIndex === -1) {
+      throw new Error('Version not found');
+    }
+
+    return {
+      isFirst: currentIndex === 0,
+      isLast: currentIndex === sortedVersions.length - 1,
+      position: currentIndex + 1,
+      total: sortedVersions.length,
+      previousVersion: currentIndex > 0 ? sortedVersions[currentIndex - 1] : null,
+      nextVersion: currentIndex < sortedVersions.length - 1 ? sortedVersions[currentIndex + 1] : null
+    };
+  }
+
+  /**
+   * Navigate to previous version in timeline
+   * ACTIONS PATTERN: Update modal state through store actions
+   */
+  navigateToPreviousVersion(currentVersionId: string): void {
+    try {
+      const context = this.getVersionContext(currentVersionId);
+      
+      if (context.previousVersion) {
+        // Update modal state to show previous version
+        const store = this.getStore();
+        const state = store.getState();
+        
+        state.setVersionHistoryModalState('compareModal', {
+          isOpen: true,
+          selectedVersion: context.previousVersion
+        });
+        
+        console.log(`Navigated to previous version: ${context.previousVersion.id}`);
+      }
+    } catch (error) {
+      console.error('Failed to navigate to previous version:', error);
+    }
+  }
+
+  /**
+   * Navigate to next version in timeline
+   * ACTIONS PATTERN: Update modal state through store actions
+   */
+  navigateToNextVersion(currentVersionId: string): void {
+    try {
+      const context = this.getVersionContext(currentVersionId);
+      
+      if (context.nextVersion) {
+        // Update modal state to show next version
+        const store = this.getStore();
+        const state = store.getState();
+        
+        state.setVersionHistoryModalState('compareModal', {
+          isOpen: true,
+          selectedVersion: context.nextVersion
+        });
+        
+        console.log(`Navigated to next version: ${context.nextVersion.id}`);
+      }
+    } catch (error) {
+      console.error('Failed to navigate to next version:', error);
+    }
+  }
+
+  /**
+   * Get version timeline for UI display
+   * BUSINESS LOGIC: Generate timeline visualization data
+   */
+  getVersionTimeline(): {
+    versions: Array<{
+      id: string;
+      timestamp: string;
+      position: number;
+      isSelected: boolean;
+      reason: string;
+    }>;
+    selectedIndex: number;
+  } {
+    const store = this.getStore();
+    const state = store.getState();
+    const currentProject = state.currentProject;
+    const modalState = state.versionHistoryData?.modalStates?.compareModal;
+
+    if (!currentProject?.versions) {
+      return { versions: [], selectedIndex: -1 };
+    }
+
+    // Sort versions chronologically
+    const sortedVersions = [...currentProject.versions].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    const selectedVersionId = modalState?.selectedVersion?.id;
+
+    const timelineVersions = sortedVersions.map((version, index) => ({
+      id: version.id,
+      timestamp: version.timestamp,
+      position: index,
+      isSelected: version.id === selectedVersionId,
+      reason: version.reason
+    }));
+
+    const selectedIndex = selectedVersionId ? 
+      timelineVersions.findIndex(v => v.id === selectedVersionId) : -1;
+
+    return {
+      versions: timelineVersions,
+      selectedIndex
+    };
+  }
+
+  /**
+   * Enhanced comparison data generator with navigation context
+   * Combines evolution data with navigation capabilities
+   */
+  generateComparisonDataWithNavigation(versionToCompare: Version): ComparisonData & {
+    navigationContext: {
+      canNavigatePrevious: boolean;
+      canNavigateNext: boolean;
+      position: string; // "2 of 5"
+      timeline: any[];
+    };
+  } {
+    // Get base comparison data
+    const comparisonData = this.generateComparisonData(versionToCompare);
+    
+    // Add navigation context
+    const versionContext = this.getVersionContext(versionToCompare.id);
+    const timeline = this.getVersionTimeline();
+
+    const navigationContext = {
+      canNavigatePrevious: !versionContext.isFirst,
+      canNavigateNext: !versionContext.isLast,
+      position: `${versionContext.position} of ${versionContext.total}`,
+      timeline: timeline.versions
+    };
+
+    return {
+      ...comparisonData,
+      navigationContext
     };
   }
 

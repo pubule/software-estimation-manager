@@ -65,6 +65,48 @@ export const useVersionHistoryActions = () => {
     }
   }, []);
 
+  // NEW: Enhanced comparison with navigation
+  const generateComparisonDataWithNavigation = useCallback((version: any) => {
+    try {
+      return versionHistoryActions.generateComparisonDataWithNavigation(version);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  // NEW: Version navigation methods
+  const navigateToPreviousVersion = useCallback((currentVersionId: string) => {
+    try {
+      versionHistoryActions.navigateToPreviousVersion(currentVersionId);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const navigateToNextVersion = useCallback((currentVersionId: string) => {
+    try {
+      versionHistoryActions.navigateToNextVersion(currentVersionId);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const getVersionContext = useCallback((versionId: string) => {
+    try {
+      return versionHistoryActions.getVersionContext(versionId);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const getVersionTimeline = useCallback(() => {
+    try {
+      return versionHistoryActions.getVersionTimeline();
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
   // Filtering operations
   const getFilteredVersions = useCallback(() => {
     try {
@@ -194,6 +236,13 @@ export const useVersionHistoryActions = () => {
     // Comparison operations
     compareVersion,
     generateComparisonData,
+    generateComparisonDataWithNavigation, // NEW
+
+    // Version navigation operations - NEW
+    navigateToPreviousVersion,
+    navigateToNextVersion,
+    getVersionContext,
+    getVersionTimeline,
 
     // Filtering operations
     getFilteredVersions,
@@ -221,4 +270,4 @@ export const useVersionHistoryActions = () => {
     showSuccessNotification,
     showErrorNotification
   };
-};
+};;
