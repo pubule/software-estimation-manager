@@ -123,6 +123,11 @@ class ProjectBusinessLogic extends BaseComponent {
             // Validate input
             this.validateNewProjectData(formData);
 
+            // Initialize phases with default structure (fixing version snapshot issue)
+            const initializedPhases = this.createInitialPhases();
+            console.log('✅ DEBUG: initializedPhases created:', Object.keys(initializedPhases));
+            console.log('🔍 DEBUG: Total phases:', Object.keys(initializedPhases).length, 'Expected: 9');
+
             // Create project data structure
             const projectData = {
                 project: {
@@ -135,7 +140,7 @@ class ProjectBusinessLogic extends BaseComponent {
                     lastModified: new Date().toISOString()
                 },
                 features: [],
-                phases: {},
+                phases: initializedPhases,
                 config: {
                     projectOverrides: {}
                 },
@@ -222,10 +227,17 @@ class ProjectBusinessLogic extends BaseComponent {
             // Update window title with project info
             await this.updateWindowTitle(projectData);
 
-            // Create initial version for new projects
+            // Wait for project to be fully synchronized in store before proceeding
+            console.log('🔄 Waiting for project synchronization in store...');
+            await this.waitForProjectInStore();
+            console.log('✅ Project synchronized in store');
+
+            // Create initial version for new projects (AFTER store sync)
             if (source && source.startsWith('new-project-')) {
                 try {
                     if (window.versionHistoryActions) {
+                        console.log('🔍 DEBUG: Creating initial version for project with phases:', 
+                                  Object.keys(projectData.phases || {}));
                         await window.versionHistoryActions.createVersion('Initial project creation');
                         console.log('✅ Initial version created for new project');
                     } else {
@@ -237,14 +249,15 @@ class ProjectBusinessLogic extends BaseComponent {
                 }
             }
 
-            // Auto-navigate to features section after loading project
+            // Auto-navigate to features section (AFTER version creation)
             if (this.app.navigationManager) {
-                // Wait for store to have project loaded before navigating (avoid race condition)
-                this.waitForProjectInStore().then(() => {
+                try {
+                    console.log('🔄 Navigating to features...');
                     this.app.navigationManager.navigateTo('features');
-                }).catch(error => {
+                    console.log('✅ Navigation to features completed');
+                } catch (error) {
                     console.error('Failed to navigate to features after project load:', error);
-                });
+                }
             }
 
             console.log(`✅ Project "${projectData.project.name}" loaded successfully`);
@@ -297,6 +310,8 @@ class ProjectBusinessLogic extends BaseComponent {
             if (!state.currentProject) {
                 throw new Error('No project to save');
             }
+
+            console.log('🔍 DEBUG: Saving project with phases:', Object.keys(state.currentProject.phases || {}));
 
             if (!this.app.dataManager) {
                 throw new Error('Data manager not available');
@@ -370,18 +385,19 @@ class ProjectBusinessLogic extends BaseComponent {
                 throw new Error('Data manager not available');
             }
 
-            console.log(`Loading project from: ${filePath}`);
+            console.log(`🔄 Loading project from file: ${filePath}`);
             const projectData = await this.app.dataManager.loadProject(filePath);
             
             if (projectData && typeof projectData === 'object' && projectData.project) {
+                console.log(`🔄 Project data loaded, starting enhanced loading sequence...`);
                 await this.loadProjectData(projectData, `file:${filePath}`);
-                console.log(`Project loaded successfully: ${projectData.project.name}`);
+                console.log(`✅ Project loaded successfully: ${projectData.project.name}`);
                 NotificationManager.success(`Project loaded successfully`);
             } else {
                 throw new Error('Invalid project data returned from DataManager');
             }
         } catch (error) {
-            console.error('Failed to load saved project:', error);
+            console.error('❌ Failed to load saved project:', error);
             NotificationManager.error(`Failed to load project: ${error.message}`);
             throw error;
         }
@@ -389,18 +405,20 @@ class ProjectBusinessLogic extends BaseComponent {
 
     async loadRecentProject(projectId) {
         try {
+            console.log(`🔄 Loading recent project: ${projectId}`);
             const recentProject = this.recentProjects.find(p => p.id === projectId);
             if (!recentProject) {
                 throw new Error('Recent project not found');
             }
 
             if (recentProject.filePath) {
+                console.log(`🔄 Recent project file path found, delegating to loadSavedProject...`);
                 await this.loadSavedProject(recentProject.filePath);
             } else {
                 throw new Error('Recent project file path not available');
             }
         } catch (error) {
-            console.error('Failed to load recent project:', error);
+            console.error('❌ Failed to load recent project:', error);
             NotificationManager.error(`Failed to load recent project: ${error.message}`);
             throw error;
         }
@@ -518,32 +536,152 @@ class ProjectBusinessLogic extends BaseComponent {
     }
 
     /**
+     * Create initial phases structure for new projects
+     * Fixes version snapshot issue by ensuring complete phases from start
+     */
+    createInitialPhases() {
+        const now = new Date().toISOString();
+        
+        // Phase definitions (from app-store.js)
+        const phaseDefinitions = [
+            {
+                id: "functionalAnalysis",
+                name: "Functional Analysis",
+                description: "Business requirements analysis and functional specification",
+                type: "analysis",
+                defaultEffort: { G1: 100, G2: 0, TA: 20, PM: 50 },
+                editable: true
+            },
+            {
+                id: "technicalAnalysis",
+                name: "Technical Analysis", 
+                description: "Technical design and architecture specification",
+                type: "analysis",
+                defaultEffort: { G1: 0, G2: 100, TA: 60, PM: 20 },
+                editable: true
+            },
+            {
+                id: "development",
+                name: "Development",
+                description: "Implementation of features (calculated from features list)",
+                type: "development", 
+                defaultEffort: { G1: 0, G2: 100, TA: 40, PM: 20 },
+                editable: true,
+                calculated: true
+            },
+            {
+                id: "integrationTests",
+                name: "Integration Tests",
+                description: "System integration and integration testing", 
+                type: "testing",
+                defaultEffort: { G1: 100, G2: 50, TA: 50, PM: 75 },
+                editable: true
+            },
+            {
+                id: "uatTests", 
+                name: "UAT Tests",
+                description: "User acceptance testing support and execution",
+                type: "testing",
+                defaultEffort: { G1: 50, G2: 50, TA: 40, PM: 75 },
+                editable: true
+            },
+            {
+                id: "consolidation",
+                name: "Consolidation",
+                description: "Final testing, bug fixing, and deployment preparation", 
+                type: "testing",
+                defaultEffort: { G1: 30, G2: 30, TA: 30, PM: 20 },
+                editable: true
+            },
+            {
+                id: "vapt",
+                name: "VAPT", 
+                description: "Vulnerability Assessment and Penetration Testing",
+                type: "security",
+                defaultEffort: { G1: 30, G2: 30, TA: 30, PM: 20 },
+                editable: true
+            },
+            {
+                id: "postGoLive", 
+                name: "Post Go-Live Support",
+                description: "Production support and monitoring after deployment",
+                type: "support", 
+                defaultEffort: { G1: 0, G2: 100, TA: 50, PM: 100 },
+                editable: true
+            }
+        ];
+
+        // Create phases object
+        const phases = {};
+        
+        // Initialize each phase with default values
+        phaseDefinitions.forEach(def => {
+            phases[def.id] = {
+                manDays: 0,
+                effort: { ...def.defaultEffort },
+                assignedResources: [],
+                cost: 0,
+                lastModified: now
+            };
+        });
+
+        // Add selectedSuppliers
+        phases.selectedSuppliers = {
+            G1: null,
+            G2: null, 
+            TA: null,
+            PM: null
+        };
+
+        return phases;
+    }
+
+    /**
      * Wait for project to be available in store before navigation
      * Prevents race conditions between store updates and navigation
+     * Enhanced with longer timeout and exponential backoff
      */
-    async waitForProjectInStore(timeout = 2000) {
+    async waitForProjectInStore(timeout = 5000, maxRetries = 3) {
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
+            let checkInterval = 25; // Start with faster polling
+            let retryCount = 0;
             
             const checkProject = () => {
                 // Read fresh state to avoid race condition
                 if (this.app.store) {
                     const state = this.app.store.getState();
                     if (state.currentProject) {
-                        console.log('✅ Project confirmed in store, ready for navigation');
+                        console.log('✅ Project confirmed in store, ready for operations');
                         resolve(true);
                         return;
                     }
                 }
                 
+                const elapsed = Date.now() - startTime;
+                
                 // Check timeout
-                if (Date.now() - startTime > timeout) {
-                    reject(new Error(`Timeout waiting for project in store after ${timeout}ms`));
+                if (elapsed > timeout) {
+                    if (retryCount < maxRetries) {
+                        console.log(`⚠️ Retry ${retryCount + 1}/${maxRetries}: Waiting for project in store...`);
+                        retryCount++;
+                        // Reset timer but keep trying
+                        setTimeout(checkProject, checkInterval);
+                        return;
+                    }
+                    
+                    console.error(`❌ Failed to find project in store after ${timeout}ms and ${maxRetries} retries`);
+                    reject(new Error(`Timeout waiting for project in store after ${timeout}ms (${maxRetries} retries)`));
                     return;
                 }
                 
+                // Exponential backoff: Increase interval slightly as time passes
+                if (elapsed > 1000) {
+                    checkInterval = Math.min(100, checkInterval * 1.1);
+                }
+                
                 // Continue polling
-                setTimeout(checkProject, 50);
+                setTimeout(checkProject, checkInterval);
             };
             
             checkProject();

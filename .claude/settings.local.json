@@ -9,7 +9,8 @@
       "Bash(node agents/auto-workflow.js feature assumptions \"Migrate assumptions from vanilla JS to React following State/Actions/Dispatcher pattern\")",
       "Bash(grep:*)",
       "Bash(npm run build:react:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

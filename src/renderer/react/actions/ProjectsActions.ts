@@ -98,26 +98,42 @@ export class ProjectActions {
    * Load a project by ID (recent projects)
    */
   async loadProject(projectId: string): Promise<void> {
+    const store = this.getStore();
+    
     try {
+      console.log('🔄 Starting project load process...', projectId);
+      
+      // Set loading state for project loading
+      store.getState().setLoading('project-loading', true);
+      
       const app = this.getApp();
       if (!app?.managers?.project) {
         throw new Error('Project manager not available');
       }
 
+      console.log('🔄 Loading recent project with enhanced timing...');
       // Delegate to existing project manager logic
       await app.managers.project.loadRecentProject(projectId);
       
+      console.log('🔄 Auto-repair check for project data...');
+      // Auto-repair project data if needed
+      await this.repairProjectDataIfNeeded();
+      
+      console.log('🔄 Refreshing project lists...');
       // Update store state
-      const store = this.getStore();
       if (store) {
         // Refresh recent projects after loading
         await this.loadRecentProjects();
       }
       
-      console.log('Project loaded successfully:', projectId);
+      console.log('✅ Project loaded successfully:', projectId);
     } catch (error) {
-      console.error('Failed to load project:', error);
+      console.error('❌ Failed to load project:', error);
       throw error;
+    } finally {
+      // Always clear loading state
+      store.getState().setLoading('project-loading', false);
+      console.log('🔄 Project loading state cleared');
     }
   }
 
@@ -125,27 +141,43 @@ export class ProjectActions {
    * Load a project by file path (saved projects)
    */
   async loadProjectFromFile(filePath: string): Promise<void> {
+    const store = this.getStore();
+    
     try {
+      console.log('🔄 Starting project load from file process...', filePath);
+      
+      // Set loading state for project loading
+      store.getState().setLoading('project-loading', true);
+      
       const app = this.getApp();
       if (!app?.managers?.project) {
         throw new Error('Project manager not available');
       }
 
+      console.log('🔄 Loading saved project with enhanced timing...');
       // Delegate to existing project manager logic
       await app.managers.project.loadSavedProject(filePath);
       
+      console.log('🔄 Auto-repair check for project data...');
+      // Auto-repair project data if needed
+      await this.repairProjectDataIfNeeded();
+      
+      console.log('🔄 Refreshing project lists...');
       // Update store state
-      const store = this.getStore();
       if (store) {
         // Refresh both recent and saved projects after loading
         await this.loadRecentProjects();
         await this.loadSavedProjects();
       }
       
-      console.log('Project loaded from file successfully:', filePath);
+      console.log('✅ Project loaded from file successfully:', filePath);
     } catch (error) {
-      console.error('Failed to load project from file:', error);
+      console.error('❌ Failed to load project from file:', error);
       throw error;
+    } finally {
+      // Always clear loading state
+      store.getState().setLoading('project-loading', false);
+      console.log('🔄 Project loading state cleared');
     }
   }
 
@@ -328,26 +360,146 @@ export class ProjectActions {
    * Create a new project with form data
    */
   async createProject(formData: NewProjectFormData): Promise<void> {
+    const store = this.getStore();
+    
     try {
+      console.log('🔄 Starting project creation process...');
+      
+      // Set loading state for project creation
+      store.getState().setLoading('project-creation', true);
+      
       const app = this.getApp();
       if (!app?.managers?.project) {
         throw new Error('Project manager not available');
       }
 
+      console.log('🔄 Creating new project with enhanced timing...');
       // Delegate to existing project creation logic with form data
       await app.managers.project.createNewProject(formData);
       
+      console.log('🔄 Refreshing project lists...');
       // Refresh project lists
       await this.loadRecentProjects();
       await this.loadSavedProjects();
       
       // Update window title for new project (will be handled by store subscription)
       
-      console.log('New project created successfully with form data:', formData);
+      console.log('✅ New project created successfully with form data:', formData);
     } catch (error) {
-      console.error('Failed to create new project:', error);
+      console.error('❌ Failed to create new project:', error);
       throw error;
+    } finally {
+      // Always clear loading state
+      store.getState().setLoading('project-creation', false);
+      console.log('🔄 Project creation loading state cleared');
     }
+  }
+
+  /**
+   * Auto-repair project data if needed (fix incomplete phases, etc.)
+   */
+  private async repairProjectDataIfNeeded(): Promise<void> {
+    try {
+      const store = this.getStore();
+      const currentProject = store.getState().currentProject;
+      
+      if (!currentProject?.phases) {
+        console.log('⚠️ No phases data found, skipping auto-repair');
+        return;
+      }
+
+      // Check if phases only contains selectedSuppliers (incomplete)
+      const phaseKeys = Object.keys(currentProject.phases);
+      const hasOnlySelectedSuppliers = phaseKeys.length === 1 && phaseKeys[0] === 'selectedSuppliers';
+      
+      if (hasOnlySelectedSuppliers) {
+        console.log('🔧 AUTO-REPAIR: Detected incomplete phases, adding missing phase definitions');
+        
+        // Get the preserved selectedSuppliers
+        const selectedSuppliers = currentProject.phases.selectedSuppliers;
+        
+        // Create complete phases (using same logic as ProjectBusinessLogic.createInitialPhases)
+        const repairedPhases = this.createCompletePhases(selectedSuppliers);
+        
+        // Update project with repaired phases
+        store.getState().updateProjectPhases(repairedPhases);
+        
+        console.log('✅ AUTO-REPAIR: Project phases repaired successfully');
+        console.log('🔍 AUTO-REPAIR: Phases now include:', Object.keys(repairedPhases));
+      } else {
+        console.log('✅ Project phases are complete, no repair needed');
+      }
+    } catch (error) {
+      console.error('❌ AUTO-REPAIR: Failed to repair project data:', error);
+      // Don't throw - auto-repair is optional
+    }
+  }
+
+  /**
+   * Create complete phases structure (mirrors ProjectBusinessLogic.createInitialPhases)
+   */
+  private createCompletePhases(selectedSuppliers: any) {
+    const now = new Date().toISOString();
+    
+    // Phase definitions (consistent with ProjectBusinessLogic)
+    const phaseDefinitions = [
+      {
+        id: "functionalAnalysis",
+        defaultEffort: { G1: 100, G2: 0, TA: 20, PM: 50 }
+      },
+      {
+        id: "technicalAnalysis", 
+        defaultEffort: { G1: 0, G2: 100, TA: 60, PM: 20 }
+      },
+      {
+        id: "development",
+        defaultEffort: { G1: 0, G2: 100, TA: 40, PM: 20 }
+      },
+      {
+        id: "integrationTests",
+        defaultEffort: { G1: 100, G2: 50, TA: 50, PM: 75 }
+      },
+      {
+        id: "uatTests", 
+        defaultEffort: { G1: 50, G2: 50, TA: 40, PM: 75 }
+      },
+      {
+        id: "consolidation",
+        defaultEffort: { G1: 30, G2: 30, TA: 30, PM: 20 }
+      },
+      {
+        id: "vapt",
+        defaultEffort: { G1: 30, G2: 30, TA: 30, PM: 20 }
+      },
+      {
+        id: "postGoLive", 
+        defaultEffort: { G1: 0, G2: 100, TA: 50, PM: 100 }
+      }
+    ];
+
+    // Create phases object
+    const phases: any = {};
+    
+    // Initialize each phase with default values
+    phaseDefinitions.forEach(def => {
+      phases[def.id] = {
+        manDays: 0,
+        effort: { ...def.defaultEffort },
+        assignedResources: [],
+        cost: 0,
+        lastModified: now
+      };
+    });
+
+    // Preserve existing selectedSuppliers
+    phases.selectedSuppliers = selectedSuppliers || {
+      G1: null,
+      G2: null, 
+      TA: null,
+      PM: null
+    };
+
+    return phases;
   }
 
   /**

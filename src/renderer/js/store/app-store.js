@@ -331,10 +331,33 @@ const appStore = window.zustand.createStore((set, get) => ({
         const currentState = get();
         if (!currentState.currentProject) return;
         
+        console.log('🔍 DEBUG: updateProjectPhases called with:', Object.keys(phases || {}));
+        console.log('🔍 DEBUG: Current project phases before update:', Object.keys(currentState.currentProject.phases || {}));
+        
+        // DEFENSIVE: If phases only contains selectedSuppliers, preserve existing phases
+        const currentPhases = currentState.currentProject.phases || {};
+        const hasOnlySelectedSuppliers = phases && 
+              Object.keys(phases).length === 1 && 
+              phases.selectedSuppliers && 
+              !phases.functionalAnalysis;
+        
+        let mergedPhases;
+        if (hasOnlySelectedSuppliers && Object.keys(currentPhases).length > 1) {
+            console.log('⚠️ WARNING: Preventing phase data loss - preserving existing phases');
+            mergedPhases = {
+                ...currentPhases,
+                selectedSuppliers: phases.selectedSuppliers
+            };
+        } else {
+            mergedPhases = phases;
+        }
+        
         const updatedProject = {
             ...currentState.currentProject,
-            phases: phases
+            phases: mergedPhases
         };
+        
+        console.log('🔍 DEBUG: Final merged phases:', Object.keys(mergedPhases || {}));
         
         set({ 
             currentProject: updatedProject,
