@@ -233,6 +233,15 @@ ipcMain.handle('delete-project-file', async (event, filePath) => {
     }
 });
 
+ipcMain.handle('check-file-exists', async (event, filePath) => {
+    try {
+        await fs.access(filePath, fs.constants.F_OK);
+        return { success: true, exists: true };
+    } catch (error) {
+        return { success: true, exists: false };
+    }
+});
+
 ipcMain.handle('get-settings', async () => {
     try {
         const settings = await loadSettings();

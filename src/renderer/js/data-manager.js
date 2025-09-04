@@ -592,6 +592,15 @@ class ElectronPersistenceStrategy {
         }
     }
 
+    async checkFileExists(filePath) {
+        try {
+            const result = await window.electronAPI.checkFileExists(filePath);
+            return result;
+        } catch (error) {
+            return { success: false, exists: false, error: error.message };
+        }
+    }
+
     async getSettings() {
         try {
             const result = await window.electronAPI.getSettings();

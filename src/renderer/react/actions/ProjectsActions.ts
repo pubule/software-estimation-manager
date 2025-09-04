@@ -47,14 +47,66 @@ export class ProjectActions {
       const data = localStorage.getItem('recent-projects');
       const projects = data ? JSON.parse(data) : [];
       
+      console.log('🔍 DEBUG: Raw projects from localStorage:', projects.length, projects);
+      
+      // LAZY VALIDATION: Filter out projects whose files no longer exist
+      const validProjects: RecentProject[] = [];
+      const app = this.getApp();
+      
+      console.log('🔍 DEBUG: DataManager available:', !!app?.dataManager);
+      
+      if (app?.dataManager) {
+        for (const project of projects) {
+          console.log('🔍 DEBUG: Processing project:', project.name, 'filePath:', project.filePath);
+          
+          // Keep projects without filePath (more permissive)
+          if (!project.filePath) {
+            console.warn('⚠️ Project without filePath, keeping in list:', project.name);
+            validProjects.push(project);
+            continue;
+          }
+          
+          // Check if file still exists
+          try {
+            const result = await app.dataManager.checkFileExists(project.filePath);
+            console.log('🔍 DEBUG: File existence check for', project.filePath, ':', result);
+            
+            if (result.success && result.exists) {
+              validProjects.push(project);
+            } else if (!result.success) {
+              // If we can't check, keep the project (more permissive)
+              console.warn('⚠️ Could not check file existence, keeping project:', project.name);
+              validProjects.push(project);
+            } else {
+              console.log('🗑️ Removing non-existent project:', project.name, project.filePath);
+            }
+          } catch (error) {
+            console.error('Error checking file existence, keeping project:', project.name, error);
+            validProjects.push(project);
+          }
+        }
+        
+        console.log('🔍 DEBUG: Valid projects after filtering:', validProjects.length);
+        
+        // If we filtered out any projects, update localStorage
+        if (validProjects.length !== projects.length) {
+          localStorage.setItem('recent-projects', JSON.stringify(validProjects));
+          console.log(`🔄 Cleaned up recent projects: ${projects.length} → ${validProjects.length}`);
+        }
+      } else {
+        // Fallback: if dataManager not available, return all projects
+        console.warn('⚠️ DataManager not available, skipping validation');
+        validProjects.push(...projects);
+      }
+      
       // Update store if available
       const store = this.getStore();
       if (store) {
-        store.getState().setRecentProjects?.(projects);
+        store.getState().setRecentProjects?.(validProjects);
       }
       
-      console.log(`Loaded ${projects.length} recent projects`);
-      return projects;
+      console.log(`✅ Loaded ${validProjects.length} recent projects`);
+      return validProjects;
     } catch (error) {
       console.error('Failed to load recent projects:', error);
       return [];
@@ -260,6 +312,26 @@ export class ProjectActions {
       const app = this.getApp();
       if (!app?.dataManager) {
         throw new Error('Data manager not available');
+      }
+
+      // EAGER CLEANUP: Remove from recent projects before deletion
+      const recentProjects = await this.loadRecentProjects();
+      const updatedRecentProjects = recentProjects.filter(p => p.filePath !== filePath);
+      
+      if (updatedRecentProjects.length !== recentProjects.length) {
+        // Update localStorage
+        localStorage.setItem('recent-projects', JSON.stringify(updatedRecentProjects));
+        
+        // Update store
+        const store = this.getStore();
+        if (store) {
+          store.getState().setRecentProjects?.(updatedRecentProjects);
+        }
+        
+        // Emit event for components listening
+        window.dispatchEvent(new CustomEvent('recent-projects-updated'));
+        
+        console.log('🔄 Removed deleted project from recent projects:', filePath);
       }
 
       // Delete the project file

@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveProjectFile: (projectData) => ipcRenderer.invoke('save-project-file', projectData),
     loadProjectFile: (filePath) => ipcRenderer.invoke('load-project-file', filePath),
     deleteProjectFile: (filePath) => ipcRenderer.invoke('delete-project-file', filePath),
+    checkFileExists: (filePath) => ipcRenderer.invoke('check-file-exists', filePath),
     listProjects: () => ipcRenderer.invoke('list-projects'),
 
     // Projects folder operations
