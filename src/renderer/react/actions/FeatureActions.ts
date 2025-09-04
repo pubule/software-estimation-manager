@@ -247,7 +247,7 @@ export class FeatureActions {
   /**
    * Update coverage value
    */
-  updateCoverage(coverageValue: number, isAutoCalculated: boolean = false): void {
+  updateCoverage(coverageValue: number, isAutoCalculated?: boolean): void {
     try {
       const store = this.getStore();
       if (!store) {
@@ -259,9 +259,14 @@ export class FeatureActions {
         throw new Error('No project loaded');
       }
 
+      // If isAutoCalculated is not specified, preserve the existing value
+      const autoCalc = isAutoCalculated !== undefined 
+        ? isAutoCalculated 
+        : state.currentProject.coverageIsAutoCalculated;
+
       // Update coverage in project (direct value instead of object)
       state.currentProject.coverage = coverageValue;
-      state.currentProject.coverageIsAutoCalculated = isAutoCalculated;
+      state.currentProject.coverageIsAutoCalculated = autoCalc;
 
       // Mark project as dirty for auto-save
       state.markDirty();

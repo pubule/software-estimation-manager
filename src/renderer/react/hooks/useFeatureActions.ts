@@ -48,9 +48,9 @@ export const useFeatureActions = () => {
     }
   }, []);
 
-  const updateCoverage = useCallback((coverageValue: number) => {
+  const updateCoverage = useCallback((coverageValue: number, isAutoCalculated?: boolean) => {
     try {
-      featureActions.updateCoverage(coverageValue);
+      featureActions.updateCoverage(coverageValue, isAutoCalculated);
     } catch (error) {
       throw error;
     }

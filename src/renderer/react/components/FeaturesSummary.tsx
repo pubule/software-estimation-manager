@@ -27,26 +27,22 @@ const FeaturesSummary: React.FC<FeaturesSummaryProps> = ({ filteredFeatures }) =
       // Auto-calculate 30% if auto-calculated or not set
       const autoCalculated = summary.totalManDays * 0.3;
       setCoverageValue(autoCalculated);
+      // SYNC: Update store immediately with auto-calculated value
+      updateCoverage(autoCalculated, true);
     }
-  }, [currentProject?.coverage, coverageIsAutoCalculated, summary.totalManDays]);
+  }, [currentProject?.coverage, coverageIsAutoCalculated, summary.totalManDays, updateCoverage]);
 
   const handleCoverageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = parseFloat(e.target.value) || 0;
     setCoverageValue(newValue);
-  };
-
-  const handleCoverageBlur = async () => {
-    try {
-      await updateCoverage(coverageValue);
-    } catch (error) {
-      console.error('Failed to update coverage:', error);
-    }
+    // SYNC: Update store immediately on every change (manual modification)
+    updateCoverage(newValue, false);
   };
 
   const handleCoverageReset = async () => {
     try {
       await resetCoverage();
-      // Coverage will be updated through the useEffect when project changes
+      // Coverage will be updated automatically through the useEffect
     } catch (error) {
       console.error('Failed to reset coverage:', error);
     }
@@ -54,7 +50,8 @@ const FeaturesSummary: React.FC<FeaturesSummaryProps> = ({ filteredFeatures }) =
 
   const handleCoverageKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleCoverageBlur();
+      // Coverage is already synced on every change, just blur the input
+      (e.target as HTMLInputElement).blur();
     }
   };
 
@@ -87,7 +84,6 @@ const FeaturesSummary: React.FC<FeaturesSummaryProps> = ({ filteredFeatures }) =
             type="number" 
             value={coverageValue}
             onChange={handleCoverageChange}
-            onBlur={handleCoverageBlur}
             onKeyPress={handleCoverageKeyPress}
             min="0" 
             step="0.1" 
