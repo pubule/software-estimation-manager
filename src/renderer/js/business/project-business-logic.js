@@ -144,8 +144,8 @@ class ProjectBusinessLogic extends BaseComponent {
                 config: {
                     projectOverrides: {}
                 },
-                coverage: 110,
-                coverageIsAutoCalculated: false,
+                coverage: 0,
+                coverageIsAutoCalculated: true,
                 versions: []
             };
 

@@ -12,7 +12,9 @@
       "Bash(npm start)",
       "Bash(node:*)",
       "mcp__serena__find_file",
-      "mcp__serena__insert_after_symbol"
+      "mcp__serena__insert_after_symbol",
+      "Read(/Users/FABIO.STOCCO/OneDrive - Unicredit/Documentazione/TOOLS/Software Estimation Projects/config/**)",
+      "Bash(npx cucumber-js:*)"
     ],
     "deny": [],
     "ask": []

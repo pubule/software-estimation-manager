@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - 2025-09-02
 
+### Fixed
+- **Fix coverage showing 110% for new projects without features**: 
 ### Added
 - **Assumptions**: Migrate assumptions from vanilla JS to React following State/Actions/Dispatcher pattern
 
