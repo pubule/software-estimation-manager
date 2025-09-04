@@ -165,7 +165,7 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
         <DevelopmentNotice 
           featuresCount={currentProject.features?.length || 0}
           developmentPhase={currentPhases.find(p => p.id === 'development')}
-          coverage={currentProject.coverage?.manDays || 0}
+          coverage={currentProject.coverage || 0}
         />
 
         <div className="phases-controls">
