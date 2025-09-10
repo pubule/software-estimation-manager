@@ -55,49 +55,10 @@ export class ProjectActions {
       
       console.log('🔍 DEBUG: DataManager available:', !!app?.dataManager);
       
-      if (app?.dataManager) {
-        for (const project of projects) {
-          console.log('🔍 DEBUG: Processing project:', project.name, 'filePath:', project.filePath);
-          
-          // Keep projects without filePath (more permissive)
-          if (!project.filePath) {
-            console.warn('⚠️ Project without filePath, keeping in list:', project.name);
-            validProjects.push(project);
-            continue;
-          }
-          
-          // Check if file still exists
-          try {
-            const result = await app.dataManager.checkFileExists(project.filePath);
-            console.log('🔍 DEBUG: File existence check for', project.filePath, ':', result);
-            
-            if (result.success && result.exists) {
-              validProjects.push(project);
-            } else if (!result.success) {
-              // If we can't check, keep the project (more permissive)
-              console.warn('⚠️ Could not check file existence, keeping project:', project.name);
-              validProjects.push(project);
-            } else {
-              console.log('🗑️ Removing non-existent project:', project.name, project.filePath);
-            }
-          } catch (error) {
-            console.error('Error checking file existence, keeping project:', project.name, error);
-            validProjects.push(project);
-          }
-        }
-        
-        console.log('🔍 DEBUG: Valid projects after filtering:', validProjects.length);
-        
-        // If we filtered out any projects, update localStorage
-        if (validProjects.length !== projects.length) {
-          localStorage.setItem('recent-projects', JSON.stringify(validProjects));
-          console.log(`🔄 Cleaned up recent projects: ${projects.length} → ${validProjects.length}`);
-        }
-      } else {
-        // Fallback: if dataManager not available, return all projects
-        console.warn('⚠️ DataManager not available, skipping validation');
-        validProjects.push(...projects);
-      }
+      // SIMPLIFIED: Skip file existence validation since checkFileExists method is not available
+      // Just keep all projects for now - file validation can be done when actually loading
+      console.log('🔍 DEBUG: Skipping file existence validation, keeping all projects');
+      validProjects.push(...projects);
       
       // Update store if available
       const store = this.getStore();
@@ -171,6 +132,14 @@ export class ProjectActions {
       // Auto-repair project data if needed
       await this.repairProjectDataIfNeeded();
       
+      console.log('🧹 Clearing calculations cache for fresh project data...');
+      // CRITICAL: Clear calculations cache to prevent stale data display
+      this.clearAllCalculationsCache();
+      
+      console.log('🔄 Force recalculating with fresh project data...');
+      // CRITICAL: Force recalculation with fresh project data  
+      await this.forceRecalculateOnProjectLoad();
+      
       console.log('🔄 Refreshing project lists...');
       // Update store state
       if (store) {
@@ -213,6 +182,14 @@ export class ProjectActions {
       console.log('🔄 Auto-repair check for project data...');
       // Auto-repair project data if needed
       await this.repairProjectDataIfNeeded();
+      
+      console.log('🧹 Clearing calculations cache for fresh project data...');
+      // CRITICAL: Clear calculations cache to prevent stale data display
+      this.clearAllCalculationsCache();
+      
+      console.log('🔄 Force recalculating with fresh project data...');
+      // CRITICAL: Force recalculation with fresh project data  
+      await this.forceRecalculateOnProjectLoad();
       
       console.log('🔄 Refreshing project lists...');
       // Update store state
@@ -417,6 +394,14 @@ export class ProjectActions {
       // Delegate to existing project creation logic
       await app.managers.project.createNewProject();
       
+      console.log('🧹 Clearing calculations cache for new project...');
+      // CRITICAL: Clear calculations cache when creating new project
+      this.clearAllCalculationsCache();
+      
+      console.log('🔄 Force recalculating for new project...');
+      // CRITICAL: Force recalculation with new project data
+      await this.forceRecalculateOnProjectLoad();
+      
       // Refresh project lists
       await this.loadRecentProjects();
       await this.loadSavedProjects();
@@ -449,6 +434,14 @@ export class ProjectActions {
       // Delegate to existing project creation logic with form data
       await app.managers.project.createNewProject(formData);
       
+      console.log('🧹 Clearing calculations cache for new project...');
+      // CRITICAL: Clear calculations cache when creating new project
+      this.clearAllCalculationsCache();
+      
+      console.log('🔄 Force recalculating for new project...');
+      // CRITICAL: Force recalculation with new project data
+      await this.forceRecalculateOnProjectLoad();
+      
       console.log('🔄 Refreshing project lists...');
       // Refresh project lists
       await this.loadRecentProjects();
@@ -464,6 +457,68 @@ export class ProjectActions {
       // Always clear loading state
       store.getState().setLoading('project-creation', false);
       console.log('🔄 Project creation loading state cleared');
+    }
+  }
+
+  /**
+   * Clear all calculations cache and reset phases state - PATTERN: State/Actions/Dispatcher
+   * Must be called on every project change to prevent stale cache issues
+   */
+  private clearAllCalculationsCache(): void {
+    try {
+      const store = this.getStore();
+      if (!store) {
+        console.warn('Store not available for cache clearing');
+        return;
+      }
+
+      console.log('🧹 CACHE CLEARING: Invalidating calculations cache...');
+      
+      // PATTERN: Clear calculations data through Store methods
+      store.getState().clearCalculations();
+      
+      console.log('🧹 CACHE CLEARING: Reinitializing phases state...');
+      // PATTERN: Reinitialize phases to ensure they reflect current project data
+      store.getState().initializePhases();
+      
+      console.log('✅ CACHE CLEARING: All caches cleared and phases reinitialized successfully');
+    } catch (error) {
+      console.error('❌ CACHE CLEARING: Failed to clear caches:', error);
+      // Don't throw - cache clearing is non-critical
+    }
+  }
+
+  /**
+   * Force recalculate all data after project load - PATTERN: Actions layer business logic
+   */
+  private async forceRecalculateOnProjectLoad(): Promise<void> {
+    try {
+      const store = this.getStore();
+      if (!store) {
+        console.warn('Store not available for forced recalculation');
+        return;
+      }
+
+      const currentProject = store.getState().currentProject;
+      if (!currentProject) {
+        console.log('🔄 FORCE RECALC: No project loaded, skipping recalculation');
+        return;
+      }
+
+      console.log('🔄 FORCE RECALC: Starting forced recalculation after project load...');
+      
+      // PATTERN: Use CalculationsActions for business logic
+      if (window.calculationsActions) {
+        console.log('🔄 FORCE RECALC: Triggering calculations refresh...');
+        await window.calculationsActions.calculateProjectCosts();
+        console.log('✅ FORCE RECALC: Calculations refreshed successfully');
+      } else {
+        console.warn('⚠️ FORCE RECALC: calculationsActions not available, skipping recalculation');
+      }
+      
+    } catch (error) {
+      console.error('❌ FORCE RECALC: Failed to force recalculate on project load:', error);
+      // Don't throw - forced recalculation is optional but recommended
     }
   }
 
@@ -695,6 +750,10 @@ export class ProjectActions {
       }
 
       await app.managers.project.closeCurrentProject();
+      
+      console.log('🧹 Clearing calculations cache after project close...');
+      // CRITICAL: Clear calculations cache when closing project
+      this.clearAllCalculationsCache();
       
       // Refresh project lists
       await this.loadRecentProjects();

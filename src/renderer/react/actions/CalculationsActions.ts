@@ -83,15 +83,12 @@ export class CalculationsActions {
 
       // 1. Processa tutti i costi (features + phases)
       const vendorCosts = this.processAllCosts(currentProject);
-      console.log('🔍 CALCULATE DEBUG - Vendor costs processed:', vendorCosts.length);
       
       // 2. Applica override Final MDs se esistono
       const costsWithOverrides = this.applyFinalMDsOverrides(vendorCosts);
-      console.log('🔍 CALCULATE DEBUG - Costs with overrides:', costsWithOverrides.length);
       
       // 3. Calcola KPI
       const kpiData = this.calculateKPIs(costsWithOverrides);
-      console.log('🔍 CALCULATE DEBUG - KPI calculated:', kpiData);
       
       // 4. Aggiorna store
       state.setCalculationsData({
@@ -99,8 +96,7 @@ export class CalculationsActions {
         kpiData: kpiData
       });
       
-      console.log('🔍 CALCULATE DEBUG - Store updated with vendor costs:', costsWithOverrides.length);
-      console.log('Calculations updated successfully');
+      console.log('✅ Calculations completed:', costsWithOverrides.length, 'vendor costs');
     } catch (error) {
       console.error('Failed to calculate project costs:', error);
       throw error;
@@ -108,45 +104,37 @@ export class CalculationsActions {
   }
 
   /**
-   * Processa tutti i costi (phases priority, fallback to features)
+   * Processa tutti i costi (SEMPRE features per development + phases per altre fasi)
    * 
-   * LOGICA CORRETTA: 
-   * - Se ci sono phases definite, usa SOLO quelle (sono il calcolo finale)
-   * - Se non ci sono phases, usa le features come fallback
-   * - NON sommare features + phases (causava duplicazione 1577.8 invece di 922.6)
+   * LOGICA CORRETTA (fix implementato):
+   * - SEMPRE processare features per development (vendor costs consolidati per G2)
+   * - Processare altre phases se disponibili 
+   * - Consolidare tutti i vendor costs per vendor+role+department
    */
   private processAllCosts(project: any): VendorCost[] {
     const allCosts: VendorCost[] = [];
     
-    console.log('🔍 PROCESS_ALL DEBUG - Project features:', project.features?.length || 0);
-    console.log('🔍 PROCESS_ALL DEBUG - Project phases:', project.phases ? Object.keys(project.phases).length : 0);
+    // 1. SEMPRE processare features per development
+    if (project.features && project.features.length > 0) {
+      const featuresCosts = this.processFeaturesCosts(project.features);
+      allCosts.push(...featuresCosts);
+    }
     
-    // PRIORITÀ: Usa phases se disponibili, altrimenti features
+    // 2. Processare altre phases (non-development) se disponibili
     const hasValidPhases = project.phases && 
                           Object.keys(project.phases).some(key => 
                             key !== 'selectedSuppliers' && 
+                            key !== 'development' && // Skip development, già processato da features
                             project.phases[key]?.manDays > 0
                           );
     
     if (hasValidPhases) {
-      console.log('🔍 PROCESS_ALL DEBUG - Using PHASES ONLY (phases take priority)');
-      const phasesCosts = this.processPhasesCosts(project.phases);
-      console.log('🔍 PROCESS_ALL DEBUG - Phases costs:', phasesCosts.length);
+      const phasesCosts = this.processNonDevelopmentPhases(project.phases);
       allCosts.push(...phasesCosts);
-    } else if (project.features && project.features.length > 0) {
-      console.log('🔍 PROCESS_ALL DEBUG - Using FEATURES ONLY (no valid phases found)');
-      const featuresCosts = this.processFeaturesCosts(project.features);
-      console.log('🔍 PROCESS_ALL DEBUG - Features costs:', featuresCosts.length);
-      allCosts.push(...featuresCosts);
-    } else {
-      console.log('🔍 PROCESS_ALL DEBUG - No features or phases to process');
     }
-    
-    console.log('🔍 PROCESS_ALL DEBUG - Total costs before consolidation:', allCosts.length);
     
     // 3. Raggruppa per vendor + role + department
     const consolidatedCosts = this.consolidateVendorCosts(allCosts);
-    console.log('🔍 PROCESS_ALL DEBUG - Final consolidated costs:', consolidatedCosts.length);
     
     return consolidatedCosts;
   }
@@ -159,8 +147,11 @@ export class CalculationsActions {
     
     features.forEach(feature => {
       const supplierData = this.getSupplierData(feature.supplier);
-      if (!supplierData) return;
       
+      if (!supplierData) {
+        console.warn('Supplier not found for feature:', feature.id, feature.supplier);
+        return;
+      }
       const cost: VendorCost = {
         vendorId: feature.supplier,
         vendorName: supplierData.name,
@@ -177,7 +168,6 @@ export class CalculationsActions {
       
       costs.push(cost);
     });
-    
     return costs;
   }
 
@@ -232,18 +222,65 @@ export class CalculationsActions {
   }
 
   /**
+   * Processa costi da phases NON-DEVELOPMENT (esclude development già processato da features)
+   */
+  private processNonDevelopmentPhases(phases: any): VendorCost[] {
+    const costs: VendorCost[] = [];
+    
+    // Extract selectedSuppliers from phases object
+    const selectedSuppliers = phases.selectedSuppliers || {};
+    
+    // Process each phase except 'development' and 'selectedSuppliers'
+    Object.entries(phases).forEach(([phaseKey, phaseData]: [string, any]) => {
+      // Skip selectedSuppliers entry and development phase (handled by features)
+      if (phaseKey === 'selectedSuppliers' || phaseKey === 'development') {
+        return;
+      }
+      
+      if (phaseData.manDays && phaseData.manDays > 0 && phaseData.effort) {
+        // Process each role in the phase effort distribution
+        Object.entries(phaseData.effort).forEach(([role, percentage]: [string, any]) => {
+          if (!percentage || percentage === 0) return;
+          
+          const supplierId = selectedSuppliers[role];
+          if (!supplierId) {
+            return;
+          }
+          
+          const supplierData = this.getSupplierData(supplierId);
+          if (!supplierData) {
+            return;
+          }
+          
+          // Calculate MDs for this role in this phase (round to 1 decimal)
+          const phaseMDs = Math.round((phaseData.manDays * (percentage / 100)) * 10) / 10;
+          
+          const cost: VendorCost = {
+            vendorId: supplierId,
+            vendorName: supplierData.name || supplierId,
+            role: role as 'G1' | 'G2' | 'TA' | 'PM',
+            department: supplierData.department || role,
+            officialRate: supplierData.officialRate || 0,
+            realRate: supplierData.realRate || 0,
+            estimatedMDs: phaseMDs,
+            finalMDs: phaseMDs,
+            totCost: Math.round(phaseMDs * (supplierData.realRate || 0)),
+            finalTotCost: Math.round(phaseMDs * (supplierData.officialRate || 0)),
+            isInternal: supplierData.type === 'internal' || false
+          };
+          
+          costs.push(cost);
+        });
+      }
+    });
+    return costs;
+  }
+
+  /**
    * Consolida costi per vendor + role + department
    */
   private consolidateVendorCosts(costs: VendorCost[]): VendorCost[] {
     const consolidated = new Map<string, VendorCost>();
-    
-    console.log('🔍 CONSOLIDATE DEBUG - Input costs:', costs.map(c => ({
-      vendorId: c.vendorId,
-      role: c.role,
-      dept: c.department,
-      key: `${c.vendorId}_${c.role}_${c.department}`,
-      finalMDs: c.finalMDs
-    })));
     
     costs.forEach(cost => {
       const key = `${cost.vendorId}_${cost.role}_${cost.department}`;
@@ -259,16 +296,7 @@ export class CalculationsActions {
       }
     });
     
-    const result = Array.from(consolidated.values());
-    console.log('🔍 CONSOLIDATE DEBUG - Output costs:', result.map(c => ({
-      vendorId: c.vendorId,
-      role: c.role,
-      dept: c.department,
-      key: `${c.vendorId}_${c.role}_${c.department}`,
-      finalMDs: c.finalMDs
-    })));
-    
-    return result;
+    return Array.from(consolidated.values());
   }
 
   /**
@@ -397,9 +425,6 @@ export class CalculationsActions {
         [key]: newValue
       };
       
-      console.log('🔍 OVERRIDE DEBUG - Saving:', { key, newValue, vendorId, role, department });
-      console.log('🔍 OVERRIDE DEBUG - Current overrides before update:', currentOverrides);
-      console.log('🔍 OVERRIDE DEBUG - Updated overrides:', updatedOverrides);
       
       // 1. Process all costs (same as calculateProjectCosts)
       const vendorCosts = this.processAllCosts(currentProject);
@@ -578,9 +603,9 @@ export class CalculationsActions {
     // Support both legacy (config) and new (configuration) structure
     const projectConfig = currentProject?.configuration || currentProject?.config;
     
-    
     // Cerca nei suppliers (external)
     const suppliers = configManager.getSuppliers(projectConfig) || [];
+    
     let supplier = suppliers.find(s => s.id === supplierId);
     
     if (supplier) {
@@ -589,6 +614,7 @@ export class CalculationsActions {
     
     // Se non trovato, cerca negli internal resources
     const internalResources = configManager.getInternalResources(projectConfig) || [];
+    
     supplier = internalResources.find(r => r.id === supplierId);
     
     if (supplier) {
@@ -596,6 +622,7 @@ export class CalculationsActions {
       return supplier;
     }
     
+    console.error('Supplier not found:', supplierId);
     return null;
   }
 

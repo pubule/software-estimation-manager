@@ -15,7 +15,9 @@
       "mcp__serena__insert_after_symbol",
       "Read(/Users/FABIO.STOCCO/OneDrive - Unicredit/Documentazione/TOOLS/Software Estimation Projects/config/**)",
       "Bash(npx cucumber-js:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Read(//Users/FABIO.STOCCO/Library/CloudStorage/OneDrive-Unicredit/Documentazione/TOOLS/Software Estimation Projects/**)",
+      "Read(//Users/FABIO.STOCCO/OneDrive - Unicredit/Documentazione/TOOLS/Software Estimation Projects/**)"
     ],
     "deny": [],
     "ask": []
