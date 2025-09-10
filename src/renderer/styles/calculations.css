@@ -650,7 +650,7 @@
 }
 
 .final-mds-input {
-    width: 60px;
+    width: 80px;
     padding: var(--spacing-xs);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-sm);
@@ -715,7 +715,7 @@
 /* Responsive adjustments for new columns */
 @media (max-width: 1200px) {
     .final-mds-input {
-        width: 50px;
+        width: 70px;
     }
     
     .reset-final-mds-btn {
