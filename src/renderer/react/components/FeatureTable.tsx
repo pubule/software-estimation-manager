@@ -53,6 +53,11 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
   const formatPercentage = (value: number) => {
     return value ? `${value}%` : '0%';
   };
+
+  // Format man days to 1 decimal place
+  const formatManDays = (value: number) => {
+    return parseFloat(value.toFixed(1));
+  };
   if (features.length === 0) {
     return (
       <div className="empty-state">
@@ -111,7 +116,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
                 {feature.realManDays || 0}
               </td>
               <td className="feature-calculated-md">
-                <strong>{feature.manDays || 0}</strong>
+                <strong>{formatManDays(feature.manDays || 0)}</strong>
               </td>
               <td className="feature-actions">
                 <div className="row-actions">
