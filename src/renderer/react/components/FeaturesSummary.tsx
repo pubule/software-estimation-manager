@@ -15,8 +15,18 @@ const FeaturesSummary: React.FC<FeaturesSummaryProps> = ({ filteredFeatures }) =
   
   const [coverageValue, setCoverageValue] = useState<number>(0);
 
-  // Calculate summary statistics
-  const summary = calculateSummary(filteredFeatures);
+  // Calculate summary statistics - fix for total vs filtered calculation
+  const allFeatures = currentProject?.features || [];
+  const totalSummary = calculateSummary(allFeatures);
+  const filteredSummary = calculateSummary(filteredFeatures);
+  
+  // Combine the correct values
+  const summary = {
+    totalFeatures: filteredFeatures.length, // Filtered count for display
+    totalManDays: totalSummary.totalManDays, // ALL features total
+    averageManDays: filteredFeatures.length > 0 ? filteredSummary.totalManDays / filteredFeatures.length : 0,
+    filteredManDays: filteredSummary.totalManDays // Only filtered features total
+  };
 
   // Initialize coverage value from project
   useEffect(() => {

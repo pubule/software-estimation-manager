@@ -133,7 +133,15 @@ export class CalculationsActions {
       allCosts.push(...phasesCosts);
     }
     
-    // 3. Raggruppa per vendor + role + department
+    // 3. Processare coverage assegnato al vendor G2 selezionato
+    if (project.coverage && project.coverage > 0 && project.phases?.selectedSuppliers?.G2) {
+      const coverageCost = this.processCoverageCost(project.coverage, project.phases.selectedSuppliers.G2);
+      if (coverageCost) {
+        allCosts.push(coverageCost);
+      }
+    }
+    
+    // 4. Raggruppa per vendor + role + department
     const consolidatedCosts = this.consolidateVendorCosts(allCosts);
     
     return consolidatedCosts;
@@ -274,6 +282,34 @@ export class CalculationsActions {
       }
     });
     return costs;
+  }
+
+  /**
+   * Processa costi dal coverage - assegnato al vendor G2 selezionato
+   */
+  private processCoverageCost(coverage: number, g2VendorId: string): VendorCost | null {
+    const supplierData = this.getSupplierData(g2VendorId);
+    
+    if (!supplierData) {
+      console.warn('G2 vendor not found for coverage:', g2VendorId);
+      return null;
+    }
+    
+    const coverageCost: VendorCost = {
+      vendorId: g2VendorId,
+      vendorName: supplierData.name || g2VendorId,
+      role: 'G2' as 'G2',
+      department: supplierData.department || 'Development',
+      officialRate: supplierData.officialRate || 0,
+      realRate: supplierData.realRate || 0,
+      estimatedMDs: coverage,
+      finalMDs: coverage,
+      totCost: Math.round(coverage * (supplierData.realRate || 0)),
+      finalTotCost: Math.round(coverage * (supplierData.officialRate || 0)),
+      isInternal: supplierData.type === 'internal' || false
+    };
+    
+    return coverageCost;
   }
 
   /**
