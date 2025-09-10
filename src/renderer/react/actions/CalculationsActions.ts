@@ -108,7 +108,12 @@ export class CalculationsActions {
   }
 
   /**
-   * Processa tutti i costi (features + phases)
+   * Processa tutti i costi (phases priority, fallback to features)
+   * 
+   * LOGICA CORRETTA: 
+   * - Se ci sono phases definite, usa SOLO quelle (sono il calcolo finale)
+   * - Se non ci sono phases, usa le features come fallback
+   * - NON sommare features + phases (causava duplicazione 1577.8 invece di 922.6)
    */
   private processAllCosts(project: any): VendorCost[] {
     const allCosts: VendorCost[] = [];
@@ -116,20 +121,25 @@ export class CalculationsActions {
     console.log('🔍 PROCESS_ALL DEBUG - Project features:', project.features?.length || 0);
     console.log('🔍 PROCESS_ALL DEBUG - Project phases:', project.phases ? Object.keys(project.phases).length : 0);
     
-    // 1. Processa costi dalle features
-    if (project.features && project.features.length > 0) {
-      console.log('🔍 PROCESS_ALL DEBUG - Processing features...');
-      const featuresCosts = this.processFeaturesCosts(project.features);
-      console.log('🔍 PROCESS_ALL DEBUG - Features costs:', featuresCosts.length);
-      allCosts.push(...featuresCosts);
-    }
+    // PRIORITÀ: Usa phases se disponibili, altrimenti features
+    const hasValidPhases = project.phases && 
+                          Object.keys(project.phases).some(key => 
+                            key !== 'selectedSuppliers' && 
+                            project.phases[key]?.manDays > 0
+                          );
     
-    // 2. Processa costi dalle phases
-    if (project.phases) {
-      console.log('🔍 PROCESS_ALL DEBUG - Processing phases...');
+    if (hasValidPhases) {
+      console.log('🔍 PROCESS_ALL DEBUG - Using PHASES ONLY (phases take priority)');
       const phasesCosts = this.processPhasesCosts(project.phases);
       console.log('🔍 PROCESS_ALL DEBUG - Phases costs:', phasesCosts.length);
       allCosts.push(...phasesCosts);
+    } else if (project.features && project.features.length > 0) {
+      console.log('🔍 PROCESS_ALL DEBUG - Using FEATURES ONLY (no valid phases found)');
+      const featuresCosts = this.processFeaturesCosts(project.features);
+      console.log('🔍 PROCESS_ALL DEBUG - Features costs:', featuresCosts.length);
+      allCosts.push(...featuresCosts);
+    } else {
+      console.log('🔍 PROCESS_ALL DEBUG - No features or phases to process');
     }
     
     console.log('🔍 PROCESS_ALL DEBUG - Total costs before consolidation:', allCosts.length);

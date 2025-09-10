@@ -965,16 +965,22 @@ class ApplicationController extends BaseComponent {
      * Create Excel sheet for calculations data
      */
     createCalculationsSheet() {
-        // Get calculations manager data
-        const calcManager = this.managers.calculations;
-        
-        // Ensure vendor costs are calculated
-        if (calcManager) {
-            calcManager.calculateVendorCosts();
+        // Get calculations data from new React system (migrated from legacy CalculationsManager)
+        // Use calculationsActions to calculate and get data from store
+        if (window.calculationsActions && window.appStore) {
+            try {
+                window.calculationsActions.calculateProjectCosts();
+            } catch (error) {
+                console.error('Failed to calculate project costs for export:', error);
+            }
         }
         
-        const vendorCosts = calcManager?.vendorCosts || [];
-        const kpiData = calcManager?.kpiData || {};
+        // Get calculated data directly from store (new React pattern)
+        const store = window.appStore;
+        const state = store?.getState();
+        const calculationsData = state?.calculationsData || {};
+        const vendorCosts = calculationsData.vendorCosts || [];
+        const kpiData = calculationsData.kpiData || {};
         
         // Create basic header
         const data = [
@@ -1119,15 +1125,22 @@ class ApplicationController extends BaseComponent {
             views: [{ state: 'frozen', ySplit: 1 }]
         });
 
-        // Get calculations manager data
-        const calcManager = this.managers.calculations;
-        if (calcManager) {
-            calcManager.calculateVendorCosts();
-            calcManager.calculateKPIs();
+        // Get calculations data from new React system (migrated from legacy CalculationsManager)
+        // Use calculationsActions to calculate and get data from store
+        if (window.calculationsActions && window.appStore) {
+            try {
+                window.calculationsActions.calculateProjectCosts();
+            } catch (error) {
+                console.error('Failed to calculate project costs for export:', error);
+            }
         }
         
-        const vendorCosts = calcManager?.vendorCosts || [];
-        const kpiData = calcManager?.kpiData || {};
+        // Get calculated data directly from store (new React pattern)
+        const store = window.appStore;
+        const state = store?.getState();
+        const calculationsData = state?.calculationsData || {};
+        const vendorCosts = calculationsData.vendorCosts || [];
+        const kpiData = calculationsData.kpiData || {};
         
         // Define styles
         const styles = {
@@ -2496,9 +2509,17 @@ class ApplicationController extends BaseComponent {
                 currentProject = await this.migrateProjectConfig(lastProject);
                 
                 // REMOVED: Version manager onProjectChanged (now handled by React)
-                // REMOVED: Phase sync now handled by React components
+                // REMOVED: Phase sync now handled by React components  
                 // this.managers.projectPhases?.synchronizeWithProject();
-                this.managers.calculations?.calculateVendorCosts();
+                
+                // Calculate project costs using new React system (migrated from legacy CalculationsManager)
+                if (window.calculationsActions) {
+                    try {
+                        window.calculationsActions.calculateProjectCosts();
+                    } catch (error) {
+                        console.error('Failed to calculate project costs on project load:', error);
+                    }
+                }
                 
                 // REMOVED: React-only approach
                 // this.phasesManager = this.managers.projectPhases;

@@ -39,6 +39,7 @@ import RestoreVersionModal from './components/RestoreVersionModal';
 // Import Actions classes for global registration
 import { NavigationActions } from './actions/NavigationActions';
 import { versionHistoryActions } from './actions/VersionHistoryActions';
+import { calculationsActions } from './actions/CalculationsActions';
 import '../js/actions/ReactPageWrapperActions.js';
 
 // Import the existing store
@@ -112,7 +113,9 @@ window.ReactComponents = {
 // Make Actions classes available globally
 window.NavigationActions = NavigationActions;
 window.versionHistoryActions = versionHistoryActions;
+window.calculationsActions = calculationsActions;
 
 console.log('✅ React components exported globally:', Object.keys(window.ReactComponents));
 console.log('✅ NavigationActions exported globally');
 console.log('✅ versionHistoryActions exported globally');
+console.log('✅ calculationsActions exported globally');
