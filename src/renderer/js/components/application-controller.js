@@ -930,6 +930,24 @@ class ApplicationController extends BaseComponent {
     }
 
     /**
+     * Helper method to get supplier rate for Excel export
+     */
+    getSupplierRate(supplierId) {
+        if (!this.configManager || !this.currentProject) {
+            return 0;
+        }
+
+        const projectConfig = this.currentProject.configuration || this.currentProject.config;
+        const allSuppliers = [
+            ...(this.configManager.getSuppliers(projectConfig) || []),
+            ...(this.configManager.getInternalResources(projectConfig) || [])
+        ];
+        
+        const supplier = allSuppliers.find(s => s.id === supplierId);
+        return supplier ? (supplier.realRate || supplier.officialRate || 0) : 0;
+    }
+
+    /**
      * Create Excel sheet for assumptions data
      */
     createAssumptionsSheet() {
@@ -1958,9 +1976,30 @@ class ApplicationController extends BaseComponent {
                 const manDays = phase.manDays || 0;
                 const phaseTotalCost = phase.cost || 0;
                 
-                // Basic resource breakdown (React components handle complex calculations)
+                // Calculate resource breakdown from phase effort data
                 const manDaysByResource = { G1: 0, G2: 0, TA: 0, PM: 0 };
                 const costByResource = { G1: 0, G2: 0, TA: 0, PM: 0 };
+                
+                // Extract actual resource breakdown from phase effort percentages
+                if (phase.effort) {
+                    const selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
+                    
+                    Object.entries(phase.effort).forEach(([role, percentage]) => {
+                        if (percentage && percentage > 0) {
+                            // Calculate man days for this role
+                            const roleMDs = Math.round((phase.manDays * (percentage / 100)) * 10) / 10;
+                            manDaysByResource[role] = roleMDs;
+                            
+                            // Calculate cost for this role
+                            const supplierId = selectedSuppliers[role];
+                            if (supplierId) {
+                                // Find supplier rate from configurations
+                                const supplierRate = this.getSupplierRate(supplierId);
+                                costByResource[role] = Math.round(roleMDs * supplierRate);
+                            }
+                        }
+                    });
+                }
                 
                 totalManDays += phase.manDays || 0;
                 totalCost += phaseTotalCost;
