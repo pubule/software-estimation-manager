@@ -10,6 +10,7 @@ let mainWindow;
 
 // Create the main application window
 function createWindow() {
+    console.log('🔍 MAIN_PROCESS - createWindow called, starting Electron app');
     mainWindow = new BrowserWindow({
         width: 1400,
         height: 900,
@@ -198,11 +199,24 @@ ipcMain.handle('list-projects', async () => {
 
 ipcMain.handle('save-project-file', async (event, projectData) => {
     try {
+        console.log('🔍 MAIN_PROCESS DEBUG - save-project-file handler called!');
+        console.log('🔍 MAIN_PROCESS DEBUG - Project data received in main process:', {
+            hasFinalMDsOverrides: !!projectData?.finalMDsOverrides,
+            finalMDsOverrides: projectData?.finalMDsOverrides || 'NONE',
+            projectId: projectData?.project?.id,
+            dataKeys: Object.keys(projectData || {}),
+            dataType: typeof projectData
+        });
+        
         const projectsPath = await getProjectsPath();
         const fileName = `${projectData.project.name.replace(/[^a-z0-9]/gi, '_')}_${projectData.project.id}.json`;
         const filePath = path.join(projectsPath, fileName);
 
-        await fs.writeFile(filePath, JSON.stringify(projectData, null, 2));
+        const jsonString = JSON.stringify(projectData, null, 2);
+        console.log('🔍 MAIN_PROCESS DEBUG - JSON string being written to file contains finalMDsOverrides:', 
+            jsonString.includes('finalMDsOverrides'));
+        
+        await fs.writeFile(filePath, jsonString);
 
         return {
             success: true,
@@ -216,8 +230,17 @@ ipcMain.handle('save-project-file', async (event, projectData) => {
 
 ipcMain.handle('load-project-file', async (event, filePath) => {
     try {
+        console.log('🔍 MAIN_PROCESS LOAD DEBUG - Loading project from:', filePath);
         const content = await fs.readFile(filePath, 'utf8');
         const projectData = JSON.parse(content);
+        
+        console.log('🔍 MAIN_PROCESS LOAD DEBUG - Project data loaded:', {
+            hasFinalMDsOverrides: !!projectData?.finalMDsOverrides,
+            finalMDsOverrides: projectData?.finalMDsOverrides || 'NONE',
+            projectId: projectData?.project?.id,
+            dataKeys: Object.keys(projectData || {})
+        });
+        
         return { success: true, data: projectData };
     } catch (error) {
         return { success: false, error: error.message };

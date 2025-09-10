@@ -451,6 +451,8 @@ export class CalculationsActions {
    */
   updateFinalMDs(vendorId: string, role: string, department: string, newValue: number): void {
     try {
+      console.log('🔍 UPDATE_FINAL_MDS DEBUG - Called with:', { vendorId, role, department, newValue });
+      
       const store = this.getStore();
       const state = store.getState();
       const currentProject = state.currentProject;
@@ -467,6 +469,9 @@ export class CalculationsActions {
         [key]: newValue
       };
       
+      console.log('🔍 UPDATE_FINAL_MDS DEBUG - Current overrides:', currentOverrides);
+      console.log('🔍 UPDATE_FINAL_MDS DEBUG - Key:', key);
+      console.log('🔍 UPDATE_FINAL_MDS DEBUG - Updated overrides:', updatedOverrides);
       
       // 1. Process all costs (same as calculateProjectCosts)
       const vendorCosts = this.processAllCosts(currentProject);
@@ -484,7 +489,8 @@ export class CalculationsActions {
         finalMDsOverrides: updatedOverrides
       });
       
-      console.log('Final MDs updated atomically:', { vendorId, role, department, newValue });
+      console.log('🔍 UPDATE_FINAL_MDS DEBUG - Final MDs updated atomically:', { vendorId, role, department, newValue });
+      console.log('🔍 UPDATE_FINAL_MDS DEBUG - Store after update contains override:', store.getState().calculationsData?.finalMDsOverrides[key]);
     } catch (error) {
       console.error('Failed to update Final MDs:', error);
       throw error;

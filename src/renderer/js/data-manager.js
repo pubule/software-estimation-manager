@@ -50,6 +50,8 @@ class DataManager extends BaseComponent {
                 projectId: projectData?.project?.id,
                 lastModified: projectData?.project?.lastModified,
                 featuresCount: projectData?.features?.length,
+                hasFinalMDsOverrides: !!projectData?.finalMDsOverrides,
+                finalMDsOverrides: projectData?.finalMDsOverrides || 'NONE',
                 originalDataHash: this.generateDataHash(projectData)
             });
 
@@ -62,6 +64,8 @@ class DataManager extends BaseComponent {
             console.log('🔍 SAVE DEBUG - Deep copy created:', {
                 originalHash: this.generateDataHash(projectData),
                 copyHash: this.generateDataHash(projectDataForSaving),
+                copyHasFinalMDsOverrides: !!projectDataForSaving?.finalMDsOverrides,
+                copyFinalMDsOverrides: projectDataForSaving?.finalMDsOverrides || 'NONE',
                 areEqual: this.generateDataHash(projectData) === this.generateDataHash(projectDataForSaving)
             });
 
@@ -559,6 +563,14 @@ class ElectronPersistenceStrategy {
 
     async saveProject(projectData, filePath = null) {
         try {
+            console.log('🔍 ELECTRON_PERSISTENCE DEBUG - Data being sent to Electron API:', {
+                hasFinalMDsOverrides: !!projectData?.finalMDsOverrides,
+                finalMDsOverrides: projectData?.finalMDsOverrides || 'NONE',
+                projectId: projectData?.project?.id,
+                dataKeys: Object.keys(projectData || {}),
+                dataType: typeof projectData
+            });
+            
             let result;
             
             if (filePath) {
@@ -569,6 +581,7 @@ class ElectronPersistenceStrategy {
                 result = await window.electronAPI.saveProjectFile(projectData);
             }
 
+            console.log('🔍 ELECTRON_PERSISTENCE DEBUG - Save result:', result);
             return result;
         } catch (error) {
             return { success: false, error: error.message };

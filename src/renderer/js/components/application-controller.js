@@ -2283,7 +2283,23 @@ class ApplicationController extends BaseComponent {
             // Get FRESH project data after phases have been updated
             const updatedProject = StateSelectors.getCurrentProject();
             
-            // Save through data manager with updated data
+            // CRITICAL: Sync finalMDsOverrides from calculationsData to currentProject before saving
+            const state = this.store.getState();
+            const calculationsData = state.calculationsData;
+            console.log('🔍 SYNC DEBUG - Full calculationsData at save time:', calculationsData);
+            console.log('🔍 SYNC DEBUG - calculationsData.finalMDsOverrides:', calculationsData?.finalMDsOverrides);
+            console.log('🔍 SYNC DEBUG - Keys in calculationsData:', Object.keys(calculationsData || {}));
+            
+            if (calculationsData?.finalMDsOverrides) {
+                console.log('🔍 SYNC DEBUG: Synchronizing finalMDsOverrides before save:', calculationsData.finalMDsOverrides);
+                updatedProject.finalMDsOverrides = { ...calculationsData.finalMDsOverrides };
+                console.log('🔍 SYNC DEBUG: Project now has finalMDsOverrides:', updatedProject.finalMDsOverrides);
+            } else {
+                console.log('🔍 SYNC DEBUG: No finalMDsOverrides found in calculationsData');
+                console.log('🔍 SYNC DEBUG: Current project before save has finalMDsOverrides:', updatedProject?.finalMDsOverrides);
+            }
+            
+            // Save through data manager with updated data (now includes finalMDsOverrides)
             await this.managers.data.saveProject(updatedProject);
 
             StateSelectors.markProjectClean();

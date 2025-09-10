@@ -328,7 +328,22 @@ class ProjectBusinessLogic extends BaseComponent {
                 throw new Error('Data manager not available');
             }
 
-            // Save project
+            // CRITICAL: Sync finalMDsOverrides from calculationsData to currentProject before saving
+            const calculationsData = state.calculationsData;
+            console.log('🔍 SYNC DEBUG - Full calculationsData at save time:', calculationsData);
+            console.log('🔍 SYNC DEBUG - calculationsData.finalMDsOverrides:', calculationsData?.finalMDsOverrides);
+            console.log('🔍 SYNC DEBUG - Keys in calculationsData:', Object.keys(calculationsData || {}));
+            
+            if (calculationsData?.finalMDsOverrides) {
+                console.log('🔍 SYNC DEBUG: Synchronizing finalMDsOverrides before save:', calculationsData.finalMDsOverrides);
+                state.currentProject.finalMDsOverrides = { ...calculationsData.finalMDsOverrides };
+                console.log('🔍 SYNC DEBUG: Project now has finalMDsOverrides:', state.currentProject.finalMDsOverrides);
+            } else {
+                console.log('🔍 SYNC DEBUG: No finalMDsOverrides found in calculationsData');
+                console.log('🔍 SYNC DEBUG: Current project before save has finalMDsOverrides:', state.currentProject?.finalMDsOverrides);
+            }
+
+            // Save project (now includes manual finalMDsOverrides modifications)
             const result = await this.app.dataManager.saveProject(state.currentProject);
             
             if (result.success) {
