@@ -771,6 +771,12 @@ ${assumptionsList}`;
     try {
       const store = this.getStore();
       const state = store.getState();
+      const currentProject = state.currentProject;
+      
+      if (!currentProject) {
+        throw new Error('No project loaded');
+      }
+
       const key = `${vendorId}_${role}_${department}`;
       
       // Rimuovi override specifico
@@ -778,15 +784,21 @@ ${assumptionsList}`;
       const newOverrides = { ...currentOverrides };
       delete newOverrides[key];
       
-      // Aggiorna store con gli override modificati
-      state.setCalculationsData({
-        ...state.calculationsData,
-        finalMDsOverrides: newOverrides,
-        version: (state.calculationsData?.version || 0) + 1
-      });
+      // 1. Process all costs (same as calculateProjectCosts)
+      const vendorCosts = this.processAllCosts(currentProject);
       
-      // Ricalcola
-      this.calculateProjectCosts();
+      // 2. Apply remaining overrides (excluding the one we just deleted)
+      const costsWithOverrides = this.applyFinalMDsOverridesWithCustom(vendorCosts, newOverrides);
+      
+      // 3. Calculate KPIs
+      const kpiData = this.calculateKPIs(costsWithOverrides);
+      
+      // 4. Update store with all changes
+      state.setCalculationsData({
+        vendorCosts: costsWithOverrides,
+        kpiData: kpiData,
+        finalMDsOverrides: newOverrides
+      });
       
       console.log('Single Final MD reset:', { vendorId, role, department });
     } catch (error) {
