@@ -13,6 +13,22 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
   const featureActions = useFeatureActions();
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
 
+  // Memoize supplier display names to prevent infinite loops
+  const supplierDisplayNames = useMemo(() => {
+    const cache = new Map<string, string>();
+    features.forEach(feature => {
+      if (feature.supplier && !cache.has(feature.supplier)) {
+        try {
+          cache.set(feature.supplier, featureActions.getSupplierDisplayName(feature.supplier));
+        } catch (error) {
+          console.error('Error getting supplier display name:', error);
+          cache.set(feature.supplier, feature.supplier);
+        }
+      }
+    });
+    return cache;
+  }, [features, featureActions]);
+
   // Toggle row expansion
   const toggleRowExpansion = (featureId: string) => {
     setExpandedRows(prev => 
@@ -89,7 +105,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
                 </span>
               </td>
               <td className="feature-supplier">
-                {featureActions.getSupplierDisplayName(feature.supplier)}
+                {supplierDisplayNames.get(feature.supplier) || feature.supplier}
               </td>
               <td className="feature-real-md">
                 {feature.realManDays || 0}

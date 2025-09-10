@@ -547,11 +547,8 @@ export class FeatureActions {
     try {
       if (!supplierId) return '';
       
-      console.log('🔍 SUPPLIER DEBUG - Looking for supplier ID:', supplierId);
-      
       const configManager = this.getConfigManager();
       if (!configManager) {
-        console.log('🔍 SUPPLIER DEBUG - ConfigManager not available');
         return supplierId;
       }
       
@@ -561,28 +558,17 @@ export class FeatureActions {
       // Support both legacy (config) and new (configuration) structure
       const projectConfig = currentProject?.configuration || currentProject?.config;
       
-      console.log('🔍 SUPPLIER DEBUG - ProjectConfig:', projectConfig ? 'Found' : 'undefined');
-      
       // Check external suppliers first (use global config when project config is undefined)
       const suppliers = configManager.getSuppliers(projectConfig) || [];
-      console.log('🔍 SUPPLIER DEBUG - External suppliers:', suppliers.map(s => ({ id: s.id, name: s.name })));
-      const externalIds = suppliers.map(s => s.id);
-      console.log('🔍 ALL EXTERNAL IDs:', JSON.stringify(externalIds));
-      console.log('🔍 SEARCHING FOR:', supplierId);
       let supplier = suppliers.find(s => s.id === supplierId);
       
       if (supplier) {
         const rate = supplier.officialRate || supplier.realRate || 0;
-        const result = `${supplier.location || 'EXT'} - ${supplier.name} (€${rate}/day)`;
-        console.log('🔍 SUPPLIER DEBUG - Found external supplier:', result);
-        return result;
+        return `${supplier.location || 'EXT'} - ${supplier.name} (€${rate}/day)`;
       }
       
       // Check internal resources (use global config when project config is undefined)
       const internalResources = configManager.getInternalResources(projectConfig) || [];
-      console.log('🔍 SUPPLIER DEBUG - Internal resources:', internalResources.map(r => ({ id: r.id, name: r.name })));
-      const internalIds = internalResources.map(r => r.id);
-      console.log('🔍 ALL INTERNAL IDs:', JSON.stringify(internalIds));
       
       // Try exact match first
       supplier = internalResources.find(r => r.id === supplierId);
@@ -591,18 +577,13 @@ export class FeatureActions {
       if (!supplier) {
         // Map common ID variations (developer avg-g2-it → developer-g2-avg)
         const normalizedId = supplierId.replace(/\s+/g, '-').replace('avg-g2-it', 'g2-avg');
-        console.log('🔍 SUPPLIER DEBUG - Trying normalized ID:', normalizedId);
         supplier = internalResources.find(r => r.id === normalizedId);
       }
       
       if (supplier) {
         const rate = supplier.officialRate || supplier.realRate || 0;
-        const result = `IT - ${supplier.name} (€${rate}/day)`;
-        console.log('🔍 SUPPLIER DEBUG - Found internal resource:', result);
-        return result;
+        return `IT - ${supplier.name} (€${rate}/day)`;
       }
-      
-      console.log('🔍 SUPPLIER DEBUG - Supplier not found, returning ID:', supplierId);
       return supplierId;
     } catch (error) {
       console.error('Failed to get supplier display name:', error);

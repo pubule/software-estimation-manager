@@ -680,16 +680,35 @@ const appStore = window.zustand.createStore((set, get) => ({
             console.log('Loading existing phases data from project');
             const existingPhases = currentProject.phases;
             
+            // DEBUG: Log what we're loading from JSON
+            console.log('🔍 Phase data from JSON:');
+            Object.entries(existingPhases).forEach(([key, phase]) => {
+                if (key !== 'selectedSuppliers') {
+                    console.log(`  ${key}: ${phase.manDays} man days`);
+                }
+            });
+            
             const currentPhases = currentState.phaseDefinitions.map(def => {
                 const existing = existingPhases[def.id] || {};
+                const manDays = existing.manDays !== undefined ? existing.manDays : 0;
+                
+                // DEBUG: Log mapping details
+                console.log(`  Mapping ${def.id}: existing=${existing.manDays}, using=${manDays}`);
+                
                 return {
                     ...def,
-                    manDays: existing.manDays !== undefined ? existing.manDays : 0,
+                    manDays: manDays,
                     effort: existing.effort || { ...def.defaultEffort },
                     assignedResources: existing.assignedResources || [],
                     cost: existing.cost || 0,
                     lastModified: existing.lastModified || new Date().toISOString()
                 };
+            });
+            
+            // DEBUG: Log what we're setting in the store
+            console.log('🔍 Setting phases in store:');
+            currentPhases.forEach(phase => {
+                console.log(`  ${phase.id}: ${phase.manDays} man days`);
             });
             
             set({ 
@@ -800,6 +819,22 @@ const appStore = window.zustand.createStore((set, get) => ({
         
         const coverageMDs = currentProject.coverage || 0;
         const totalDevelopmentMDs = featuresTotal + coverageMDs;
+        
+        // Fix: Only update development phase if the calculated value is different from stored value
+        // This prevents unnecessary overwrites of manually-set development values
+        const storedDevelopmentMDs = currentProject.phases?.development?.manDays || 0;
+        const shouldUpdate = Math.abs(totalDevelopmentMDs - storedDevelopmentMDs) > 0.1;
+        
+        if (!shouldUpdate) {
+            console.log('Development phase calculation skipped - values match (stored:', storedDevelopmentMDs, 'calculated:', totalDevelopmentMDs, ')');
+            return;
+        }
+        
+        console.log('🔍 Development phase calculation:');
+        console.log('  Features total:', featuresTotal);
+        console.log('  Coverage MDs:', coverageMDs);
+        console.log('  Total calculated:', totalDevelopmentMDs);
+        console.log('  Stored in JSON:', storedDevelopmentMDs);
         
         const updatedPhases = currentState.currentPhases.map(phase => 
             phase.id === 'development' ? { 

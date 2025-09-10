@@ -607,15 +607,27 @@ export class ProjectActions {
     // Create phases object
     const phases: any = {};
     
-    // Initialize each phase with default values
+    // Get current project to preserve existing values
+    const store = this.getStore();
+    const currentProject = store?.getState().currentProject;
+    const existingPhases = currentProject?.phases || {};
+    
+    console.log('🔧 AUTO-REPAIR: Preserving existing phase values:', Object.keys(existingPhases));
+    
+    // Initialize each phase, preserving existing values instead of overwriting
     phaseDefinitions.forEach(def => {
+      const existingPhase = existingPhases[def.id] || {};
+      
+      // CRITICAL FIX: Preserve manDays, effort, cost, and lastModified if they exist
       phases[def.id] = {
-        manDays: 0,
-        effort: { ...def.defaultEffort },
-        assignedResources: [],
-        cost: 0,
-        lastModified: now
+        manDays: existingPhase.manDays !== undefined ? existingPhase.manDays : 0,
+        effort: existingPhase.effort || { ...def.defaultEffort },
+        assignedResources: existingPhase.assignedResources || [],
+        cost: existingPhase.cost !== undefined ? existingPhase.cost : 0,
+        lastModified: existingPhase.lastModified || now
       };
+      
+      console.log(`🔧 AUTO-REPAIR: Phase ${def.id} - preserved manDays: ${phases[def.id].manDays}`);
     });
 
     // Preserve existing selectedSuppliers
