@@ -137,10 +137,9 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
             const isInternal = supplier.type === 'internal' || supplier.isInternal;
             const internalSuffix = isInternal ? ' - Internal' : '';
             const displayName = `${supplier.department} - ${supplier.name} (€${rate}/day)${internalSuffix}`;
-            const optionValue = `${supplier.name.toLowerCase()}-${supplier.role.toLowerCase()}-${supplier.department.toLowerCase()}`;
             
             return (
-              <option key={supplier.id} value={optionValue}>
+              <option key={supplier.id} value={supplier.id}>
                 {displayName}
               </option>
             );
