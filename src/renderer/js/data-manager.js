@@ -118,8 +118,18 @@ class DataManager extends BaseComponent {
             const result = await this.persistenceStrategy.loadProject(filePath);
 
             if (result.success) {
+                console.log('🔍 CRITICAL DEBUG - Raw data from file before deserialization:');
+                if (result.data && result.data.phases) {
+                    console.log('🔍 PHASES IN RAW DATA:', JSON.stringify(result.data.phases, null, 2));
+                }
+                
                 // Deserialize data
                 const projectData = this.serializers.deserializeProject(result.data);
+                
+                console.log('🔍 CRITICAL DEBUG - Data after deserialization:');
+                if (projectData && projectData.phases) {
+                    console.log('🔍 PHASES AFTER DESERIALIZATION:', JSON.stringify(projectData.phases, null, 2));
+                }
 
                 console.log('=== DEBUG DATA MANAGER loadProject ===');
                 console.log('  - Raw result object type:', typeof result);

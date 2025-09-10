@@ -17,7 +17,8 @@
       "Bash(npx cucumber-js:*)",
       "Bash(find:*)",
       "Read(//Users/FABIO.STOCCO/Library/CloudStorage/OneDrive-Unicredit/Documentazione/TOOLS/Software Estimation Projects/**)",
-      "Read(//Users/FABIO.STOCCO/OneDrive - Unicredit/Documentazione/TOOLS/Software Estimation Projects/**)"
+      "Read(//Users/FABIO.STOCCO/OneDrive - Unicredit/Documentazione/TOOLS/Software Estimation Projects/**)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
