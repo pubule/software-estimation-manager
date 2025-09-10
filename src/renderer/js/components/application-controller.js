@@ -913,6 +913,23 @@ class ApplicationController extends BaseComponent {
     }
 
     /**
+     * Helper method to get phase type for Excel export
+     */
+    getPhaseType(key) {
+        const phaseTypes = {
+            functionalSpec: 'Analysis',
+            techSpec: 'Analysis', 
+            development: 'Development',
+            sit: 'Testing',
+            uat: 'Testing',
+            vapt: 'Testing',
+            consolidation: 'Support',
+            postGoLive: 'Support'
+        };
+        return phaseTypes[key] || 'General';
+    }
+
+    /**
      * Create Excel sheet for assumptions data
      */
     createAssumptionsSheet() {
@@ -1928,10 +1945,14 @@ class ApplicationController extends BaseComponent {
         let totalManDays = 0;
         let totalCost = 0;
         
+        // Resource totals
+        let totalG1MD = 0, totalG2MD = 0, totalTAMD = 0, totalPMMD = 0;
+        let totalG1Cost = 0, totalG2Cost = 0, totalTACost = 0, totalPMCost = 0;
+        
         phases.forEach((phase, index) => {
             if (phase.manDays > 0) {
-                // Get phase definition for type info
-                const phaseDef = phaseDefinitions.find(pd => pd.id === phase.id);
+                // Get phase type from key - React-only simplified approach
+                const phaseType = this.getPhaseType(phase.key);
                 
                 // Simplified calculation for React-only approach
                 const manDays = phase.manDays || 0;
@@ -1943,6 +1964,17 @@ class ApplicationController extends BaseComponent {
                 
                 totalManDays += phase.manDays || 0;
                 totalCost += phaseTotalCost;
+                
+                // Accumulate resource totals
+                totalG1MD += manDaysByResource.G1 || 0;
+                totalG2MD += manDaysByResource.G2 || 0;
+                totalTAMD += manDaysByResource.TA || 0;
+                totalPMMD += manDaysByResource.PM || 0;
+                
+                totalG1Cost += costByResource.G1 || 0;
+                totalG2Cost += costByResource.G2 || 0;
+                totalTACost += costByResource.TA || 0;
+                totalPMCost += costByResource.PM || 0;
 
                 // Alternate row colors
                 const fillColor = index % 2 === 0 ? 'FFE6E0EC' : 'FFFFFFFF';
@@ -1952,7 +1984,7 @@ class ApplicationController extends BaseComponent {
                 worksheet.getCell(row, 1).style = { ...styles.dataCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
                 
                 // Phase type
-                worksheet.getCell(row, 2).value = phaseDef?.type || '';
+                worksheet.getCell(row, 2).value = phaseType || '';
                 worksheet.getCell(row, 2).style = { ...styles.dataCell, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } } };
                 
                 // Total Man Days
@@ -2000,23 +2032,6 @@ class ApplicationController extends BaseComponent {
         
         worksheet.getCell(row, 3).value = totalManDays;
         worksheet.getCell(row, 3).style = { ...styles.numberCell, ...styles.totalRow };
-        
-        // Calculate resource totals
-        let totalG1MD = 0, totalG2MD = 0, totalTAMD = 0, totalPMMD = 0;
-        let totalG1Cost = 0, totalG2Cost = 0, totalTACost = 0, totalPMCost = 0;
-        
-        phases.forEach(phase => {
-            if (phase.manDays > 0) {
-                // Simplified totals for React-only approach
-                // Resource breakdown calculations are handled by React components
-                // For export, we'll use simplified values
-                
-                totalG1Cost += costByResource.G1 || 0;
-                totalG2Cost += costByResource.G2 || 0;
-                totalTACost += costByResource.TA || 0;
-                totalPMCost += costByResource.PM || 0;
-            }
-        });
         
         worksheet.getCell(row, 4).value = totalG1MD;
         worksheet.getCell(row, 4).style = { ...styles.numberCell, ...styles.totalRow };
