@@ -118,11 +118,12 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
   useEffect(() => {
     if (formData.category && formData.featureType) {
       const defaultMDs = getDefaultManDays(formData.category, formData.featureType);
-      if (defaultMDs > 0) {
+      // Solo applica il default se non esiste già un valore per realManDays
+      if (defaultMDs > 0 && (formData.realManDays === undefined || formData.realManDays === 0)) {
         setFormData(prev => ({ 
           ...prev, 
           realManDays: defaultMDs,
-          manDays: calculateManDays(defaultMDs, prev.expertise || 100, prev.riskMargin || 10)
+          manDays: calculateManDays(defaultMDs, prev.expertise ?? 100, prev.riskMargin ?? 10)
         }));
       }
     }
@@ -131,9 +132,9 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
   // Recalculate man days when expertise or risk margin changes
   useEffect(() => {
     const calculated = calculateManDays(
-      formData.realManDays || 0, 
-      formData.expertise || 100, 
-      formData.riskMargin || 10
+      formData.realManDays ?? 0, 
+      formData.expertise ?? 100, 
+      formData.riskMargin ?? 10
     );
     
     setFormData(prev => ({ ...prev, manDays: calculated }));
@@ -316,7 +317,7 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
               <input
                 type="number"
                 id="feature-real-man-days"
-                value={formData.realManDays || 0}
+                value={formData.realManDays ?? 0}
                 onChange={(e) => handleInputChange('realManDays', parseFloat(e.target.value) || 0)}
                 className={errors.realManDays ? 'error' : ''}
                 min="0.1"
@@ -333,7 +334,7 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
               <input
                 type="number"
                 id="feature-expertise"
-                value={formData.expertise || 100}
+                value={formData.expertise ?? 100}
                 onChange={(e) => handleInputChange('expertise', parseInt(e.target.value) || 100)}
                 className={errors.expertise ? 'error' : ''}
                 min="1"
@@ -350,7 +351,7 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
               <input
                 type="number"
                 id="feature-risk-margin"
-                value={formData.riskMargin || 10}
+                value={formData.riskMargin ?? 10}
                 onChange={(e) => handleInputChange('riskMargin', parseInt(e.target.value) || 0)}
                 min="0"
                 max="100"
@@ -364,7 +365,7 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
               <input
                 type="number"
                 id="feature-calculated-man-days"
-                value={formData.manDays || 0}
+                value={formData.manDays ?? 0}
                 readOnly
                 className="calculated-value"
               />
