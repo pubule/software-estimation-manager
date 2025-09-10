@@ -46,14 +46,6 @@ class DataManager extends BaseComponent {
         return this.withErrorBoundary(async () => {
             this.logOperation('saveProject', { projectId: projectData?.project?.id, filePath });
 
-            console.log('🔍 SAVE DEBUG - Original project data before save:', {
-                projectId: projectData?.project?.id,
-                lastModified: projectData?.project?.lastModified,
-                featuresCount: projectData?.features?.length,
-                hasFinalMDsOverrides: !!projectData?.finalMDsOverrides,
-                finalMDsOverrides: projectData?.finalMDsOverrides || 'NONE',
-                originalDataHash: this.generateDataHash(projectData)
-            });
 
             // Validate data before saving
             await this.validators.validateProjectData(projectData);
@@ -61,24 +53,10 @@ class DataManager extends BaseComponent {
             // Create a deep copy to avoid modifying the original project data
             const projectDataForSaving = this.deepClone(projectData);
 
-            console.log('🔍 SAVE DEBUG - Deep copy created:', {
-                originalHash: this.generateDataHash(projectData),
-                copyHash: this.generateDataHash(projectDataForSaving),
-                copyHasFinalMDsOverrides: !!projectDataForSaving?.finalMDsOverrides,
-                copyFinalMDsOverrides: projectDataForSaving?.finalMDsOverrides || 'NONE',
-                areEqual: this.generateDataHash(projectData) === this.generateDataHash(projectDataForSaving)
-            });
 
             // Update metadata on the copy
             this.updateProjectMetadata(projectDataForSaving);
 
-            console.log('🔍 SAVE DEBUG - After metadata update:', {
-                originalLastModified: projectData?.project?.lastModified,
-                copyLastModified: projectDataForSaving?.project?.lastModified,
-                originalHash: this.generateDataHash(projectData),
-                copyHash: this.generateDataHash(projectDataForSaving),
-                metadataChanged: projectData?.project?.lastModified !== projectDataForSaving?.project?.lastModified
-            });
 
             // Serialize data
             const serializedData = this.serializers.serializeProject(projectDataForSaving);
@@ -88,12 +66,6 @@ class DataManager extends BaseComponent {
 
             if (result.success) {
                 this.currentProjectPath = result.filePath;
-                
-                console.log('🔍 SAVE DEBUG - After successful save:', {
-                    originalDataAfterSave: this.generateDataHash(projectData),
-                    savedDataHash: this.generateDataHash(projectDataForSaving),
-                    filePath: result.filePath
-                });
                 
                 this.emit('project-saved', { 
                     projectId: projectDataForSaving.project.id, 
@@ -122,15 +94,10 @@ class DataManager extends BaseComponent {
             const result = await this.persistenceStrategy.loadProject(filePath);
 
             if (result.success) {
-                console.log('🔍 CRITICAL DEBUG - Raw data from file before deserialization:');
-                if (result.data && result.data.phases) {
-                    console.log('🔍 PHASES IN RAW DATA:', JSON.stringify(result.data.phases, null, 2));
-                }
                 
                 // Deserialize data
                 const projectData = this.serializers.deserializeProject(result.data);
                 
-                console.log('🔍 CRITICAL DEBUG - Data after deserialization:');
                 if (projectData && projectData.phases) {
                     console.log('🔍 PHASES AFTER DESERIALIZATION:', JSON.stringify(projectData.phases, null, 2));
                 }
@@ -563,13 +530,6 @@ class ElectronPersistenceStrategy {
 
     async saveProject(projectData, filePath = null) {
         try {
-            console.log('🔍 ELECTRON_PERSISTENCE DEBUG - Data being sent to Electron API:', {
-                hasFinalMDsOverrides: !!projectData?.finalMDsOverrides,
-                finalMDsOverrides: projectData?.finalMDsOverrides || 'NONE',
-                projectId: projectData?.project?.id,
-                dataKeys: Object.keys(projectData || {}),
-                dataType: typeof projectData
-            });
             
             let result;
             
@@ -581,7 +541,6 @@ class ElectronPersistenceStrategy {
                 result = await window.electronAPI.saveProjectFile(projectData);
             }
 
-            console.log('🔍 ELECTRON_PERSISTENCE DEBUG - Save result:', result);
             return result;
         } catch (error) {
             return { success: false, error: error.message };

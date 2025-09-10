@@ -331,8 +331,6 @@ const appStore = window.zustand.createStore((set, get) => ({
         const currentState = get();
         if (!currentState.currentProject) return;
         
-        console.log('🔍 DEBUG: updateProjectPhases called with:', Object.keys(phases || {}));
-        console.log('🔍 DEBUG: Current project phases before update:', Object.keys(currentState.currentProject.phases || {}));
         
         // DEFENSIVE: If phases only contains selectedSuppliers, preserve existing phases
         const currentPhases = currentState.currentProject.phases || {};
@@ -357,7 +355,6 @@ const appStore = window.zustand.createStore((set, get) => ({
             phases: mergedPhases
         };
         
-        console.log('🔍 DEBUG: Final merged phases:', Object.keys(mergedPhases || {}));
         
         set({ 
             currentProject: updatedProject,
@@ -1116,8 +1113,6 @@ const appStore = window.zustand.createStore((set, get) => ({
         const preservedOverrides = currentState.calculationsData?.finalMDsOverrides || {};
         const preservedFilters = currentState.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' };
         
-        console.log('🔍 SET_CALC_DATA DEBUG - Called with data:', data);
-        console.log('🔍 SET_CALC_DATA DEBUG - Preserved filters:', preservedFilters);
         
         set({
             calculationsData: {
@@ -1131,7 +1126,6 @@ const appStore = window.zustand.createStore((set, get) => ({
             }
         });
         
-        console.log('🔍 SET_CALC_DATA DEBUG - Final state filters:', get().calculationsData?.filters);
     },
     
     /**
@@ -1156,9 +1150,6 @@ const appStore = window.zustand.createStore((set, get) => ({
         const currentFilters = currentState.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' };
         const newFilters = { ...currentFilters, ...filters };
         
-        console.log('🔍 STORE_FILTERS DEBUG - Current:', currentFilters);
-        console.log('🔍 STORE_FILTERS DEBUG - New filters param:', filters);
-        console.log('🔍 STORE_FILTERS DEBUG - Final merged:', newFilters);
         
         set({
             calculationsData: {

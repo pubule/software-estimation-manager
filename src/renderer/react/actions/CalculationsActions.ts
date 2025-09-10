@@ -75,7 +75,6 @@ export class CalculationsActions {
       const state = store.getState();
       const currentProject = state.currentProject;
       
-      console.log('🔍 CALCULATE DEBUG - Current project:', currentProject);
       
       if (!currentProject) {
         throw new Error('No project loaded');
@@ -411,21 +410,12 @@ export class CalculationsActions {
    * Applica override manuali Final MDs (con override custom)
    */
   private applyFinalMDsOverridesWithCustom(vendorCosts: VendorCost[], overrides: Record<string, number>): VendorCost[] {
-    console.log('🔍 OVERRIDE DEBUG - Applying overrides:', overrides);
-    console.log('🔍 OVERRIDE DEBUG - VendorCosts before override:', vendorCosts.map(c => ({
-      vendorId: c.vendorId,
-      role: c.role,
-      dept: c.department,
-      key: `${c.vendorId}_${c.role}_${c.department}`,
-      finalMDs: c.finalMDs
-    })));
     
     const result = vendorCosts.map(cost => {
       const key = `${cost.vendorId}_${cost.role}_${cost.department}`;
       const override = overrides[key];
       
       if (override !== undefined) {
-        console.log('🔍 OVERRIDE DEBUG - Applying override:', { key, override, originalMDs: cost.finalMDs });
         return {
           ...cost,
           finalMDs: override,
@@ -436,12 +426,6 @@ export class CalculationsActions {
       return cost;
     });
     
-    console.log('🔍 OVERRIDE DEBUG - VendorCosts after override:', result.map(c => ({
-      vendorId: c.vendorId,
-      role: c.role,
-      dept: c.department,
-      finalMDs: c.finalMDs
-    })));
     
     return result;
   }
@@ -451,7 +435,6 @@ export class CalculationsActions {
    */
   updateFinalMDs(vendorId: string, role: string, department: string, newValue: number): void {
     try {
-      console.log('🔍 UPDATE_FINAL_MDS DEBUG - Called with:', { vendorId, role, department, newValue });
       
       const store = this.getStore();
       const state = store.getState();
@@ -469,9 +452,6 @@ export class CalculationsActions {
         [key]: newValue
       };
       
-      console.log('🔍 UPDATE_FINAL_MDS DEBUG - Current overrides:', currentOverrides);
-      console.log('🔍 UPDATE_FINAL_MDS DEBUG - Key:', key);
-      console.log('🔍 UPDATE_FINAL_MDS DEBUG - Updated overrides:', updatedOverrides);
       
       // 1. Process all costs (same as calculateProjectCosts)
       const vendorCosts = this.processAllCosts(currentProject);
@@ -489,8 +469,6 @@ export class CalculationsActions {
         finalMDsOverrides: updatedOverrides
       });
       
-      console.log('🔍 UPDATE_FINAL_MDS DEBUG - Final MDs updated atomically:', { vendorId, role, department, newValue });
-      console.log('🔍 UPDATE_FINAL_MDS DEBUG - Store after update contains override:', store.getState().calculationsData?.finalMDsOverrides[key]);
     } catch (error) {
       console.error('Failed to update Final MDs:', error);
       throw error;
@@ -529,21 +507,17 @@ export class CalculationsActions {
       const state = store.getState();
       const currentFilters = state.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' };
       
-      console.log('🔍 APPLY_CATEGORY DEBUG - Current filters before update:', currentFilters);
-      console.log('🔍 APPLY_CATEGORY DEBUG - Setting category to:', category);
       
       const newFilters = {
         ...currentFilters,
         category: category
       };
       
-      console.log('🔍 APPLY_CATEGORY DEBUG - New filters object:', newFilters);
       
       state.setCalculationsFilters(newFilters);
       
       // Debug: Verify state after update
       const stateAfterUpdate = store.getState();
-      console.log('🔍 ZUSTAND RAW STATE - After filter update:', stateAfterUpdate.calculationsData?.filters);
       console.log('Category filter applied:', category);
     } catch (error) {
       console.error('Failed to apply category filter:', error);

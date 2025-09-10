@@ -79,9 +79,6 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   
   // Calcola al mount e quando cambia progetto (calcoli ogni volta come richiesto)
   useEffect(() => {
-    console.log('🔍 USE_EFFECT DEBUG - Current project:', currentProject);
-    console.log('🔍 USE_EFFECT DEBUG - Project features:', currentProject?.features?.length || 0);
-    console.log('🔍 USE_EFFECT DEBUG - Project phases:', currentProject?.phases ? Object.keys(currentProject.phases).length : 0);
     
     if (currentProject) {
       // CRITICAL: Check if there are manual finalMDsOverrides that should be preserved
@@ -89,20 +86,15 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       const hasManualOverrides = existingOverrides && Object.keys(existingOverrides).length > 0;
       
       if (hasManualOverrides) {
-        console.log('🔍 USE_EFFECT DEBUG - Manual overrides detected, preserving them:', existingOverrides);
-        console.log('🔍 USE_EFFECT DEBUG - Skipping calculateProjectCosts to preserve manual modifications');
       } else {
-        console.log('🔍 USE_EFFECT DEBUG - No manual overrides, calling calculateProjectCosts()');
         calculateProjectCosts();
       }
     } else {
-      console.log('🔍 USE_EFFECT DEBUG - No current project, skipping calculation');
     }
   }, [currentProject, calculateProjectCosts, calculationsData?.finalMDsOverrides]);
   
   // Handler eventi (SOLO chiamate ad Actions)
   const handleFinalMDsChange = (vendorId: string, role: string, department: string, value: number) => {
-    console.log('🔍 HANDLE_FINAL_MDS_CHANGE DEBUG - Called with:', { vendorId, role, department, value });
     // MAI business logic qui! Solo chiamata ad Actions
     updateFinalMDs(vendorId, role, department, value);
   };
@@ -440,10 +432,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                         type="number"
                         value={getInputValue(cost)}
                         onChange={(e) => {
-                          console.log('🔍 INPUT_CHANGE DEBUG - Raw event target value:', e.target.value);
                           const value = parseFloat(e.target.value) || 0;
-                          console.log('🔍 INPUT_CHANGE DEBUG - Parsed value:', value);
-                          console.log('🔍 INPUT_CHANGE DEBUG - Cost data:', { vendorId: cost.vendorId, role: cost.role, department: cost.department });
                           handleFinalMDsChange(cost.vendorId, cost.role, cost.department, value);
                         }}
                         className="final-mds-input"

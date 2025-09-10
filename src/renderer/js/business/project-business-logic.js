@@ -126,7 +126,6 @@ class ProjectBusinessLogic extends BaseComponent {
             // Initialize phases with default structure (fixing version snapshot issue)
             const initializedPhases = this.createInitialPhases();
             console.log('✅ DEBUG: initializedPhases created:', Object.keys(initializedPhases));
-            console.log('🔍 DEBUG: Total phases:', Object.keys(initializedPhases).length, 'Expected: 9');
 
             // Create project data structure
             const projectData = {
@@ -247,8 +246,6 @@ class ProjectBusinessLogic extends BaseComponent {
             if (source && source.startsWith('new-project-')) {
                 try {
                     if (window.versionHistoryActions) {
-                        console.log('🔍 DEBUG: Creating initial version for project with phases:', 
-                                  Object.keys(projectData.phases || {}));
                         await window.versionHistoryActions.createVersion('Initial project creation');
                         console.log('✅ Initial version created for new project');
                     } else {
@@ -322,7 +319,6 @@ class ProjectBusinessLogic extends BaseComponent {
                 throw new Error('No project to save');
             }
 
-            console.log('🔍 DEBUG: Saving project with phases:', Object.keys(state.currentProject.phases || {}));
 
             if (!this.app.dataManager) {
                 throw new Error('Data manager not available');
@@ -330,17 +326,9 @@ class ProjectBusinessLogic extends BaseComponent {
 
             // CRITICAL: Sync finalMDsOverrides from calculationsData to currentProject before saving
             const calculationsData = state.calculationsData;
-            console.log('🔍 SYNC DEBUG - Full calculationsData at save time:', calculationsData);
-            console.log('🔍 SYNC DEBUG - calculationsData.finalMDsOverrides:', calculationsData?.finalMDsOverrides);
-            console.log('🔍 SYNC DEBUG - Keys in calculationsData:', Object.keys(calculationsData || {}));
             
             if (calculationsData?.finalMDsOverrides) {
-                console.log('🔍 SYNC DEBUG: Synchronizing finalMDsOverrides before save:', calculationsData.finalMDsOverrides);
                 state.currentProject.finalMDsOverrides = { ...calculationsData.finalMDsOverrides };
-                console.log('🔍 SYNC DEBUG: Project now has finalMDsOverrides:', state.currentProject.finalMDsOverrides);
-            } else {
-                console.log('🔍 SYNC DEBUG: No finalMDsOverrides found in calculationsData');
-                console.log('🔍 SYNC DEBUG: Current project before save has finalMDsOverrides:', state.currentProject?.finalMDsOverrides);
             }
 
             // Save project (now includes manual finalMDsOverrides modifications)

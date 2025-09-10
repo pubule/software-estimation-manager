@@ -322,19 +322,11 @@ export class VersionHistoryActions {
       
       // DEBUG: Log delle features prima della creazione snapshot
       if (currentProject.features && currentProject.features.length > 0) {
-        console.log('🔍 DEBUG - Features in currentProject before snapshot:', 
-          currentProject.features.map((f: any) => ({ id: f.id, created: f.created })));
       } else {
         console.log('🚨 DEBUG - NO FEATURES found in currentProject!');
       }
 
       // Trova la versione corrente (quella con l'ID più alto)
-      console.log('🔍 DEBUG - All versions in project:', 
-        currentProject.versions.map((v: any) => ({ 
-          id: v.id, 
-          timestamp: v.timestamp, 
-          featureCount: v.projectSnapshot?.features?.length || 0 
-        })));
       
       const mostRecentVersion = currentProject.versions.reduce((latest: Version, current: Version) => {
         const latestNum = parseInt(latest.id.replace('V-', ''));
@@ -342,8 +334,6 @@ export class VersionHistoryActions {
         return currentNum > latestNum ? current : latest;
       });
 
-      console.log(`🔍 DEBUG - Selected current version by highest ID: ${mostRecentVersion.id} (${mostRecentVersion.timestamp})`);
-      console.log(`🔍 DEBUG - Selected version currently has ${mostRecentVersion.projectSnapshot?.features?.length || 0} features`);
       console.log(`Updating version ${mostRecentVersion.id} with latest project state`);
 
       // Avvia loading
@@ -385,7 +375,6 @@ export class VersionHistoryActions {
       
       // DEBUG: Verifica dell'aggiornamento
       const updatedVersionCheck = updatedVersions.find((v: Version) => v.id === mostRecentVersion.id);
-      console.log(`🔍 DEBUG - Updated version in array now has ${updatedVersionCheck?.projectSnapshot?.features?.length || 0} features`);
 
       // ACTIONS PATTERN: Update store through actions
       state.updateProjectVersions(updatedVersions);
@@ -1189,14 +1178,10 @@ export class VersionHistoryActions {
    */
   private createProjectSnapshot(project: any): any {
     // DEBUG: Log del progetto prima del deep copy
-    console.log('🔍 DEBUG - createProjectSnapshot input project features:', 
-      project.features?.map((f: any) => ({ id: f.id, created: f.created })) || 'NO FEATURES');
     
     const snapshot = JSON.parse(JSON.stringify(project));
     
     // DEBUG: Log dello snapshot dopo deep copy
-    console.log('🔍 DEBUG - createProjectSnapshot output snapshot features:', 
-      snapshot.features?.map((f: any) => ({ id: f.id, created: f.created })) || 'NO FEATURES');
     
     // Rimuovi array versions per evitare ricorsione
     delete snapshot.versions;
@@ -1207,12 +1192,6 @@ export class VersionHistoryActions {
       const currentState = store.getState();
       const calculationsData = currentState.calculationsData;
       
-      console.log('📊 DEBUG - Capturing latest calculationData from store:', {
-        hasVendorCosts: !!calculationsData?.vendorCosts,
-        vendorCount: calculationsData?.vendorCosts?.length || 0,
-        hasOverrides: !!calculationsData?.finalMDsOverrides,
-        storeVersion: calculationsData?.version || 0
-      });
       
       if (calculationsData?.vendorCosts && calculationsData.vendorCosts.length > 0) {
         // Includi tutti i dati di calcolo aggiornati

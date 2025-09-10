@@ -47,17 +47,14 @@ export class ProjectActions {
       const data = localStorage.getItem('recent-projects');
       const projects = data ? JSON.parse(data) : [];
       
-      console.log('🔍 DEBUG: Raw projects from localStorage:', projects.length, projects);
       
       // LAZY VALIDATION: Filter out projects whose files no longer exist
       const validProjects: RecentProject[] = [];
       const app = this.getApp();
       
-      console.log('🔍 DEBUG: DataManager available:', !!app?.dataManager);
       
       // SIMPLIFIED: Skip file existence validation since checkFileExists method is not available
       // Just keep all projects for now - file validation can be done when actually loading
-      console.log('🔍 DEBUG: Skipping file existence validation, keeping all projects');
       validProjects.push(...projects);
       
       // Update store if available
