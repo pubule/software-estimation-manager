@@ -1182,12 +1182,12 @@ const appStore = window.zustand.createStore((set, get) => ({
     /**
      * Clear calculations data
      */
-    clearCalculations: () => set(state => ({
+    clearCalculations: (preserveOverrides) => set(state => ({
         calculationsData: {
             vendorCosts: [],
             kpiData: null,
             filters: { vendor: 'all', role: 'all' },
-            finalMDsOverrides: {},
+            finalMDsOverrides: preserveOverrides || {},
             version: (state.calculationsData?.version || 0) + 1 // Increment version
         }
     })),

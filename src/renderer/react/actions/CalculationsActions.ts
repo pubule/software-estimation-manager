@@ -90,10 +90,16 @@ export class CalculationsActions {
       // 3. Calcola KPI
       const kpiData = this.calculateKPIs(costsWithOverrides);
       
-      // 4. Aggiorna store
+      // 4. Preserve existing finalMDsOverrides from current state or project data
+      const currentOverrides = state.calculationsData?.finalMDsOverrides || {};
+      const projectOverrides = currentProject.finalMDsOverrides || {};
+      const preservedOverrides = Object.keys(projectOverrides).length > 0 ? projectOverrides : currentOverrides;
+      
+      // 5. Aggiorna store
       state.setCalculationsData({
         vendorCosts: costsWithOverrides,
-        kpiData: kpiData
+        kpiData: kpiData,
+        finalMDsOverrides: preservedOverrides
       });
       
       console.log('✅ Calculations completed:', costsWithOverrides.length, 'vendor costs');

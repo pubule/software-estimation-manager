@@ -474,8 +474,12 @@ export class ProjectActions {
 
       console.log('🧹 CACHE CLEARING: Invalidating calculations cache...');
       
+      // Preserve finalMDsOverrides from current project if available
+      const currentProject = store.getState().currentProject;
+      const preserveOverrides = currentProject?.finalMDsOverrides || {};
+      
       // PATTERN: Clear calculations data through Store methods
-      store.getState().clearCalculations();
+      store.getState().clearCalculations(preserveOverrides);
       
       console.log('🧹 CACHE CLEARING: Reinitializing phases state...');
       // PATTERN: Reinitialize phases to ensure they reflect current project data
