@@ -67,7 +67,7 @@
     "vite-plugin-electron": "^0.28.4"
   },
   "dependencies": {
-    "@anthropic-ai/claude-code": "^1.0.110",
+    "@anthropic-ai/claude-code": "^1.0.113",
     "@google/gemini-cli": "^0.1.18",
     "electron-store": "^8.1.0",
     "exceljs": "^4.4.0",
