@@ -598,15 +598,15 @@ console.log('✅ Zustand store implementation ready for React components');
     }
     
     if (verifyReact()) {
-        // Load React components only if React is properly loaded
+        // Self-contained React loading - simple and direct
         const script = document.createElement('script');
-        script.src = '../../dist/renderer/assets/main.js';
+        script.src = 'assets/main.js';  // Built directly into src/renderer/assets/
         script.onload = () => {
             console.log('✅ React components loaded successfully');
-            console.log('Available window.ReactComponents:', window.ReactComponents ? Object.keys(window.ReactComponents) : 'undefined');
+            console.log('Available ReactComponents:', window.ReactComponents ? Object.keys(window.ReactComponents) : 'undefined');
         };
         script.onerror = () => {
-            console.error('❌ Failed to load React components');
+            console.error('❌ Failed to load React components from assets/main.js');
         };
         document.head.appendChild(script);
     } else {

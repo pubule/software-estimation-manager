@@ -78,29 +78,46 @@ class EnhancedNavigationManager extends NavigationManager {
             return;
         }
 
+        console.log('🔄 Navigation: Setting up store subscription with debugging...');
+        
         this.storeUnsubscribe = this.store.subscribe((state, prevState) => {
+            console.log('🔍 Navigation: Store subscription triggered');
+            console.log('Current project:', state.currentProject ? 'EXISTS' : 'NULL');
+            console.log('Previous project:', prevState ? (prevState.currentProject ? 'EXISTS' : 'NULL') : 'UNDEFINED');
+            
             // React to current section changes
-            if (state.currentSection !== prevState.currentSection) {
+            if (state.currentSection !== prevState?.currentSection) {
+                console.log(`🔄 Navigation: Section changed ${prevState?.currentSection} → ${state.currentSection}`);
                 this.handleSectionChange(state.currentSection);
             }
 
             // React to project state changes
             const hasProject = state.currentProject !== null;
-            const prevHasProject = prevState.currentProject !== null;
+            const prevHasProject = prevState ? (prevState.currentProject !== null) : false;
+            
+            console.log(`🔍 Navigation: Project state - current: ${hasProject}, previous: ${prevHasProject}`);
+            
             if (hasProject !== prevHasProject) {
+                console.log(`🚨 Navigation: PROJECT STATE CHANGE DETECTED! ${prevHasProject} → ${hasProject}`);
                 this.handleProjectLoadedChange(hasProject);
+            } else {
+                console.log('ℹ️ Navigation: No project state change detected');
             }
 
             // React to dirty state changes  
-            if (state.isDirty !== prevState.isDirty) {
+            if (state.isDirty !== prevState?.isDirty) {
+                console.log(`🔄 Navigation: Dirty state changed ${prevState?.isDirty} → ${state.isDirty}`);
                 this.handleDirtyStateChange(state.isDirty);
             }
 
             // React to current page changes
-            if (state.currentPage !== prevState.currentPage) {
+            if (state.currentPage !== prevState?.currentPage) {
+                console.log(`🔄 Navigation: Page changed ${prevState?.currentPage} → ${state.currentPage}`);
                 this.handlePageChange(state.currentPage);
             }
         });
+        
+        console.log('✅ Navigation: Store subscription setup complete');
     }
 
     /**
@@ -115,7 +132,8 @@ class EnhancedNavigationManager extends NavigationManager {
      * Handle project loaded state changes from global state  
      */
     handleProjectLoadedChange(hasProject) {
-        console.log(`Navigation: Project loaded state changed to ${hasProject}`);
+        console.log(`🚨 Navigation: PROJECT LOADED CHANGE HANDLER CALLED with hasProject = ${hasProject}`);
+        console.log(`🔍 Navigation: Project loaded state changed to ${hasProject}`);
         
         // CRITICAL FIX: Dispatch event when project becomes available
         if (hasProject) {
@@ -125,20 +143,27 @@ class EnhancedNavigationManager extends NavigationManager {
         
         // Auto-expand projects section when project is loaded (from old onProjectLoaded logic)
         if (hasProject && !this.projectsExpanded) {
+            console.log('🔄 Navigation: Auto-expanding projects section');
             this.projectsExpanded = true;
             this.updateProjectsExpansion();
         }
         
+        console.log('🔄 Navigation: Calling updateProjectStatus()');
         this.updateProjectStatus();
+        
+        console.log('🔄 Navigation: Calling updateProjectSubSections()');
         this.updateProjectSubSections();
         
         // If project is being closed and user is viewing a project sub-section,
         // navigate back to projects main page
         if (!hasProject && this.store && this.store.getState) {
             if (this.isProjectSubSection(this.store.getState().currentSection)) {
+                console.log('🔄 Navigation: Project closed, navigating back to projects');
                 this.store.getState().navigateTo('projects');
             }
         }
+        
+        console.log(`✅ Navigation: handleProjectLoadedChange completed for hasProject = ${hasProject}`);
     }
 
     /**
@@ -167,6 +192,14 @@ class EnhancedNavigationManager extends NavigationManager {
                 console.log('Store now available, connecting NavigationManager...');
                 this.store = window.appStore;
                 this.setupStoreSubscription();
+                
+                // CRITICAL FIX: Update menu state immediately after connecting to store
+                setTimeout(() => {
+                    console.log('🔄 Navigation: Force updating project sub-sections after store connection...');
+                    this.updateProjectSubSections();
+                    this.updateProjectStatus();
+                }, 100);
+                
                 return;
             }
             
@@ -1817,26 +1850,41 @@ class EnhancedNavigationManager extends NavigationManager {
     updateProjectSubSections() {
         // Only select nav-child elements under projects-children, not capacity-children
         const subSections = document.querySelectorAll('#projects-children .nav-child[data-section]');
+        console.log(`🔍 Navigation: updateProjectSubSections found ${subSections.length} subsections`);
+        
+        // Try to get store from window if this.store is not available
+        const store = this.store || window.appStore;
         
         // Check if store is available before accessing
-        if (!this.store || !this.store.getState) {
+        if (!store || !store.getState) {
             console.warn('Store not available for NavigationManager.updateProjectSubSections, disabling all sub-sections');
+            console.log('this.store:', !!this.store);
+            console.log('window.appStore:', !!window.appStore);
             subSections.forEach(child => {
                 child.classList.add('disabled');
+                console.log(`❌ Disabled: ${child.dataset.section}`);
             });
             return;
         }
         
-        const state = this.store.getState();
-        
+        const state = store.getState();
         const hasProject = state.currentProject !== null;
+        
+        console.log(`🔍 Navigation: Project loaded state = ${hasProject}`);
+        console.log('Current project:', state.currentProject ? 'EXISTS' : 'NULL');
+        
         subSections.forEach(child => {
+            const sectionName = child.dataset.section;
             if (hasProject) {
                 child.classList.remove('disabled');
+                console.log(`✅ Enabled: ${sectionName}`);
             } else {
                 child.classList.add('disabled');
+                console.log(`❌ Disabled: ${sectionName}`);
             }
         });
+        
+        console.log(`🔍 Navigation: updateProjectSubSections completed - ${hasProject ? 'ENABLED' : 'DISABLED'} menu items`);
     }
 
     // REMOVED LEGACY METHOD FOR PURE STATE MANAGER:
@@ -1936,6 +1984,18 @@ if (typeof window !== 'undefined') {
     window.testVSCodeSidebar = function() {
         if (window.app && window.app.navigationManager) {
             window.app.navigationManager.testSidebar();
+        } else {
+            console.error('Navigation manager not available');
+        }
+    };
+    
+    // DEBUGGING METHOD: Force update menu state
+    window.forceUpdateMenu = function() {
+        console.log('🔧 Forcing menu update...');
+        if (window.app && window.app.navigationManager) {
+            window.app.navigationManager.updateProjectSubSections();
+            window.app.navigationManager.updateProjectStatus();
+            console.log('✅ Menu update forced');
         } else {
             console.error('Navigation manager not available');
         }

@@ -193,11 +193,29 @@ const appStore = window.zustand.createStore((set, get) => ({
      * Set the current project
      */
     setProject: (project) => {
+        console.log('🔄 Store: setProject called with project =', project ? 'EXISTS' : 'NULL');
+        
         set({ 
             currentProject: project,
             isDirty: false,
             lastSavedTime: project?.project?.lastModified ? new Date(project.project.lastModified) : null
         });
+        
+        // CRITICAL FALLBACK: Force navigation manager to update menu state
+        // This ensures menu items are enabled even if subscription timing fails
+        setTimeout(() => {
+            console.log('🔧 Store: Force triggering navigation menu update after setProject');
+            if (window.app?.navigationManager) {
+                console.log('🔄 Store: Calling navigation manager updateProjectSubSections directly');
+                window.app.navigationManager.updateProjectSubSections();
+                window.app.navigationManager.updateProjectStatus();
+            } else if (window.forceUpdateMenu) {
+                console.log('🔄 Store: Using global forceUpdateMenu fallback');
+                window.forceUpdateMenu();
+            } else {
+                console.warn('❌ Store: No navigation manager or fallback available for menu update');
+            }
+        }, 100);
     },
     
     /**

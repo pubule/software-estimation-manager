@@ -7,3 +7,4 @@
 .serena/
 .DS_Store
 /.serena/cache/
+/release/*

@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   root: 'src/renderer',
   build: {
-    outDir: '../../dist/renderer',
+    outDir: './assets',  // Output direttamente in src/renderer/assets
     emptyOutDir: true,
     rollupOptions: {
       input: {
@@ -20,9 +20,9 @@ export default defineConfig({
         },
         format: 'iife', // Immediately Invoked Function Expression
         name: 'ReactComponents',
-        entryFileNames: 'assets/main.js', // Nome fisso senza hash
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name].[ext]'
+        entryFileNames: 'main.js', // Nome fisso senza hash, direttamente in assets/
+        chunkFileNames: '[name].js',
+        assetFileNames: '[name].[ext]'
       }
     }
   },

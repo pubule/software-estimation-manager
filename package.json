@@ -10,9 +10,9 @@
     "build:react": "vite build",
     "build:react:dev": "vite build --watch --mode development",
     "watch": "nodemon --watch src --ext js,html,css --exec \"electron .\"",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac",
+    "build": "npm run build:react && electron-builder",
+    "build:win": "npm run build:react && electron-builder --win",
+    "build:mac": "npm run build:react && electron-builder --mac",
     "build:linux": "electron-builder --linux",
     "dist": "npm run build",
     "pack": "electron-builder --dir",
@@ -83,7 +83,7 @@
     "appId": "com.yourcompany.software-estimation-manager",
     "productName": "Software Estimation Manager",
     "directories": {
-      "output": "dist"
+      "output": "release"
     },
     "files": [
       "src/**/*",
