@@ -74,6 +74,9 @@
                     <div class="icon-item" data-panel="configuration" title="Configuration">
                         <i class="fas fa-cog"></i>
                     </div>
+                    <div class="icon-item" data-panel="analytics" title="Analytics & Dashboards">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
                 </div>
             </nav>
 
@@ -200,6 +203,30 @@
                     <!-- No specific actions for Configuration -->
                     <div class="panel-footer">
                         <!-- No save/export actions for configuration -->
+                    </div>
+                </div>
+
+                <!-- Analytics & Dashboards Panel -->
+                <div class="sidebar-panel" id="analytics-panel" data-panel="analytics">
+                    <div class="panel-header">
+                        <h3>Analytics & Dashboards</h3>
+                    </div>
+
+                    <div class="panel-navigation">
+                        <!-- Ticket Dashboard Section -->
+                        <div class="nav-section" data-section="ticket-dashboard">
+                            <div class="nav-item">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Ticket Dashboard</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Actions -->
+                    <div class="panel-footer">
+                        <button class="btn btn-primary" id="analytics-export-btn">
+                            <i class="fas fa-download"></i> Export Report
+                        </button>
                     </div>
                 </div>
 
@@ -349,6 +376,25 @@
                     <div class="loading-message">
                         <i class="fas fa-spinner fa-spin"></i>
                         <p>Loading capacity planning...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ticket Dashboard Page -->
+            <div id="ticket-dashboard-page" class="page">
+                <div class="page-header">
+                    <h2>📊 IT Support Team Performance Dashboard</h2>
+                    <div class="page-actions">
+                        <button class="btn btn-secondary" id="clear-dashboard-btn">
+                            <i class="fas fa-trash"></i> Clear Data
+                        </button>
+                    </div>
+                </div>
+                <!-- Ticket Dashboard React component will be mounted here -->
+                <div id="react-ticket-dashboard-root" class="ticket-dashboard-content">
+                    <div class="loading-message">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading ticket dashboard...</p>
                     </div>
                 </div>
             </div>

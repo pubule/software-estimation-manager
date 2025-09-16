@@ -36,6 +36,9 @@ import CreateVersionModal from './components/CreateVersionModal';
 import VersionComparisonModal from './components/VersionComparisonModal';
 import RestoreVersionModal from './components/RestoreVersionModal';
 
+// Import ticket dashboard components
+import TicketDashboard from './components/TicketDashboard';
+
 // Import Actions classes for global registration
 import { NavigationActions } from './actions/NavigationActions';
 import { versionHistoryActions } from './actions/VersionHistoryActions';
@@ -74,6 +77,7 @@ declare global {
       CreateVersionModal: typeof CreateVersionModal;
       VersionComparisonModal: typeof VersionComparisonModal;
       RestoreVersionModal: typeof RestoreVersionModal;
+      TicketDashboard: typeof TicketDashboard;
     };
     NavigationActions: typeof NavigationActions;
     versionHistoryActions: typeof versionHistoryActions;
@@ -107,7 +111,8 @@ window.ReactComponents = {
   VersionFilters,
   CreateVersionModal,
   VersionComparisonModal,
-  RestoreVersionModal
+  RestoreVersionModal,
+  TicketDashboard
 };
 
 // Make Actions classes available globally

@@ -224,6 +224,12 @@ class ReactPageWrapperActions {
                 componentName: 'VersionHistoryPage',
                 containerId: 'version-history-react-root',
                 wrapperName: 'ReactVersionHistoryWrapper'
+            },
+            'ticket-dashboard': {
+                pageId: 'ticket-dashboard-page',
+                componentName: 'TicketDashboard',
+                containerId: 'react-ticket-dashboard-root',
+                wrapperName: 'ReactTicketDashboardWrapper'
             }
         };
         

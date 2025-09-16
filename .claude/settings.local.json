@@ -19,7 +19,8 @@
       "Read(//Users/FABIO.STOCCO/Library/CloudStorage/OneDrive-Unicredit/Documentazione/TOOLS/Software Estimation Projects/**)",
       "Read(//Users/FABIO.STOCCO/OneDrive - Unicredit/Documentazione/TOOLS/Software Estimation Projects/**)",
       "Bash(pkill:*)",
-      "Bash(npm run restart:*)"
+      "Bash(npm run restart:*)",
+      "mcp__serena__check_onboarding_performed"
     ],
     "deny": [],
     "ask": []

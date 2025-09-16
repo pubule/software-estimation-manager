@@ -62,11 +62,21 @@ class ReactVersionHistoryWrapper extends window.ReactPageWrapper {
  * Pattern State/Actions/Dispatcher: Delega tutto a ReactPageWrapper generico
  * + Legacy compatibility methods per progetti
  */
+/**
+ * ReactTicketDashboardWrapper - Ticket Dashboard page wrapper
+ * Pattern State/Actions/Dispatcher: Delega tutto a ReactPageWrapper generico
+ */
+class ReactTicketDashboardWrapper extends window.ReactPageWrapper {
+    constructor() {
+        super('ticket-dashboard');
+    }
+}
+
 class ReactProjectManagerWrapper extends window.ReactPageWrapper {
     constructor(app) {
         super('projects', app);
     }
-    
+
     // Legacy compatibility: Complex project manager creation (solo per progetti)
     createProjectManagerApp() {
         // Pattern State/Actions/Dispatcher: Delega complex logic alle Actions se necessario
@@ -166,8 +176,9 @@ if (typeof window !== 'undefined') {
     window.ReactCalculationsWrapper = ReactCalculationsWrapper;
     window.ReactAssumptionsWrapper = ReactAssumptionsWrapper;
     window.ReactVersionHistoryWrapper = ReactVersionHistoryWrapper;
+    window.ReactTicketDashboardWrapper = ReactTicketDashboardWrapper;
     window.ReactProjectManagerWrapper = ReactProjectManagerWrapper;
-    
+
     console.log('✅ React Unified Wrappers registered globally (State/Actions/Dispatcher pattern)');
 }
 

@@ -59,6 +59,7 @@ class EnhancedNavigationManager extends NavigationManager {
         this.reactPhasesWrapper = null;
         this.reactCalculationsWrapper = null;
         this.reactVersionHistoryWrapper = null;
+        this.reactTicketDashboardWrapper = null;
 
         this.initializeNestedNavigation();
         this.setupStoreSubscription();
@@ -252,6 +253,12 @@ class EnhancedNavigationManager extends NavigationManager {
         if (this.reactVersionHistoryWrapper) {
             this.reactVersionHistoryWrapper.destroy();
             this.reactVersionHistoryWrapper = null;
+        }
+
+        // Cleanup React Ticket Dashboard wrapper
+        if (this.reactTicketDashboardWrapper) {
+            this.reactTicketDashboardWrapper.destroy();
+            this.reactTicketDashboardWrapper = null;
         }
     }
 
@@ -758,6 +765,12 @@ class EnhancedNavigationManager extends NavigationManager {
         // Special handling for version history navigation
         if (sectionName === 'history') {
             this.showHistoryPage();
+            return;
+        }
+
+        // Special handling for ticket dashboard navigation
+        if (sectionName === 'ticket-dashboard') {
+            this.showTicketDashboardPage();
             return;
         }
 
@@ -1460,6 +1473,115 @@ class EnhancedNavigationManager extends NavigationManager {
         }
 
         console.log('Navigated to Version History page with React wrapper');
+    }
+
+    // Special method for ticket dashboard page - Initialize React wrapper
+    async showTicketDashboardPage() {
+        console.log('🔄 NavigationManager: showTicketDashboardPage - Using State/Actions/Dispatcher pattern');
+
+        // Check if store is available
+        if (!this.store || !this.store.getState) {
+            console.warn('Store not available for NavigationManager.showTicketDashboardPage, navigation aborted');
+            return;
+        }
+
+        const state = this.store.getState();
+
+        // Hide all pages first
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // Update active states
+        this.updateActiveStates('ticket-dashboard');
+
+        // Show ticket dashboard page
+        const ticketDashboardPage = document.getElementById('ticket-dashboard-page');
+        if (ticketDashboardPage) {
+            ticketDashboardPage.classList.add('active');
+        }
+
+        // Smart React wrapper initialization (Pattern: avoid unnecessary re-init)
+        const isComponentAlreadyInitialized = state.isComponentInitialized('ticket-dashboard');
+        const hasExistingWrapper = !!this.reactTicketDashboardWrapper;
+
+        if (!hasExistingWrapper || !isComponentAlreadyInitialized) {
+            console.log('🔄 Initializing React Ticket Dashboard wrapper...');
+            console.log('ReactTicketDashboardWrapper available:', !!window.ReactTicketDashboardWrapper);
+
+            if (window.ReactTicketDashboardWrapper) {
+                this.reactTicketDashboardWrapper = new window.ReactTicketDashboardWrapper();
+
+                try {
+                    await this.reactTicketDashboardWrapper.init();
+                    console.log('✅ React Ticket Dashboard wrapper initialized successfully');
+
+                    // Mark component as initialized in store
+                    state.setComponentInitialized('ticket-dashboard', true);
+
+                } catch (error) {
+                    console.error('❌ Failed to initialize React Ticket Dashboard wrapper:', error);
+                    // Show fallback content
+                    if (ticketDashboardPage) {
+                        const container = ticketDashboardPage.querySelector('#react-ticket-dashboard-root');
+                        if (container) {
+                            container.innerHTML = `
+                                <div style="padding: 2rem; text-align: center; color: #ff6b6b;">
+                                    <h3>❌ Ticket Dashboard Error</h3>
+                                    <p>Failed to load React components</p>
+                                    <p><small>Error: ${error.message}</small></p>
+                                    <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                                        Reload Application
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+            } else {
+                console.error('❌ ReactTicketDashboardWrapper not available on window object');
+                console.log('Available on window:', Object.keys(window).filter(k => k.includes('React')));
+
+                // Mount the component directly using React
+                const container = document.getElementById('react-ticket-dashboard-root');
+                if (container && window.React && window.ReactComponents?.TicketDashboard) {
+                    console.log('🔄 Mounting TicketDashboard component directly...');
+                    const root = window.ReactDOM.createRoot(container);
+                    root.render(window.React.createElement(window.ReactComponents.TicketDashboard));
+
+                    // Mark component as initialized
+                    state.setComponentInitialized('ticket-dashboard', true);
+                    console.log('✅ Ticket Dashboard component mounted directly');
+                } else {
+                    console.error('❌ React components not available');
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="padding: 2rem; text-align: center; color: #ff6b6b;">
+                                <h3>❌ Ticket Dashboard Unavailable</h3>
+                                <p>React components not loaded</p>
+                                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                                    Reload Application
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            }
+        } else {
+            console.log('✅ React Ticket Dashboard wrapper already initialized - PRESERVING STATE');
+
+            // Ensure we're using the existing wrapper without re-init
+            if (this.reactTicketDashboardWrapper && this.reactTicketDashboardWrapper.isInitialized) {
+                console.log('🔄 Using existing ticket dashboard wrapper - no reset needed');
+            }
+        }
+
+        // Update global state
+        if (this.store && this.store.getState) {
+            this.store.getState().setSection('ticket-dashboard');
+        }
+
+        console.log('Navigated to Ticket Dashboard page');
     }
 
     // Special method for capacity page

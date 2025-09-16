@@ -184,6 +184,19 @@ const appStore = window.zustand.createStore((set, get) => ({
         },
         isLoading: false
     },
+
+    // ======================
+    // TICKET DASHBOARD STATE (State/Actions/Dispatcher Pattern)
+    // ======================
+    ticketData: [], // Raw ticket data from CSV
+    dashboardMetrics: null, // Calculated KPI metrics
+    operatorMetrics: [], // Performance metrics per operator
+    dashboardAlerts: [], // Critical/warning alerts
+    selectedOperator: null, // Currently selected operator for drill-down
+    operatorDetails: null, // Detailed metrics for selected operator
+    timeFilter: null, // Current time period filter
+    additionalFilters: {}, // Priority, state, operator filters
+    ticketDashboardError: null, // Error state
     
     // ======================
     // PROJECT ACTIONS
@@ -1400,13 +1413,81 @@ const appStore = window.zustand.createStore((set, get) => ({
             console.warn('Cannot update versions: No project loaded');
             return;
         }
-        
+
         set({
             currentProject: {
                 ...currentState.currentProject,
                 versions
             }
         });
+    },
+
+    // ======================
+    // TICKET DASHBOARD ACTIONS (State/Actions/Dispatcher Pattern)
+    // Called ONLY by TicketDashboardActions class
+    // ======================
+
+    /**
+     * Set raw ticket data from CSV
+     */
+    setTicketData: (tickets) => {
+        set({ ticketData: tickets });
+    },
+
+    /**
+     * Set calculated dashboard metrics
+     */
+    setDashboardMetrics: (metrics) => {
+        set({ dashboardMetrics: metrics });
+    },
+
+    /**
+     * Set operator performance metrics
+     */
+    setOperatorMetrics: (metrics) => {
+        set({ operatorMetrics: metrics });
+    },
+
+    /**
+     * Set dashboard alerts
+     */
+    setDashboardAlerts: (alerts) => {
+        set({ dashboardAlerts: alerts });
+    },
+
+    /**
+     * Set selected operator for drill-down
+     */
+    setSelectedOperator: (operatorName) => {
+        set({ selectedOperator: operatorName });
+    },
+
+    /**
+     * Set detailed operator metrics
+     */
+    setOperatorDetails: (details) => {
+        set({ operatorDetails: details });
+    },
+
+    /**
+     * Set time filter
+     */
+    setTimeFilter: (filter) => {
+        set({ timeFilter: filter });
+    },
+
+    /**
+     * Set additional filters (priority, state, operator)
+     */
+    setAdditionalFilters: (filters) => {
+        set({ additionalFilters: filters });
+    },
+
+    /**
+     * Set ticket dashboard error
+     */
+    setTicketDashboardError: (error) => {
+        set({ ticketDashboardError: error });
     }
 }));
 
