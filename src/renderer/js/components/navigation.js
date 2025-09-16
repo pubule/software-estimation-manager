@@ -1868,8 +1868,8 @@ class EnhancedNavigationManager extends NavigationManager {
     }
 
     updateActiveStates(activeSectionName) {
-        // Remove all active states
-        document.querySelectorAll('.nav-section, .nav-child').forEach(el => {
+        // Remove all active states - including capacity children
+        document.querySelectorAll('.nav-section, .nav-child, .nav-capacity-child').forEach(el => {
             el.classList.remove('active');
         });
 
