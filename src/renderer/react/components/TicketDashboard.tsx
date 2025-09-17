@@ -599,15 +599,54 @@ export const TicketDashboard: React.FC = () => {
         </>
       )}
 
-      <style jsx>{`
+      <style jsx global>{`
+        /* SCROLL LOCALIZZATO: Solo nella page, non in tutto il body */
+        body, html {
+          height: 100vh !important;
+          overflow: hidden !important;
+        }
+
+        #app {
+          height: 100vh !important;
+          overflow: hidden !important;
+        }
+
+        .main-container {
+          height: calc(100vh - 54px) !important;
+          overflow: hidden !important;
+        }
+
+        .page {
+          height: 100% !important;
+          overflow: hidden !important;
+          flex-direction: column !important;
+        }
+
+        .page.active {
+          display: flex !important;
+          height: 100% !important;
+          overflow: hidden !important;
+        }
+
+        /* QUESTO È IL CONTAINER CHE SCROLLA */
+        #ticket-dashboard-page {
+          height: 100% !important;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          padding: 0 !important;
+        }
+
+        /* Contenuto dashboard */
         .ticket-dashboard {
           padding: 20px;
           max-width: 1400px;
           margin: 0 auto;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          min-height: 100vh;
-          max-height: none;
+          min-height: calc(100vh - 100px);
+          height: auto;
+          width: 100%;
           overflow: visible;
+          box-sizing: border-box;
         }
 
         .dashboard-header {
