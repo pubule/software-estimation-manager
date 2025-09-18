@@ -80,12 +80,16 @@ export const TicketDashboard: React.FC = () => {
   };
 
   const formatDuration = (hours: number): string => {
-    if (hours < 24) {
+    if (hours < 8) {
       return `${hours.toFixed(1)}h`;
     } else {
-      const days = Math.floor(hours / 24);
-      const remainingHours = hours % 24;
-      return `${days}d ${remainingHours.toFixed(1)}h`;
+      const workingDays = Math.floor(hours / 8);
+      const remainingHours = hours % 8;
+      if (remainingHours === 0) {
+        return `${workingDays}d`;
+      } else {
+        return `${workingDays}d ${remainingHours.toFixed(1)}h`;
+      }
     }
   };
 
