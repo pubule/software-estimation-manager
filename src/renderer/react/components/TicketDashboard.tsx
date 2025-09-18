@@ -50,6 +50,8 @@ export const TicketDashboard: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [showOperatorModal, setShowOperatorModal] = useState(false);
+  const [expandedAlerts, setExpandedAlerts] = useState<Set<number>>(new Set());
+  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load initial data if available
@@ -125,6 +127,25 @@ export const TicketDashboard: React.FC = () => {
       case 'Closed': return '#a8e6cf';
       default: return '#d3d3d3';
     }
+  };
+
+  // Alert management functions
+  const toggleAlertExpansion = (alertIndex: number) => {
+    const newExpanded = new Set(expandedAlerts);
+    if (newExpanded.has(alertIndex)) {
+      newExpanded.delete(alertIndex);
+    } else {
+      newExpanded.add(alertIndex);
+    }
+    setExpandedAlerts(newExpanded);
+  };
+
+  const openAlertModal = (alert: Alert) => {
+    setSelectedAlert(alert);
+  };
+
+  const closeAlertModal = () => {
+    setSelectedAlert(null);
   };
 
   if (ticketDashboardError) {
@@ -271,13 +292,51 @@ export const TicketDashboard: React.FC = () => {
               <h3>🚨 Critical Alerts</h3>
               <div className="alerts-grid">
                 {dashboardAlerts.map((alert, index) => (
-                  <div key={index} className={`alert-card alert-${alert.type}`}>
-                    <div className="alert-header">
+                  <div key={index} className={`alert-card alert-${alert.type} ${expandedAlerts.has(index) ? 'expanded' : ''}`}>
+                    <div className="alert-header" onClick={() => toggleAlertExpansion(index)}>
                       <span className="alert-icon">{getAlertIcon(alert.type)}</span>
                       <strong>{alert.title}</strong>
                       <span className="alert-count">{alert.count}</span>
+                      <span className="expand-icon">{expandedAlerts.has(index) ? '▼' : '▶'}</span>
                     </div>
                     <p>{alert.description}</p>
+
+                    {/* Expanded Content */}
+                    {expandedAlerts.has(index) && (
+                      <div className="alert-expanded-content">
+                        <div className="alert-actions">
+                          <button
+                            className="alert-action-btn view-list"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openAlertModal(alert);
+                            }}
+                          >
+                            <i className="fas fa-list"></i>
+                            View Full List ({alert.tickets.length} tickets)
+                          </button>
+                        </div>
+
+                        {/* Preview of first 3 tickets */}
+                        {alert.tickets.length > 0 && (
+                          <div className="ticket-preview">
+                            <div className="preview-header">Sample Tickets:</div>
+                            {alert.tickets.slice(0, 3).map((ticket, ticketIndex) => (
+                              <div key={ticketIndex} className="preview-ticket">
+                                <span className="preview-ticket-id">#{ticket.number}</span>
+                                <span className="preview-ticket-subject">{ticket.short_description?.substring(0, 40)}...</span>
+                                <span className="preview-ticket-state" style={{backgroundColor: getStateColor(ticket.state)}}>
+                                  {ticket.state}
+                                </span>
+                              </div>
+                            ))}
+                            {alert.tickets.length > 3 && (
+                              <div className="preview-more">+ {alert.tickets.length - 3} more tickets</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -581,6 +640,75 @@ export const TicketDashboard: React.FC = () => {
             </div>
           )}
 
+          {/* Alert Details Modal */}
+          {selectedAlert && (
+            <div className="modal-overlay" onClick={closeAlertModal}>
+              <div className="alert-modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <div className="alert-modal-title">
+                    <span className="alert-icon">{getAlertIcon(selectedAlert.type)}</span>
+                    <h3>{selectedAlert.title} ({selectedAlert.count} tickets)</h3>
+                  </div>
+                  <button className="close-btn" onClick={closeAlertModal}>×</button>
+                </div>
+                <div className="modal-body">
+                  <div className="alert-description">
+                    <p>{selectedAlert.description}</p>
+                  </div>
+
+                  <div className="tickets-table-container">
+                    <table className="tickets-table">
+                      <thead>
+                        <tr>
+                          <th>Ticket #</th>
+                          <th>Subject</th>
+                          <th>Priority</th>
+                          <th>State</th>
+                          <th>Assigned To</th>
+                          <th>Opened</th>
+                          <th>Last Updated</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedAlert.tickets.map((ticket, index) => (
+                          <tr key={index}>
+                            <td className="ticket-number">#{ticket.number}</td>
+                            <td className="ticket-subject" title={ticket.short_description}>
+                              {ticket.short_description?.substring(0, 50)}...
+                            </td>
+                            <td>
+                              <span
+                                className="priority-badge"
+                                style={{backgroundColor: getPriorityColor(ticket.priority)}}
+                              >
+                                {ticket.priority}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                className="state-badge"
+                                style={{backgroundColor: getStateColor(ticket.state)}}
+                              >
+                                {ticket.state}
+                              </span>
+                            </td>
+                            <td className="assigned-to">{ticket.assigned_to || 'Unassigned'}</td>
+                            <td className="opened-date">
+                              {new Date(ticket.opened_at).toLocaleDateString()}
+                            </td>
+                            <td className="updated-date">
+                              {new Date(ticket.sys_updated_on).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
       <style jsx global>{`
         /* SCROLL LOCALIZZATO: Solo nella page, non in tutto il body */
         body, html {
@@ -850,6 +978,17 @@ export const TicketDashboard: React.FC = () => {
           border-left: 4px solid;
           background: #252526;
           border: 1px solid #3c3c3c;
+          transition: all 0.3s ease;
+        }
+
+        .alert-card:hover {
+          background: #2d2d30;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .alert-card.expanded {
+          background: #2d2d30;
         }
 
         .alert-critical {
@@ -870,6 +1009,21 @@ export const TicketDashboard: React.FC = () => {
           gap: 10px;
           margin-bottom: 8px;
           color: #ffffff;
+          cursor: pointer;
+          padding: 5px;
+          border-radius: 3px;
+          transition: background 0.2s ease;
+        }
+
+        .alert-header:hover {
+          background: rgba(255,255,255,0.1);
+        }
+
+        .expand-icon {
+          margin-left: auto;
+          font-size: 12px;
+          color: #007acc;
+          transition: transform 0.2s ease;
         }
 
         .alert-count {
@@ -1316,6 +1470,217 @@ export const TicketDashboard: React.FC = () => {
           background: #1177bb;
         }
 
+        /* Alert Expanded Content */
+        .alert-expanded-content {
+          margin-top: 15px;
+          padding-top: 15px;
+          border-top: 1px solid #3c3c3c;
+          animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            max-height: 0;
+          }
+          to {
+            opacity: 1;
+            max-height: 300px;
+          }
+        }
+
+        .alert-actions {
+          margin-bottom: 15px;
+        }
+
+        .alert-action-btn {
+          padding: 8px 16px;
+          background: #0e639c;
+          color: white;
+          border: none;
+          border-radius: 3px;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: background 0.2s ease;
+        }
+
+        .alert-action-btn:hover {
+          background: #1177bb;
+        }
+
+        .ticket-preview {
+          background: #1e1e1e;
+          border-radius: 4px;
+          padding: 12px;
+          border: 1px solid #3c3c3c;
+        }
+
+        .preview-header {
+          font-size: 12px;
+          color: #007acc;
+          margin-bottom: 8px;
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+
+        .preview-ticket {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 6px 0;
+          border-bottom: 1px solid #2d2d30;
+          font-size: 12px;
+        }
+
+        .preview-ticket:last-child {
+          border-bottom: none;
+        }
+
+        .preview-ticket-id {
+          color: #007acc;
+          font-family: 'Courier New', monospace;
+          font-weight: 600;
+          min-width: 60px;
+        }
+
+        .preview-ticket-subject {
+          flex: 1;
+          color: #cccccc;
+        }
+
+        .preview-ticket-state {
+          padding: 2px 6px;
+          border-radius: 10px;
+          font-size: 10px;
+          font-weight: 600;
+          color: #000000;
+          min-width: 60px;
+          text-align: center;
+        }
+
+        .preview-more {
+          text-align: center;
+          font-size: 11px;
+          color: #9d9d9d;
+          margin-top: 8px;
+          font-style: italic;
+        }
+
+        /* Alert Modal */
+        .alert-modal-content {
+          background: #252526;
+          border-radius: 6px;
+          max-width: 1000px;
+          width: 95%;
+          max-height: 90vh;
+          overflow-y: auto;
+          border: 1px solid #3c3c3c;
+        }
+
+        .alert-modal-title {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .alert-modal-title h3 {
+          margin: 0;
+          color: #ffffff;
+        }
+
+        .alert-description {
+          margin-bottom: 20px;
+          padding: 15px;
+          background: #2d2d30;
+          border-radius: 4px;
+          border-left: 4px solid #007acc;
+        }
+
+        .alert-description p {
+          margin: 0;
+          color: #cccccc;
+          font-size: 14px;
+        }
+
+        .tickets-table-container {
+          overflow-x: auto;
+          background: #1e1e1e;
+          border-radius: 6px;
+          border: 1px solid #3c3c3c;
+        }
+
+        .tickets-table {
+          width: 100%;
+          border-collapse: collapse;
+          background: #1e1e1e;
+          font-size: 13px;
+        }
+
+        .tickets-table th,
+        .tickets-table td {
+          padding: 12px 8px;
+          text-align: left;
+          border-bottom: 1px solid #3c3c3c;
+          color: #cccccc;
+        }
+
+        .tickets-table th {
+          background: #2d2d30;
+          font-weight: 600;
+          color: #ffffff;
+          position: sticky;
+          top: 0;
+          z-index: 1;
+        }
+
+        .tickets-table tr:hover {
+          background: #252526;
+        }
+
+        .ticket-number {
+          font-family: 'Courier New', monospace;
+          font-weight: 600;
+          color: #007acc;
+          min-width: 80px;
+        }
+
+        .ticket-subject {
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .priority-badge,
+        .state-badge {
+          padding: 3px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #000000;
+          display: inline-block;
+          min-width: 30px;
+          text-align: center;
+        }
+
+        .assigned-to {
+          max-width: 120px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .opened-date,
+        .updated-date {
+          min-width: 90px;
+          font-size: 12px;
+          color: #9d9d9d;
+        }
+
         @media (max-width: 768px) {
           .filters-section {
             flex-direction: column;
@@ -1332,6 +1697,28 @@ export const TicketDashboard: React.FC = () => {
 
           .tab-nav {
             flex-direction: column;
+          }
+
+          .alert-modal-content {
+            width: 98%;
+            max-height: 95vh;
+          }
+
+          .tickets-table {
+            font-size: 11px;
+          }
+
+          .tickets-table th,
+          .tickets-table td {
+            padding: 8px 4px;
+          }
+
+          .ticket-subject {
+            max-width: 120px;
+          }
+
+          .assigned-to {
+            max-width: 80px;
           }
         }
       `}</style>
