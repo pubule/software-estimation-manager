@@ -631,17 +631,23 @@ class EnhancedNavigationManager extends NavigationManager {
                     this.navigateTo('projects');
                 }
                 break;
-                
+
             case 'capacity':
                 // Always navigate to main capacity page when clicking capacity icon
                 this.navigateTo('capacity');
                 break;
-                
+
             case 'configuration':
                 // Navigate to configuration
                 if (this.currentSection !== 'configuration') {
                     this.navigateTo('configuration');
                 }
+                break;
+
+            case 'analytics':
+                // Auto-navigate to ticket dashboard when clicking analytics icon
+                console.log('Analytics panel opened - navigating to ticket dashboard');
+                this.navigateTo('ticket-dashboard');
                 break;
         }
     }

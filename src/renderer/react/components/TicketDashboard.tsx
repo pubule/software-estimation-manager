@@ -47,7 +47,6 @@ export const TicketDashboard: React.FC = () => {
   };
 
   // Local UI state
-  const [isDragOver, setIsDragOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [showOperatorModal, setShowOperatorModal] = useState(false);
@@ -72,17 +71,6 @@ export const TicketDashboard: React.FC = () => {
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-
-    const files = Array.from(e.dataTransfer.files);
-    const csvFile = files.find(file => file.name.toLowerCase().endsWith('.csv'));
-
-    if (csvFile) {
-      handleFileUpload(csvFile);
-    }
-  };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -154,36 +142,8 @@ export const TicketDashboard: React.FC = () => {
         <p>Analyze support ticket metrics and team performance</p>
       </div>
 
-      {/* File Upload Section */}
-      {ticketData.length === 0 && (
-        <div className="upload-section">
-          <div
-            className={`upload-area ${isDragOver ? 'drag-over' : ''}`}
-            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-            onDragLeave={() => setIsDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <div className="upload-content">
-              <div className="upload-icon">📊</div>
-              <h3>Upload CSV File</h3>
-              <p>Drag & drop your ticket data CSV file here, or click to browse</p>
-              {isProcessing && <div className="processing">Processing...</div>}
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              style={{ display: 'none' }}
-              onChange={handleFileInputChange}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Dashboard Content */}
-      {ticketData.length > 0 && (
-        <>
           {/* Filter Section */}
           <div className="filters-section">
             <div className="filter-group">
@@ -242,44 +202,51 @@ export const TicketDashboard: React.FC = () => {
             </div>
 
             <button
-              className="export-btn"
-              onClick={() => actions.exportFilteredData()}
+              className="load-csv-btn"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isProcessing}
             >
-              Export CSV
+              <i className="fas fa-upload"></i>
+              {isProcessing ? 'Loading...' : 'Load CSV'}
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              style={{ display: 'none' }}
+              onChange={handleFileInputChange}
+            />
           </div>
 
           {/* KPI Cards */}
-          {dashboardMetrics && (
             <div className="kpi-section">
               <div className="kpi-card">
-                <div className="kpi-value">{dashboardMetrics.totalTickets}</div>
+                <div className="kpi-value">{dashboardMetrics?.totalTickets || 0}</div>
                 <div className="kpi-label">Total Tickets</div>
               </div>
               <div className="kpi-card">
                 <div className="kpi-value">
-                  {formatDuration(dashboardMetrics.averageResolutionTime)}
+                  {dashboardMetrics?.averageResolutionTime ? formatDuration(dashboardMetrics.averageResolutionTime) : 'No data'}
                 </div>
                 <div className="kpi-label">Avg Resolution Time</div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-value">{dashboardMetrics.openTickets}</div>
+                <div className="kpi-value">{dashboardMetrics?.openTickets || 0}</div>
                 <div className="kpi-label">Open Tickets</div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-value">{dashboardMetrics.closedTickets}</div>
+                <div className="kpi-value">{dashboardMetrics?.closedTickets || 0}</div>
                 <div className="kpi-label">Closed Tickets</div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-value">{dashboardMetrics.resolutionRate.toFixed(1)}%</div>
+                <div className="kpi-value">{dashboardMetrics?.resolutionRate?.toFixed(1) || '0.0'}%</div>
                 <div className="kpi-label">Resolution Rate</div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-value">{dashboardMetrics.backlogCurrent}</div>
+                <div className="kpi-value">{dashboardMetrics?.backlogCurrent || 0}</div>
                 <div className="kpi-label">Current Backlog</div>
               </div>
             </div>
-          )}
 
           {/* Alerts Section */}
           {dashboardAlerts.length > 0 && (
@@ -596,8 +563,6 @@ export const TicketDashboard: React.FC = () => {
               </div>
             </div>
           )}
-        </>
-      )}
 
       <style jsx global>{`
         /* SCROLL LOCALIZZATO: Solo nella page, non in tutto il body */
