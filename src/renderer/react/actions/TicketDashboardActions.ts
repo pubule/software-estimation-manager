@@ -277,25 +277,19 @@ export class TicketDashboardActions {
    * Calculate top 3 tickets with highest resolution time
    */
   private calculateTopResolutionTimeTickets(tickets: TicketData[]): { id: string; subject: string; resolutionHours: number; }[] {
-    const resolvedTickets = tickets.filter(t => t.resolved_at && t.resolved_at.trim());
-
-    if (resolvedTickets.length === 0) return [];
-
-    const ticketsWithResolutionTime = resolvedTickets.map(ticket => {
-      const opened = new Date(ticket.opened_at);
-      const resolved = new Date(ticket.resolved_at);
-      const diffMs = resolved.getTime() - opened.getTime();
-      const diffHours = diffMs / (1000 * 60 * 60);
-
-      return {
-        id: ticket.id,
-        subject: ticket.subject || `Ticket ${ticket.id}`,
-        resolutionHours: diffHours
-      };
-    });
-
-    // Sort by resolution time descending and take top 3
-    return ticketsWithResolutionTime
+    return tickets
+      .filter(ticket => ticket.resolved_at && ticket.opened_at)
+      .map(ticket => {
+        const created = new Date(ticket.opened_at);
+        const resolved = new Date(ticket.resolved_at);
+        const totalHours = (resolved.getTime() - created.getTime()) / (1000 * 60 * 60);
+        
+        return {
+          id: ticket.number || '',
+          subject: ticket.short_description || '',
+          resolutionHours: totalHours
+        };
+      })
       .sort((a, b) => b.resolutionHours - a.resolutionHours)
       .slice(0, 3);
   }
