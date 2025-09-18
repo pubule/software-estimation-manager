@@ -430,11 +430,11 @@ export const TicketDashboard: React.FC = () => {
               {activeTab === 'operators' && (
                 <div className="operators-tab">
                   <div className="operators-table-container">
-                    <h4>Operator Performance Ranking</h4>
+                    <h4>Operator Resolution Performance</h4>
                     <table className="operators-table">
                       <thead>
                         <tr>
-                          <th>Operator</th>
+                          <th>Resolver</th>
                           <th>Assigned</th>
                           <th>Resolved</th>
                           <th>Avg Resolution Time</th>

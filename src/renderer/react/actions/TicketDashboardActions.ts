@@ -16,6 +16,7 @@ export interface TicketData {
   u_vts_major_urgency: string;
   calendar_stc: string;
   resolved_at: string;
+  resolved_by?: string; // Campo aggiunto per chi ha risolto il ticket
 }
 
 export interface DashboardMetrics {
@@ -308,8 +309,11 @@ export class TicketDashboardActions {
    * Calculate metrics per operator
    */
   private calculateOperatorMetrics(tickets: TicketData[]): OperatorMetrics[] {
-    const operatorGroups = tickets.reduce((groups, ticket) => {
-      const operator = ticket.assigned_to || 'Unassigned';
+    // Raggruppa solo i ticket RISOLTI per resolved_by (o sys_updated_by come fallback)
+    const resolvedTickets = tickets.filter(t => ['Resolved', 'Closed'].includes(t.state));
+    
+    const operatorGroups = resolvedTickets.reduce((groups, ticket) => {
+      const operator = ticket.resolved_by || ticket.sys_updated_by || 'Unassigned';
       if (!groups[operator]) {
         groups[operator] = [];
       }
@@ -317,17 +321,38 @@ export class TicketDashboardActions {
       return groups;
     }, {} as Record<string, TicketData[]>);
 
-    return Object.entries(operatorGroups).map(([operatorName, operatorTickets]) => {
-      const resolvedTickets = operatorTickets.filter(t => ['Resolved', 'Closed'].includes(t.state));
-      const ticketsInDelay = this.getTicketsInDelay(operatorTickets);
+    // Aggiungi anche gli operatori con ticket assegnati ma non risolti
+    const allTickets = tickets.reduce((groups, ticket) => {
+      const assignedOperator = ticket.assigned_to || 'Unassigned';
+      if (!groups[assignedOperator]) {
+        groups[assignedOperator] = { assigned: [], resolved: [] };
+      }
+      groups[assignedOperator].assigned.push(ticket);
+      
+      // Se il ticket è risolto, aggiungilo anche alla sezione resolved
+      if (['Resolved', 'Closed'].includes(ticket.state)) {
+        const resolverOperator = ticket.resolved_by || ticket.sys_updated_by || 'Unassigned';
+        if (!groups[resolverOperator]) {
+          groups[resolverOperator] = { assigned: [], resolved: [] };
+        }
+        groups[resolverOperator].resolved.push(ticket);
+      }
+      
+      return groups;
+    }, {} as Record<string, { assigned: TicketData[], resolved: TicketData[] }>);
+
+    return Object.entries(allTickets).map(([operatorName, operatorTickets]) => {
+      const assignedTickets = operatorTickets.assigned;
+      const resolvedTickets = operatorTickets.resolved;
+      const ticketsInDelay = this.getTicketsInDelay(assignedTickets);
 
       return {
         operatorName,
-        assignedTickets: operatorTickets.length,
+        assignedTickets: assignedTickets.length,
         resolvedTickets: resolvedTickets.length,
         averageResolutionTime: this.calculateAverageResolutionTime(resolvedTickets),
         ticketsInDelay: ticketsInDelay.length,
-        delayPercentage: operatorTickets.length > 0 ? (ticketsInDelay.length / operatorTickets.length) * 100 : 0
+        delayPercentage: assignedTickets.length > 0 ? (ticketsInDelay.length / assignedTickets.length) * 100 : 0
       };
     }).sort((a, b) => b.resolvedTickets - a.resolvedTickets);
   }
