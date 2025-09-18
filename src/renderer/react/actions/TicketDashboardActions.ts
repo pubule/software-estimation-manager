@@ -3,7 +3,7 @@ export interface TicketData {
   opened_at: string;
   short_description: string;
   caller_id: string;
-  priority: 'P1' | 'P2' | 'P3' | 'P4' | 'P5' | 'P6' | 'P7' | 'P8';
+  priority: 'P5' | 'P6' | 'P7' | 'P8'; // REMOVED P1-P4, only P5-P8 allowed
   state: 'Open' | 'In Progress' | 'Resolved' | 'Closed' | 'Pending' | 'On Hold';
   category: string;
   assignment_group: string;
@@ -16,7 +16,7 @@ export interface TicketData {
   u_vts_major_urgency: string;
   calendar_stc: string;
   resolved_at: string;
-  resolved_by?: string; // Campo aggiunto per chi ha risolto il ticket
+  resolved_by?: string;
 }
 
 export interface DashboardMetrics {
@@ -455,7 +455,7 @@ export class TicketDashboardActions {
   private getExpiredHighPriorityTickets(tickets: TicketData[]): TicketData[] {
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
     return tickets.filter(ticket =>
-      ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].includes(ticket.priority) && // FIXED: Esteso fino a P6
+      ['P5', 'P6', 'P7', 'P8'].includes(ticket.priority) && // UPDATED: Only P5-P8 exist now
       !['Resolved', 'Closed'].includes(ticket.state) &&
       new Date(ticket.opened_at) < twoDaysAgo
     );
@@ -466,6 +466,11 @@ export class TicketDashboardActions {
    */
   private getSuspiciousClosures(tickets: TicketData[]): TicketData[] {
     return tickets.filter(ticket => {
+      // Only consider P5-P8 (P1-P4 completely removed)
+      if (!['P5', 'P6', 'P7', 'P8'].includes(ticket.priority)) {
+        return false;
+      }
+      
       if (!ticket.resolved_at) {
         return false;
       }
@@ -474,7 +479,7 @@ export class TicketDashboardActions {
       const resolved = new Date(ticket.resolved_at);
       const diffHours = (resolved.getTime() - opened.getTime()) / (1000 * 60 * 60);
 
-      return diffHours < 1; // FIXED: Considera TUTTI i livelli di priorità
+      return diffHours < 1; // Resolved in less than 1 hour
     });
   }
 
@@ -500,19 +505,18 @@ export class TicketDashboardActions {
       const now = new Date();
       const ageHours = (now.getTime() - opened.getTime()) / (1000 * 60 * 60);
 
-      // SLA thresholds based on priority
+      // SLA thresholds - ONLY P5-P8 (P1-P4 completely removed)
       const slaThresholds = {
-        'P1': 4,    // 4 hours
-        'P2': 8,    // 8 hours
-        'P3': 24,   // 24 hours
-        'P4': 72,   // 72 hours
-        'P5': 168,  // 168 hours (1 week)
-        'P6': 336,  // 336 hours (2 weeks)
-        'P7': 504,  // 504 hours (3 weeks)
-        'P8': 720   // 720 hours (1 month)
+        'P5': 4,    // 4 hours (critico)
+        'P6': 8,    // 8 hours (critico)
+        'P7': 24,   // 24 hours (critico)
+        'P8': 72    // 72 hours (critico)
       };
 
-      const threshold = slaThresholds[ticket.priority] || 24;
+      const threshold = slaThresholds[ticket.priority];
+      // If priority is not in our thresholds (shouldn't happen with new interface), ignore ticket
+      if (!threshold) return false;
+      
       return ageHours > threshold;
     });
   }

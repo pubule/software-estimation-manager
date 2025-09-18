@@ -105,14 +105,11 @@ export const TicketDashboard: React.FC = () => {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'P1': return '#ff4444';
-      case 'P2': return '#ff8800';
-      case 'P3': return '#ffcc00';
-      case 'P4': return '#88cc00';
-      case 'P5': return '#00cc88';
-      case 'P6': return '#00aacc';
-      case 'P7': return '#0088dd';
-      case 'P8': return '#0066ff';
+      // P1-P4 REMOVED - Only P5-P8 supported
+      case 'P5': return '#ff4444'; // Critical red (was P1 color)
+      case 'P6': return '#ff8800'; // High orange (was P2 color)
+      case 'P7': return '#ffcc00'; // Medium yellow (was P3 color)
+      case 'P8': return '#88cc00'; // Low green (was P4 color)
       default: return '#cccccc';
     }
   };
@@ -196,14 +193,10 @@ export const TicketDashboard: React.FC = () => {
                 })}
               >
                 <option value="all">All Priorities</option>
-                <option value="P1">P1 - Critical</option>
-                <option value="P2">P2 - High</option>
-                <option value="P3">P3 - Medium</option>
-                <option value="P4">P4 - Low</option>
-                <option value="P5">P5 - Very Low</option>
-                <option value="P6">P6 - Low+</option>
-                <option value="P7">P7 - Minor</option>
-                <option value="P8">P8 - Trivial</option>
+                <option value="P5">P5 - Critical</option>
+                <option value="P6">P6 - High</option>
+                <option value="P7">P7 - Medium</option>
+                <option value="P8">P8 - Low</option>
               </select>
             </div>
 
@@ -374,7 +367,7 @@ export const TicketDashboard: React.FC = () => {
                     <div className="chart-container">
                       <h4>Priority Distribution</h4>
                       <div className="priority-chart">
-                        {['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'].map(priority => {
+                        {['P5', 'P6', 'P7', 'P8'].map(priority => {
                           const filteredTickets = getFilteredTickets();
                           const count = filteredTickets.filter(t => t.priority === priority).length;
                           const percentage = filteredTickets.length > 0 ? (count / filteredTickets.length) * 100 : 0;
@@ -534,7 +527,7 @@ export const TicketDashboard: React.FC = () => {
                     <div className="chart-container">
                       <h4>Resolution Time by Priority</h4>
                       <div className="resolution-time-chart">
-                        {['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'].map(priority => {
+                        {['P5', 'P6', 'P7', 'P8'].map(priority => {
                           const filteredTickets = getFilteredTickets();
                           const priorityTickets = filteredTickets.filter(t =>
                             t.priority === priority && t.resolved_at && t.resolved_at.trim()
