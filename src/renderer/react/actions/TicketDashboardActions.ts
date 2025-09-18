@@ -408,7 +408,8 @@ export class TicketDashboardActions {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     return tickets.filter(ticket =>
       (!ticket.assigned_to || ticket.assigned_to.trim() === '') &&
-      new Date(ticket.opened_at) < oneDayAgo
+      new Date(ticket.opened_at) < oneDayAgo &&
+      !['Resolved', 'Closed'].includes(ticket.state)  // FIXED: Escludi ticket risolti/chiusi
     );
   }
 
