@@ -430,7 +430,7 @@ export class TicketDashboardActions {
   private getExpiredHighPriorityTickets(tickets: TicketData[]): TicketData[] {
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
     return tickets.filter(ticket =>
-      ['P1', 'P2'].includes(ticket.priority) &&
+      ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].includes(ticket.priority) && // FIXED: Esteso fino a P6
       !['Resolved', 'Closed'].includes(ticket.state) &&
       new Date(ticket.opened_at) < twoDaysAgo
     );
@@ -441,7 +441,7 @@ export class TicketDashboardActions {
    */
   private getSuspiciousClosures(tickets: TicketData[]): TicketData[] {
     return tickets.filter(ticket => {
-      if (!ticket.resolved_at || !['P1', 'P2', 'P3'].includes(ticket.priority)) {
+      if (!ticket.resolved_at) {
         return false;
       }
 
@@ -449,7 +449,7 @@ export class TicketDashboardActions {
       const resolved = new Date(ticket.resolved_at);
       const diffHours = (resolved.getTime() - opened.getTime()) / (1000 * 60 * 60);
 
-      return diffHours < 1;
+      return diffHours < 1; // FIXED: Considera TUTTI i livelli di priorità
     });
   }
 
