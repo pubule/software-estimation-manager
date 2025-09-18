@@ -228,11 +228,24 @@ export const TicketDashboard: React.FC = () => {
                 <div className="kpi-value">{dashboardMetrics?.totalTickets || 0}</div>
                 <div className="kpi-label">Total Tickets</div>
               </div>
-              <div className="kpi-card">
+              <div className="kpi-card resolution-time-card">
                 <div className="kpi-value">
                   {dashboardMetrics?.averageResolutionTime ? formatDuration(dashboardMetrics.averageResolutionTime) : 'No data'}
                 </div>
                 <div className="kpi-label">Avg Resolution Time</div>
+
+                {/* Top Impact Tickets */}
+                {dashboardMetrics?.topResolutionTimeTickets && dashboardMetrics.topResolutionTimeTickets.length > 0 && (
+                  <div className="top-tickets">
+                    <div className="top-tickets-label">Top Impact Tickets:</div>
+                    {dashboardMetrics.topResolutionTimeTickets.slice(0, 3).map((ticket, index) => (
+                      <div key={ticket.id} className="top-ticket-item">
+                        <span className="ticket-id">#{ticket.id}</span>
+                        <span className="ticket-time">{formatDuration(ticket.resolutionHours)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="kpi-card">
                 <div className="kpi-value">{dashboardMetrics?.openTickets || 0}</div>
@@ -768,6 +781,51 @@ export const TicketDashboard: React.FC = () => {
           color: #9d9d9d;
           font-weight: 500;
           font-size: 14px;
+        }
+
+        /* Top Resolution Time Tickets */
+        .resolution-time-card {
+          min-height: 160px;
+        }
+
+        .top-tickets {
+          margin-top: 15px;
+          border-top: 1px solid #3c3c3c;
+          padding-top: 12px;
+          text-align: left;
+        }
+
+        .top-tickets-label {
+          font-size: 11px;
+          color: #007acc;
+          margin-bottom: 8px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .top-ticket-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 11px;
+          margin-bottom: 5px;
+          padding: 3px 0;
+        }
+
+        .top-ticket-item:last-child {
+          margin-bottom: 0;
+        }
+
+        .ticket-id {
+          color: #cccccc;
+          font-weight: 600;
+          font-family: 'Courier New', monospace;
+        }
+
+        .ticket-time {
+          color: #f14c4c;
+          font-weight: 600;
         }
 
         .alerts-section {

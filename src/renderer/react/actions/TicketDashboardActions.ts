@@ -25,6 +25,11 @@ export interface DashboardMetrics {
   closedTickets: number;
   resolutionRate: number;
   backlogCurrent: number;
+  topResolutionTimeTickets?: {
+    id: string;
+    subject: string;
+    resolutionHours: number;
+  }[];
 }
 
 export interface OperatorMetrics {
@@ -237,7 +242,8 @@ export class TicketDashboardActions {
       // Note: "Resolved" and "Closed" are both considered completed tickets (same functional logic)
       closedTickets: tickets.filter(t => ['Resolved', 'Closed'].includes(t.state)).length,
       resolutionRate: this.calculateResolutionRate(tickets),
-      backlogCurrent: tickets.filter(t => ['Open', 'In Progress', 'Pending'].includes(t.state)).length
+      backlogCurrent: tickets.filter(t => ['Open', 'In Progress', 'Pending'].includes(t.state)).length,
+      topResolutionTimeTickets: this.calculateTopResolutionTimeTickets(tickets)
     };
 
     console.log('- Calculated metrics:', metrics);
@@ -265,6 +271,33 @@ export class TicketDashboardActions {
     }, 0);
 
     return totalHours / resolvedTickets.length;
+  }
+
+  /**
+   * Calculate top 3 tickets with highest resolution time
+   */
+  private calculateTopResolutionTimeTickets(tickets: TicketData[]): { id: string; subject: string; resolutionHours: number; }[] {
+    const resolvedTickets = tickets.filter(t => t.resolved_at && t.resolved_at.trim());
+
+    if (resolvedTickets.length === 0) return [];
+
+    const ticketsWithResolutionTime = resolvedTickets.map(ticket => {
+      const opened = new Date(ticket.opened_at);
+      const resolved = new Date(ticket.resolved_at);
+      const diffMs = resolved.getTime() - opened.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      return {
+        id: ticket.id,
+        subject: ticket.subject || `Ticket ${ticket.id}`,
+        resolutionHours: diffHours
+      };
+    });
+
+    // Sort by resolution time descending and take top 3
+    return ticketsWithResolutionTime
+      .sort((a, b) => b.resolutionHours - a.resolutionHours)
+      .slice(0, 3);
   }
 
   /**
