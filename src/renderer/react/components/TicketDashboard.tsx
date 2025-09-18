@@ -599,6 +599,7 @@ export const TicketDashboard: React.FC = () => {
           overflow-y: auto !important;
           overflow-x: hidden !important;
           padding: 0 !important;
+          background: #1e1e1e !important;
         }
 
         /* Contenuto dashboard */
@@ -612,6 +613,8 @@ export const TicketDashboard: React.FC = () => {
           width: 100%;
           overflow: visible;
           box-sizing: border-box;
+          background: #1e1e1e;
+          color: #cccccc;
         }
 
         .dashboard-header {
@@ -620,12 +623,13 @@ export const TicketDashboard: React.FC = () => {
         }
 
         .dashboard-header h1 {
-          color: #2c3e50;
+          color: #ffffff;
           margin-bottom: 10px;
+          font-weight: 600;
         }
 
         .dashboard-header p {
-          color: #7f8c8d;
+          color: #9d9d9d;
           font-size: 1.1em;
         }
 
@@ -634,19 +638,19 @@ export const TicketDashboard: React.FC = () => {
         }
 
         .upload-area {
-          border: 2px dashed #bdc3c7;
+          border: 2px dashed #3c3c3c;
           border-radius: 10px;
           padding: 40px;
           text-align: center;
           cursor: pointer;
           transition: all 0.3s ease;
-          background: #f8f9fa;
+          background: #252526;
         }
 
         .upload-area:hover,
         .upload-area.drag-over {
-          border-color: #3498db;
-          background: #e3f2fd;
+          border-color: #007acc;
+          background: #2d2d30;
         }
 
         .upload-icon {
@@ -656,7 +660,7 @@ export const TicketDashboard: React.FC = () => {
 
         .processing {
           margin-top: 15px;
-          color: #3498db;
+          color: #007acc;
           font-weight: bold;
         }
 
@@ -665,9 +669,9 @@ export const TicketDashboard: React.FC = () => {
           gap: 20px;
           margin-bottom: 30px;
           padding: 20px;
-          background: white;
+          background: #252526;
           border-radius: 10px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          border: 1px solid #3c3c3c;
           align-items: center;
         }
 
@@ -679,29 +683,53 @@ export const TicketDashboard: React.FC = () => {
 
         .filter-group label {
           font-weight: bold;
-          color: #2c3e50;
+          color: #ffffff;
+          font-size: 13px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .filter-group select {
           padding: 8px 12px;
-          border: 1px solid #ddd;
-          border-radius: 5px;
+          border: 1px solid #3c3c3c;
+          border-radius: 3px;
           font-size: 14px;
+          background: #2d2d30;
+          color: #cccccc;
+          outline: none;
         }
 
-        .export-btn {
+        .filter-group select:focus {
+          border-color: #007acc;
+        }
+
+        .filter-group select option {
+          background: #2d2d30;
+          color: #cccccc;
+        }
+
+        .load-csv-btn {
           margin-left: auto;
           padding: 10px 20px;
-          background: #27ae60;
+          background: #0e639c;
           color: white;
           border: none;
-          border-radius: 5px;
+          border-radius: 3px;
           cursor: pointer;
-          font-weight: bold;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          transition: background 0.2s ease;
         }
 
-        .export-btn:hover {
-          background: #219a52;
+        .load-csv-btn:hover {
+          background: #1177bb;
+        }
+
+        .load-csv-btn:disabled {
+          background: #3c3c3c;
+          cursor: not-allowed;
         }
 
         .kpi-section {
@@ -712,24 +740,30 @@ export const TicketDashboard: React.FC = () => {
         }
 
         .kpi-card {
-          background: white;
+          background: #252526;
           padding: 25px;
-          border-radius: 10px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          border-radius: 6px;
+          border: 1px solid #3c3c3c;
           text-align: center;
-          border-left: 4px solid #3498db;
+          border-left: 4px solid #007acc;
+          transition: background 0.2s ease;
+        }
+
+        .kpi-card:hover {
+          background: #2d2d30;
         }
 
         .kpi-value {
           font-size: 2.5em;
-          font-weight: bold;
-          color: #2c3e50;
+          font-weight: 600;
+          color: #ffffff;
           margin-bottom: 10px;
         }
 
         .kpi-label {
-          color: #7f8c8d;
+          color: #9d9d9d;
           font-weight: 500;
+          font-size: 14px;
         }
 
         .alerts-section {
@@ -737,8 +771,9 @@ export const TicketDashboard: React.FC = () => {
         }
 
         .alerts-section h3 {
-          color: #e74c3c;
+          color: #f14c4c;
           margin-bottom: 15px;
+          font-weight: 600;
         }
 
         .alerts-grid {
@@ -749,18 +784,22 @@ export const TicketDashboard: React.FC = () => {
 
         .alert-card {
           padding: 15px;
-          border-radius: 8px;
+          border-radius: 6px;
           border-left: 4px solid;
+          background: #252526;
+          border: 1px solid #3c3c3c;
         }
 
         .alert-critical {
-          background: #ffeaea;
-          border-left-color: #e74c3c;
+          border-left-color: #f14c4c;
+          background: #2d1b1b;
+          border-color: #5a2d2d;
         }
 
         .alert-warning {
-          background: #fff9e6;
-          border-left-color: #f39c12;
+          border-left-color: #ffcc02;
+          background: #2d2619;
+          border-color: #5a4d2d;
         }
 
         .alert-header {
@@ -768,28 +807,30 @@ export const TicketDashboard: React.FC = () => {
           align-items: center;
           gap: 10px;
           margin-bottom: 8px;
+          color: #ffffff;
         }
 
         .alert-count {
           margin-left: auto;
-          background: #e74c3c;
+          background: #f14c4c;
           color: white;
           padding: 2px 8px;
           border-radius: 12px;
           font-size: 0.9em;
+          font-weight: 600;
         }
 
         .tabs-section {
-          background: white;
-          border-radius: 10px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          background: #252526;
+          border-radius: 6px;
+          border: 1px solid #3c3c3c;
           overflow: hidden;
         }
 
         .tab-nav {
           display: flex;
-          background: #f8f9fa;
-          border-bottom: 1px solid #dee2e6;
+          background: #2d2d30;
+          border-bottom: 1px solid #3c3c3c;
         }
 
         .tab-nav button {
@@ -798,22 +839,25 @@ export const TicketDashboard: React.FC = () => {
           background: transparent;
           cursor: pointer;
           font-weight: 500;
-          color: #6c757d;
-          transition: all 0.3s ease;
+          color: #9d9d9d;
+          transition: all 0.2s ease;
+          border-bottom: 3px solid transparent;
         }
 
         .tab-nav button.active {
-          background: white;
-          color: #495057;
-          border-bottom: 3px solid #3498db;
+          background: #252526;
+          color: #ffffff;
+          border-bottom: 3px solid #007acc;
         }
 
-        .tab-nav button:hover {
-          background: #e9ecef;
+        .tab-nav button:hover:not(.active) {
+          background: #3c3c3c;
+          color: #cccccc;
         }
 
         .tab-content {
           padding: 30px;
+          background: #252526;
         }
 
         .charts-grid {
@@ -823,14 +867,16 @@ export const TicketDashboard: React.FC = () => {
         }
 
         .chart-container {
-          background: #f8f9fa;
+          background: #2d2d30;
           padding: 20px;
-          border-radius: 8px;
+          border-radius: 6px;
+          border: 1px solid #3c3c3c;
         }
 
         .chart-container h4 {
           margin-bottom: 20px;
-          color: #2c3e50;
+          color: #ffffff;
+          font-weight: 600;
         }
 
         .priority-chart,
@@ -850,16 +896,18 @@ export const TicketDashboard: React.FC = () => {
         .priority-label,
         .state-label {
           width: 80px;
-          font-weight: bold;
+          font-weight: 600;
           font-size: 0.9em;
+          color: #cccccc;
         }
 
         .bar-container {
           flex: 1;
           height: 20px;
-          background: #e9ecef;
+          background: #1e1e1e;
           border-radius: 10px;
           overflow: hidden;
+          border: 1px solid #3c3c3c;
         }
 
         .bar-fill {
@@ -871,59 +919,65 @@ export const TicketDashboard: React.FC = () => {
         .state-count {
           width: 40px;
           text-align: right;
-          font-weight: bold;
+          font-weight: 600;
           font-size: 0.9em;
+          color: #ffffff;
         }
 
         .operators-table-container {
           overflow-x: auto;
+          background: #252526;
+          border-radius: 6px;
+          border: 1px solid #3c3c3c;
         }
 
         .operators-table {
           width: 100%;
           border-collapse: collapse;
-          background: white;
+          background: #252526;
         }
 
         .operators-table th,
         .operators-table td {
           padding: 12px;
           text-align: left;
-          border-bottom: 1px solid #dee2e6;
+          border-bottom: 1px solid #3c3c3c;
+          color: #cccccc;
         }
 
         .operators-table th {
-          background: #f8f9fa;
-          font-weight: bold;
-          color: #495057;
+          background: #2d2d30;
+          font-weight: 600;
+          color: #ffffff;
         }
 
         .operators-table tr:hover {
-          background: #f8f9fa;
+          background: #2d2d30;
         }
 
         .delayed {
-          color: #e74c3c;
+          color: #f14c4c;
           font-weight: bold;
         }
 
         .high-delay {
-          color: #e74c3c;
+          color: #f14c4c;
           font-weight: bold;
         }
 
         .btn-small {
           padding: 5px 10px;
-          background: #3498db;
+          background: #0e639c;
           color: white;
           border: none;
           border-radius: 3px;
           cursor: pointer;
           font-size: 0.9em;
+          transition: background 0.2s ease;
         }
 
         .btn-small:hover {
-          background: #2980b9;
+          background: #1177bb;
         }
 
         .advanced-charts-grid {
@@ -941,7 +995,7 @@ export const TicketDashboard: React.FC = () => {
           justify-content: space-around;
           align-items: end;
           height: 200px;
-          border-bottom: 2px solid #e9ecef;
+          border-bottom: 2px solid #3c3c3c;
           padding: 20px 0;
         }
 
@@ -954,8 +1008,8 @@ export const TicketDashboard: React.FC = () => {
 
         .trend-date {
           font-size: 0.8em;
-          color: #6c757d;
-          font-weight: bold;
+          color: #9d9d9d;
+          font-weight: 600;
         }
 
         .trend-bar-group {
@@ -971,11 +1025,11 @@ export const TicketDashboard: React.FC = () => {
         }
 
         .trend-bar.opened {
-          background-color: #3498db;
+          background-color: #007acc;
         }
 
         .trend-bar.closed {
-          background-color: #27ae60;
+          background-color: #00bc7e;
         }
 
         .trend-values {
@@ -985,12 +1039,12 @@ export const TicketDashboard: React.FC = () => {
         }
 
         .opened-count {
-          color: #3498db;
+          color: #007acc;
           font-weight: bold;
         }
 
         .closed-count {
-          color: #27ae60;
+          color: #00bc7e;
           font-weight: bold;
         }
 
@@ -1010,9 +1064,10 @@ export const TicketDashboard: React.FC = () => {
         .resolution-bar-container {
           flex: 1;
           height: 25px;
-          background: #e9ecef;
+          background: #1e1e1e;
           border-radius: 12px;
           overflow: hidden;
+          border: 1px solid #3c3c3c;
         }
 
         .resolution-bar-fill {
@@ -1024,8 +1079,9 @@ export const TicketDashboard: React.FC = () => {
         .resolution-time {
           width: 80px;
           text-align: right;
-          font-weight: bold;
+          font-weight: 600;
           font-size: 0.9em;
+          color: #ffffff;
         }
 
         .activity-heatmap {
@@ -1043,9 +1099,10 @@ export const TicketDashboard: React.FC = () => {
 
         .operator-name {
           width: 120px;
-          font-weight: bold;
+          font-weight: 600;
           font-size: 0.9em;
           text-align: right;
+          color: #cccccc;
         }
 
         .activity-cells {
@@ -1057,15 +1114,16 @@ export const TicketDashboard: React.FC = () => {
           width: 25px;
           height: 25px;
           border-radius: 3px;
-          border: 1px solid #e9ecef;
+          border: 1px solid #3c3c3c;
+          background: #1e1e1e;
         }
 
         .total-activity {
           width: 40px;
           text-align: center;
-          font-weight: bold;
+          font-weight: 600;
           font-size: 0.9em;
-          color: #495057;
+          color: #ffffff;
         }
 
         .modal-overlay {
@@ -1074,7 +1132,7 @@ export const TicketDashboard: React.FC = () => {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0,0,0,0.5);
+          background: rgba(0,0,0,0.7);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1082,12 +1140,13 @@ export const TicketDashboard: React.FC = () => {
         }
 
         .modal-content {
-          background: white;
-          border-radius: 10px;
+          background: #252526;
+          border-radius: 6px;
           max-width: 600px;
           width: 90%;
           max-height: 80vh;
           overflow-y: auto;
+          border: 1px solid #3c3c3c;
         }
 
         .modal-header {
@@ -1095,7 +1154,13 @@ export const TicketDashboard: React.FC = () => {
           justify-content: space-between;
           align-items: center;
           padding: 20px;
-          border-bottom: 1px solid #dee2e6;
+          border-bottom: 1px solid #3c3c3c;
+          background: #2d2d30;
+        }
+
+        .modal-header h3 {
+          color: #ffffff;
+          margin: 0;
         }
 
         .close-btn {
@@ -1103,11 +1168,18 @@ export const TicketDashboard: React.FC = () => {
           border: none;
           font-size: 1.5em;
           cursor: pointer;
-          color: #6c757d;
+          color: #9d9d9d;
+          transition: color 0.2s ease;
+        }
+
+        .close-btn:hover {
+          color: #ffffff;
         }
 
         .modal-body {
           padding: 20px;
+          background: #252526;
+          color: #cccccc;
         }
 
         .operator-stats {
@@ -1117,8 +1189,9 @@ export const TicketDashboard: React.FC = () => {
         }
 
         .stat-group h4 {
-          color: #2c3e50;
+          color: #ffffff;
           margin-bottom: 10px;
+          font-weight: 600;
         }
 
         .timeline {
@@ -1130,17 +1203,18 @@ export const TicketDashboard: React.FC = () => {
           display: flex;
           gap: 15px;
           padding: 10px 0;
-          border-bottom: 1px solid #f1f3f4;
+          border-bottom: 1px solid #3c3c3c;
         }
 
         .timeline-date {
           font-size: 0.9em;
-          color: #6c757d;
+          color: #9d9d9d;
           white-space: nowrap;
         }
 
         .timeline-content {
           flex: 1;
+          color: #cccccc;
         }
 
         .error {
@@ -1153,24 +1227,31 @@ export const TicketDashboard: React.FC = () => {
         .error-message {
           text-align: center;
           padding: 40px;
-          background: #f8f9fa;
-          border-radius: 10px;
-          border-left: 4px solid #e74c3c;
+          background: #252526;
+          border-radius: 6px;
+          border-left: 4px solid #f14c4c;
+          border: 1px solid #5a2d2d;
+          color: #cccccc;
         }
 
         .error-message h3 {
-          color: #e74c3c;
+          color: #f14c4c;
           margin-bottom: 15px;
         }
 
         .error-message button {
           margin-top: 15px;
           padding: 10px 20px;
-          background: #3498db;
+          background: #0e639c;
           color: white;
           border: none;
-          border-radius: 5px;
+          border-radius: 3px;
           cursor: pointer;
+          transition: background 0.2s ease;
+        }
+
+        .error-message button:hover {
+          background: #1177bb;
         }
 
         @media (max-width: 768px) {
