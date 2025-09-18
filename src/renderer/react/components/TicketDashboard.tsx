@@ -480,7 +480,7 @@ export const TicketDashboard: React.FC = () => {
                   <div className="advanced-charts-grid">
                     <div className="chart-container">
                       <h4>Ticket Trend Analysis</h4>
-                      <div className="trend-chart">
+                      <div className="trend-table-container">
                         {(() => {
                           const filteredTickets = getFilteredTickets();
                           const dailyStats = filteredTickets.reduce((stats, ticket) => {
@@ -495,30 +495,49 @@ export const TicketDashboard: React.FC = () => {
 
                           const sortedDates = Object.keys(dailyStats).sort().slice(-7); // Last 7 days
 
+                          const getTrendAnalysis = (opened: number, closed: number) => {
+                            const balance = opened - closed;
+                            if (balance === 0) return { text: '✅ Equilibrato', class: 'trend-balanced' };
+                            if (balance > 0) return { text: '⚠️ Leggero accumulo', class: 'trend-accumulation' };
+                            return { text: '📈 Deficit risolto', class: 'trend-deficit' };
+                          };
+
                           return (
-                            <div className="trend-bars">
-                              {sortedDates.map(date => (
-                                <div key={date} className="trend-day">
-                                  <div className="trend-date">{new Date(date).toLocaleDateString('en', {month: 'short', day: 'numeric'})}</div>
-                                  <div className="trend-bar-group">
-                                    <div
-                                      className="trend-bar opened"
-                                      style={{height: `${Math.max(10, dailyStats[date].opened * 10)}px`}}
-                                      title={`Opened: ${dailyStats[date].opened}`}
-                                    />
-                                    <div
-                                      className="trend-bar closed"
-                                      style={{height: `${Math.max(5, dailyStats[date].closed * 10)}px`}}
-                                      title={`Closed: ${dailyStats[date].closed}`}
-                                    />
-                                  </div>
-                                  <div className="trend-values">
-                                    <span className="opened-count">{dailyStats[date].opened}</span>
-                                    <span className="closed-count">{dailyStats[date].closed}</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                            <table className="trend-table">
+                              <thead>
+                                <tr>
+                                  <th>Data</th>
+                                  <th>Aperti</th>
+                                  <th>Chiusi</th>
+                                  <th>Bilancio</th>
+                                  <th>Trend</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sortedDates.map(date => {
+                                  const opened = dailyStats[date].opened;
+                                  const closed = dailyStats[date].closed;
+                                  const balance = opened - closed;
+                                  const trend = getTrendAnalysis(opened, closed);
+
+                                  return (
+                                    <tr key={date}>
+                                      <td className="trend-date">
+                                        {new Date(date).toLocaleDateString('en', {month: 'short', day: 'numeric'})}
+                                      </td>
+                                      <td className="trend-opened">{opened}</td>
+                                      <td className="trend-closed">{closed}</td>
+                                      <td className={`trend-balance ${balance > 0 ? 'positive' : balance < 0 ? 'negative' : 'neutral'}`}>
+                                        {balance > 0 ? `+${balance}` : balance === 0 ? '0 (=)' : balance}
+                                      </td>
+                                      <td className={`trend-status ${trend.class}`}>
+                                        {trend.text}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           );
                         })()}
                       </div>
@@ -1712,6 +1731,129 @@ export const TicketDashboard: React.FC = () => {
 
           .assigned-to {
             max-width: 80px;
+          }
+        }
+
+        /* Trend Analysis Table Styling */
+        .trend-table-container {
+          overflow-x: auto;
+          background: #1e1e1e;
+          border-radius: 6px;
+          border: 1px solid #3c3c3c;
+          margin-top: 15px;
+        }
+
+        .trend-table {
+          width: 100%;
+          border-collapse: collapse;
+          background: #1e1e1e;
+          font-size: 13px;
+          min-width: 500px;
+        }
+
+        .trend-table th,
+        .trend-table td {
+          padding: 12px 16px;
+          text-align: left;
+          border-bottom: 1px solid #3c3c3c;
+          color: #cccccc;
+        }
+
+        .trend-table th {
+          background: #2d2d30;
+          font-weight: 600;
+          color: #ffffff;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          position: sticky;
+          top: 0;
+          z-index: 1;
+        }
+
+        .trend-table tr:hover {
+          background: #252526;
+        }
+
+        .trend-date {
+          font-family: 'Courier New', monospace;
+          font-weight: 600;
+          color: #007acc;
+          min-width: 80px;
+        }
+
+        .trend-opened {
+          text-align: center;
+          font-weight: 600;
+          color: #f14c4c;
+        }
+
+        .trend-closed {
+          text-align: center;
+          font-weight: 600;
+          color: #73c991;
+        }
+
+        .trend-balance {
+          text-align: center;
+          font-weight: 700;
+          font-family: 'Courier New', monospace;
+        }
+
+        .trend-balance.positive {
+          color: #f14c4c;
+          background: rgba(241, 76, 76, 0.1);
+          border-radius: 4px;
+        }
+
+        .trend-balance.negative {
+          color: #73c991;
+          background: rgba(115, 201, 145, 0.1);
+          border-radius: 4px;
+        }
+
+        .trend-balance.neutral {
+          color: #007acc;
+          background: rgba(0, 122, 204, 0.1);
+          border-radius: 4px;
+        }
+
+        .trend-status {
+          text-align: center;
+          font-weight: 600;
+          font-size: 12px;
+        }
+
+        .trend-status.trend-balanced {
+          color: #007acc;
+        }
+
+        .trend-status.trend-accumulation {
+          color: #ffcc02;
+        }
+
+        .trend-status.trend-deficit {
+          color: #73c991;
+        }
+
+        @media (max-width: 768px) {
+          .trend-table-container {
+            margin-top: 10px;
+          }
+
+          .trend-table {
+            font-size: 11px;
+            min-width: 400px;
+          }
+
+          .trend-table th,
+          .trend-table td {
+            padding: 8px 6px;
+          }
+
+          .trend-date {
+            min-width: 60px;
+            font-size: 10px;
           }
         }
       `}</style>
