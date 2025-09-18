@@ -48,7 +48,7 @@ export const TicketDashboard: React.FC = () => {
 
   // Local UI state
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('charts');
   const [showOperatorModal, setShowOperatorModal] = useState(false);
   const [expandedAlerts, setExpandedAlerts] = useState<Set<number>>(new Set());
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
@@ -493,7 +493,7 @@ export const TicketDashboard: React.FC = () => {
                           return stats;
                         }, {} as Record<string, {opened: number, closed: number}>);
 
-                        const sortedDates = Object.keys(dailyStats).sort().slice(-7); // Last 7 days
+                        const sortedDates = Object.keys(dailyStats).sort().slice(-7).reverse(); // Last 7 days, newest first
 
                         const getTrendAnalysis = (opened: number, closed: number) => {
                           const balance = opened - closed;
