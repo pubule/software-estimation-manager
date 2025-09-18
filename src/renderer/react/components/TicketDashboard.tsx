@@ -477,72 +477,74 @@ export const TicketDashboard: React.FC = () => {
               {/* Charts Tab */}
               {activeTab === 'charts' && (
                 <div className="charts-tab">
-                  <div className="advanced-charts-grid">
-                    <div className="chart-container">
-                      <h4>Ticket Trend Analysis</h4>
-                      <div className="trend-table-container">
-                        {(() => {
-                          const filteredTickets = getFilteredTickets();
-                          const dailyStats = filteredTickets.reduce((stats, ticket) => {
-                            const date = ticket.opened_at.split(' ')[0]; // Get date part
-                            if (!stats[date]) stats[date] = { opened: 0, closed: 0 };
-                            stats[date].opened++;
-                            if (['Resolved', 'Closed'].includes(ticket.state)) {
-                              stats[date].closed++;
-                            }
-                            return stats;
-                          }, {} as Record<string, {opened: number, closed: number}>);
+                  {/* Trend Analysis - Full Width */}
+                  <div className="chart-container full-width">
+                    <h4>Ticket Trend Analysis</h4>
+                    <div className="trend-table-container">
+                      {(() => {
+                        const filteredTickets = getFilteredTickets();
+                        const dailyStats = filteredTickets.reduce((stats, ticket) => {
+                          const date = ticket.opened_at.split(' ')[0]; // Get date part
+                          if (!stats[date]) stats[date] = { opened: 0, closed: 0 };
+                          stats[date].opened++;
+                          if (['Resolved', 'Closed'].includes(ticket.state)) {
+                            stats[date].closed++;
+                          }
+                          return stats;
+                        }, {} as Record<string, {opened: number, closed: number}>);
 
-                          const sortedDates = Object.keys(dailyStats).sort().slice(-7); // Last 7 days
+                        const sortedDates = Object.keys(dailyStats).sort().slice(-7); // Last 7 days
 
-                          const getTrendAnalysis = (opened: number, closed: number) => {
-                            const balance = opened - closed;
-                            if (balance === 0) return { text: '✅ Equilibrato', class: 'trend-balanced' };
-                            if (balance > 0) return { text: '⚠️ Leggero accumulo', class: 'trend-accumulation' };
-                            return { text: '📈 Deficit risolto', class: 'trend-deficit' };
-                          };
+                        const getTrendAnalysis = (opened: number, closed: number) => {
+                          const balance = opened - closed;
+                          if (balance === 0) return { text: '✅ Equilibrato', class: 'trend-balanced' };
+                          if (balance > 0) return { text: '⚠️ Leggero accumulo', class: 'trend-accumulation' };
+                          return { text: '📈 Deficit risolto', class: 'trend-deficit' };
+                        };
 
-                          return (
-                            <table className="trend-table">
-                              <thead>
-                                <tr>
-                                  <th>Data</th>
-                                  <th>Aperti</th>
-                                  <th>Chiusi</th>
-                                  <th>Bilancio</th>
-                                  <th>Trend</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {sortedDates.map(date => {
-                                  const opened = dailyStats[date].opened;
-                                  const closed = dailyStats[date].closed;
-                                  const balance = opened - closed;
-                                  const trend = getTrendAnalysis(opened, closed);
+                        return (
+                          <table className="trend-table">
+                            <thead>
+                              <tr>
+                                <th>Data</th>
+                                <th>Aperti</th>
+                                <th>Chiusi</th>
+                                <th>Bilancio</th>
+                                <th>Trend</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {sortedDates.map(date => {
+                                const opened = dailyStats[date].opened;
+                                const closed = dailyStats[date].closed;
+                                const balance = opened - closed;
+                                const trend = getTrendAnalysis(opened, closed);
 
-                                  return (
-                                    <tr key={date}>
-                                      <td className="trend-date">
-                                        {new Date(date).toLocaleDateString('en', {month: 'short', day: 'numeric'})}
-                                      </td>
-                                      <td className="trend-opened">{opened}</td>
-                                      <td className="trend-closed">{closed}</td>
-                                      <td className={`trend-balance ${balance > 0 ? 'positive' : balance < 0 ? 'negative' : 'neutral'}`}>
-                                        {balance > 0 ? `+${balance}` : balance === 0 ? '0 (=)' : balance}
-                                      </td>
-                                      <td className={`trend-status ${trend.class}`}>
-                                        {trend.text}
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          );
-                        })()}
-                      </div>
+                                return (
+                                  <tr key={date}>
+                                    <td className="trend-date">
+                                      {new Date(date).toLocaleDateString('en', {month: 'short', day: 'numeric'})}
+                                    </td>
+                                    <td className="trend-opened">{opened}</td>
+                                    <td className="trend-closed">{closed}</td>
+                                    <td className={`trend-balance ${balance > 0 ? 'positive' : balance < 0 ? 'negative' : 'neutral'}`}>
+                                      {balance > 0 ? `+${balance}` : balance === 0 ? '0 (=)' : balance}
+                                    </td>
+                                    <td className={`trend-status ${trend.class}`}>
+                                      {trend.text}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        );
+                      })()}
                     </div>
+                  </div>
 
+                  {/* Bottom Charts Grid */}
+                  <div className="bottom-charts-grid">
                     <div className="chart-container">
                       <h4>Resolution Time by Priority</h4>
                       <div className="resolution-time-chart">
@@ -1209,6 +1211,17 @@ export const TicketDashboard: React.FC = () => {
         }
 
         .advanced-charts-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          gap: 30px;
+        }
+
+        .full-width {
+          grid-column: 1 / -1;
+          margin-bottom: 30px;
+        }
+
+        .bottom-charts-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
           gap: 30px;
