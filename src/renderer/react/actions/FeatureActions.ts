@@ -686,8 +686,8 @@ export class FeatureActions {
         categories.forEach(category => {
           if (category.featureTypes && Array.isArray(category.featureTypes)) {
             category.featureTypes.forEach(ft => {
-              if (ft.name && !allFeatureTypes.includes(ft.name)) {
-                allFeatureTypes.push(ft.name);
+              if (ft.id && !allFeatureTypes.includes(ft.id)) {
+                allFeatureTypes.push(ft.id);
               }
             });
           }

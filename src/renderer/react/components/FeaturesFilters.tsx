@@ -36,10 +36,21 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
       try {
         const options = await getFilterOptions();
         setFilterOptions(options);
-        // Convert featureTypes to objects if they're strings
-        const featureTypesAsObjects = options.featureTypes.map(ft =>
-          typeof ft === 'string' ? { id: ft, name: ft } : ft
-        );
+        // Convert featureTypes IDs to objects with proper names
+        const featureTypesAsObjects = options.featureTypes.map(ftId => {
+          // Find the feature type name from categories
+          let ftName = ftId; // fallback to ID if name not found
+          for (const category of options.categories) {
+            if (category.featureTypes) {
+              const ft = category.featureTypes.find(ft => ft.id === ftId);
+              if (ft && ft.name) {
+                ftName = ft.name;
+                break;
+              }
+            }
+          }
+          return { id: ftId, name: ftName };
+        });
         setAvailableFeatureTypes(featureTypesAsObjects);
       } catch (error) {
         console.error('Failed to load filter options:', error);
@@ -55,9 +66,20 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
     
     if (!categoryFilter || categoryFilter === '') {
       // Show all feature types when no category is selected
-      const featureTypesAsObjects = filterOptions.featureTypes.map(ft =>
-        typeof ft === 'string' ? { id: ft, name: ft } : ft
-      );
+      const featureTypesAsObjects = filterOptions.featureTypes.map(ftId => {
+        // Find the feature type name from categories
+        let ftName = ftId; // fallback to ID if name not found
+        for (const category of filterOptions.categories) {
+          if (category.featureTypes) {
+            const ft = category.featureTypes.find(ft => ft.id === ftId);
+            if (ft && ft.name) {
+              ftName = ft.name;
+              break;
+            }
+          }
+        }
+        return { id: ftId, name: ftName };
+      });
       setAvailableFeatureTypes(featureTypesAsObjects);
     } else {
       // Filter feature types based on selected category
