@@ -55,7 +55,7 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
     } else {
       // Filter feature types based on selected category
       const selectedCategory = filterOptions.categories.find(
-        cat => cat.name === categoryFilter || cat.id === categoryFilter
+        cat => cat.id === categoryFilter
       );
       
       if (selectedCategory && selectedCategory.featureTypes) {
@@ -69,7 +69,7 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
     // Reset feature type filter when category changes
     if (featureTypeFilter && categoryFilter) {
       const selectedCategory = filterOptions.categories.find(
-        cat => cat.name === categoryFilter || cat.id === categoryFilter
+        cat => cat.id === categoryFilter
       );
       const isFeatureTypeInCategory = selectedCategory?.featureTypes?.some(
         ft => ft.name === featureTypeFilter
@@ -103,7 +103,7 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
         >
           <option value="">All Categories</option>
           {filterOptions.categories.map((category, index) => (
-            <option key={category.id || `category-${index}`} value={category.name || category.id}>
+            <option key={category.id || `category-${index}`} value={category.id}>
               {category.name || category.id}
             </option>
           ))}
