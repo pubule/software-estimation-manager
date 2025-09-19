@@ -26,6 +26,7 @@ export interface DashboardMetrics {
   closedTickets: number;
   resolutionRate: number;
   backlogCurrent: number;
+  backlogTickets: TicketData[];
   topResolutionTimeTickets?: {
     id: string;
     subject: string;
@@ -258,6 +259,10 @@ export class TicketDashboardActions {
     }
 
     const averageResolutionTime = this.calculateAverageResolutionTime(tickets);
+
+    // Get all unresolved tickets (ignoring time filter for backlog)
+    const allUnresolvedTickets = this.getAllUnresolvedTickets();
+
     const metrics: DashboardMetrics = {
       totalTickets: tickets.length,
       averageResolutionTime,
@@ -265,7 +270,8 @@ export class TicketDashboardActions {
       // Note: "Resolved" and "Closed" are both considered completed tickets (same functional logic)
       closedTickets: tickets.filter(t => ['Resolved', 'Closed'].includes(t.state)).length,
       resolutionRate: this.calculateResolutionRate(tickets),
-      backlogCurrent: tickets.filter(t => ['Open', 'In Progress', 'Pending'].includes(t.state)).length,
+      backlogCurrent: allUnresolvedTickets.length,
+      backlogTickets: allUnresolvedTickets,
       topResolutionTimeTickets: this.calculateTopResolutionTimeTickets(tickets),
       resolutionTimeCategories: this.calculateResolutionTimeCategories(tickets, averageResolutionTime)
     };
@@ -619,6 +625,30 @@ export class TicketDashboardActions {
       const ticketDate = new Date(ticket.opened_at);
       return ticketDate >= timeFilter.start && ticketDate <= timeFilter.end;
     });
+  }
+
+  /**
+   * Get all unresolved tickets (ignores time filter)
+   */
+  getAllUnresolvedTickets(): TicketData[] {
+    const store = this.getStore();
+    const state = store.getState();
+    const allTickets = state.ticketData || [];
+
+    return allTickets.filter(ticket =>
+      !['Resolved', 'Closed'].includes(ticket.state)
+    );
+  }
+
+  /**
+   * Get oldest open tickets by opened_at date
+   */
+  getOldestOpenTickets(count: number = 3): TicketData[] {
+    const unresolvedTickets = this.getAllUnresolvedTickets();
+
+    return unresolvedTickets
+      .sort((a, b) => new Date(a.opened_at).getTime() - new Date(b.opened_at).getTime())
+      .slice(0, count);
   }
 
   /**

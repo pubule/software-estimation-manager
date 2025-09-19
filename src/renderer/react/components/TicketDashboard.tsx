@@ -53,6 +53,7 @@ export const TicketDashboard: React.FC = () => {
   const [expandedAlerts, setExpandedAlerts] = useState<Set<number>>(new Set());
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [expandedResolutionCard, setExpandedResolutionCard] = useState(false);
+  const [expandedBacklogCard, setExpandedBacklogCard] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load initial data if available
@@ -94,6 +95,14 @@ export const TicketDashboard: React.FC = () => {
         return `${workingDays}d ${remainingHours.toFixed(1)}h`;
       }
     }
+  };
+
+  const formatDurationFromDate = (dateString: string): string => {
+    const now = new Date();
+    const ticketDate = new Date(dateString);
+    const diffMs = now.getTime() - ticketDate.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    return formatDuration(diffHours);
   };
 
   const getAlertIcon = (type: string) => {
@@ -144,6 +153,18 @@ export const TicketDashboard: React.FC = () => {
 
   const closeAlertModal = () => {
     setSelectedAlert(null);
+  };
+
+  const openBacklogModal = () => {
+    // Create a mock alert for backlog tickets to reuse existing modal
+    const backlogAlert: Alert = {
+      type: 'info',
+      title: 'Current Backlog',
+      description: 'All unresolved tickets (ignoring time filter)',
+      count: dashboardMetrics?.backlogTickets?.length || 0,
+      tickets: dashboardMetrics?.backlogTickets || []
+    };
+    setSelectedAlert(backlogAlert);
   };
 
   if (ticketDashboardError) {
@@ -286,9 +307,50 @@ export const TicketDashboard: React.FC = () => {
                 <div className="kpi-value">{dashboardMetrics?.resolutionRate?.toFixed(1) || '0.0'}%</div>
                 <div className="kpi-label">Resolution Rate</div>
               </div>
-              <div className="kpi-card">
-                <div className="kpi-value">{dashboardMetrics?.backlogCurrent || 0}</div>
-                <div className="kpi-label">Current Backlog</div>
+              <div className={`kpi-card backlog-card ${expandedBacklogCard ? 'expanded' : ''}`}>
+                <div className="backlog-card-header" onClick={() => setExpandedBacklogCard(!expandedBacklogCard)}>
+                  <div className="kpi-value">{dashboardMetrics?.backlogCurrent || 0}</div>
+                  <div className="kpi-label">Current Backlog</div>
+                  <span className="expand-icon">{expandedBacklogCard ? '▼' : '▶'}</span>
+                </div>
+
+                {/* Expanded Content - Oldest Open Tickets */}
+                {expandedBacklogCard && dashboardMetrics?.backlogTickets && (
+                  <div className="backlog-expanded-content">
+                    {/* Oldest Tickets Preview */}
+                    {actions.getOldestOpenTickets(3).length > 0 && (
+                      <div className="resolution-category">
+                        <div className="category-label">📅 3 Oldest Open Tickets</div>
+                        {actions.getOldestOpenTickets(3).map((ticket, index) => (
+                          <div key={index} className="category-ticket-item">
+                            <span className="ticket-id">#{ticket.number}</span>
+                            <span className="ticket-age">{formatDurationFromDate(ticket.opened_at)} ago</span>
+                            <span
+                              className="priority-badge"
+                              style={{backgroundColor: getPriorityColor(ticket.priority)}}
+                            >
+                              {ticket.priority}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* View Full List Button */}
+                    <div className="backlog-actions">
+                      <button
+                        className="alert-action-btn view-list"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openBacklogModal();
+                        }}
+                      >
+                        <i className="fas fa-list"></i>
+                        View Full List ({dashboardMetrics?.backlogTickets?.length || 0} tickets)
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -994,6 +1056,40 @@ export const TicketDashboard: React.FC = () => {
           padding-top: 15px;
           border-top: 1px solid #3c3c3c;
           animation: slideDown 0.3s ease;
+        }
+
+        /* Expandable Backlog Card */
+        .backlog-card {
+          min-height: auto;
+          transition: all 0.3s ease;
+        }
+
+        .backlog-card.expanded {
+          min-height: auto;
+          background: #2d2d30;
+        }
+
+        .backlog-card-header {
+          cursor: pointer;
+          position: relative;
+          padding: 5px;
+          border-radius: 3px;
+          transition: background 0.2s ease;
+        }
+
+        .backlog-card-header:hover {
+          background: rgba(255,255,255,0.1);
+        }
+
+        .backlog-expanded-content {
+          margin-top: 15px;
+          padding: 0 5px;
+        }
+
+        .ticket-age {
+          color: #cccccc;
+          font-weight: 600;
+          font-family: 'Courier New', monospace;
         }
 
         .resolution-category {
