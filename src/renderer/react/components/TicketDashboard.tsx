@@ -694,6 +694,7 @@ export const TicketDashboard: React.FC = () => {
                           <th>Assigned To</th>
                           <th>Opened</th>
                           <th>Last Updated</th>
+                          <th>Resolved By</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -726,6 +727,7 @@ export const TicketDashboard: React.FC = () => {
                             <td className="updated-date">
                               {new Date(ticket.sys_updated_on).toLocaleDateString()}
                             </td>
+                            <td className="resolved-by">{ticket.resolved_by || 'Not Resolved'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1808,6 +1810,13 @@ export const TicketDashboard: React.FC = () => {
           text-overflow: ellipsis;
           white-space: nowrap;
         }
+        .resolved-by {
+          max-width: 120px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: #cccccc;
+        }
 
         .opened-date,
         .updated-date {
@@ -1853,6 +1862,9 @@ export const TicketDashboard: React.FC = () => {
           }
 
           .assigned-to {
+            max-width: 80px;
+          }
+          .resolved-by {
             max-width: 80px;
           }
         }
