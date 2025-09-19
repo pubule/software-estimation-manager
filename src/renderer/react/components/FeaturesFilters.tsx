@@ -29,14 +29,18 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
     suppliers: []
   });
 
-  const [availableFeatureTypes, setAvailableFeatureTypes] = useState<string[]>([]);
+  const [availableFeatureTypes, setAvailableFeatureTypes] = useState<any[]>([]);
 
   useEffect(() => {
     const loadFilterOptions = async () => {
       try {
         const options = await getFilterOptions();
         setFilterOptions(options);
-        setAvailableFeatureTypes(options.featureTypes);
+        // Convert featureTypes to objects if they're strings
+        const featureTypesAsObjects = options.featureTypes.map(ft =>
+          typeof ft === 'string' ? { id: ft, name: ft } : ft
+        );
+        setAvailableFeatureTypes(featureTypesAsObjects);
       } catch (error) {
         console.error('Failed to load filter options:', error);
       }
@@ -51,7 +55,10 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
     
     if (!categoryFilter || categoryFilter === '') {
       // Show all feature types when no category is selected
-      setAvailableFeatureTypes(filterOptions.featureTypes);
+      const featureTypesAsObjects = filterOptions.featureTypes.map(ft =>
+        typeof ft === 'string' ? { id: ft, name: ft } : ft
+      );
+      setAvailableFeatureTypes(featureTypesAsObjects);
     } else {
       // Filter feature types based on selected category
       const selectedCategory = filterOptions.categories.find(
@@ -59,8 +66,8 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
       );
       
       if (selectedCategory && selectedCategory.featureTypes) {
-        const categoryFeatureTypes = selectedCategory.featureTypes.map(ft => ft.name);
-        setAvailableFeatureTypes(categoryFeatureTypes);
+        // Keep feature types as objects with id and name
+        setAvailableFeatureTypes(selectedCategory.featureTypes);
       } else {
         setAvailableFeatureTypes([]);
       }
@@ -72,7 +79,7 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
         cat => cat.id === categoryFilter
       );
       const isFeatureTypeInCategory = selectedCategory?.featureTypes?.some(
-        ft => ft.name === featureTypeFilter
+        ft => ft.id === featureTypeFilter || ft.name === featureTypeFilter
       );
       
       if (!isFeatureTypeInCategory) {
@@ -118,8 +125,8 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
         >
           <option value="">All Feature Types</option>
           {availableFeatureTypes.map((featureType, index) => (
-            <option key={`featureType-${index}`} value={featureType}>
-              {featureType}
+            <option key={featureType.id || `featureType-${index}`} value={featureType.id}>
+              {featureType.name}
             </option>
           ))}
         </select>
