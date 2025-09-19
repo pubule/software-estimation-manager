@@ -31,6 +31,23 @@ export interface DashboardMetrics {
     subject: string;
     resolutionHours: number;
   }[];
+  resolutionTimeCategories?: {
+    slowestTickets: {
+      id: string;
+      subject: string;
+      resolutionHours: number;
+    }[];
+    fastestTickets: {
+      id: string;
+      subject: string;
+      resolutionHours: number;
+    }[];
+    averageTickets: {
+      id: string;
+      subject: string;
+      resolutionHours: number;
+    }[];
+  };
 }
 
 export interface OperatorMetrics {
@@ -236,15 +253,17 @@ export class TicketDashboardActions {
       console.log('- Sample ticket dates:', tickets.slice(0, 3).map(t => t.opened_at));
     }
 
+    const averageResolutionTime = this.calculateAverageResolutionTime(tickets);
     const metrics: DashboardMetrics = {
       totalTickets: tickets.length,
-      averageResolutionTime: this.calculateAverageResolutionTime(tickets),
+      averageResolutionTime,
       openTickets: tickets.filter(t => ['Open', 'In Progress', 'Pending', 'On Hold'].includes(t.state)).length,
       // Note: "Resolved" and "Closed" are both considered completed tickets (same functional logic)
       closedTickets: tickets.filter(t => ['Resolved', 'Closed'].includes(t.state)).length,
       resolutionRate: this.calculateResolutionRate(tickets),
       backlogCurrent: tickets.filter(t => ['Open', 'In Progress', 'Pending'].includes(t.state)).length,
-      topResolutionTimeTickets: this.calculateTopResolutionTimeTickets(tickets)
+      topResolutionTimeTickets: this.calculateTopResolutionTimeTickets(tickets),
+      resolutionTimeCategories: this.calculateResolutionTimeCategories(tickets, averageResolutionTime)
     };
 
     console.log('- Calculated metrics:', metrics);
@@ -284,7 +303,7 @@ export class TicketDashboardActions {
         const created = new Date(ticket.opened_at);
         const resolved = new Date(ticket.resolved_at);
         const totalHours = (resolved.getTime() - created.getTime()) / (1000 * 60 * 60);
-        
+
         return {
           id: ticket.number || '',
           subject: ticket.short_description || '',
@@ -293,6 +312,64 @@ export class TicketDashboardActions {
       })
       .sort((a, b) => b.resolutionHours - a.resolutionHours)
       .slice(0, 3);
+  }
+
+  /**
+   * Calculate resolution time categories: slowest, fastest, and average tickets
+   */
+  private calculateResolutionTimeCategories(tickets: TicketData[], averageTime: number): {
+    slowestTickets: { id: string; subject: string; resolutionHours: number; }[];
+    fastestTickets: { id: string; subject: string; resolutionHours: number; }[];
+    averageTickets: { id: string; subject: string; resolutionHours: number; }[];
+  } {
+    const resolvedTicketsWithTime = tickets
+      .filter(ticket => ticket.resolved_at && ticket.opened_at)
+      .map(ticket => {
+        const created = new Date(ticket.opened_at);
+        const resolved = new Date(ticket.resolved_at);
+        const totalHours = (resolved.getTime() - created.getTime()) / (1000 * 60 * 60);
+
+        return {
+          id: ticket.number || '',
+          subject: ticket.short_description || '',
+          resolutionHours: totalHours
+        };
+      });
+
+    if (resolvedTicketsWithTime.length === 0) {
+      return {
+        slowestTickets: [],
+        fastestTickets: [],
+        averageTickets: []
+      };
+    }
+
+    // Calculate thresholds: ±10% of average
+    const threshold = averageTime * 0.1;
+    const upperBound = averageTime + threshold;
+    const lowerBound = averageTime - threshold;
+
+    // Categorize tickets
+    const slowestTickets = resolvedTicketsWithTime
+      .filter(ticket => ticket.resolutionHours > upperBound)
+      .sort((a, b) => b.resolutionHours - a.resolutionHours)
+      .slice(0, 3);
+
+    const fastestTickets = resolvedTicketsWithTime
+      .filter(ticket => ticket.resolutionHours < lowerBound)
+      .sort((a, b) => a.resolutionHours - b.resolutionHours)
+      .slice(0, 3);
+
+    const averageTickets = resolvedTicketsWithTime
+      .filter(ticket => ticket.resolutionHours >= lowerBound && ticket.resolutionHours <= upperBound)
+      .sort((a, b) => Math.abs(a.resolutionHours - averageTime) - Math.abs(b.resolutionHours - averageTime))
+      .slice(0, 3);
+
+    return {
+      slowestTickets,
+      fastestTickets,
+      averageTickets
+    };
   }
 
   /**

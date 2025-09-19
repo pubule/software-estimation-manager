@@ -52,6 +52,7 @@ export const TicketDashboard: React.FC = () => {
   const [showOperatorModal, setShowOperatorModal] = useState(false);
   const [expandedAlerts, setExpandedAlerts] = useState<Set<number>>(new Set());
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [expandedResolutionCard, setExpandedResolutionCard] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load initial data if available
@@ -242,22 +243,56 @@ export const TicketDashboard: React.FC = () => {
                 <div className="kpi-value">{dashboardMetrics?.totalTickets || 0}</div>
                 <div className="kpi-label">Total Tickets</div>
               </div>
-              <div className="kpi-card resolution-time-card">
-                <div className="kpi-value">
-                  {dashboardMetrics?.averageResolutionTime ? formatDuration(dashboardMetrics.averageResolutionTime) : 'No data'}
+              <div className={`kpi-card resolution-time-card ${expandedResolutionCard ? 'expanded' : ''}`}>
+                <div className="resolution-card-header" onClick={() => setExpandedResolutionCard(!expandedResolutionCard)}>
+                  <div className="kpi-value">
+                    {dashboardMetrics?.averageResolutionTime ? formatDuration(dashboardMetrics.averageResolutionTime) : 'No data'}
+                  </div>
+                  <div className="kpi-label">Avg Resolution Time</div>
+                  <span className="expand-icon">{expandedResolutionCard ? '▼' : '▶'}</span>
                 </div>
-                <div className="kpi-label">Avg Resolution Time</div>
 
-                {/* Top Impact Tickets */}
-                {dashboardMetrics?.topResolutionTimeTickets && dashboardMetrics.topResolutionTimeTickets.length > 0 && (
-                  <div className="top-tickets">
-                    <div className="top-tickets-label">Top Impact Tickets:</div>
-                    {dashboardMetrics.topResolutionTimeTickets.slice(0, 3).map((ticket, index) => (
-                      <div key={ticket.id} className="top-ticket-item">
-                        <span className="ticket-id">#{ticket.id}</span>
-                        <span className="ticket-time">{formatDuration(ticket.resolutionHours)}</span>
+                {/* Expanded Content - Categories */}
+                {expandedResolutionCard && dashboardMetrics?.resolutionTimeCategories && (
+                  <div className="resolution-expanded-content">
+                    {/* Slowest Tickets */}
+                    {dashboardMetrics.resolutionTimeCategories.slowestTickets.length > 0 && (
+                      <div className="resolution-category">
+                        <div className="category-label">🐌 Top 3 Slowest (Above Average)</div>
+                        {dashboardMetrics.resolutionTimeCategories.slowestTickets.map((ticket, index) => (
+                          <div key={ticket.id} className="category-ticket-item">
+                            <span className="ticket-id">#{ticket.id}</span>
+                            <span className="ticket-time slowest">{formatDuration(ticket.resolutionHours)}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
+
+                    {/* Fastest Tickets */}
+                    {dashboardMetrics.resolutionTimeCategories.fastestTickets.length > 0 && (
+                      <div className="resolution-category">
+                        <div className="category-label">⚡ Top 3 Fastest (Below Average)</div>
+                        {dashboardMetrics.resolutionTimeCategories.fastestTickets.map((ticket, index) => (
+                          <div key={ticket.id} className="category-ticket-item">
+                            <span className="ticket-id">#{ticket.id}</span>
+                            <span className="ticket-time fastest">{formatDuration(ticket.resolutionHours)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Average Tickets */}
+                    {dashboardMetrics.resolutionTimeCategories.averageTickets.length > 0 && (
+                      <div className="resolution-category">
+                        <div className="category-label">📊 Top 3 In Line (±10% Average)</div>
+                        {dashboardMetrics.resolutionTimeCategories.averageTickets.map((ticket, index) => (
+                          <div key={ticket.id} className="category-ticket-item">
+                            <span className="ticket-id">#{ticket.id}</span>
+                            <span className="ticket-time average">{formatDuration(ticket.resolutionHours)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -925,11 +960,97 @@ export const TicketDashboard: React.FC = () => {
           font-size: 14px;
         }
 
-        /* Top Resolution Time Tickets */
+        /* Expandable Resolution Time Card */
         .resolution-time-card {
-          min-height: 160px;
+          min-height: auto;
+          transition: all 0.3s ease;
         }
 
+        .resolution-time-card.expanded {
+          min-height: auto;
+          background: #2d2d30;
+        }
+
+        .resolution-card-header {
+          cursor: pointer;
+          position: relative;
+          padding: 5px;
+          border-radius: 3px;
+          transition: background 0.2s ease;
+        }
+
+        .resolution-card-header:hover {
+          background: rgba(255,255,255,0.1);
+        }
+
+        .expand-icon {
+          position: absolute;
+          top: 15px;
+          right: 15px;
+          font-size: 12px;
+          color: #007acc;
+          transition: transform 0.2s ease;
+        }
+
+        .resolution-expanded-content {
+          margin-top: 15px;
+          padding-top: 15px;
+          border-top: 1px solid #3c3c3c;
+          animation: slideDown 0.3s ease;
+        }
+
+        .resolution-category {
+          margin-bottom: 20px;
+        }
+
+        .resolution-category:last-child {
+          margin-bottom: 0;
+        }
+
+        .category-label {
+          font-size: 11px;
+          font-weight: 600;
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #007acc;
+        }
+
+        .category-ticket-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 11px;
+          margin-bottom: 5px;
+          padding: 3px 0;
+        }
+
+        .category-ticket-item:last-child {
+          margin-bottom: 0;
+        }
+
+        .ticket-id {
+          color: #cccccc;
+          font-weight: 600;
+          font-family: 'Courier New', monospace;
+        }
+
+        .ticket-time.slowest {
+          color: #f14c4c;
+          font-weight: 600;
+        }
+
+        .ticket-time.fastest {
+          color: #73c991;
+          font-weight: 600;
+        }
+
+        .ticket-time.average {
+          color: #007acc;
+          font-weight: 600;
+        }
+
+        /* Legacy styles for backward compatibility */
         .top-tickets {
           margin-top: 15px;
           border-top: 1px solid #3c3c3c;
@@ -957,12 +1078,6 @@ export const TicketDashboard: React.FC = () => {
 
         .top-ticket-item:last-child {
           margin-bottom: 0;
-        }
-
-        .ticket-id {
-          color: #cccccc;
-          font-weight: 600;
-          font-family: 'Courier New', monospace;
         }
 
         .ticket-time {
