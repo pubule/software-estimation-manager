@@ -187,47 +187,12 @@ export const TicketDashboard: React.FC = () => {
                 onChange={(e) => actions.applyTimeFilter(e.target.value)}
               >
                 <option value="all-time">All Time</option>
+                <option value="last-7-days">Last 7 days</option>
                 <option value="last-month">Last Month</option>
                 <option value="last-3-months">Last 3 Months</option>
                 <option value="last-6-months">Last 6 Months</option>
                 <option value="current-year">Current Year</option>
                 <option value="custom">Custom Range</option>
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label>Priority:</label>
-              <select
-                value={additionalFilters.priority || 'all'}
-                onChange={(e) => actions.applyAdditionalFilters({
-                  ...additionalFilters,
-                  priority: e.target.value === 'all' ? undefined : [e.target.value]
-                })}
-              >
-                <option value="all">All Priorities</option>
-                <option value="P5">P5 - Critical</option>
-                <option value="P6">P6 - High</option>
-                <option value="P7">P7 - Medium</option>
-                <option value="P8">P8 - Low</option>
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label>State:</label>
-              <select
-                value={additionalFilters.state || 'all'}
-                onChange={(e) => actions.applyAdditionalFilters({
-                  ...additionalFilters,
-                  state: e.target.value === 'all' ? undefined : [e.target.value]
-                })}
-              >
-                <option value="all">All States</option>
-                <option value="Open">Open</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Pending">Pending</option>
-                <option value="On Hold">On Hold</option>
-                <option value="Resolved">Resolved</option>
-                <option value="Closed">Closed</option>
               </select>
             </div>
 

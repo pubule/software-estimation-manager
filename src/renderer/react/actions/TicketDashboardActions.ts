@@ -204,6 +204,10 @@ export class TicketDashboardActions {
     switch (filterType) {
       case 'all-time':
         return null; // No filter - return all tickets
+      case 'last-7-days':
+        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        label = 'Last 7 Days';
+        break;
       case 'last-month':
         start = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
         label = 'Last Month';
