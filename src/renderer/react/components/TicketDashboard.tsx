@@ -160,9 +160,20 @@ export const TicketDashboard: React.FC = () => {
 
   return (
     <div className="ticket-dashboard">
-      <div className="dashboard-header">
-        <h1>IT Support Team Performance Dashboard</h1>
-        <p>Analyze support ticket metrics and team performance</p>
+      <div className="page-header">
+        <div>
+          <h2>📊 IT Support Team Performance Dashboard</h2>
+          <p className="page-description">Analyze support ticket metrics and team performance</p>
+        </div>
+        <div className="page-actions">
+          <button
+            className="btn btn-secondary"
+            onClick={() => actions.exportFilteredData()}
+            title="Export current dashboard data as CSV"
+          >
+            <i className="fas fa-download"></i> Export Report
+          </button>
+        </div>
       </div>
 
 
@@ -813,21 +824,6 @@ export const TicketDashboard: React.FC = () => {
           color: #cccccc;
         }
 
-        .dashboard-header {
-          text-align: center;
-          margin-bottom: 30px;
-        }
-
-        .dashboard-header h1 {
-          color: #ffffff;
-          margin-bottom: 10px;
-          font-weight: 600;
-        }
-
-        .dashboard-header p {
-          color: #9d9d9d;
-          font-size: 1.1em;
-        }
 
         .upload-section {
           margin-bottom: 30px;
