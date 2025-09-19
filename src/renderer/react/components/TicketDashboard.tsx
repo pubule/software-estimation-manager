@@ -239,9 +239,19 @@ export const TicketDashboard: React.FC = () => {
 
           {/* KPI Cards */}
             <div className="kpi-section">
-              <div className="kpi-card">
-                <div className="kpi-value">{dashboardMetrics?.totalTickets || 0}</div>
-                <div className="kpi-label">Total Tickets</div>
+              <div className="kpi-card unified-tickets-card">
+                <div className="unified-metric">
+                  <div className="kpi-value">{dashboardMetrics?.totalTickets || 0}</div>
+                  <div className="kpi-label">Total Tickets</div>
+                </div>
+                <div className="unified-metric">
+                  <div className="kpi-value">{dashboardMetrics?.openTickets || 0}</div>
+                  <div className="kpi-label">Open Tickets</div>
+                </div>
+                <div className="unified-metric">
+                  <div className="kpi-value">{dashboardMetrics?.closedTickets || 0}</div>
+                  <div className="kpi-label">Closed Tickets</div>
+                </div>
               </div>
               <div className={`kpi-card resolution-time-card ${expandedResolutionCard ? 'expanded' : ''}`}>
                 <div className="resolution-card-header" onClick={() => setExpandedResolutionCard(!expandedResolutionCard)}>
@@ -295,14 +305,6 @@ export const TicketDashboard: React.FC = () => {
                     )}
                   </div>
                 )}
-              </div>
-              <div className="kpi-card">
-                <div className="kpi-value">{dashboardMetrics?.openTickets || 0}</div>
-                <div className="kpi-label">Open Tickets</div>
-              </div>
-              <div className="kpi-card">
-                <div className="kpi-value">{dashboardMetrics?.closedTickets || 0}</div>
-                <div className="kpi-label">Closed Tickets</div>
               </div>
               <div className="kpi-card">
                 <div className="kpi-value">{dashboardMetrics?.resolutionRate?.toFixed(1) || '0.0'}%</div>
@@ -958,6 +960,38 @@ export const TicketDashboard: React.FC = () => {
           color: #9d9d9d;
           font-weight: 500;
           font-size: 14px;
+        }
+
+        /* Unified Tickets Card */
+        .unified-tickets-card {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+          padding: 20px;
+          min-height: auto;
+        }
+
+        .unified-metric {
+          text-align: center;
+          padding: 5px 0;
+        }
+
+        .unified-metric:not(:last-child) {
+          border-bottom: 1px solid #3c3c3c;
+          padding-bottom: 15px;
+        }
+
+        .unified-metric .kpi-value {
+          font-size: 2.2em;
+          font-weight: 600;
+          color: #ffffff;
+          margin-bottom: 5px;
+        }
+
+        .unified-metric .kpi-label {
+          color: #9d9d9d;
+          font-weight: 500;
+          font-size: 13px;
         }
 
         /* Expandable Resolution Time Card */
