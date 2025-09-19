@@ -483,7 +483,7 @@ export class TicketDashboardActions {
       alerts.push({
         type: 'warning',
         title: 'Suspicious Closures',
-        description: 'High priority tickets resolved in less than 1 hour',
+        description: 'High priority tickets resolved in less than 15 minutes',
         count: suspiciousClosures.length,
         tickets: suspiciousClosures
       });
@@ -554,9 +554,9 @@ export class TicketDashboardActions {
 
       const opened = new Date(ticket.opened_at);
       const resolved = new Date(ticket.resolved_at);
-      const diffHours = (resolved.getTime() - opened.getTime()) / (1000 * 60 * 60);
+      const diffMinutes = (resolved.getTime() - opened.getTime()) / (1000 * 60);
 
-      return diffHours < 1; // Resolved in less than 1 hour
+      return diffMinutes < 15; // Resolved in less than 15 minutes
     });
   }
 
