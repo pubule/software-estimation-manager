@@ -652,6 +652,28 @@ export class TicketDashboardActions {
   }
 
   /**
+   * Sort tickets to prioritize oldest and least updated
+   * Primary: Last Updated (sys_updated_on) - oldest first
+   * Secondary: Opened Date (opened_at) - oldest first
+   */
+  sortTicketsByPriority(tickets: TicketData[]): TicketData[] {
+    return tickets.sort((a, b) => {
+      // Primary: Last Updated (oldest first)
+      const aUpdated = new Date(a.sys_updated_on).getTime();
+      const bUpdated = new Date(b.sys_updated_on).getTime();
+
+      if (aUpdated !== bUpdated) {
+        return aUpdated - bUpdated; // ASC (oldest first)
+      }
+
+      // Secondary: Opened Date (oldest first)
+      const aOpened = new Date(a.opened_at).getTime();
+      const bOpened = new Date(b.opened_at).getTime();
+      return aOpened - bOpened; // ASC (oldest first)
+    });
+  }
+
+  /**
    * Apply additional filters (priority, state, operator)
    */
   applyAdditionalFilters(filters: {
@@ -674,7 +696,8 @@ export class TicketDashboardActions {
    */
   exportFilteredData(): void {
     const tickets = this.getFilteredTickets();
-    const csvContent = this.generateCsvContent(tickets);
+    const sortedTickets = this.sortTicketsByPriority([...tickets]);
+    const csvContent = this.generateCsvContent(sortedTickets);
 
     // Create download
     const blob = new Blob([csvContent], { type: 'text/csv' });

@@ -162,7 +162,7 @@ export const TicketDashboard: React.FC = () => {
       title: 'Current Backlog',
       description: 'All unresolved tickets (ignoring time filter)',
       count: dashboardMetrics?.backlogTickets?.length || 0,
-      tickets: dashboardMetrics?.backlogTickets || []
+      tickets: actions.sortTicketsByPriority([...(dashboardMetrics?.backlogTickets || [])])
     };
     setSelectedAlert(backlogAlert);
   };
@@ -389,7 +389,7 @@ export const TicketDashboard: React.FC = () => {
                         {alert.tickets.length > 0 && (
                           <div className="ticket-preview">
                             <div className="preview-header">Sample Tickets:</div>
-                            {alert.tickets.slice(0, 3).map((ticket, ticketIndex) => (
+                            {actions.sortTicketsByPriority([...alert.tickets]).slice(0, 3).map((ticket, ticketIndex) => (
                               <div key={ticketIndex} className="preview-ticket">
                                 <span className="preview-ticket-id">#{ticket.number}</span>
                                 <span className="preview-ticket-subject">{ticket.short_description?.substring(0, 40)}...</span>
@@ -760,7 +760,7 @@ export const TicketDashboard: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedAlert.tickets.map((ticket, index) => (
+                        {actions.sortTicketsByPriority([...selectedAlert.tickets]).map((ticket, index) => (
                           <tr key={index}>
                             <td className="ticket-number">#{ticket.number}</td>
                             <td className="ticket-subject" title={ticket.short_description}>
