@@ -315,10 +315,20 @@ class ProjectBusinessLogic extends BaseComponent {
             }
 
             const state = this.app.store.getState();
+            
+            // Enhanced check: If no project is loaded, return success silently (nothing to save)
             if (!state.currentProject) {
-                throw new Error('No project to save');
+                console.log('🔍 No project to save - returning success silently');
+                return { success: true, message: 'No project loaded, nothing to save' };
             }
 
+            // Additional check: If project exists but is clean (no changes), skip save
+            if (!state.isDirty) {
+                console.log('🔍 Project is clean (no unsaved changes) - skipping save');
+                return { success: true, message: 'Project is up to date, no save needed' };
+            }
+
+            console.log('💾 Saving project with unsaved changes...');
 
             if (!this.app.dataManager) {
                 throw new Error('Data manager not available');
@@ -363,6 +373,7 @@ class ProjectBusinessLogic extends BaseComponent {
                 
                 console.log('Project saved successfully');
                 NotificationManager.success('Project saved successfully');
+                return result;
             } else {
                 throw new Error(result.error || 'Failed to save project');
             }

@@ -402,6 +402,80 @@ class ModalManagerBase extends BaseComponent {
         }
     }
 
+    /**
+     * Show unsaved changes dialog and return user's choice
+     * @returns {Promise<boolean|null>} true = save, false = don't save, null = cancel
+     */
+    async showUnsavedChangesDialog() {
+        return new Promise((resolve) => {
+            try {
+                // Check if unsaved changes modal exists
+                const unsavedModal = document.getElementById('unsaved-changes-modal');
+                if (!unsavedModal) {
+                    // Fallback to browser confirm if modal doesn't exist
+                    console.warn('Unsaved changes modal not found, using browser confirm');
+                    const result = confirm('You have unsaved changes. Do you want to save them?');
+                    resolve(result);
+                    return;
+                }
+
+                // Show the modal
+                unsavedModal.classList.add('active');
+
+                // Handle button clicks
+                const handleSave = () => {
+                    cleanup();
+                    resolve(true);
+                };
+
+                const handleDontSave = () => {
+                    cleanup();
+                    resolve(false);
+                };
+
+                const handleCancel = () => {
+                    cleanup();
+                    resolve(null);
+                };
+
+                const cleanup = () => {
+                    unsavedModal.classList.remove('active');
+                    saveBtn?.removeEventListener('click', handleSave);
+                    dontSaveBtn?.removeEventListener('click', handleDontSave);
+                    cancelBtn?.removeEventListener('click', handleCancel);
+                    document.removeEventListener('keydown', handleEscape);
+                };
+
+                const handleEscape = (e) => {
+                    if (e.key === 'Escape') {
+                        handleCancel();
+                    }
+                };
+
+                // Add event listeners
+                const saveBtn = unsavedModal.querySelector('.save-btn, .btn-save');
+                const dontSaveBtn = unsavedModal.querySelector('.dont-save-btn, .btn-dont-save');
+                const cancelBtn = unsavedModal.querySelector('.cancel-btn, .btn-cancel');
+
+                saveBtn?.addEventListener('click', handleSave);
+                dontSaveBtn?.addEventListener('click', handleDontSave);
+                cancelBtn?.addEventListener('click', handleCancel);
+                document.addEventListener('keydown', handleEscape);
+
+                // Focus the save button by default
+                if (saveBtn) {
+                    saveBtn.focus();
+                }
+
+            } catch (error) {
+                console.error('Failed to show unsaved changes dialog:', error);
+                // Fallback to browser confirm
+                const result = confirm('You have unsaved changes. Do you want to save them?');
+                resolve(result);
+            }
+        });
+    }
+
     onDestroy() {
         if (this.isOpen) {
             this.close();

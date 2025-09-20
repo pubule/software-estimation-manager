@@ -711,15 +711,25 @@ export class ProjectActions {
    */
   async showUnsavedChangesDialog(): Promise<boolean | null> {
     try {
+      console.log('🔍 Showing unsaved changes dialog');
+
       const app = this.getApp();
       if (!app?.managers?.modal) {
+        console.warn('Modal manager not available, using browser confirm');
         // Fallback to browser confirm dialog
         const result = confirm('You have unsaved changes. Do you want to save them?');
         return result;
       }
 
       // Use app's modal system if available
-      return await app.managers.modal.showUnsavedChangesDialog();
+      if (typeof app.managers.modal.showUnsavedChangesDialog === 'function') {
+        return await app.managers.modal.showUnsavedChangesDialog();
+      } else {
+        console.warn('showUnsavedChangesDialog method not available, using browser confirm');
+        // Fallback to browser confirm dialog
+        const result = confirm('You have unsaved changes. Do you want to save them?');
+        return result;
+      }
     } catch (error) {
       console.error('Failed to show unsaved changes dialog:', error);
       // Fallback to browser confirm dialog

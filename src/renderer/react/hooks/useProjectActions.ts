@@ -94,12 +94,26 @@ export const useProjectActions = () => {
   }, []);
 
   const handleUnsavedChanges = useCallback(async (): Promise<boolean> => {
-    if (isDirty) {
-      const save = await projectActions.showUnsavedChangesDialog();
-      if (save === null) return false; // User cancelled
-      if (save) await saveProject();
+    // 🔧 FIX: Se no project loaded o project clean → continue senza dialog
+    if (!isDirty) {
+      console.log('🔍 No unsaved changes, continuing operation');
+      return true; // No unsaved changes, continue with operation
     }
-    return true; // Continue with operation
+    
+    console.log('🔍 Project has unsaved changes, showing dialog');
+    // Solo se dirty → mostra dialog  
+    const save = await projectActions.showUnsavedChangesDialog();
+    if (save === null) {
+      console.log('🔍 User cancelled unsaved changes dialog');
+      return false; // User cancelled dialog
+    }
+    if (save) {
+      console.log('🔍 User chose to save changes');
+      await saveProject(); // User wants to save
+    } else {
+      console.log('🔍 User chose not to save changes');
+    }
+    return true; // Continue with operation (saved or don't save)
   }, [isDirty, saveProject]);
 
   return {
@@ -123,4 +137,4 @@ export const useProjectActions = () => {
     // State
     isDirty
   };
-};
+};;
