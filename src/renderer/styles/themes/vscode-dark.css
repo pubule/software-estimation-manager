@@ -626,6 +626,8 @@
     flex: 1;
     min-height: 0;
     padding: var(--spacing-md);
+    overflow: auto;
+    max-height: 85vh;
 }
 
 .project-manager-left {
