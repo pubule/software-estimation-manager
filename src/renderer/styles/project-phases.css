@@ -8,6 +8,7 @@
     padding: var(--spacing-lg);
     height: 100%;
     overflow-y: auto;
+    max-height: 95vh;
 }
 
 .phases-header {
@@ -459,7 +460,7 @@
 
 /* Project Phases Page Specific Styles */
 #phases-page {
-    overflow-y: auto;
+
 }
 
 #phases-page .page-header {
