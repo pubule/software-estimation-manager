@@ -132,6 +132,11 @@ const appStore = window.zustand.createStore((set, get) => ({
     // CONFIGURATION STATE
     // ======================
     globalConfig: null,
+
+    // ======================
+    // RESOURCE ALLOCATIONS STATE (GLOBAL - across all projects)
+    // ======================
+    resourceAllocations: [], // Global allocations from capacity/allocations.json
     
     // ======================
     // FEATURE MODAL STATE
@@ -1060,12 +1065,95 @@ const appStore = window.zustand.createStore((set, get) => ({
      */
     updateGlobalConfig: (updater) => {
         const currentState = get();
-        const updatedConfig = typeof updater === 'function' 
-            ? updater(currentState.globalConfig) 
+        const updatedConfig = typeof updater === 'function'
+            ? updater(currentState.globalConfig)
             : updater;
         set({ globalConfig: updatedConfig });
     },
-    
+
+    // ======================
+    // RESOURCE ALLOCATIONS ACTIONS (GLOBAL)
+    // ======================
+
+    /**
+     * Set all resource allocations (loaded from allocations.json)
+     */
+    setResourceAllocations: (allocations) => {
+        set({ resourceAllocations: allocations || [] });
+    },
+
+    /**
+     * Add resource allocation
+     */
+    addResourceAllocation: (allocation) => {
+        const currentState = get();
+        const updatedAllocations = [...currentState.resourceAllocations, allocation];
+        set({ resourceAllocations: updatedAllocations });
+    },
+
+    /**
+     * Update resource allocation
+     */
+    updateResourceAllocation: (id, updatedData) => {
+        const currentState = get();
+        const updatedAllocations = currentState.resourceAllocations.map(allocation =>
+            allocation.id === id ? { ...allocation, ...updatedData, lastModified: new Date().toISOString() } : allocation
+        );
+        set({ resourceAllocations: updatedAllocations });
+    },
+
+    /**
+     * Delete resource allocation
+     */
+    deleteResourceAllocation: (id) => {
+        const currentState = get();
+        const updatedAllocations = currentState.resourceAllocations.filter(allocation => allocation.id !== id);
+        set({ resourceAllocations: updatedAllocations });
+    },
+
+    /**
+     * Get allocations for a team member
+     */
+    getAllocationsForMember: (teamMemberId) => {
+        const state = get();
+        return state.resourceAllocations.filter(a => a.teamMemberId === teamMemberId);
+    },
+
+    /**
+     * Get allocations for a project
+     */
+    getAllocationsForProject: (projectId) => {
+        const state = get();
+        return state.resourceAllocations.filter(a => a.projectId === projectId);
+    },
+
+    /**
+     * Get allocations for a specific month
+     */
+    getAllocationsForMonth: (teamMemberId, month) => {
+        const state = get();
+        return state.resourceAllocations.filter(a =>
+            a.teamMemberId === teamMemberId &&
+            a.monthlyAllocations &&
+            a.monthlyAllocations[month]
+        );
+    },
+
+    /**
+     * Calculate total allocated MDs for member in month (across all projects)
+     */
+    getTotalAllocatedMDs: (teamMemberId, month) => {
+        const state = get();
+        return state.resourceAllocations.reduce((total, allocation) => {
+            if (allocation.teamMemberId === teamMemberId &&
+                allocation.monthlyAllocations &&
+                allocation.monthlyAllocations[month]) {
+                return total + (allocation.monthlyAllocations[month].planned || 0);
+            }
+            return total;
+        }, 0);
+    },
+
     // ======================
     // COMPUTED PROPERTIES (SELECTORS)
     // ======================

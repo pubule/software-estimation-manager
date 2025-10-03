@@ -255,15 +255,46 @@ class DataManager extends BaseComponent {
         return this.withErrorBoundary(async () => {
             this.validators.validateSettings(settings);
             const result = await this.persistenceStrategy.saveSettings(settings);
-            
+
             if (result.success) {
                 this.emit('settings-saved', { settings });
             }
-            
+
             return result.success;
-        }, 'saveSettings', { 
+        }, 'saveSettings', {
             showNotification: true,
-            defaultValue: false 
+            defaultValue: false
+        });
+    }
+
+    /**
+     * Load global resource allocations from capacity/allocations.json
+     */
+    async loadResourceAllocations() {
+        return this.withErrorBoundary(async () => {
+            this.logOperation('loadResourceAllocations');
+            const result = await this.persistenceStrategy.loadResourceAllocations();
+            return result.success ? result.data : [];
+        }, 'loadResourceAllocations', {
+            showNotification: false,
+            defaultValue: []
+        });
+    }
+
+    /**
+     * Save global resource allocations to capacity/allocations.json
+     */
+    async saveResourceAllocations(allocations) {
+        return this.withErrorBoundary(async () => {
+            this.logOperation('saveResourceAllocations', { count: allocations?.length });
+            if (!Array.isArray(allocations)) {
+                throw new Error('Allocations must be an array');
+            }
+            const result = await this.persistenceStrategy.saveResourceAllocations(allocations);
+            return result.success;
+        }, 'saveResourceAllocations', {
+            showNotification: true,
+            defaultValue: false
         });
     }
 
@@ -601,6 +632,24 @@ class ElectronPersistenceStrategy {
         }
     }
 
+    async loadResourceAllocations() {
+        try {
+            const result = await window.electronAPI.loadResourceAllocations();
+            return result;
+        } catch (error) {
+            return { success: false, error: error.message, data: [] };
+        }
+    }
+
+    async saveResourceAllocations(allocations) {
+        try {
+            const result = await window.electronAPI.saveResourceAllocations(allocations);
+            return result;
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+
     async clearAllData() {
         try {
             // This would need to be implemented in the main process
@@ -730,6 +779,27 @@ class LocalStoragePersistenceStrategy {
     async saveSettings(settings) {
         try {
             localStorage.setItem(this.storageKeys.settings, JSON.stringify(settings));
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+
+    async loadResourceAllocations() {
+        try {
+            const data = localStorage.getItem('software-estimation-resource-allocations');
+            return {
+                success: true,
+                data: data ? JSON.parse(data) : []
+            };
+        } catch (error) {
+            return { success: false, error: error.message, data: [] };
+        }
+    }
+
+    async saveResourceAllocations(allocations) {
+        try {
+            localStorage.setItem('software-estimation-resource-allocations', JSON.stringify(allocations));
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };

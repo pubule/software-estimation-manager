@@ -302,6 +302,58 @@ ipcMain.handle('create-default-config', async (event, configData) => {
     }
 });
 
+// Load global resource allocations from capacity/allocations.json
+ipcMain.handle('load-resource-allocations', async () => {
+    try {
+        const projectsPath = await getProjectsPath();
+        const allocationsPath = path.join(projectsPath, 'capacity', 'allocations.json');
+
+        try {
+            const data = await fs.readFile(allocationsPath, 'utf8');
+            const parsed = JSON.parse(data);
+            return {
+                success: true,
+                data: parsed.allocations || []
+            };
+        } catch (error) {
+            // File doesn't exist, return empty array
+            if (error.code === 'ENOENT') {
+                return { success: true, data: [] };
+            }
+            throw error;
+        }
+    } catch (error) {
+        console.error('Failed to load resource allocations:', error);
+        return { success: false, error: error.message, data: [] };
+    }
+});
+
+// Save global resource allocations to capacity/allocations.json
+ipcMain.handle('save-resource-allocations', async (event, allocations) => {
+    try {
+        const projectsPath = await getProjectsPath();
+        const capacityDir = path.join(projectsPath, 'capacity');
+        const allocationsPath = path.join(capacityDir, 'allocations.json');
+
+        // Ensure capacity directory exists
+        await fs.mkdir(capacityDir, { recursive: true });
+
+        // Save allocations
+        const dataToSave = {
+            allocations: allocations || [],
+            lastModified: new Date().toISOString()
+        };
+
+        await fs.writeFile(allocationsPath, JSON.stringify(dataToSave, null, 2));
+        console.log('Resource allocations saved:', allocationsPath);
+
+        return { success: true, filePath: allocationsPath };
+    } catch (error) {
+        console.error('Failed to save resource allocations:', error);
+        return { success: false, error: error.message };
+    }
+});
+
 // Legacy file operations for export functionality
 ipcMain.handle('save-file', async (event, defaultPath, data) => {
     try {
