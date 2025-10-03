@@ -321,44 +321,17 @@
 
             <!-- Resource Capacity Overview Page -->
             <div id="resource-overview-page" class="page">
-                <div class="page-header">
-                    <h2>📊 Resource Capacity Overview</h2>
-                    <div class="page-actions">
-                        <button class="btn btn-secondary" id="export-overview-btn">
-                            <i class="fas fa-download"></i> Export Overview
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Resource overview content will be dynamically rendered here -->
+                <!-- React ResourceOverviewDashboard component will mount here -->
                 <div id="resource-overview-content" class="capacity-overview-content">
-                    <div class="loading-message">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <p>Loading resource capacity overview...</p>
-                    </div>
+                    <!-- React component will be rendered by ReactResourceOverviewWrapper -->
                 </div>
             </div>
 
             <!-- Capacity Planning Timeline Page -->
             <div id="capacity-timeline-page" class="page">
-                <div class="page-header">
-                    <h2>📅 Capacity Planning Timeline</h2>
-                    <div class="page-actions">
-                        <button class="btn btn-primary" id="add-timeline-assignment-btn">
-                            <i class="fas fa-plus"></i> Add Assignment
-                        </button>
-                        <button class="btn btn-secondary" id="export-timeline-btn">
-                            <i class="fas fa-download"></i> Export Timeline
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Timeline content will be dynamically rendered here -->
+                <!-- React CapacityTimeline component will mount here -->
                 <div id="capacity-timeline-content" class="capacity-timeline-content">
-                    <div class="loading-message">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <p>Loading capacity planning timeline...</p>
-                    </div>
+                    <!-- React component will be rendered by ReactCapacityTimelineWrapper -->
                 </div>
             </div>
 
@@ -608,7 +581,12 @@ console.log('✅ Zustand store implementation ready for React components');
 <!-- App Store (after zustand and data manager) -->
 <script src="js/store/app-store.js"></script>
 
-<!-- React libraries (AFTER zustand is ready) -->
+<!-- Load capacity planning dependencies BEFORE React components -->
+<script src="js/utils/team-helpers.js"></script>
+<script src="js/components/working-days-calculator.js"></script>
+<script src="js/components/auto-distribution.js"></script>
+
+<!-- React libraries (AFTER zustand and dependencies are ready) -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
@@ -666,8 +644,6 @@ console.log('✅ Zustand store implementation ready for React components');
 <script src="js/utils/performance-optimizer.js"></script>
 <script src="js/utils/loading-helpers.js"></script>
 <script src="js/utils/state-selectors.js"></script>
-<script src="js/utils/team-helpers.js"></script>
-
 
 <!-- UI components (no dependencies on other managers) -->
 <script src="js/components/notification-manager.js"></script>
@@ -706,10 +682,8 @@ console.log('✅ Zustand store implementation ready for React components');
 
 <!-- Calculations management (depends on data-manager and configuration-manager) -->
 
-<!-- Capacity planning components -->
+<!-- Capacity planning components (team-manager still needed here) -->
 <script src="js/components/team-manager.js"></script>
-<script src="js/components/working-days-calculator.js"></script>
-<script src="js/components/auto-distribution.js"></script>
 
 <!-- Capacity management - NOTE: capacity-manager.js file doesn't exist, commenting out to prevent 404 error -->
 <!-- <script src="js/components/capacity-manager.js"></script> -->

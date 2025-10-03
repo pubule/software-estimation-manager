@@ -47,6 +47,7 @@ import CapacityTimeline from './components/CapacityTimeline';
 import TimelineHeader from './components/TimelineHeader';
 import TimelineRow from './components/TimelineRow';
 import TimelineMonthCell from './components/TimelineMonthCell';
+import AssignmentModal from './components/AssignmentModal';
 
 // Import Actions classes for global registration
 import { NavigationActions } from './actions/NavigationActions';
@@ -58,6 +59,12 @@ import '../js/actions/ReactPageWrapperActions.js';
 
 // Import the existing store
 import '../js/store/app-store.js';
+
+// ⚠️ CRITICAL: Export Actions BEFORE mounting components!
+// This ensures Actions are available when React components initialize
+window.CapacityActions = CapacityActions;
+window.AllocationActions = AllocationActions;
+console.log('✅ Actions exported BEFORE React components mount');
 
 // Export React components globally for use by vanilla JS
 declare global {
@@ -96,6 +103,7 @@ declare global {
       TimelineHeader: typeof TimelineHeader;
       TimelineRow: typeof TimelineRow;
       TimelineMonthCell: typeof TimelineMonthCell;
+      AssignmentModal: typeof AssignmentModal;
     };
     NavigationActions: typeof NavigationActions;
     versionHistoryActions: typeof versionHistoryActions;
@@ -140,19 +148,17 @@ window.ReactComponents = {
   CapacityTimeline,
   TimelineHeader,
   TimelineRow,
-  TimelineMonthCell
+  TimelineMonthCell,
+  AssignmentModal
 };
 
-// Make Actions classes available globally
+// Make remaining Actions classes available globally
 window.NavigationActions = NavigationActions;
 window.versionHistoryActions = versionHistoryActions;
 window.calculationsActions = calculationsActions;
-window.CapacityActions = CapacityActions;
-window.AllocationActions = AllocationActions;
+// Note: CapacityActions and AllocationActions already exported at top of file
 
 console.log('✅ React components exported globally:', Object.keys(window.ReactComponents));
 console.log('✅ NavigationActions exported globally');
 console.log('✅ versionHistoryActions exported globally');
 console.log('✅ calculationsActions exported globally');
-console.log('✅ CapacityActions exported globally');
-console.log('✅ AllocationActions exported globally');

@@ -230,13 +230,25 @@ class ReactPageWrapperActions {
                 componentName: 'TicketDashboard',
                 containerId: 'react-ticket-dashboard-root',
                 wrapperName: 'ReactTicketDashboardWrapper'
+            },
+            'resource-overview': {
+                pageId: 'resource-overview-page',
+                componentName: 'ResourceOverviewDashboard',
+                containerId: 'resource-overview-content',
+                wrapperName: 'ReactResourceOverviewWrapper'
+            },
+            'capacity-timeline': {
+                pageId: 'capacity-timeline-page',
+                componentName: 'CapacityTimeline',
+                containerId: 'capacity-timeline-content',
+                wrapperName: 'ReactCapacityTimelineWrapper'
             }
         };
-        
+
         if (!configs[pageType]) {
             throw new Error(`Unknown page type: ${pageType}`);
         }
-        
+
         return configs[pageType];
     }
 }

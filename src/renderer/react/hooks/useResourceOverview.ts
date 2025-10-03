@@ -98,14 +98,32 @@ export const useResourceOverview = (initialMonth?: string) => {
             setLoading(true);
             setError(null);
 
-            // Check if dependencies are available
-            if (typeof CapacityActions === 'undefined' ||
-                typeof TeamHelpers === 'undefined') {
-                throw new Error('Required dependencies not loaded');
+            // Check if dependencies are available - with retry logic
+            let attempts = 0;
+            const maxAttempts = 50; // 5 seconds max wait
+
+            while (attempts < maxAttempts) {
+                if (typeof window.CapacityActions !== 'undefined' &&
+                    typeof window.TeamHelpers !== 'undefined') {
+                    break;
+                }
+
+                if (attempts === 0) {
+                    console.log('⏳ Waiting for dependencies to load...');
+                }
+
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    throw new Error('Required dependencies not loaded after 5 seconds');
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
 
+            console.log(`✅ Dependencies loaded after ${attempts} attempts`);
+
             // Get all team members
-            const allMembers = TeamHelpers.getAllTeamMembers();
+            const allMembers = window.TeamHelpers.getAllTeamMembers();
 
             if (!allMembers || allMembers.length === 0) {
                 setMembers([]);
@@ -114,7 +132,7 @@ export const useResourceOverview = (initialMonth?: string) => {
             }
 
             // Initialize actions
-            const capacityActions = new CapacityActions();
+            const capacityActions = new window.CapacityActions();
 
             // Calculate capacity for each member
             const memberData: ResourceOverviewMember[] = allMembers.map((member: any) => {
@@ -137,7 +155,7 @@ export const useResourceOverview = (initialMonth?: string) => {
                 }
 
                 // Get vendor name
-                const vendorName = TeamHelpers.getVendorNameForMember(member.id);
+                const vendorName = window.TeamHelpers.getVendorNameForMember(member.id);
 
                 return {
                     id: member.id,

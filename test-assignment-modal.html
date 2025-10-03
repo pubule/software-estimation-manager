@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Assignment Modal Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+        }
+        #root {
+            width: 100%;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-header h1 {
+            margin: 0 0 8px 0;
+            color: #4ec9b0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .page-header p {
+            margin: 0;
+            color: #858585;
+            font-size: 14px;
+        }
+
+        .test-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .test-button {
+            background-color: #0e639c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .test-button:hover {
+            background-color: #1177bb;
+        }
+
+        .test-button.secondary {
+            background-color: #3c3c3c;
+        }
+
+        .test-button.secondary:hover {
+            background-color: #4c4c4c;
+        }
+
+        .test-section {
+            background-color: #252526;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h3 {
+            margin: 0 0 12px 0;
+            color: #dcdcaa;
+            font-size: 16px;
+        }
+
+        .allocations-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .allocation-item {
+            background-color: #2d2d30;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #4ec9b0;
+        }
+
+        .allocation-item h4 {
+            margin: 0 0 8px 0;
+            color: #d4d4d4;
+            font-size: 14px;
+        }
+
+        .allocation-item p {
+            margin: 4px 0;
+            color: #858585;
+            font-size: 12px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .modal-content {
+            background-color: #252526;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #3c3c3c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #4ec9b0;
+            font-size: 18px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #858585;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .modal-close:hover {
+            background-color: #3c3c3c;
+            color: #d4d4d4;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #3c3c3c;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #d4d4d4;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            background-color: #3c3c3c;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: #d4d4d4;
+            font-size: 13px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+
+        .form-group input.error,
+        .form-group select.error,
+        .form-group textarea.error {
+            border-color: #f48771;
+        }
+
+        .form-help {
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: #6a6a6a;
+            font-style: italic;
+        }
+
+        .error-message {
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: #f48771;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #0e639c;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #1177bb;
+        }
+
+        .btn-primary:disabled {
+            background-color: #3c3c3c;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: #3c3c3c;
+            color: #d4d4d4;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4c4c4c;
+        }
+
+        .calculated-field {
+            opacity: 0.7;
+        }
+
+        .calculated-value {
+            font-weight: 700;
+            color: #dcdcaa !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="page-header">
+            <h1>Assignment Modal Test</h1>
+            <p>Test resource allocation assignment modal with auto-distribution and overflow detection</p>
+        </div>
+
+        <div class="test-actions">
+            <button class="test-button" id="btn-new-assignment">
+                ➕ New Assignment
+            </button>
+            <button class="test-button secondary" id="btn-show-allocations">
+                📋 View All Allocations
+            </button>
+            <button class="test-button secondary" id="btn-clear-allocations">
+                🗑️ Clear All Allocations
+            </button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Current Allocations</h3>
+            <div id="allocations-container" class="allocations-list">
+                <p style="color: #858585; font-size: 13px;">No allocations yet. Click "New Assignment" to create one.</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 Test Scenarios</h3>
+            <div class="test-actions">
+                <button class="test-button secondary" id="btn-scenario-normal">
+                    ✅ Normal Allocation (No Overflow)
+                </button>
+                <button class="test-button secondary" id="btn-scenario-overflow">
+                    ⚠️ Over-Allocated Scenario
+                </button>
+                <button class="test-button secondary" id="btn-scenario-long">
+                    📅 Long-Term Project (6 months)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal container -->
+    <div id="modal-container"></div>
+
+    <!-- Load dependencies in correct order -->
+    <!-- 1. Store first -->
+    <script src="src/renderer/js/store/app-store.js"></script>
+
+    <!-- 2. Legacy components -->
+    <script src="src/renderer/js/components/working-days-calculator.js"></script>
+    <script src="src/renderer/js/utils/team-helpers.js"></script>
+    <script src="src/renderer/js/components/auto-distribution.js"></script>
+
+    <!-- 3. React bundles (includes all components and actions) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="src/renderer/assets/main.js"></script>
+
+    <script>
+        // Setup test environment
+        function setupTestEnvironment() {
+            console.log('🔧 Setting up test environment...');
+
+            const state = window.appStore.getState();
+
+            // Set up mock global config with teams
+            state.globalConfig = {
+                teams: [
+                    {
+                        id: 'team-dev',
+                        name: 'Development Team',
+                        members: [
+                            {
+                                id: 'dev-1',
+                                firstName: 'Mario',
+                                lastName: 'Rossi',
+                                email: 'mario.rossi@company.it',
+                                role: 'Senior Full-Stack Developer',
+                                vendorId: 'vendor-it',
+                                vendorType: 'internal',
+                                monthlyCapacity: 20,
+                                country: 'IT',
+                                vacationDays: {
+                                    2025: ['2025-03-15', '2025-03-16']
+                                }
+                            },
+                            {
+                                id: 'dev-2',
+                                firstName: 'Elena',
+                                lastName: 'Popescu',
+                                email: 'elena.popescu@supplier.ro',
+                                role: 'Frontend Developer',
+                                vendorId: 'vendor-ro',
+                                vendorType: 'supplier',
+                                monthlyCapacity: 22,
+                                country: 'RO',
+                                vacationDays: {
+                                    2025: ['2025-07-01', '2025-07-02']
+                                }
+                            },
+                            {
+                                id: 'dev-3',
+                                firstName: 'Giovanni',
+                                lastName: 'Bianchi',
+                                email: 'giovanni.bianchi@company.it',
+                                role: 'Backend Developer',
+                                vendorId: 'vendor-it',
+                                vendorType: 'internal',
+                                monthlyCapacity: 18,
+                                country: 'IT',
+                                vacationDays: {
+                                    2025: []
+                                }
+                            }
+                        ]
+                    }
+                ],
+                suppliers: [
+                    { id: 'vendor-it', name: 'Internal Team Italy', country: 'IT' },
+                    { id: 'vendor-ro', name: 'Romanian Software House', country: 'RO' }
+                ],
+                internalResources: [
+                    { id: 'vendor-it', name: 'Internal Team Italy', country: 'IT' }
+                ]
+            };
+
+            // Initialize WorkingDaysCalculator instance
+            if (typeof window.WorkingDaysCalculator === 'function') {
+                window.WorkingDaysCalculator = new window.WorkingDaysCalculator();
+                console.log('✅ WorkingDaysCalculator instance initialized');
+            }
+
+            // Initialize TeamHelpers
+            if (window.TeamHelpers) {
+                console.log('✅ TeamHelpers available');
+            }
+
+            console.log('✅ Test environment setup complete');
+        }
+
+        // Render allocations list
+        function renderAllocationsList() {
+            const container = document.getElementById('allocations-container');
+            const allocations = window.appStore.getState().resourceAllocations || [];
+
+            if (allocations.length === 0) {
+                container.innerHTML = '<p style="color: #858585; font-size: 13px;">No allocations yet. Click "New Assignment" to create one.</p>';
+                return;
+            }
+
+            container.innerHTML = allocations.map(alloc => {
+                const months = Object.keys(alloc.monthlyAllocations || {});
+                const totalMDs = months.reduce((sum, month) => {
+                    return sum + (alloc.monthlyAllocations[month]?.planned || 0);
+                }, 0);
+
+                return `
+                    <div class="allocation-item">
+                        <h4>${alloc.projectName || alloc.projectId}</h4>
+                        <p><strong>Member:</strong> ${alloc.teamMemberId}</p>
+                        <p><strong>Total MDs:</strong> ${totalMDs.toFixed(1)} across ${months.length} month(s)</p>
+                        <p><strong>Date Range:</strong> ${alloc.startDate || months[0]} → ${alloc.endDate || months[months.length - 1]}</p>
+                        ${alloc.notes ? `<p><strong>Notes:</strong> ${alloc.notes}</p>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Open assignment modal
+        function openAssignmentModal(options = {}) {
+            const modalContainer = document.getElementById('modal-container');
+
+            const root = window.ReactDOM.createRoot(modalContainer);
+            root.render(
+                window.React.createElement(window.ReactComponents.AssignmentModal, {
+                    ...options,
+                    onSave: (allocation) => {
+                        console.log('✅ Assignment saved:', allocation);
+                        renderAllocationsList();
+                        modalContainer.innerHTML = '';
+                    },
+                    onClose: () => {
+                        console.log('❌ Modal closed');
+                        modalContainer.innerHTML = '';
+                    }
+                })
+            );
+        }
+
+        // Test scenarios
+        function testNormalScenario() {
+            const today = new Date();
+            const nextMonth = new Date(today);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+            openAssignmentModal({
+                initialProjectId: 'PROJ-NORMAL-001',
+                initialMemberId: 'dev-3' // Giovanni with 18 MD/month capacity
+            });
+        }
+
+        function testOverflowScenario() {
+            const today = new Date();
+            const nextMonth = new Date(today);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+            // Pre-fill some heavy allocations for Mario
+            const state = window.appStore.getState();
+            const currentYear = today.getFullYear();
+            const currentMonth = today.getMonth() + 1;
+            const monthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+
+            state.setResourceAllocations([
+                {
+                    id: 'existing-alloc-1',
+                    projectId: 'EXISTING-PROJ',
+                    projectName: 'Existing Heavy Project',
+                    teamMemberId: 'dev-1',
+                    monthlyAllocations: {
+                        [monthStr]: { planned: 18, actual: 18 }
+                    },
+                    notes: 'Pre-existing allocation'
+                }
+            ]);
+
+            renderAllocationsList();
+
+            // Now open modal for new allocation (should show overflow)
+            openAssignmentModal({
+                initialProjectId: 'PROJ-OVERFLOW-001',
+                initialMemberId: 'dev-1' // Mario already has 18/20 allocated
+            });
+        }
+
+        function testLongTermScenario() {
+            const today = new Date();
+            const sixMonthsLater = new Date(today);
+            sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
+
+            openAssignmentModal({
+                initialProjectId: 'PROJ-LONGTERM-001',
+                initialMemberId: 'dev-2' // Elena
+            });
+        }
+
+        // Event listeners
+        document.getElementById('btn-new-assignment').addEventListener('click', () => {
+            openAssignmentModal();
+        });
+
+        document.getElementById('btn-show-allocations').addEventListener('click', () => {
+            console.log('Current allocations:', window.appStore.getState().resourceAllocations);
+            renderAllocationsList();
+        });
+
+        document.getElementById('btn-clear-allocations').addEventListener('click', () => {
+            if (confirm('Clear all allocations?')) {
+                window.appStore.getState().setResourceAllocations([]);
+                renderAllocationsList();
+                console.log('✅ All allocations cleared');
+            }
+        });
+
+        document.getElementById('btn-scenario-normal').addEventListener('click', testNormalScenario);
+        document.getElementById('btn-scenario-overflow').addEventListener('click', testOverflowScenario);
+        document.getElementById('btn-scenario-long').addEventListener('click', testLongTermScenario);
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            console.log('🚀 Page loaded, initializing...');
+            setupTestEnvironment();
+            renderAllocationsList();
+        });
+    </script>
+</body>
+</html>

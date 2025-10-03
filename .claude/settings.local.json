@@ -25,7 +25,8 @@
       "Read(//c/Users/pubul/AppData/Roaming/Claude/**)",
       "Read(//c/Users/pubul/**)",
       "mcp__serena__check_onboarding_performed",
-      "mcp__serena__list_dir"
+      "mcp__serena__list_dir",
+      "Bash(npm run build:react:main:*)"
     ],
     "deny": [],
     "ask": []

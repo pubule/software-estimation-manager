@@ -12,7 +12,7 @@
  * Get all team members flattened from all teams
  * @returns {Array} Array of all team members across all teams
  */
-export function getAllTeamMembers() {
+function getAllTeamMembers() {
     const store = window.appStore?.getState();
     const globalConfig = store?.globalConfig;
 
@@ -29,7 +29,7 @@ export function getAllTeamMembers() {
  * @param {string} memberId - Team member ID
  * @returns {Object|null} Team member object or null if not found
  */
-export function getTeamMemberById(memberId) {
+function getTeamMemberById(memberId) {
     if (!memberId) return null;
 
     const allMembers = getAllTeamMembers();
@@ -41,7 +41,7 @@ export function getTeamMemberById(memberId) {
  * @param {string} vendorId - Vendor/Supplier ID
  * @returns {Array} Array of team members from that vendor
  */
-export function getTeamMembersByVendor(vendorId) {
+function getTeamMembersByVendor(vendorId) {
     if (!vendorId) return [];
 
     const allMembers = getAllTeamMembers();
@@ -53,7 +53,7 @@ export function getTeamMembersByVendor(vendorId) {
  * @param {'supplier'|'internal'} vendorType - Vendor type
  * @returns {Array} Array of team members
  */
-export function getTeamMembersByVendorType(vendorType) {
+function getTeamMembersByVendorType(vendorType) {
     if (!vendorType) return [];
 
     const allMembers = getAllTeamMembers();
@@ -65,7 +65,7 @@ export function getTeamMembersByVendorType(vendorType) {
  * @param {string} role - Role name (e.g., "Senior Frontend Developer")
  * @returns {Array} Array of team members with that role
  */
-export function getTeamMembersByRole(role) {
+function getTeamMembersByRole(role) {
     if (!role) return [];
 
     const allMembers = getAllTeamMembers();
@@ -77,7 +77,7 @@ export function getTeamMembersByRole(role) {
  * @param {string} memberId - Team member ID
  * @returns {Object|null} Team object or null if not found
  */
-export function getTeamForMember(memberId) {
+function getTeamForMember(memberId) {
     if (!memberId) return null;
 
     const store = window.appStore?.getState();
@@ -97,7 +97,7 @@ export function getTeamForMember(memberId) {
  * @param {string} memberId - Team member ID
  * @returns {number} Monthly capacity in days (default 22 if not found)
  */
-export function getTeamMemberCapacity(memberId) {
+function getTeamMemberCapacity(memberId) {
     const member = getTeamMemberById(memberId);
     return member?.monthlyCapacity || 22; // Default 22 working days per month
 }
@@ -107,7 +107,7 @@ export function getTeamMemberCapacity(memberId) {
  * @param {string} memberId - Team member ID
  * @returns {string} Full name or "Unknown" if not found
  */
-export function getTeamMemberFullName(memberId) {
+function getTeamMemberFullName(memberId) {
     const member = getTeamMemberById(memberId);
     if (!member) return 'Unknown';
 
@@ -119,7 +119,7 @@ export function getTeamMemberFullName(memberId) {
  * @param {string} query - Search query
  * @returns {Array} Matching team members
  */
-export function searchTeamMembers(query) {
+function searchTeamMembers(query) {
     const allMembers = getAllTeamMembers();
 
     if (!query || query.trim() === '') {
@@ -145,7 +145,7 @@ export function searchTeamMembers(query) {
  * @param {string} memberId - Team member ID
  * @returns {string} Vendor name or "Unknown" if not found
  */
-export function getVendorNameForMember(memberId) {
+function getVendorNameForMember(memberId) {
     const member = getTeamMemberById(memberId);
     if (!member) return 'Unknown';
 
@@ -173,7 +173,7 @@ export function getVendorNameForMember(memberId) {
  * Get all unique roles from all team members
  * @returns {Array} Array of unique role names
  */
-export function getAllRoles() {
+function getAllRoles() {
     const allMembers = getAllTeamMembers();
     const roles = allMembers
         .map(m => m.role)
@@ -187,7 +187,7 @@ export function getAllRoles() {
  * Get all unique vendors from all team members
  * @returns {Array} Array of unique vendor IDs
  */
-export function getAllVendors() {
+function getAllVendors() {
     const allMembers = getAllTeamMembers();
     const vendors = allMembers
         .map(m => m.vendorId)
@@ -202,7 +202,7 @@ export function getAllVendors() {
  * @param {string} memberId - Team member ID
  * @returns {boolean} True if member exists
  */
-export function teamMemberExists(memberId) {
+function teamMemberExists(memberId) {
     return getTeamMemberById(memberId) !== null;
 }
 
@@ -210,7 +210,7 @@ export function teamMemberExists(memberId) {
  * Get team members count
  * @returns {number} Total number of team members
  */
-export function getTeamMembersCount() {
+function getTeamMembersCount() {
     return getAllTeamMembers().length;
 }
 
@@ -219,7 +219,7 @@ export function getTeamMembersCount() {
  * @param {string} memberId - Team member ID
  * @returns {string|null} Email or null if not found
  */
-export function getTeamMemberEmail(memberId) {
+function getTeamMemberEmail(memberId) {
     const member = getTeamMemberById(memberId);
     return member?.email || null;
 }
