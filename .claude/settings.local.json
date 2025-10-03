@@ -20,7 +20,12 @@
       "Read(//Users/FABIO.STOCCO/OneDrive - Unicredit/Documentazione/TOOLS/Software Estimation Projects/**)",
       "Bash(pkill:*)",
       "Bash(npm run restart:*)",
-      "mcp__serena__check_onboarding_performed"
+      "Bash(echo $HOME)",
+      "Read(//c/Users/pubul/.config/**)",
+      "Read(//c/Users/pubul/AppData/Roaming/Claude/**)",
+      "Read(//c/Users/pubul/**)",
+      "mcp__serena__check_onboarding_performed",
+      "mcp__serena__list_dir"
     ],
     "deny": [],
     "ask": []
