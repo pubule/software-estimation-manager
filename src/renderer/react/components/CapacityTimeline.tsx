@@ -18,10 +18,11 @@
  * - Store for allocation tracking
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useCapacityTimeline } from '../hooks/useCapacityTimeline';
 import TimelineHeader from './TimelineHeader';
 import TimelineRow from './TimelineRow';
+import AssignmentModal from './AssignmentModal';
 import type { TimelineMemberCapacity } from '../hooks/useCapacityTimeline';
 
 interface CapacityTimelineProps {
@@ -49,6 +50,45 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
         navigateTimeline,
         resetToCurrentMonth
     } = useCapacityTimeline(monthsToShow);
+
+    // Assignment modal state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedMemberId, setSelectedMemberId] = useState<string | undefined>(undefined);
+    const [selectedMonth, setSelectedMonth] = useState<string | undefined>(undefined);
+
+    // Handle Add Assignment button click
+    const handleAddAssignment = () => {
+        setSelectedMemberId(undefined);
+        setSelectedMonth(undefined);
+        setIsModalOpen(true);
+    };
+
+    // Handle cell click (member + month selection)
+    const handleCellClickInternal = (month: string, memberName: string, data: any) => {
+        // Find member by name to get ID
+        const member = members.find(m => m.fullName === memberName);
+        if (member) {
+            setSelectedMemberId(member.id);
+            setSelectedMonth(month);
+            setIsModalOpen(true);
+        }
+
+        // Call original onCellClick if provided
+        onCellClick?.(month, memberName, data);
+    };
+
+    // Handle modal close
+    const handleModalClose = () => {
+        setIsModalOpen(false);
+        setSelectedMemberId(undefined);
+        setSelectedMonth(undefined);
+    };
+
+    // Handle successful save
+    const handleSave = () => {
+        refresh(); // Refresh data to show new allocation
+        handleModalClose();
+    };
 
     // Render statistics bar
     const renderStats = () => (
@@ -211,6 +251,41 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
             {/* Statistics */}
             {renderStats()}
 
+            {/* Add Assignment Button */}
+            <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                    onClick={handleAddAssignment}
+                    style={{
+                        backgroundColor: '#0e639c',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '10px 20px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#1177bb';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#0e639c';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+                    }}
+                >
+                    <span style={{ fontSize: '16px' }}>➕</span>
+                    Add Assignment
+                </button>
+            </div>
+
             {/* Timeline Controls and Header */}
             <TimelineHeader
                 months={months}
@@ -236,11 +311,21 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
                         key={member.id}
                         member={member}
                         months={months}
-                        onCellClick={onCellClick}
+                        onCellClick={handleCellClickInternal}
                         onMemberClick={onMemberClick}
                     />
                 ))}
             </div>
+
+            {/* Assignment Modal */}
+            {isModalOpen && (
+                <AssignmentModal
+                    initialMemberId={selectedMemberId}
+                    initialMonth={selectedMonth}
+                    onSave={handleSave}
+                    onClose={handleModalClose}
+                />
+            )}
 
             {/* Legend */}
             <div style={{

@@ -11,9 +11,10 @@ import type { ResourceOverviewMember } from '../hooks/useResourceOverview';
 interface ResourceCapacityCardProps {
     member: ResourceOverviewMember;
     onClick?: (member: ResourceOverviewMember) => void;
+    onAllocateClick?: (member: ResourceOverviewMember) => void;
 }
 
-export const ResourceCapacityCard: React.FC<ResourceCapacityCardProps> = ({ member, onClick }) => {
+export const ResourceCapacityCard: React.FC<ResourceCapacityCardProps> = ({ member, onClick, onAllocateClick }) => {
     // Calculate progress bar width
     const progressWidth = Math.min(member.utilization, 100);
     const overflowWidth = Math.max(0, member.utilization - 100);
@@ -156,6 +157,37 @@ export const ResourceCapacityCard: React.FC<ResourceCapacityCardProps> = ({ memb
                     </div>
                 )}
             </div>
+
+            {/* Allocate Button */}
+            {onAllocateClick && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation(); // Don't trigger card click
+                        onAllocateClick(member);
+                    }}
+                    style={{
+                        marginTop: '12px',
+                        width: '100%',
+                        backgroundColor: '#0e639c',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '8px 16px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#1177bb';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#0e639c';
+                    }}
+                >
+                    📋 Allocate Project
+                </button>
+            )}
         </div>
     );
 };

@@ -17,6 +17,7 @@ import React, { useState } from 'react';
 import { useResourceOverview } from '../hooks/useResourceOverview';
 import ResourceCapacityCard from './ResourceCapacityCard';
 import ResourceFilters from './ResourceFilters';
+import AssignmentModal from './AssignmentModal';
 import type { ResourceOverviewMember } from '../hooks/useResourceOverview';
 
 interface ResourceOverviewDashboardProps {
@@ -41,6 +42,28 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
     } = useResourceOverview(initialMonth);
 
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+    // Assignment modal state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedMember, setSelectedMember] = useState<ResourceOverviewMember | null>(null);
+
+    // Handle allocate button click
+    const handleAllocateClick = (member: ResourceOverviewMember) => {
+        setSelectedMember(member);
+        setIsModalOpen(true);
+    };
+
+    // Handle modal close
+    const handleModalClose = () => {
+        setIsModalOpen(false);
+        setSelectedMember(null);
+    };
+
+    // Handle successful save
+    const handleSave = () => {
+        refresh(); // Refresh data to show new allocation
+        handleModalClose();
+    };
 
     // Render statistics cards
     const renderStats = () => (
@@ -294,9 +317,20 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
                         key={member.id}
                         member={member}
                         onClick={onMemberClick}
+                        onAllocateClick={handleAllocateClick}
                     />
                 ))}
             </div>
+
+            {/* Assignment Modal */}
+            {isModalOpen && selectedMember && (
+                <AssignmentModal
+                    initialMemberId={selectedMember.id}
+                    initialMonth={filters.month}
+                    onSave={handleSave}
+                    onClose={handleModalClose}
+                />
+            )}
         </div>
     );
 };
