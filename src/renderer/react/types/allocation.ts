@@ -5,6 +5,18 @@
  */
 
 /**
+ * Phase Allocation (per-phase allocation data)
+ * Used when allocating MDs per project phase
+ */
+export interface PhaseAllocation {
+    phaseId: string;
+    phaseName: string;
+    totalMDs: number;
+    startDate: string; // ISO date 'YYYY-MM-DD'
+    endDate: string;   // ISO date 'YYYY-MM-DD'
+}
+
+/**
  * Allocation Form Data (input from user)
  * Used when creating new allocations via Assignment Modal
  */
@@ -12,9 +24,15 @@ export interface AllocationFormData {
     projectId: string;
     projectName?: string;
     teamMemberId: string;
-    totalMDs?: number; // Optional if using monthlyAllocations directly
+
+    // NUOVO: Per allocazioni multi-fase (sostituisce totalMDs/startDate/endDate)
+    phaseAllocations?: PhaseAllocation[];
+
+    // LEGACY: Per allocazioni semplici (backward compatibility)
+    totalMDs?: number; // Optional if using phaseAllocations or monthlyAllocations
     startDate?: string; // ISO date 'YYYY-MM-DD'
     endDate?: string;   // ISO date 'YYYY-MM-DD'
+
     monthlyAllocations?: MonthlyAllocations;
     notes?: string;
 }

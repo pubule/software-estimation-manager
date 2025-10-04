@@ -121,8 +121,37 @@ export class AllocationActions {
             if (data.monthlyAllocations) {
                 // Use provided monthly allocations
                 monthlyAllocations = data.monthlyAllocations;
+            } else if (data.phaseAllocations && data.phaseAllocations.length > 0 && data.teamMemberId) {
+                // Phase-based allocation - use autoDistributePhases
+                const phases: Phase[] = data.phaseAllocations.map(pa => ({
+                    phaseId: pa.phaseId,
+                    phaseName: pa.phaseName,
+                    startDate: pa.startDate,
+                    endDate: pa.endDate,
+                    estimatedMDs: pa.totalMDs
+                }));
+
+                const distribution = this.autoDistributePhases(phases, data.teamMemberId);
+
+                // Extract monthly allocations (excluding metadata)
+                Object.keys(distribution).forEach(key => {
+                    if (!['hasOverflow', 'overflowAmount', 'phaseBreakdown', 'error'].includes(key)) {
+                        monthlyAllocations[key] = {
+                            planned: distribution[key].planned,
+                            actual: distribution[key].actual || distribution[key].planned
+                        };
+                    }
+                });
+
+                hasOverflow = distribution.hasOverflow;
+                overflowAmount = distribution.overflowAmount;
+
+                // Calculate date range from phases
+                const allDates = data.phaseAllocations.flatMap(p => [p.startDate, p.endDate]);
+                data.startDate = allDates.sort()[0];
+                data.endDate = allDates.sort()[allDates.length - 1];
             } else if (data.totalMDs && data.startDate && data.endDate && data.teamMemberId) {
-                // Auto-distribute MDs
+                // Simple allocation - auto-distribute MDs
                 const distribution = this.autoDistributeMDs(
                     data.totalMDs,
                     data.startDate,
@@ -145,7 +174,7 @@ export class AllocationActions {
             } else {
                 return {
                     success: false,
-                    error: 'Either monthlyAllocations or (totalMDs, startDate, endDate) must be provided'
+                    error: 'Either monthlyAllocations, phaseAllocations, or (totalMDs, startDate, endDate) must be provided'
                 };
             }
 

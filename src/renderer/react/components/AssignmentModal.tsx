@@ -13,9 +13,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../hooks/useStore';
+import { useProjectsList } from '../hooks/useProjectsList';
+import { useProjectPhases } from '../hooks/useProjectPhases';
 import { AllocationActions } from '../actions/AllocationActions';
 import type {
     AllocationFormData,
+    PhaseAllocation,
     MonthlyDistribution,
     OverflowAnalysis,
     AvailabilityResult
@@ -43,8 +46,8 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
     // Get team members from global config
     const globalConfig = useStore((state: any) => state.globalConfig);
 
-    // Actions instance
-    const [allocationActions] = useState(() => new AllocationActions());
+    // Load available projects
+    const { projects: availableProjects, loading: loadingProjects } = useProjectsList();
 
     // Form state
     const [formData, setFormData] = useState<AllocationFormData>({
@@ -56,6 +59,18 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
         endDate: '',
         notes: ''
     });
+
+    // Load phases for selected project (after formData is defined)
+    const { phases: projectPhases, loading: loadingPhases } = useProjectPhases(
+        formData.projectId,
+        availableProjects
+    );
+
+    // Actions instance
+    const [allocationActions] = useState(() => new AllocationActions());
+
+    // Phase allocations state (per-phase MDs and dates)
+    const [phaseAllocations, setPhaseAllocations] = useState<Record<string, PhaseAllocation>>({});
 
     // Preview state
     const [distributionPreview, setDistributionPreview] = useState<MonthlyDistribution | null>(null);
@@ -223,6 +238,56 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
     };
 
     /**
+     * Handle project selection from dropdown
+     * Auto-fills project name when a project is selected
+     */
+    const handleProjectSelect = (projectId: string) => {
+        const selectedProject = availableProjects.find(p => p.id === projectId);
+
+        setFormData(prev => ({
+            ...prev,
+            projectId: projectId,
+            projectName: selectedProject?.name || ''
+        }));
+
+        // Clear phase allocations when project changes
+        setPhaseAllocations({});
+
+        // Clear errors for both fields
+        if (errors.projectId || errors.projectName) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors.projectId;
+                delete newErrors.projectName;
+                return newErrors;
+            });
+        }
+    };
+
+    /**
+     * Handle phase allocation changes
+     */
+    const handlePhaseChange = (phaseId: string, field: 'startDate' | 'endDate' | 'totalMDs', value: string | number) => {
+        setPhaseAllocations(prev => {
+            const existing = prev[phaseId] || {
+                phaseId,
+                phaseName: projectPhases.find(p => p.id === phaseId)?.name || '',
+                totalMDs: 0,
+                startDate: '',
+                endDate: ''
+            };
+
+            return {
+                ...prev,
+                [phaseId]: {
+                    ...existing,
+                    [field]: value
+                }
+            };
+        });
+    };
+
+    /**
      * Validate form
      */
     const validateForm = (): boolean => {
@@ -268,7 +333,18 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 });
             } else {
                 // Create new allocation
-                result = allocationActions.createAllocation(formData);
+                // Convert phaseAllocations object to array if phase-based allocation
+                const hasPhaseAllocations = Object.keys(phaseAllocations).length > 0;
+                const phaseAllocationsArray = hasPhaseAllocations
+                    ? Object.values(phaseAllocations).filter(p => p.totalMDs > 0 && p.startDate && p.endDate)
+                    : undefined;
+
+                const allocationData: AllocationFormData = {
+                    ...formData,
+                    phaseAllocations: phaseAllocationsArray
+                };
+
+                result = allocationActions.createAllocation(allocationData);
             }
 
             if (result.success) {
@@ -443,31 +519,33 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                             </div>
                         )}
 
-                        {/* Project ID */}
+                        {/* Project Selection */}
                         <div className="form-group">
-                            <label htmlFor="assignment-project-id">Project ID:</label>
-                            <input
-                                type="text"
+                            <label htmlFor="assignment-project-id">Project:</label>
+                            <select
                                 id="assignment-project-id"
                                 value={formData.projectId}
-                                onChange={(e) => handleInputChange('projectId', e.target.value)}
+                                onChange={(e) => handleProjectSelect(e.target.value)}
                                 className={errors.projectId ? 'error' : ''}
-                                placeholder="e.g., PROJ-2025-001"
                                 required
-                            />
+                                disabled={loadingProjects}
+                            >
+                                <option value="">
+                                    {loadingProjects ? 'Loading projects...' : 'Select Project'}
+                                </option>
+                                {availableProjects.map(project => (
+                                    <option key={project.id} value={project.id}>
+                                        {project.isCurrent ? '🔵 Current: ' : ''}
+                                        {project.name} ({project.id})
+                                    </option>
+                                ))}
+                            </select>
                             {errors.projectId && <span className="error-message">{errors.projectId}</span>}
-                        </div>
-
-                        {/* Project Name */}
-                        <div className="form-group">
-                            <label htmlFor="assignment-project-name">Project Name:</label>
-                            <input
-                                type="text"
-                                id="assignment-project-name"
-                                value={formData.projectName || ''}
-                                onChange={(e) => handleInputChange('projectName', e.target.value)}
-                                placeholder="e.g., E-Commerce Platform Redesign"
-                            />
+                            {availableProjects.length === 0 && !loadingProjects && (
+                                <small className="form-help" style={{ color: '#dcdcaa' }}>
+                                    ℹ️ No projects available. Create or open a project first.
+                                </small>
+                            )}
                         </div>
 
                         {/* Team Member */}
@@ -514,57 +592,200 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                         {/* Availability Summary */}
                         {renderAvailabilitySummary()}
 
-                        {/* Total MDs */}
-                        <div className="form-group">
-                            <label htmlFor="assignment-total-mds">Total Man Days:</label>
-                            <input
-                                type="number"
-                                id="assignment-total-mds"
-                                value={formData.totalMDs || ''}
-                                onChange={(e) => handleInputChange('totalMDs', parseFloat(e.target.value) || 0)}
-                                className={errors.totalMDs ? 'error' : ''}
-                                min="0.1"
-                                step="0.1"
-                                placeholder="e.g., 45.0"
-                                required
-                                disabled={isEditing}
-                            />
-                            <small className="form-help">Total MDs to allocate across the date range</small>
-                            {errors.totalMDs && <span className="error-message">{errors.totalMDs}</span>}
-                        </div>
-
-                        {/* Date Range */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                            {/* Start Date */}
+                        {/* Phase Allocations Section */}
+                        {formData.projectId && projectPhases.length > 0 && (
                             <div className="form-group">
-                                <label htmlFor="assignment-start-date">Start Date:</label>
-                                <input
-                                    type="date"
-                                    id="assignment-start-date"
-                                    value={formData.startDate}
-                                    onChange={(e) => handleInputChange('startDate', e.target.value)}
-                                    className={errors.startDate ? 'error' : ''}
-                                    required
-                                    disabled={isEditing}
-                                />
-                                {errors.startDate && <span className="error-message">{errors.startDate}</span>}
-                            </div>
+                                <label style={{ marginBottom: '12px', display: 'block', fontSize: '14px', fontWeight: '600' }}>
+                                    Phase Allocations:
+                                </label>
+                                <small className="form-help" style={{ display: 'block', marginBottom: '12px' }}>
+                                    Specify start date, end date, and man days for each project phase
+                                </small>
 
-                            {/* End Date */}
-                            <div className="form-group">
-                                <label htmlFor="assignment-end-date">End Date:</label>
-                                <input
-                                    type="date"
-                                    id="assignment-end-date"
-                                    value={formData.endDate}
-                                    onChange={(e) => handleInputChange('endDate', e.target.value)}
-                                    className={errors.endDate ? 'error' : ''}
-                                    required
-                                    disabled={isEditing}
-                                />
-                                {errors.endDate && <span className="error-message">{errors.endDate}</span>}
+                                {loadingPhases && (
+                                    <div style={{ padding: '20px', textAlign: 'center', color: '#858585' }}>
+                                        Loading project phases...
+                                    </div>
+                                )}
+
+                                {!loadingPhases && projectPhases.map(phase => {
+                                    const allocation = phaseAllocations[phase.id] || {
+                                        phaseId: phase.id,
+                                        phaseName: phase.name,
+                                        totalMDs: 0,
+                                        startDate: '',
+                                        endDate: ''
+                                    };
+
+                                    return (
+                                        <div
+                                            key={phase.id}
+                                            style={{
+                                                padding: '12px',
+                                                backgroundColor: '#2d2d30',
+                                                borderRadius: '6px',
+                                                marginBottom: '12px',
+                                                border: '1px solid #3c3c3c'
+                                            }}
+                                        >
+                                            <div style={{
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                color: '#4ec9b0',
+                                                marginBottom: '10px'
+                                            }}>
+                                                {phase.name}
+                                                {phase.manDays > 0 && (
+                                                    <span style={{ color: '#858585', fontWeight: '400', marginLeft: '8px' }}>
+                                                        (Estimated: {phase.manDays} MD)
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                                                {/* Start Date */}
+                                                <div>
+                                                    <label
+                                                        htmlFor={`phase-${phase.id}-start`}
+                                                        style={{ fontSize: '11px', color: '#858585', display: 'block', marginBottom: '4px' }}
+                                                    >
+                                                        Start Date
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        id={`phase-${phase.id}-start`}
+                                                        value={allocation.startDate}
+                                                        onChange={(e) => handlePhaseChange(phase.id, 'startDate', e.target.value)}
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '6px',
+                                                            fontSize: '12px',
+                                                            backgroundColor: '#1e1e1e',
+                                                            border: '1px solid #3c3c3c',
+                                                            borderRadius: '4px',
+                                                            color: '#d4d4d4'
+                                                        }}
+                                                        disabled={isEditing}
+                                                    />
+                                                </div>
+
+                                                {/* End Date */}
+                                                <div>
+                                                    <label
+                                                        htmlFor={`phase-${phase.id}-end`}
+                                                        style={{ fontSize: '11px', color: '#858585', display: 'block', marginBottom: '4px' }}
+                                                    >
+                                                        End Date
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        id={`phase-${phase.id}-end`}
+                                                        value={allocation.endDate}
+                                                        onChange={(e) => handlePhaseChange(phase.id, 'endDate', e.target.value)}
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '6px',
+                                                            fontSize: '12px',
+                                                            backgroundColor: '#1e1e1e',
+                                                            border: '1px solid #3c3c3c',
+                                                            borderRadius: '4px',
+                                                            color: '#d4d4d4'
+                                                        }}
+                                                        disabled={isEditing}
+                                                    />
+                                                </div>
+
+                                                {/* Man Days */}
+                                                <div>
+                                                    <label
+                                                        htmlFor={`phase-${phase.id}-mds`}
+                                                        style={{ fontSize: '11px', color: '#858585', display: 'block', marginBottom: '4px' }}
+                                                    >
+                                                        Man Days
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        id={`phase-${phase.id}-mds`}
+                                                        value={allocation.totalMDs || ''}
+                                                        onChange={(e) => handlePhaseChange(phase.id, 'totalMDs', parseFloat(e.target.value) || 0)}
+                                                        min="0"
+                                                        step="0.1"
+                                                        placeholder="0.0"
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '6px',
+                                                            fontSize: '12px',
+                                                            backgroundColor: '#1e1e1e',
+                                                            border: '1px solid #3c3c3c',
+                                                            borderRadius: '4px',
+                                                            color: '#d4d4d4'
+                                                        }}
+                                                        disabled={isEditing}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        </div>
+                        )}
+
+                        {/* Fallback to simple allocation if no phases */}
+                        {formData.projectId && !loadingPhases && projectPhases.length === 0 && (
+                            <>
+                                {/* Total MDs */}
+                                <div className="form-group">
+                                    <label htmlFor="assignment-total-mds">Total Man Days:</label>
+                                    <input
+                                        type="number"
+                                        id="assignment-total-mds"
+                                        value={formData.totalMDs || ''}
+                                        onChange={(e) => handleInputChange('totalMDs', parseFloat(e.target.value) || 0)}
+                                        className={errors.totalMDs ? 'error' : ''}
+                                        min="0.1"
+                                        step="0.1"
+                                        placeholder="e.g., 45.0"
+                                        required
+                                        disabled={isEditing}
+                                    />
+                                    <small className="form-help">Total MDs to allocate across the date range</small>
+                                    {errors.totalMDs && <span className="error-message">{errors.totalMDs}</span>}
+                                </div>
+
+                                {/* Date Range */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    {/* Start Date */}
+                                    <div className="form-group">
+                                        <label htmlFor="assignment-start-date">Start Date:</label>
+                                        <input
+                                            type="date"
+                                            id="assignment-start-date"
+                                            value={formData.startDate}
+                                            onChange={(e) => handleInputChange('startDate', e.target.value)}
+                                            className={errors.startDate ? 'error' : ''}
+                                            required
+                                            disabled={isEditing}
+                                        />
+                                        {errors.startDate && <span className="error-message">{errors.startDate}</span>}
+                                    </div>
+
+                                    {/* End Date */}
+                                    <div className="form-group">
+                                        <label htmlFor="assignment-end-date">End Date:</label>
+                                        <input
+                                            type="date"
+                                            id="assignment-end-date"
+                                            value={formData.endDate}
+                                            onChange={(e) => handleInputChange('endDate', e.target.value)}
+                                            className={errors.endDate ? 'error' : ''}
+                                            required
+                                            disabled={isEditing}
+                                        />
+                                        {errors.endDate && <span className="error-message">{errors.endDate}</span>}
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         {/* Preview Toggle */}
                         {distributionPreview && (
