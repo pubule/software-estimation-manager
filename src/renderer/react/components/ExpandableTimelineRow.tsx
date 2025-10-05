@@ -43,6 +43,11 @@ interface ProjectAllocation {
         startDate: string;
         endDate: string;
     }[];
+    phaseMonthlyBreakdown?: {
+        [phaseId: string]: {
+            [month: string]: number;
+        };
+    };
 }
 
 interface PhaseMonthlyBreakdown {
@@ -111,7 +116,8 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                 projectName: allocation.projectName || allocation.projectId,
                 allocationId: allocation.id,
                 monthlyAllocations: allocation.monthlyAllocations || {},
-                phaseAllocations: allocation.phaseAllocations || []
+                phaseAllocations: allocation.phaseAllocations || [],
+                phaseMonthlyBreakdown: allocation.phaseMonthlyBreakdown || {}
             }));
 
             setProjectAllocations(projects);
@@ -260,13 +266,20 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
         setEditValue(String(currentValue));
     };
 
-    // Save edited value
+    // Save edited value with full recalculation
     const saveEdit = async () => {
         if (!editingCell) return;
 
         const newValue = parseFloat(editValue);
         if (isNaN(newValue) || newValue < 0) {
             alert('Please enter a valid number');
+            setEditingCell(null);
+            return;
+        }
+
+        // If editing a phase cell, phaseId must be present
+        if (!editingCell.phaseId) {
+            console.error('Cannot edit phase cell without phaseId');
             setEditingCell(null);
             return;
         }
@@ -278,28 +291,72 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             const allocation = projectAllocations.find(p => p.allocationId === editingCell.allocationId);
             if (!allocation) return;
 
-            // Update monthly allocation
-            const updated = { ...allocation.monthlyAllocations };
-            if (!updated[editingCell.month]) {
-                updated[editingCell.month] = { planned: newValue };
-            } else {
-                updated[editingCell.month].planned = newValue;
-            }
-
-            // Call update action
-            await allocationActions.updateAllocation(editingCell.allocationId, {
-                monthlyAllocations: updated
+            console.log('💾 Saving phase MD edit:', {
+                phase: editingCell.phaseId,
+                month: editingCell.month,
+                oldValue: allocation.phaseMonthlyBreakdown?.[editingCell.phaseId!]?.[editingCell.month],
+                newValue
             });
 
-            console.log('✅ Allocation updated successfully');
+            // 1. Update phaseMonthlyBreakdown
+            const updatedBreakdown = {
+                ...(allocation.phaseMonthlyBreakdown || {}),
+                [editingCell.phaseId!]: {
+                    ...(allocation.phaseMonthlyBreakdown?.[editingCell.phaseId!] || {}),
+                    [editingCell.month]: newValue
+                }
+            };
 
-            // Refresh data
+            // 2. Recalculate phase totalMDs (sum all months for the phase)
+            const updatedPhaseAllocations = (allocation.phaseAllocations || []).map(phase => {
+                if (phase.phaseId === editingCell.phaseId) {
+                    const phaseMDs = updatedBreakdown[phase.phaseId] || {};
+                    const totalMDs = Object.values(phaseMDs).reduce((sum: number, val: number) => sum + val, 0);
+                    console.log(`📊 Recalculated ${phase.phaseName} totalMDs:`, totalMDs);
+                    return { ...phase, totalMDs };
+                }
+                return phase;
+            });
+
+            // 3. Recalculate monthly allocations (aggregate all phases per month)
+            const updatedMonthlyAllocations: any = {};
+
+            // Get all months across all phases
+            const allMonths = new Set<string>();
+            Object.values(updatedBreakdown).forEach((phaseMDs: any) => {
+                Object.keys(phaseMDs).forEach(month => allMonths.add(month));
+            });
+
+            // For each month, sum across all phases
+            allMonths.forEach(month => {
+                let monthTotal = 0;
+                Object.values(updatedBreakdown).forEach((phaseMDs: any) => {
+                    monthTotal += phaseMDs[month] || 0;
+                });
+                updatedMonthlyAllocations[month] = {
+                    planned: monthTotal,
+                    actual: monthTotal
+                };
+            });
+
+            console.log('📊 Recalculated monthly allocations:', updatedMonthlyAllocations);
+
+            // 4. Update allocation with all 3 recalculated structures
+            await allocationActions.updateAllocation(editingCell.allocationId, {
+                phaseMonthlyBreakdown: updatedBreakdown,
+                phaseAllocations: updatedPhaseAllocations,
+                monthlyAllocations: updatedMonthlyAllocations
+            });
+
+            console.log('✅ Allocation updated successfully with full recalculation');
+
+            // 5. Refresh data → This triggers capacity timeline recalculation (% + overflow)
             loadMemberAllocations();
             onRefresh?.();
 
             setEditingCell(null);
         } catch (error) {
-            console.error('Error updating allocation:', error);
+            console.error('❌ Error updating allocation:', error);
             alert('Failed to update allocation');
             setEditingCell(null);
         }
@@ -319,7 +376,20 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             return breakdown;
         }
 
-        // For each phase, distribute MDs across months between startDate and endDate
+        // If phaseMonthlyBreakdown exists (saved data), use it
+        if (project.phaseMonthlyBreakdown) {
+            console.log('📊 Using saved phaseMonthlyBreakdown for project:', project.projectName);
+            project.phaseAllocations.forEach(phase => {
+                breakdown[phase.phaseId] = {
+                    phaseName: phase.phaseName,
+                    monthlyMDs: project.phaseMonthlyBreakdown![phase.phaseId] || {}
+                };
+            });
+            return breakdown;
+        }
+
+        // Otherwise, calculate uniformly (backward compatibility for old allocations)
+        console.log('📊 Calculating uniform distribution for project:', project.projectName);
         project.phaseAllocations.forEach(phase => {
             const startDate = new Date(phase.startDate);
             const endDate = new Date(phase.endDate);

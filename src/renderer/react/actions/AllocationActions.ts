@@ -118,6 +118,9 @@ export class AllocationActions {
             let hasOverflow = false;
             let overflowAmount = 0;
 
+            // Track phase monthly breakdown for drill-down UI
+            let phaseMonthlyBreakdown: Record<string, Record<string, number>> = {};
+
             if (data.monthlyAllocations) {
                 // Use provided monthly allocations
                 monthlyAllocations = data.monthlyAllocations;
@@ -145,6 +148,28 @@ export class AllocationActions {
 
                 hasOverflow = distribution.hasOverflow;
                 overflowAmount = distribution.overflowAmount;
+
+                // Calculate phase monthly breakdown for inline editing
+                data.phaseAllocations.forEach(phase => {
+                    const startDate = new Date(phase.startDate);
+                    const endDate = new Date(phase.endDate);
+
+                    // Get all months in phase range
+                    const phaseMonths: string[] = [];
+                    let current = new Date(startDate);
+                    while (current <= endDate) {
+                        const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+                        phaseMonths.push(monthKey);
+                        current.setMonth(current.getMonth() + 1);
+                    }
+
+                    // Distribute totalMDs evenly across months
+                    const mdsPerMonth = phase.totalMDs / phaseMonths.length;
+                    phaseMonthlyBreakdown[phase.phaseId] = {};
+                    phaseMonths.forEach(month => {
+                        phaseMonthlyBreakdown[phase.phaseId][month] = mdsPerMonth;
+                    });
+                });
 
                 // Calculate date range from phases
                 const allDates = data.phaseAllocations.flatMap(p => [p.startDate, p.endDate]);
@@ -186,6 +211,7 @@ export class AllocationActions {
                 teamMemberId: data.teamMemberId,
                 monthlyAllocations,
                 phaseAllocations: data.phaseAllocations || [], // Save phase allocations for drill-down UI
+                phaseMonthlyBreakdown, // Monthly MDs per phase for inline editing
                 startDate: data.startDate,
                 endDate: data.endDate,
                 notes: data.notes || '',
