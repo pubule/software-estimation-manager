@@ -185,6 +185,7 @@ export class AllocationActions {
                 projectName: data.projectName || 'Unnamed Project',
                 teamMemberId: data.teamMemberId,
                 monthlyAllocations,
+                phaseAllocations: data.phaseAllocations || [], // Save phase allocations for drill-down UI
                 startDate: data.startDate,
                 endDate: data.endDate,
                 notes: data.notes || '',

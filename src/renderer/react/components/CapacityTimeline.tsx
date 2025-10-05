@@ -21,7 +21,7 @@
 import React, { useState } from 'react';
 import { useCapacityTimeline } from '../hooks/useCapacityTimeline';
 import TimelineHeader from './TimelineHeader';
-import TimelineRow from './TimelineRow';
+import ExpandableTimelineRow from './ExpandableTimelineRow';
 import AssignmentModal from './AssignmentModal';
 import type { TimelineMemberCapacity } from '../hooks/useCapacityTimeline';
 
@@ -307,12 +307,13 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
             }}>
                 {/* Member Rows */}
                 {members.map(member => (
-                    <TimelineRow
+                    <ExpandableTimelineRow
                         key={member.id}
                         member={member}
                         months={months}
                         onCellClick={handleCellClickInternal}
                         onMemberClick={onMemberClick}
+                        onRefresh={refresh}
                     />
                 ))}
             </div>
