@@ -60,9 +60,9 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
         notes: ''
     });
 
-    // Load phases for selected project (after formData is defined)
+    // Load phases for selected project (skip in edit mode - phases come from allocation)
     const { phases: projectPhases, loading: loadingPhases } = useProjectPhases(
-        formData.projectId,
+        isEditing ? null : formData.projectId,  // Skip loading in edit mode
         availableProjects
     );
 
@@ -149,6 +149,29 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
         }
     }, [allocation, initialMonth]);
 
+    // Initialize phaseAllocations from allocation in edit mode
+    useEffect(() => {
+        if (allocation && allocation.phaseAllocations && Array.isArray(allocation.phaseAllocations)) {
+            console.log('📋 Edit mode: Initializing phaseAllocations from allocation object');
+
+            // Convert allocation.phaseAllocations array to phaseAllocations state object
+            const initialAllocations: Record<string, PhaseAllocation> = {};
+
+            allocation.phaseAllocations.forEach((phase: any) => {
+                initialAllocations[phase.phaseId] = {
+                    phaseId: phase.phaseId,
+                    phaseName: phase.phaseName,
+                    totalMDs: phase.totalMDs || 0,
+                    startDate: phase.startDate || '',
+                    endDate: phase.endDate || ''
+                };
+            });
+
+            setPhaseAllocations(initialAllocations);
+            console.log(`✅ Edit mode: Loaded ${Object.keys(initialAllocations).length} phase(s) from allocation`);
+        }
+    }, [allocation]);
+
     // Auto-calculate distribution when inputs change
     useEffect(() => {
         if (formData.totalMDs && formData.startDate && formData.endDate && formData.teamMemberId) {
@@ -199,9 +222,9 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
         }
     }, [formData.teamMemberId, phaseAllocations]);
 
-    // Auto-populate phase allocations with MDs from project phases
+    // Auto-populate phase allocations with MDs from project phases (CREATE mode only)
     useEffect(() => {
-        if (projectPhases.length > 0 && formData.projectId && formData.teamMemberId && !loadingPhases) {
+        if (!isEditing && projectPhases.length > 0 && formData.projectId && formData.teamMemberId && !loadingPhases) {
             console.log('📋 Auto-populating phase allocations from project phases:', projectPhases);
 
             // Get team member role
@@ -244,9 +267,17 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
 
         if (WorkingDaysCalcClass && !workingDaysCalc) {
             try {
-                const instance = new WorkingDaysCalcClass();
-                setWorkingDaysCalc(instance);
-                console.log('✅ WorkingDaysCalculator initialized');
+                // Check if it's a constructor or already an instance
+                if (typeof WorkingDaysCalcClass === 'function') {
+                    // It's a constructor, create new instance
+                    const instance = new WorkingDaysCalcClass();
+                    setWorkingDaysCalc(instance);
+                    console.log('✅ WorkingDaysCalculator initialized (from constructor)');
+                } else if (typeof WorkingDaysCalcClass === 'object') {
+                    // It's already an instance, use it directly
+                    setWorkingDaysCalc(WorkingDaysCalcClass);
+                    console.log('✅ WorkingDaysCalculator initialized (using existing instance)');
+                }
             } catch (error) {
                 console.error('❌ Failed to initialize WorkingDaysCalculator:', error);
             }
@@ -879,7 +910,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                         {renderAvailabilitySummary()}
 
                         {/* Phase Allocations Section */}
-                        {formData.projectId && projectPhases.length > 0 && (
+                        {formData.projectId && (projectPhases.length > 0 || Object.keys(phaseAllocations).length > 0) && (
                             <div className="form-group">
                                 <label style={{ marginBottom: '12px', display: 'block', fontSize: '14px', fontWeight: '600' }}>
                                     Phase Allocations:
@@ -894,7 +925,8 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                     </div>
                                 )}
 
-                                {!loadingPhases && projectPhases.map(phase => {
+                                {/* CREATE mode: render from projectPhases */}
+                                {!loadingPhases && !isEditing && projectPhases.map(phase => {
                                     const allocation = phaseAllocations[phase.id] || {
                                         phaseId: phase.id,
                                         phaseName: phase.name,
@@ -1021,11 +1053,120 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                         </div>
                                     );
                                 })}
+
+                                {/* EDIT mode: render from phaseAllocations */}
+                                {!loadingPhases && isEditing && Object.values(phaseAllocations).map(phase => {
+                                    return (
+                                        <div
+                                            key={phase.phaseId}
+                                            style={{
+                                                padding: '12px',
+                                                backgroundColor: '#2d2d30',
+                                                borderRadius: '6px',
+                                                marginBottom: '12px',
+                                                border: '1px solid #3c3c3c'
+                                            }}
+                                        >
+                                            <div style={{
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                color: '#4ec9b0',
+                                                marginBottom: '4px'
+                                            }}>
+                                                {phase.phaseName}
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#858585', marginBottom: '8px' }}>
+                                                Allocated: {phase.totalMDs} MD
+                                            </div>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                                                {/* Start Date */}
+                                                <div>
+                                                    <label
+                                                        htmlFor={`phase-${phase.phaseId}-start`}
+                                                        style={{ fontSize: '11px', color: '#858585', display: 'block', marginBottom: '4px' }}
+                                                    >
+                                                        Start Date
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        id={`phase-${phase.phaseId}-start`}
+                                                        value={phase.startDate}
+                                                        onChange={(e) => handlePhaseChange(phase.phaseId, 'startDate', e.target.value)}
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '6px',
+                                                            fontSize: '12px',
+                                                            backgroundColor: '#1e1e1e',
+                                                            border: '1px solid #3c3c3c',
+                                                            borderRadius: '4px',
+                                                            color: '#d4d4d4'
+                                                        }}
+                                                        disabled={isEditing}
+                                                    />
+                                                </div>
+
+                                                {/* End Date */}
+                                                <div>
+                                                    <label
+                                                        htmlFor={`phase-${phase.phaseId}-end`}
+                                                        style={{ fontSize: '11px', color: '#858585', display: 'block', marginBottom: '4px' }}
+                                                    >
+                                                        End Date
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        id={`phase-${phase.phaseId}-end`}
+                                                        value={phase.endDate}
+                                                        onChange={(e) => handlePhaseChange(phase.phaseId, 'endDate', e.target.value)}
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '6px',
+                                                            fontSize: '12px',
+                                                            backgroundColor: '#1e1e1e',
+                                                            border: '1px solid #3c3c3c',
+                                                            borderRadius: '4px',
+                                                            color: '#d4d4d4'
+                                                        }}
+                                                        disabled={isEditing}
+                                                    />
+                                                </div>
+
+                                                {/* Man Days */}
+                                                <div>
+                                                    <label
+                                                        htmlFor={`phase-${phase.phaseId}-mds`}
+                                                        style={{ fontSize: '11px', color: '#858585', display: 'block', marginBottom: '4px' }}
+                                                    >
+                                                        Man Days
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        id={`phase-${phase.phaseId}-mds`}
+                                                        value={phase.totalMDs}
+                                                        onChange={(e) => handlePhaseChange(phase.phaseId, 'totalMDs', parseFloat(e.target.value) || 0)}
+                                                        step="0.1"
+                                                        min="0"
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '6px',
+                                                            fontSize: '12px',
+                                                            backgroundColor: '#1e1e1e',
+                                                            border: '1px solid #3c3c3c',
+                                                            borderRadius: '4px',
+                                                            color: '#d4d4d4'
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
 
-                        {/* No phases warning */}
-                        {formData.projectId && !loadingPhases && projectPhases.length === 0 && (
+                        {/* No phases warning (CREATE mode only - edit mode loads phases from allocation) */}
+                        {!isEditing && formData.projectId && !loadingPhases && projectPhases.length === 0 && (
                             <div style={{
                                 padding: '20px',
                                 backgroundColor: '#5a1e1e',

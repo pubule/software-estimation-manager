@@ -55,11 +55,13 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedMemberId, setSelectedMemberId] = useState<string | undefined>(undefined);
     const [selectedMonth, setSelectedMonth] = useState<string | undefined>(undefined);
+    const [editingAllocation, setEditingAllocation] = useState<any | undefined>(undefined);
 
     // Handle Add Assignment button click
     const handleAddAssignment = () => {
         setSelectedMemberId(undefined);
         setSelectedMonth(undefined);
+        setEditingAllocation(undefined);
         setIsModalOpen(true);
     };
 
@@ -70,6 +72,7 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
         if (member) {
             setSelectedMemberId(member.id);
             setSelectedMonth(month);
+            setEditingAllocation(undefined);
             setIsModalOpen(true);
         }
 
@@ -77,11 +80,21 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
         onCellClick?.(month, memberName, data);
     };
 
+    // Handle edit allocation (from ExpandableTimelineRow edit button)
+    const handleEditAllocation = (allocation: any) => {
+        console.log('✏️ Opening edit modal for allocation:', allocation);
+        setEditingAllocation(allocation);
+        setSelectedMemberId(undefined); // Clear member selection (allocation has its own member)
+        setSelectedMonth(undefined); // Clear month selection (allocation has its own dates)
+        setIsModalOpen(true);
+    };
+
     // Handle modal close
     const handleModalClose = () => {
         setIsModalOpen(false);
         setSelectedMemberId(undefined);
         setSelectedMonth(undefined);
+        setEditingAllocation(undefined);
     };
 
     // Handle successful save
@@ -314,6 +327,7 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
                         onCellClick={handleCellClickInternal}
                         onMemberClick={onMemberClick}
                         onRefresh={refresh}
+                        onEditAllocation={handleEditAllocation}
                     />
                 ))}
             </div>
@@ -321,6 +335,7 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
             {/* Assignment Modal */}
             {isModalOpen && (
                 <AssignmentModal
+                    allocation={editingAllocation}
                     initialMemberId={selectedMemberId}
                     initialMonth={selectedMonth}
                     onSave={handleSave}

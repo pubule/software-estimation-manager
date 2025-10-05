@@ -24,6 +24,7 @@ interface ExpandableTimelineRowProps {
     onCellClick?: (month: string, memberName: string, data: any) => void;
     onMemberClick?: (member: TimelineMemberCapacity) => void;
     onRefresh?: () => void; // Callback after allocation update
+    onEditAllocation?: (allocation: any) => void; // Callback to open edit modal
 }
 
 interface ProjectAllocation {
@@ -64,7 +65,8 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
     months,
     onCellClick,
     onMemberClick,
-    onRefresh
+    onRefresh,
+    onEditAllocation
 }) => {
     // Expansion state
     const [isMemberExpanded, setIsMemberExpanded] = useState(false);
@@ -368,6 +370,73 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
         setEditValue('');
     };
 
+    // Handle edit allocation button click
+    const handleEditAllocation = (e: React.MouseEvent, project: ProjectAllocation) => {
+        e.stopPropagation(); // Prevent row toggle
+
+        console.log('✏️ Opening edit modal for allocation:', project.allocationId);
+
+        // Build full allocation object for modal
+        const allocationData = {
+            id: project.allocationId,
+            projectId: project.projectId,
+            projectName: project.projectName,
+            teamMemberId: member.id,
+            monthlyAllocations: project.monthlyAllocations,
+            phaseAllocations: project.phaseAllocations || [],
+            phaseMonthlyBreakdown: project.phaseMonthlyBreakdown || {}
+        };
+
+        // Call parent callback to open modal
+        onEditAllocation?.(allocationData);
+    };
+
+    // Handle delete allocation button click
+    const handleDeleteAllocation = async (e: React.MouseEvent, project: ProjectAllocation) => {
+        e.stopPropagation(); // Prevent row toggle
+
+        // Count total months for confirmation message
+        const monthCount = Object.keys(project.monthlyAllocations || {}).length;
+        const phaseCount = project.phaseAllocations?.length || 0;
+
+        // Confirmation dialog (destructive action)
+        const confirmed = window.confirm(
+            `Delete allocation for project "${project.projectName}"?\n\n` +
+            `This will remove:\n` +
+            `• ${monthCount} month(s) of data\n` +
+            `• ${phaseCount} phase allocation(s)\n\n` +
+            `This action cannot be undone.`
+        );
+
+        if (!confirmed) {
+            console.log('🚫 Delete cancelled by user');
+            return;
+        }
+
+        try {
+            const allocationActions = new window.AllocationActions();
+
+            console.log('🗑️ Deleting allocation:', project.allocationId);
+
+            // Delete allocation
+            const result = allocationActions.deleteAllocation(project.allocationId);
+
+            if (result.success) {
+                console.log('✅ Allocation deleted successfully:', project.allocationId);
+
+                // Refresh data immediately to show updated timeline
+                loadMemberAllocations();
+                onRefresh?.();
+            } else {
+                console.error('❌ Delete failed:', result.error);
+                alert(`Failed to delete allocation: ${result.error}`);
+            }
+        } catch (error: any) {
+            console.error('❌ Error deleting allocation:', error);
+            alert(`Error deleting allocation: ${error.message}`);
+        }
+    };
+
     // Calculate phase breakdown per month (for phase-based allocations)
     const getPhaseMonthlyBreakdown = (project: ProjectAllocation): PhaseMonthlyBreakdown => {
         const breakdown: PhaseMonthlyBreakdown = {};
@@ -619,10 +688,82 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                             fontWeight: '500',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
+                            whiteSpace: 'nowrap',
+                            flex: 1
                         }}>
                             {project.projectName}
                         </span>
+
+                        {/* Action buttons - Edit and Delete */}
+                        <div
+                            style={{
+                                display: 'flex',
+                                gap: '6px',
+                                marginLeft: '8px',
+                                opacity: 0.4,
+                                transition: 'opacity 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.opacity = '1.0';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.opacity = '0.4';
+                            }}
+                        >
+                            {/* Edit Button */}
+                            <button
+                                onClick={(e) => handleEditAllocation(e, project)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    padding: '2px 4px',
+                                    color: '#569cd6',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    transition: 'transform 0.2s ease',
+                                    lineHeight: 1
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1.2)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1.0)';
+                                }}
+                                title="Edit allocation"
+                                aria-label="Edit allocation"
+                            >
+                                ✏️
+                            </button>
+
+                            {/* Delete Button */}
+                            <button
+                                onClick={(e) => handleDeleteAllocation(e, project)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    padding: '2px 4px',
+                                    color: '#f48771',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    transition: 'transform 0.2s ease',
+                                    lineHeight: 1
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1.2)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1.0)';
+                                }}
+                                title="Delete allocation"
+                                aria-label="Delete allocation"
+                            >
+                                🗑️
+                            </button>
+                        </div>
                     </div>
 
                     {/* Project Month Cells */}
