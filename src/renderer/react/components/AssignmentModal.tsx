@@ -72,6 +72,9 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
     // Phase allocations state (per-phase MDs and dates)
     const [phaseAllocations, setPhaseAllocations] = useState<Record<string, PhaseAllocation>>({});
 
+    // Working Days Calculator singleton instance
+    const [workingDaysCalc, setWorkingDaysCalc] = useState<any>(null);
+
     // Preview state
     const [distributionPreview, setDistributionPreview] = useState<MonthlyDistribution | null>(null);
     const [availabilityPreview, setAvailabilityPreview] = useState<AvailabilityResult | null>(null);
@@ -81,9 +84,13 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isCalculating, setIsCalculating] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
+    const [selectedRole, setSelectedRole] = useState<string>(''); // Role filter: G1, G2, TA, PM
 
-    // Get team members list
-    const teamMembers = useMemo(() => {
+    // Available roles for filtering
+    const availableRoles = ['G1', 'G2', 'TA', 'PM'];
+
+    // Get all team members
+    const allTeamMembers = useMemo(() => {
         if (!globalConfig?.teams) return [];
 
         const allMembers: any[] = [];
@@ -100,6 +107,14 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
         });
         return allMembers;
     }, [globalConfig]);
+
+    // Filter team members by selected role
+    const teamMembers = useMemo(() => {
+        if (!selectedRole) {
+            return allTeamMembers;
+        }
+        return allTeamMembers.filter(member => member.role === selectedRole);
+    }, [allTeamMembers, selectedRole]);
 
     // Initialize form for editing
     useEffect(() => {
@@ -144,14 +159,99 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
         }
     }, [formData.totalMDs, formData.startDate, formData.endDate, formData.teamMemberId]);
 
-    // Check availability when member/dates change
+    // Check availability when member or phase allocations change
     useEffect(() => {
-        if (formData.teamMemberId && formData.startDate && formData.endDate) {
-            checkAvailability();
-        } else {
+        if (!formData.teamMemberId) {
+            setAvailabilityPreview(null);
+            return;
+        }
+
+        // Calculate date range from phase allocations
+        const phasesList = Object.values(phaseAllocations);
+        if (phasesList.length === 0) {
+            setAvailabilityPreview(null);
+            return;
+        }
+
+        const allDates = phasesList
+            .filter(p => p.startDate && p.endDate)
+            .flatMap(p => [p.startDate, p.endDate]);
+
+        if (allDates.length === 0) {
+            setAvailabilityPreview(null);
+            return;
+        }
+
+        const startDate = allDates.sort()[0];
+        const endDate = allDates.sort()[allDates.length - 1];
+
+        // Check availability with calculated date range
+        try {
+            const availability = allocationActions.checkMemberAvailability(
+                formData.teamMemberId,
+                startDate,
+                endDate
+            );
+            setAvailabilityPreview(availability);
+        } catch (error: any) {
+            console.error('Error checking availability:', error);
             setAvailabilityPreview(null);
         }
-    }, [formData.teamMemberId, formData.startDate, formData.endDate]);
+    }, [formData.teamMemberId, phaseAllocations]);
+
+    // Auto-populate phase allocations with MDs from project phases
+    useEffect(() => {
+        if (projectPhases.length > 0 && formData.projectId && formData.teamMemberId && !loadingPhases) {
+            console.log('📋 Auto-populating phase allocations from project phases:', projectPhases);
+
+            // Get team member role
+            const member = allTeamMembers.find(m => m.id === formData.teamMemberId);
+            const role = member?.role; // G1, G2, TA, PM
+
+            if (!role) {
+                console.warn('⚠️ Team member role not found for:', formData.teamMemberId);
+                return;
+            }
+
+            console.log('👤 Calculating MDs for role:', role);
+
+            const initialAllocations: Record<string, PhaseAllocation> = {};
+
+            projectPhases.forEach(phase => {
+                // Calculate MDs for this specific role based on effort percentage
+                const effortPercentage = phase.effort?.[role] || 0;
+                const mdsForRole = phase.manDays * (effortPercentage / 100);
+
+                console.log(`  📊 ${phase.name}: ${phase.manDays} MD × ${effortPercentage}% (${role}) = ${mdsForRole} MD`);
+
+                initialAllocations[phase.id] = {
+                    phaseId: phase.id,
+                    phaseName: phase.name,
+                    totalMDs: mdsForRole,  // Use calculated MDs for role, not total phase MDs
+                    startDate: '',
+                    endDate: ''
+                };
+            });
+
+            setPhaseAllocations(initialAllocations);
+            console.log('✅ Phase allocations initialized with role-based MDs for', role, ':', initialAllocations);
+        }
+    }, [projectPhases, formData.projectId, formData.teamMemberId, loadingPhases, allTeamMembers]);
+
+    // Initialize WorkingDaysCalculator singleton
+    useEffect(() => {
+        const WorkingDaysCalcClass = (window as any).WorkingDaysCalculator;
+
+        if (WorkingDaysCalcClass && !workingDaysCalc) {
+            try {
+                const instance = new WorkingDaysCalcClass();
+                setWorkingDaysCalc(instance);
+                console.log('✅ WorkingDaysCalculator initialized');
+            } catch (error) {
+                console.error('❌ Failed to initialize WorkingDaysCalculator:', error);
+            }
+        }
+    }, [workingDaysCalc]);
 
     /**
      * Calculate distribution preview
@@ -201,25 +301,6 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
         }
     };
 
-    /**
-     * Check member availability
-     */
-    const checkAvailability = async () => {
-        if (!formData.teamMemberId || !formData.startDate || !formData.endDate) {
-            return;
-        }
-
-        try {
-            const availability = allocationActions.checkMemberAvailability(
-                formData.teamMemberId,
-                formData.startDate,
-                formData.endDate
-            );
-            setAvailabilityPreview(availability);
-        } catch (error: any) {
-            console.error('Error checking availability:', error);
-        }
-    };
 
     /**
      * Handle form input changes
@@ -265,6 +346,144 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
     };
 
     /**
+     * Handle role selection change
+     * Resets team member if current selection doesn't match new role filter
+     */
+    const handleRoleChange = (role: string) => {
+        setSelectedRole(role);
+
+        // Check if current team member still matches new role filter
+        if (formData.teamMemberId && role) {
+            const currentMember = allTeamMembers.find(m => m.id === formData.teamMemberId);
+            if (currentMember && currentMember.role !== role) {
+                // Reset team member selection if role doesn't match
+                handleInputChange('teamMemberId', '');
+            }
+        }
+    };
+
+    /**
+     * Check if a date is a working day (not weekend, not Italian holiday)
+     */
+    const isWorkingDay = (date: Date): boolean => {
+        const dayOfWeek = date.getDay();
+
+        // Weekend check
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            return false;
+        }
+
+        // Holiday check using singleton instance
+        if (workingDaysCalc) {
+            try {
+                return !workingDaysCalc.isNationalHoliday(date, 'IT');
+            } catch (error) {
+                console.warn('⚠️ isNationalHoliday failed:', error);
+            }
+        }
+
+        // Fallback: only exclude weekends
+        return true;
+    };
+
+    /**
+     * Get next working day after a given date
+     */
+    const getNextWorkingDay = (date: Date): Date => {
+        const next = new Date(date);
+        next.setDate(next.getDate() + 1);
+
+        while (!isWorkingDay(next)) {
+            next.setDate(next.getDate() + 1);
+        }
+
+        return next;
+    };
+
+    /**
+     * Calculate end date from start date + estimated MDs (working days)
+     * @param startDateStr - Start date in YYYY-MM-DD format
+     * @param estimatedMDs - Number of working days needed
+     * @returns End date in YYYY-MM-DD format
+     */
+    const calculateEndDateFromMDs = (startDateStr: string, estimatedMDs: number): string => {
+        if (!startDateStr) {
+            return '';
+        }
+
+        // Special case: 0 or 1 MD means start date = end date
+        if (estimatedMDs <= 1) {
+            return startDateStr;
+        }
+
+        const startDate = new Date(startDateStr);
+        let current = new Date(startDate);
+        let workingDaysCount = 0;
+
+        // Count working days until we reach estimatedMDs
+        while (workingDaysCount < estimatedMDs) {
+            if (isWorkingDay(current)) {
+                workingDaysCount++;
+                if (workingDaysCount === estimatedMDs) {
+                    break;
+                }
+            }
+            current.setDate(current.getDate() + 1);
+        }
+
+        // Return in YYYY-MM-DD format
+        return current.toISOString().split('T')[0];
+    };
+
+    /**
+     * Recalculate phase dates with cascade effect
+     * When a phase's start date or MDs change, recalculate its end date
+     * and cascade the calculation to all subsequent phases
+     */
+    const recalculatePhaseDates = (changedPhaseId: string) => {
+        setPhaseAllocations(prev => {
+            const updated = { ...prev };
+            const phaseIds = projectPhases.map(p => p.id);
+            const changedIndex = phaseIds.indexOf(changedPhaseId);
+
+            if (changedIndex === -1) return prev;
+
+            // Process from changed phase onwards
+            for (let i = changedIndex; i < phaseIds.length; i++) {
+                const phaseId = phaseIds[i];
+                const allocation = updated[phaseId];
+
+                if (!allocation) continue;
+
+                if (i === changedIndex) {
+                    // For the changed phase, recalculate end date from start + MDs
+                    // Include 0 MDs case (0 MDs → start date = end date)
+                    if (allocation.startDate && allocation.totalMDs >= 0) {
+                        allocation.endDate = calculateEndDateFromMDs(allocation.startDate, allocation.totalMDs);
+                    }
+                } else {
+                    // For subsequent phases, calculate both start and end dates
+                    const prevPhase = updated[phaseIds[i - 1]];
+
+                    if (prevPhase && prevPhase.endDate) {
+                        // Start = next working day after previous phase end
+                        const prevEndDate = new Date(prevPhase.endDate);
+                        const nextStart = getNextWorkingDay(prevEndDate);
+                        allocation.startDate = nextStart.toISOString().split('T')[0];
+
+                        // End = start + MDs (include 0 MDs case)
+                        if (allocation.totalMDs >= 0) {
+                            allocation.endDate = calculateEndDateFromMDs(allocation.startDate, allocation.totalMDs);
+                        }
+                    }
+                }
+            }
+
+            return updated;
+        });
+    };
+
+    /**
      * Handle phase allocation changes
      */
     const handlePhaseChange = (phaseId: string, field: 'startDate' | 'endDate' | 'totalMDs', value: string | number) => {
@@ -285,25 +504,49 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 }
             };
         });
+
+        // Trigger cascade recalculation after state update
+        if (field === 'startDate' || field === 'totalMDs') {
+            setTimeout(() => recalculatePhaseDates(phaseId), 0);
+        }
     };
 
     /**
-     * Validate form
+     * Validate form - Phase allocations only
      */
     const validateForm = (): boolean => {
-        const result = allocationActions.validateAllocation(formData);
+        const errorMap: Record<string, string> = {};
 
-        if (!result.isValid) {
-            const errorMap: Record<string, string> = {};
-            result.errors.forEach(error => {
-                // Map error messages to field names
-                if (error.includes('Project ID')) errorMap.projectId = error;
-                else if (error.includes('Team member')) errorMap.teamMemberId = error;
-                else if (error.includes('Total MDs')) errorMap.totalMDs = error;
-                else if (error.includes('Start date')) errorMap.startDate = error;
-                else if (error.includes('End date')) errorMap.endDate = error;
-                else errorMap.general = error;
-            });
+        // Required fields
+        if (!formData.projectId) {
+            errorMap.projectId = 'Project is required';
+        }
+
+        if (!formData.teamMemberId) {
+            errorMap.teamMemberId = 'Team member is required';
+        }
+
+        // All phases must have dates and MDs
+        const phasesList = Object.values(phaseAllocations);
+
+        if (phasesList.length === 0) {
+            errorMap.general = 'No phases found for this project';
+            setErrors(errorMap);
+            return false;
+        }
+
+        const invalidPhases: string[] = [];
+        phasesList.forEach(phase => {
+            if (!phase.startDate || !phase.endDate || phase.totalMDs === undefined || phase.totalMDs < 0) {
+                invalidPhases.push(phase.phaseName);
+            }
+        });
+
+        if (invalidPhases.length > 0) {
+            errorMap.general = `All phases must have start date, end date, and MDs. Missing data for: ${invalidPhases.join(', ')}`;
+        }
+
+        if (Object.keys(errorMap).length > 0) {
             setErrors(errorMap);
             return false;
         }
@@ -317,14 +560,22 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        console.log('🎯 handleSubmit called');
+        console.log('📋 Form data:', formData);
+        console.log('📋 Phase allocations:', phaseAllocations);
+
         if (!validateForm()) {
+            console.log('❌ Validation failed');
             return;
         }
+
+        console.log('✅ Validation passed');
 
         try {
             let result;
 
             if (isEditing && allocation) {
+                console.log('🔄 Updating existing allocation...');
                 // Update existing allocation
                 result = allocationActions.updateAllocation(allocation.id, {
                     projectId: formData.projectId,
@@ -332,30 +583,42 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                     notes: formData.notes
                 });
             } else {
+                console.log('➕ Creating new allocation...');
+
                 // Create new allocation
                 // Convert phaseAllocations object to array if phase-based allocation
                 const hasPhaseAllocations = Object.keys(phaseAllocations).length > 0;
+                console.log('📊 Has phase allocations:', hasPhaseAllocations);
+
                 const phaseAllocationsArray = hasPhaseAllocations
-                    ? Object.values(phaseAllocations).filter(p => p.totalMDs > 0 && p.startDate && p.endDate)
+                    ? Object.values(phaseAllocations).filter(p => p.totalMDs >= 0 && p.startDate && p.endDate)
                     : undefined;
+
+                console.log('📊 Phase allocations array:', phaseAllocationsArray);
 
                 const allocationData: AllocationFormData = {
                     ...formData,
                     phaseAllocations: phaseAllocationsArray
                 };
 
+                console.log('📦 Allocation data to send:', allocationData);
+
                 result = allocationActions.createAllocation(allocationData);
+
+                console.log('📬 CreateAllocation result:', result);
             }
 
             if (result.success) {
+                console.log('✅ Allocation created successfully!');
                 onSave?.(result.allocation);
                 onClose();
             } else {
+                console.log('❌ Allocation failed:', result.error);
                 setErrors({ general: result.error || 'Failed to save allocation' });
             }
 
         } catch (error: any) {
-            console.error('Error saving allocation:', error);
+            console.error('❌ Exception during save:', error);
             setErrors({ general: error.message });
         }
     };
@@ -519,7 +782,51 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                             </div>
                         )}
 
-                        {/* Project Selection */}
+                        {/* 1. Role Selection */}
+                        <div className="form-group">
+                            <label htmlFor="assignment-role">Team Member Role:</label>
+                            <select
+                                id="assignment-role"
+                                value={selectedRole}
+                                onChange={(e) => handleRoleChange(e.target.value)}
+                            >
+                                <option value="">All Roles</option>
+                                {availableRoles.map(role => (
+                                    <option key={role} value={role}>
+                                        {role}
+                                    </option>
+                                ))}
+                            </select>
+                            <small className="form-help">Filter team members by role</small>
+                        </div>
+
+                        {/* 2. Team Member (filtered by role) */}
+                        <div className="form-group">
+                            <label htmlFor="assignment-team-member">Team Member:</label>
+                            <select
+                                id="assignment-team-member"
+                                value={formData.teamMemberId}
+                                onChange={(e) => handleInputChange('teamMemberId', e.target.value)}
+                                className={errors.teamMemberId ? 'error' : ''}
+                                required
+                                disabled={isEditing}
+                            >
+                                <option value="">Select Team Member</option>
+                                {teamMembers.map(member => (
+                                    <option key={member.id} value={member.id}>
+                                        {member.fullName} - {member.role} ({member.vendorType})
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.teamMemberId && <span className="error-message">{errors.teamMemberId}</span>}
+                            {selectedRole && teamMembers.length === 0 && (
+                                <small className="form-help" style={{ color: '#dcdcaa' }}>
+                                    ℹ️ No team members found with role {selectedRole}
+                                </small>
+                            )}
+                        </div>
+
+                        {/* 3. Project Selection */}
                         <div className="form-group">
                             <label htmlFor="assignment-project-id">Project:</label>
                             <select
@@ -546,27 +853,6 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                     ℹ️ No projects available. Create or open a project first.
                                 </small>
                             )}
-                        </div>
-
-                        {/* Team Member */}
-                        <div className="form-group">
-                            <label htmlFor="assignment-team-member">Team Member:</label>
-                            <select
-                                id="assignment-team-member"
-                                value={formData.teamMemberId}
-                                onChange={(e) => handleInputChange('teamMemberId', e.target.value)}
-                                className={errors.teamMemberId ? 'error' : ''}
-                                required
-                                disabled={isEditing}
-                            >
-                                <option value="">Select Team Member</option>
-                                {teamMembers.map(member => (
-                                    <option key={member.id} value={member.id}>
-                                        {member.fullName} - {member.role} ({member.vendorType})
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.teamMemberId && <span className="error-message">{errors.teamMemberId}</span>}
                         </div>
 
                         {/* Member capacity info */}
@@ -632,13 +918,21 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                 fontSize: '13px',
                                                 fontWeight: '600',
                                                 color: '#4ec9b0',
-                                                marginBottom: '10px'
+                                                marginBottom: '4px'
                                             }}>
                                                 {phase.name}
-                                                {phase.manDays > 0 && (
-                                                    <span style={{ color: '#858585', fontWeight: '400', marginLeft: '8px' }}>
-                                                        (Estimated: {phase.manDays} MD)
-                                                    </span>
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#858585', marginBottom: '8px' }}>
+                                                Phase Total: {phase.manDays} MD
+                                                {selectedMember?.role && phase.effort?.[selectedMember.role] !== undefined && (
+                                                    <>
+                                                        {' '}<span style={{ color: '#4ec9b0' }}>|</span>{' '}
+                                                        {selectedMember.role}: {phase.effort[selectedMember.role]}%{' '}
+                                                        <span style={{ color: '#4ec9b0' }}>→</span>{' '}
+                                                        <strong style={{ color: '#d4d4d4' }}>
+                                                            {(phase.manDays * phase.effort[selectedMember.role] / 100).toFixed(1)} MD allocable
+                                                        </strong>
+                                                    </>
                                                 )}
                                             </div>
 
@@ -730,61 +1024,22 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                             </div>
                         )}
 
-                        {/* Fallback to simple allocation if no phases */}
+                        {/* No phases warning */}
                         {formData.projectId && !loadingPhases && projectPhases.length === 0 && (
-                            <>
-                                {/* Total MDs */}
-                                <div className="form-group">
-                                    <label htmlFor="assignment-total-mds">Total Man Days:</label>
-                                    <input
-                                        type="number"
-                                        id="assignment-total-mds"
-                                        value={formData.totalMDs || ''}
-                                        onChange={(e) => handleInputChange('totalMDs', parseFloat(e.target.value) || 0)}
-                                        className={errors.totalMDs ? 'error' : ''}
-                                        min="0.1"
-                                        step="0.1"
-                                        placeholder="e.g., 45.0"
-                                        required
-                                        disabled={isEditing}
-                                    />
-                                    <small className="form-help">Total MDs to allocate across the date range</small>
-                                    {errors.totalMDs && <span className="error-message">{errors.totalMDs}</span>}
+                            <div style={{
+                                padding: '20px',
+                                backgroundColor: '#5a1e1e',
+                                borderRadius: '6px',
+                                border: '1px solid #f48771',
+                                textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: '14px', color: '#f48771', marginBottom: '8px' }}>
+                                    ⚠️ No phases found for this project
                                 </div>
-
-                                {/* Date Range */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                    {/* Start Date */}
-                                    <div className="form-group">
-                                        <label htmlFor="assignment-start-date">Start Date:</label>
-                                        <input
-                                            type="date"
-                                            id="assignment-start-date"
-                                            value={formData.startDate}
-                                            onChange={(e) => handleInputChange('startDate', e.target.value)}
-                                            className={errors.startDate ? 'error' : ''}
-                                            required
-                                            disabled={isEditing}
-                                        />
-                                        {errors.startDate && <span className="error-message">{errors.startDate}</span>}
-                                    </div>
-
-                                    {/* End Date */}
-                                    <div className="form-group">
-                                        <label htmlFor="assignment-end-date">End Date:</label>
-                                        <input
-                                            type="date"
-                                            id="assignment-end-date"
-                                            value={formData.endDate}
-                                            onChange={(e) => handleInputChange('endDate', e.target.value)}
-                                            className={errors.endDate ? 'error' : ''}
-                                            required
-                                            disabled={isEditing}
-                                        />
-                                        {errors.endDate && <span className="error-message">{errors.endDate}</span>}
-                                    </div>
+                                <div style={{ fontSize: '12px', color: '#f48771' }}>
+                                    Please select a different project or configure phases for this project first.
                                 </div>
-                            </>
+                            </div>
                         )}
 
                         {/* Preview Toggle */}

@@ -26,7 +26,9 @@
       "Read(//c/Users/pubul/**)",
       "mcp__serena__check_onboarding_performed",
       "mcp__serena__list_dir",
-      "Bash(npm run build:react:main:*)"
+      "Bash(npm run build:react:main:*)",
+      "Bash(npm run build:react:main:components:*)",
+      "Bash(npm run:*)"
     ],
     "deny": [],
     "ask": []

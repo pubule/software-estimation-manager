@@ -641,8 +641,8 @@ export class AllocationActions {
             }
         }
 
-        // If using auto-distribution, validate dates and totalMDs
-        if (!data.monthlyAllocations) {
+        // If using auto-distribution (not phase-based or manual), validate dates and totalMDs
+        if (!data.monthlyAllocations && !data.phaseAllocations) {
             if (!data.totalMDs || data.totalMDs <= 0) {
                 errors.push('Total MDs must be greater than 0');
             }

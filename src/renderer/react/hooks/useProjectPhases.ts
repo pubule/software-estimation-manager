@@ -18,6 +18,7 @@ export interface ProjectPhase {
     description?: string;
     type?: string;
     manDays?: number;
+    effort?: Record<string, number>; // Effort percentage per role (G1, G2, TA, PM)
     editable: boolean;
 }
 
@@ -96,11 +97,43 @@ export const useProjectPhases = (projectId: string | null, projectsList: any[]) 
             const projectData = result.data;
             console.log('📂 useProjectPhases: Project loaded:', projectData);
 
+            // Helper function to get display name from phase ID
+            const getPhaseDisplayName = (phaseId: string): string => {
+                const names: Record<string, string> = {
+                    functionalAnalysis: 'Functional Analysis',
+                    technicalAnalysis: 'Technical Analysis',
+                    development: 'Development',
+                    integrationTests: 'Integration Tests',
+                    uatTests: 'UAT Tests',
+                    consolidation: 'Consolidation',
+                    vapt: 'VAPT',
+                    postGoLive: 'Post Go-Live'
+                };
+                return names[phaseId] || phaseId;
+            };
+
             // Extract phases from project
             // Try multiple possible locations for phases data
             let projectPhases: any[] = [];
 
-            if (projectData.phases && Array.isArray(projectData.phases)) {
+            // NEW: Check if phases is an object (most common format in saved projects)
+            if (projectData.phases && typeof projectData.phases === 'object' && !Array.isArray(projectData.phases)) {
+                console.log('📋 useProjectPhases: Found phases as object, converting to array...');
+
+                // Convert object to array, excluding non-phase keys
+                projectPhases = Object.entries(projectData.phases)
+                    .filter(([key, _]) => key !== 'selectedSuppliers') // Exclude metadata
+                    .map(([phaseId, phaseData]: [string, any]) => ({
+                        id: phaseId,
+                        name: getPhaseDisplayName(phaseId),
+                        manDays: phaseData.manDays || 0,
+                        effort: phaseData.effort,
+                        type: phaseData.type || 'phase',
+                        editable: true
+                    }));
+
+                console.log(`✅ useProjectPhases: Converted ${projectPhases.length} phases from object`);
+            } else if (projectData.phases && Array.isArray(projectData.phases)) {
                 projectPhases = projectData.phases;
             } else if (projectData.currentPhases && Array.isArray(projectData.currentPhases)) {
                 projectPhases = projectData.currentPhases;
@@ -130,6 +163,7 @@ export const useProjectPhases = (projectId: string | null, projectsList: any[]) 
                 description: phase.description,
                 type: phase.type,
                 manDays: phase.manDays || 0,
+                effort: phase.effort,
                 editable: phase.editable !== false
             }));
 
