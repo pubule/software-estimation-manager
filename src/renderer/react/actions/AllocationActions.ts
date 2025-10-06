@@ -78,7 +78,8 @@ export class AllocationActions {
      * Get DataManager instance
      */
     private getDataManager(): any {
-        return (window as any).appController?.managers?.data;
+        // DataManager is available via window.app (not window.appController)
+        return (window as any).app?.managers?.data;
     }
 
     /**
@@ -98,7 +99,7 @@ export class AllocationActions {
      * @param data - Allocation form data
      * @returns Allocation result with success/error
      */
-    createAllocation(data: AllocationFormData): AllocationResult {
+    async createAllocation(data: AllocationFormData): Promise<AllocationResult> {
         try {
             // 1. Validate input
             const validation = this.validateAllocation(data);
@@ -227,8 +228,8 @@ export class AllocationActions {
 
             store.getState().addResourceAllocation(allocation);
 
-            // 6. Auto-save
-            this.saveAllocations();
+            // 6. Save to disk (allocations are global, not part of current project)
+            await this.saveAllocations();
 
             return {
                 success: true,
@@ -329,7 +330,7 @@ export class AllocationActions {
      * @param updates - Partial allocation data to update
      * @returns Allocation result
      */
-    updateAllocation(id: string, updates: Partial<any>): AllocationResult {
+    async updateAllocation(id: string, updates: Partial<any>): Promise<AllocationResult> {
         try {
             const store = this.getStore();
             if (!store) {
@@ -342,16 +343,90 @@ export class AllocationActions {
                 return { success: false, error: 'Allocation not found' };
             }
 
+            console.log('🔍 Existing allocation for update:', existing);
+            console.log('🔍 Updates to apply:', updates);
+
+            // Ensure teamMemberId is available for recalculation
+            const teamMemberId = updates.teamMemberId || existing.teamMemberId;
+            console.log('🔍 TeamMemberId for recalculation:', teamMemberId);
+
+            // If phaseAllocations are being updated, recalculate monthly allocations
+            if (updates.phaseAllocations && Array.isArray(updates.phaseAllocations) && teamMemberId) {
+                console.log('🔄 Recalculating monthly allocations from updated phases...');
+
+                // Calculate phaseMonthlyBreakdown
+                const phaseMonthlyBreakdown: Record<string, Record<string, number>> = {};
+                updates.phaseAllocations.forEach(phase => {
+                    const startDate = new Date(phase.startDate);
+                    const endDate = new Date(phase.endDate);
+
+                    // Get all months in phase range
+                    const phaseMonths: string[] = [];
+                    let current = new Date(startDate);
+                    while (current <= endDate) {
+                        const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+                        phaseMonths.push(monthKey);
+                        current.setMonth(current.getMonth() + 1);
+                    }
+
+                    // Distribute totalMDs evenly across months
+                    const mdsPerMonth = phase.totalMDs / phaseMonths.length;
+                    phaseMonthlyBreakdown[phase.phaseId] = {};
+                    phaseMonths.forEach(month => {
+                        phaseMonthlyBreakdown[phase.phaseId][month] = mdsPerMonth;
+                    });
+                });
+
+                // Calculate monthly allocations (aggregate all phases per month)
+                const monthlyAllocations: Record<string, { planned: number; actual: number }> = {};
+                const allMonths = new Set<string>();
+
+                // Collect all months from all phases
+                Object.values(phaseMonthlyBreakdown).forEach((phaseMDs: any) => {
+                    Object.keys(phaseMDs).forEach(month => allMonths.add(month));
+                });
+
+                // Sum MDs per month across all phases
+                allMonths.forEach(month => {
+                    let monthTotal = 0;
+                    Object.values(phaseMonthlyBreakdown).forEach((phaseMDs: any) => {
+                        monthTotal += phaseMDs[month] || 0;
+                    });
+                    monthlyAllocations[month] = {
+                        planned: monthTotal,
+                        actual: monthTotal
+                    };
+                });
+
+                console.log('✅ Recalculated monthly allocations:', monthlyAllocations);
+                console.log('✅ Recalculated phaseMonthlyBreakdown:', phaseMonthlyBreakdown);
+
+                // Add calculated data to updates
+                updates.monthlyAllocations = monthlyAllocations;
+                updates.phaseMonthlyBreakdown = phaseMonthlyBreakdown;
+
+                // Update date range
+                const allDates = updates.phaseAllocations.flatMap((p: any) => [p.startDate, p.endDate]);
+                updates.startDate = allDates.sort()[0];
+                updates.endDate = allDates.sort()[allDates.length - 1];
+            }
+
+            // Update lastModified timestamp
+            updates.lastModified = new Date().toISOString();
+
             // Update in store
             store.getState().updateResourceAllocation(id, updates);
 
-            // Auto-save
-            this.saveAllocations();
+            // Save to disk (allocations are global, not part of current project)
+            await this.saveAllocations();
+
+            const updatedAllocation = this.getAllocationById(id);
+            console.log('✅ Allocation updated successfully:', updatedAllocation);
 
             return {
                 success: true,
                 allocationId: id,
-                allocation: this.getAllocationById(id)
+                allocation: updatedAllocation
             };
 
         } catch (error: any) {
@@ -410,7 +485,7 @@ export class AllocationActions {
      * @param id - Allocation ID
      * @returns Allocation result
      */
-    deleteAllocation(id: string): AllocationResult {
+    async deleteAllocation(id: string): Promise<AllocationResult> {
         try {
             const store = this.getStore();
             if (!store) {
@@ -426,8 +501,8 @@ export class AllocationActions {
             // Delete from store
             store.getState().deleteResourceAllocation(id);
 
-            // Auto-save
-            this.saveAllocations();
+            // Save to disk (allocations are global, not part of current project)
+            await this.saveAllocations();
 
             return { success: true };
 
@@ -889,18 +964,21 @@ export class AllocationActions {
         try {
             const dataManager = this.getDataManager();
             if (!dataManager) {
-                console.warn('DataManager not available for auto-save');
+                console.error('❌ DataManager not available - allocations will not be persisted to disk!');
+                console.error('   Expected at: window.app.managers.data');
+                console.error('   Actual:', (window as any).app?.managers);
                 return;
             }
 
             const store = this.getStore();
             const allocations = store.getState().resourceAllocations || [];
 
+            console.log(`💾 Saving ${allocations.length} allocation(s) to disk...`);
             await dataManager.saveResourceAllocations(allocations);
-            console.log('✅ Allocations auto-saved');
+            console.log('✅ Allocations saved to capacity/allocations.json');
 
         } catch (error) {
-            console.error('Error auto-saving allocations:', error);
+            console.error('❌ Error saving allocations to disk:', error);
         }
     }
 }

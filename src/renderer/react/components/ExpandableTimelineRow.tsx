@@ -419,7 +419,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             console.log('🗑️ Deleting allocation:', project.allocationId);
 
             // Delete allocation
-            const result = allocationActions.deleteAllocation(project.allocationId);
+            const result = await allocationActions.deleteAllocation(project.allocationId);
 
             if (result.success) {
                 console.log('✅ Allocation deleted successfully:', project.allocationId);

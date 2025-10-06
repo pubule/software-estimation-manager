@@ -471,13 +471,25 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
      * When a phase's start date or MDs change, recalculate its end date
      * and cascade the calculation to all subsequent phases
      */
-    const recalculatePhaseDates = (changedPhaseId: string) => {
+    const recalculatePhaseDates = (changedPhaseId: string, changedField?: 'startDate' | 'endDate' | 'totalMDs') => {
         setPhaseAllocations(prev => {
             const updated = { ...prev };
-            const phaseIds = projectPhases.map(p => p.id);
+
+            // Get phase IDs in order (works for both CREATE and EDIT mode)
+            let phaseIds: string[];
+            if (isEditing) {
+                // EDIT mode: Use order from phaseAllocations (already sorted by original allocation)
+                phaseIds = Object.keys(prev);
+            } else {
+                // CREATE mode: Use order from projectPhases
+                phaseIds = projectPhases.map(p => p.id);
+            }
+
             const changedIndex = phaseIds.indexOf(changedPhaseId);
 
             if (changedIndex === -1) return prev;
+
+            console.log(`🔄 Recalculating cascade from phase ${changedIndex}: ${changedPhaseId} (changed field: ${changedField})`);
 
             // Process from changed phase onwards
             for (let i = changedIndex; i < phaseIds.length; i++) {
@@ -487,10 +499,16 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 if (!allocation) continue;
 
                 if (i === changedIndex) {
-                    // For the changed phase, recalculate end date from start + MDs
-                    // Include 0 MDs case (0 MDs → start date = end date)
-                    if (allocation.startDate && allocation.totalMDs >= 0) {
-                        allocation.endDate = calculateEndDateFromMDs(allocation.startDate, allocation.totalMDs);
+                    // For the changed phase:
+                    // - If endDate was manually changed: keep it, don't recalculate
+                    // - If startDate or totalMDs changed: recalculate endDate from start + MDs
+                    if (changedField === 'endDate') {
+                        console.log(`  ✏️ Phase ${allocation.phaseName}: endDate manually set, keeping ${allocation.endDate}`);
+                        // Don't recalculate, use the manually set endDate
+                    } else if (allocation.startDate && allocation.totalMDs >= 0) {
+                        const newEndDate = calculateEndDateFromMDs(allocation.startDate, allocation.totalMDs);
+                        console.log(`  ✏️ Phase ${allocation.phaseName}: endDate ${allocation.endDate} → ${newEndDate}`);
+                        allocation.endDate = newEndDate;
                     }
                 } else {
                     // For subsequent phases, calculate both start and end dates
@@ -500,16 +518,22 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                         // Start = next working day after previous phase end
                         const prevEndDate = new Date(prevPhase.endDate);
                         const nextStart = getNextWorkingDay(prevEndDate);
-                        allocation.startDate = nextStart.toISOString().split('T')[0];
+                        const newStartDate = nextStart.toISOString().split('T')[0];
+
+                        console.log(`  ⏭️ Phase ${allocation.phaseName}: startDate ${allocation.startDate} → ${newStartDate}`);
+                        allocation.startDate = newStartDate;
 
                         // End = start + MDs (include 0 MDs case)
                         if (allocation.totalMDs >= 0) {
-                            allocation.endDate = calculateEndDateFromMDs(allocation.startDate, allocation.totalMDs);
+                            const newEndDate = calculateEndDateFromMDs(allocation.startDate, allocation.totalMDs);
+                            console.log(`  ⏭️ Phase ${allocation.phaseName}: endDate ${allocation.endDate} → ${newEndDate}`);
+                            allocation.endDate = newEndDate;
                         }
                     }
                 }
             }
 
+            console.log('✅ Cascade recalculation complete');
             return updated;
         });
     };
@@ -537,8 +561,10 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
         });
 
         // Trigger cascade recalculation after state update
-        if (field === 'startDate' || field === 'totalMDs') {
-            setTimeout(() => recalculatePhaseDates(phaseId), 0);
+        // For startDate or totalMDs: recalculate end date and cascade to next phases
+        // For endDate in EDIT mode: also cascade (user wants to shift subsequent phases)
+        if (field === 'startDate' || field === 'totalMDs' || (isEditing && field === 'endDate')) {
+            setTimeout(() => recalculatePhaseDates(phaseId, field), 0);
         }
     };
 
@@ -607,12 +633,32 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
 
             if (isEditing && allocation) {
                 console.log('🔄 Updating existing allocation...');
+                console.log('📋 Existing allocation:', allocation);
+
+                // Convert phaseAllocations object to array
+                const hasPhaseAllocations = Object.keys(phaseAllocations).length > 0;
+                console.log('📊 Has phase allocations:', hasPhaseAllocations);
+
+                const phaseAllocationsArray = hasPhaseAllocations
+                    ? Object.values(phaseAllocations).filter(p => p.totalMDs >= 0 && p.startDate && p.endDate)
+                    : undefined;
+
+                console.log('📊 Phase allocations array (edit):', phaseAllocationsArray);
+
                 // Update existing allocation
-                result = allocationActions.updateAllocation(allocation.id, {
+                const updateData = {
                     projectId: formData.projectId,
                     projectName: formData.projectName,
-                    notes: formData.notes
-                });
+                    teamMemberId: allocation.teamMemberId || formData.teamMemberId, // ✅ Include teamMemberId for recalculation
+                    notes: formData.notes,
+                    phaseAllocations: phaseAllocationsArray
+                };
+
+                console.log('📦 Update data to send:', updateData);
+
+                result = await allocationActions.updateAllocation(allocation.id, updateData);
+
+                console.log('📬 UpdateAllocation result:', result);
             } else {
                 console.log('➕ Creating new allocation...');
 
@@ -634,14 +680,16 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
 
                 console.log('📦 Allocation data to send:', allocationData);
 
-                result = allocationActions.createAllocation(allocationData);
+                result = await allocationActions.createAllocation(allocationData);
 
                 console.log('📬 CreateAllocation result:', result);
             }
 
             if (result.success) {
-                console.log('✅ Allocation created successfully!');
+                console.log('✅ Allocation saved successfully!');
+                console.log('📞 Calling onSave with:', result.allocation);
                 onSave?.(result.allocation);
+                console.log('📞 Calling onClose');
                 onClose();
             } else {
                 console.log('❌ Allocation failed:', result.error);
@@ -1102,7 +1150,6 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                             borderRadius: '4px',
                                                             color: '#d4d4d4'
                                                         }}
-                                                        disabled={isEditing}
                                                     />
                                                 </div>
 
@@ -1128,7 +1175,6 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                             borderRadius: '4px',
                                                             color: '#d4d4d4'
                                                         }}
-                                                        disabled={isEditing}
                                                     />
                                                 </div>
 

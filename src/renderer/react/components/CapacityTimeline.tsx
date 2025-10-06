@@ -98,9 +98,11 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
     };
 
     // Handle successful save
-    const handleSave = () => {
+    const handleSave = (updatedAllocation?: any) => {
+        console.log('💾 CapacityTimeline: handleSave called with:', updatedAllocation);
         refresh(); // Refresh data to show new allocation
         handleModalClose();
+        console.log('✅ CapacityTimeline: Data refreshed and modal closed');
     };
 
     // Render statistics bar
