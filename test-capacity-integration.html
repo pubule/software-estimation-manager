@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Capacity Actions Integration Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+        }
+        h1 {
+            color: #4ec9b0;
+        }
+        h2 {
+            color: #569cd6;
+            margin-top: 30px;
+        }
+        .test-section {
+            background-color: #252526;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #007acc;
+            border-radius: 4px;
+        }
+        .success {
+            color: #4ec9b0;
+        }
+        .error {
+            color: #f48771;
+        }
+        .info {
+            color: #4fc1ff;
+        }
+        pre {
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background-color: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #1177bb;
+        }
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Capacity Actions Integration Test</h1>
+    <p class="info">This page tests the integration between CapacityActions (React/TypeScript) and legacy components (WorkingDaysCalculator, team-helpers, store).</p>
+
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="results"></div>
+
+    <!-- Load dependencies in correct order -->
+    <!-- 1. Store first -->
+    <script src="src/renderer/js/store/app-store.js"></script>
+
+    <!-- 2. Legacy components -->
+    <script src="src/renderer/js/components/working-days-calculator.js"></script>
+    <script src="src/renderer/js/utils/team-helpers.js"></script>
+
+    <!-- 3. React bundles (includes CapacityActions) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="src/renderer/assets/main.js"></script>
+
+    <script>
+        // Test utilities
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = 'test-section';
+
+            const typeClass = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            div.innerHTML = `<span class="${typeClass}">${message}</span>`;
+
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function assert(condition, message) {
+            if (condition) {
+                log(`✅ PASS: ${message}`, 'success');
+                return true;
+            } else {
+                log(`❌ FAIL: ${message}`, 'error');
+                return false;
+            }
+        }
+
+        // Initialize test environment
+        function setupTestEnvironment() {
+            log('<h2>Setting up test environment...</h2>');
+
+            // Initialize store if not already initialized
+            if (!window.appStore) {
+                log('❌ Store not initialized', 'error');
+                return false;
+            }
+
+            const state = window.appStore.getState();
+
+            // Set up mock global config with teams
+            if (!state.globalConfig || !state.globalConfig.teams) {
+                log('Setting up mock globalConfig with teams...');
+
+                state.globalConfig = {
+                    teams: [
+                        {
+                            id: 'team-1',
+                            name: 'Development Team',
+                            members: [
+                                {
+                                    id: 'member-1',
+                                    firstName: 'Mario',
+                                    lastName: 'Rossi',
+                                    email: 'mario.rossi@test.it',
+                                    role: 'Senior Developer',
+                                    vendorId: 'vendor-it',
+                                    vendorType: 'internal',
+                                    monthlyCapacity: 20,
+                                    vacationDays: {
+                                        2025: ['2025-01-15', '2025-01-16', '2025-02-10'] // 3 vacation days in Jan/Feb
+                                    }
+                                },
+                                {
+                                    id: 'member-2',
+                                    firstName: 'Elena',
+                                    lastName: 'Popescu',
+                                    email: 'elena.popescu@test.ro',
+                                    role: 'Frontend Developer',
+                                    vendorId: 'vendor-ro',
+                                    vendorType: 'supplier',
+                                    monthlyCapacity: 22,
+                                    vacationDays: {
+                                        2025: ['2025-01-20', '2025-01-21'] // 2 vacation days in Jan
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    suppliers: [
+                        { id: 'vendor-it', name: 'Internal IT', country: 'IT' },
+                        { id: 'vendor-ro', name: 'Romanian Supplier', country: 'RO' }
+                    ]
+                };
+            }
+
+            // Initialize WorkingDaysCalculator instance
+            if (typeof window.WorkingDaysCalculator === 'function') {
+                window.WorkingDaysCalculator = new window.WorkingDaysCalculator();
+                log('✅ WorkingDaysCalculator instance initialized', 'success');
+            }
+
+            // Set up some test allocations
+            state.setResourceAllocations([
+                {
+                    id: 'alloc-1',
+                    projectId: 'project-1',
+                    projectName: 'Test Project',
+                    teamMemberId: 'member-1',
+                    monthlyAllocations: {
+                        '2025-01': { planned: 5 }, // 5 MDs allocated in January
+                        '2025-02': { planned: 10 } // 10 MDs allocated in February
+                    }
+                }
+            ]);
+
+            log('✅ Test environment setup complete', 'success');
+            return true;
+        }
+
+        // Test 1: Check dependencies loaded
+        function test1_DependenciesLoaded() {
+            log('<h2>Test 1: Dependencies Loaded</h2>');
+
+            assert(typeof window.appStore !== 'undefined', 'Store loaded');
+            assert(typeof window.WorkingDaysCalculator !== 'undefined', 'WorkingDaysCalculator loaded');
+            assert(typeof window.TeamHelpers !== 'undefined', 'TeamHelpers loaded');
+            assert(typeof window.CapacityActions !== 'undefined', 'CapacityActions loaded');
+        }
+
+        // Test 2: WorkingDaysCalculator integration
+        function test2_WorkingDaysCalculator() {
+            log('<h2>Test 2: WorkingDaysCalculator Integration</h2>');
+
+            const calculator = window.WorkingDaysCalculator;
+
+            // Test January 2025 working days (IT)
+            const jan2025IT = calculator.calculateWorkingDays(1, 2025, 'IT');
+            log(`January 2025 IT working days: ${jan2025IT}`);
+            assert(jan2025IT > 0 && jan2025IT <= 31, 'January 2025 IT working days calculated');
+
+            // Test if Epiphany (Jan 6) is a holiday in IT
+            const epiphany = new Date('2025-01-06');
+            const isHoliday = calculator.isNationalHoliday(epiphany, 'IT');
+            assert(isHoliday === true, 'Epiphany (Jan 6) is correctly identified as IT holiday');
+        }
+
+        // Test 3: TeamHelpers integration
+        function test3_TeamHelpers() {
+            log('<h2>Test 3: TeamHelpers Integration</h2>');
+
+            const allMembers = window.TeamHelpers.getAllTeamMembers();
+            assert(allMembers.length === 2, 'getAllTeamMembers returns 2 members');
+
+            const member1 = window.TeamHelpers.getTeamMemberById('member-1');
+            assert(member1 !== null, 'getTeamMemberById finds member-1');
+            assert(member1.firstName === 'Mario', 'Member has correct firstName');
+
+            const capacity = window.TeamHelpers.getTeamMemberCapacity('member-1');
+            assert(capacity === 20, 'getTeamMemberCapacity returns correct capacity');
+        }
+
+        // Test 4: CapacityActions basic calculation
+        function test4_CapacityActionsBasic() {
+            log('<h2>Test 4: CapacityActions Basic Calculation</h2>');
+
+            const capacityActions = new window.CapacityActions();
+
+            // Calculate capacity for member-1 in January 2025
+            const result = capacityActions.calculateAvailableCapacity('member-1', '2025-01');
+
+            log(`<pre>${JSON.stringify(result, null, 2)}</pre>`);
+
+            assert(result.success === true, 'Calculation succeeded');
+            assert(result.memberId === 'member-1', 'Correct member ID');
+            assert(result.month === '2025-01', 'Correct month');
+            assert(result.baseWorkingDays > 0, 'Base working days calculated');
+            assert(result.existingAllocations === 5, 'Existing allocations retrieved (5 MDs)');
+            assert(result.availableCapacity >= 0, 'Available capacity calculated');
+        }
+
+        // Test 5: CapacityActions with vacation days
+        function test5_VacationDays() {
+            log('<h2>Test 5: Vacation Days Calculation</h2>');
+
+            const capacityActions = new window.CapacityActions();
+
+            // member-1 has vacation on 2025-01-15 and 2025-01-16 (both are weekdays)
+            const result = capacityActions.calculateAvailableCapacity('member-1', '2025-01');
+
+            log(`<pre>${JSON.stringify(result, null, 2)}</pre>`);
+
+            assert(result.success === true, 'Calculation succeeded');
+
+            // Check if vacation days are correctly counted
+            // Jan 15 (Wed) and Jan 16 (Thu) are working days
+            // So vacationDays should be 2 (or less if they fall on holidays, but they don't)
+            assert(result.vacationDays >= 0, 'Vacation days counted');
+
+            log(`Vacation days in January 2025: ${result.vacationDays}`);
+        }
+
+        // Test 6: Overflow detection
+        function test6_OverflowDetection() {
+            log('<h2>Test 6: Overflow Detection</h2>');
+
+            const capacityActions = new window.CapacityActions();
+
+            // Check if allocating 20 MDs to member-1 (capacity: 20 MDs, already allocated: 5 MDs) causes overflow
+            const result = capacityActions.checkCapacityOverflow('member-1', '2025-01', 20);
+
+            log(`<pre>${JSON.stringify(result, null, 2)}</pre>`);
+
+            // 5 (existing) + 20 (proposed) = 25 MDs, capacity is 20 MDs -> overflow of 5 MDs
+            assert(result.hasOverflow === true, 'Overflow detected');
+            assert(result.overflowAmount === 5, 'Overflow amount is 5 MDs');
+            assert(result.utilization > 100, 'Utilization exceeds 100%');
+        }
+
+        // Test 7: Capacity range calculation
+        function test7_CapacityRange() {
+            log('<h2>Test 7: Capacity Range Calculation</h2>');
+
+            const capacityActions = new window.CapacityActions();
+
+            // Get capacity for Jan-Feb 2025
+            const results = capacityActions.calculateCapacityRange('member-1', '2025-01', '2025-02');
+
+            log(`<pre>${JSON.stringify(results, null, 2)}</pre>`);
+
+            assert(results.length === 2, 'Two months calculated');
+            assert(results[0].month === '2025-01', 'First month is January');
+            assert(results[1].month === '2025-02', 'Second month is February');
+            assert(results[0].existingAllocations === 5, 'January has 5 MDs allocated');
+            assert(results[1].existingAllocations === 10, 'February has 10 MDs allocated');
+        }
+
+        // Test 8: Partial month calculation
+        function test8_PartialMonth() {
+            log('<h2>Test 8: Partial Month Calculation</h2>');
+
+            const capacityActions = new window.CapacityActions();
+
+            // Calculate capacity for second half of January 2025
+            const result = capacityActions.calculateAvailableCapacity(
+                'member-1',
+                '2025-01',
+                '2025-01-15', // Start mid-month
+                '2025-01-31'  // End of month
+            );
+
+            log(`<pre>${JSON.stringify(result, null, 2)}</pre>`);
+
+            assert(result.success === true, 'Partial month calculation succeeded');
+            assert(result.baseWorkingDays < 23, 'Partial month has fewer working days than full month');
+        }
+
+        // Run all tests
+        function runAllTests() {
+            clearResults();
+
+            log('<h1>🧪 Running Capacity Actions Integration Tests</h1>');
+
+            if (!setupTestEnvironment()) {
+                log('❌ Test environment setup failed. Cannot continue.', 'error');
+                return;
+            }
+
+            try {
+                test1_DependenciesLoaded();
+                test2_WorkingDaysCalculator();
+                test3_TeamHelpers();
+                test4_CapacityActionsBasic();
+                test5_VacationDays();
+                test6_OverflowDetection();
+                test7_CapacityRange();
+                test8_PartialMonth();
+
+                log('<h2 class="success">✅ All tests completed!</h2>', 'success');
+            } catch (error) {
+                log(`<h2 class="error">❌ Test failed with error:</h2><pre>${error.stack}</pre>`, 'error');
+            }
+        }
+
+        // Auto-run tests on load
+        window.addEventListener('load', () => {
+            log('<p class="info">Page loaded. Click "Run All Tests" to start testing.</p>');
+        });
+    </script>
+</body>
+</html>

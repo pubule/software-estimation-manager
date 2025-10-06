@@ -39,14 +39,32 @@ import RestoreVersionModal from './components/RestoreVersionModal';
 // Import ticket dashboard components
 import TicketDashboard from './components/TicketDashboard';
 
+// Import capacity/resource management components
+import ResourceOverviewDashboard from './components/ResourceOverviewDashboard';
+import ResourceCapacityCard from './components/ResourceCapacityCard';
+import ResourceFilters from './components/ResourceFilters';
+import CapacityTimeline from './components/CapacityTimeline';
+import TimelineHeader from './components/TimelineHeader';
+import TimelineRow from './components/TimelineRow';
+import TimelineMonthCell from './components/TimelineMonthCell';
+import AssignmentModal from './components/AssignmentModal';
+
 // Import Actions classes for global registration
 import { NavigationActions } from './actions/NavigationActions';
 import { versionHistoryActions } from './actions/VersionHistoryActions';
 import { calculationsActions } from './actions/CalculationsActions';
+import { CapacityActions } from './actions/CapacityActions';
+import { AllocationActions } from './actions/AllocationActions';
 import '../js/actions/ReactPageWrapperActions.js';
 
 // Import the existing store
 import '../js/store/app-store.js';
+
+// ⚠️ CRITICAL: Export Actions BEFORE mounting components!
+// This ensures Actions are available when React components initialize
+window.CapacityActions = CapacityActions;
+window.AllocationActions = AllocationActions;
+console.log('✅ Actions exported BEFORE React components mount');
 
 // Export React components globally for use by vanilla JS
 declare global {
@@ -78,9 +96,20 @@ declare global {
       VersionComparisonModal: typeof VersionComparisonModal;
       RestoreVersionModal: typeof RestoreVersionModal;
       TicketDashboard: typeof TicketDashboard;
+      ResourceOverviewDashboard: typeof ResourceOverviewDashboard;
+      ResourceCapacityCard: typeof ResourceCapacityCard;
+      ResourceFilters: typeof ResourceFilters;
+      CapacityTimeline: typeof CapacityTimeline;
+      TimelineHeader: typeof TimelineHeader;
+      TimelineRow: typeof TimelineRow;
+      TimelineMonthCell: typeof TimelineMonthCell;
+      AssignmentModal: typeof AssignmentModal;
     };
     NavigationActions: typeof NavigationActions;
     versionHistoryActions: typeof versionHistoryActions;
+    calculationsActions: typeof calculationsActions;
+    CapacityActions: typeof CapacityActions;
+    AllocationActions: typeof AllocationActions;
     ReactPageWrapperActions: any;
   }
 }
@@ -112,13 +141,22 @@ window.ReactComponents = {
   CreateVersionModal,
   VersionComparisonModal,
   RestoreVersionModal,
-  TicketDashboard
+  TicketDashboard,
+  ResourceOverviewDashboard,
+  ResourceCapacityCard,
+  ResourceFilters,
+  CapacityTimeline,
+  TimelineHeader,
+  TimelineRow,
+  TimelineMonthCell,
+  AssignmentModal
 };
 
-// Make Actions classes available globally
+// Make remaining Actions classes available globally
 window.NavigationActions = NavigationActions;
 window.versionHistoryActions = versionHistoryActions;
 window.calculationsActions = calculationsActions;
+// Note: CapacityActions and AllocationActions already exported at top of file
 
 console.log('✅ React components exported globally:', Object.keys(window.ReactComponents));
 console.log('✅ NavigationActions exported globally');

@@ -72,6 +72,26 @@ class ReactTicketDashboardWrapper extends window.ReactPageWrapper {
     }
 }
 
+/**
+ * ReactResourceOverviewWrapper - Resource Overview page wrapper
+ * Pattern State/Actions/Dispatcher: Delega tutto a ReactPageWrapper generico
+ */
+class ReactResourceOverviewWrapper extends window.ReactPageWrapper {
+    constructor() {
+        super('resource-overview');
+    }
+}
+
+/**
+ * ReactCapacityTimelineWrapper - Capacity Timeline page wrapper
+ * Pattern State/Actions/Dispatcher: Delega tutto a ReactPageWrapper generico
+ */
+class ReactCapacityTimelineWrapper extends window.ReactPageWrapper {
+    constructor() {
+        super('capacity-timeline');
+    }
+}
+
 class ReactProjectManagerWrapper extends window.ReactPageWrapper {
     constructor(app) {
         super('projects', app);
@@ -178,6 +198,8 @@ if (typeof window !== 'undefined') {
     window.ReactVersionHistoryWrapper = ReactVersionHistoryWrapper;
     window.ReactTicketDashboardWrapper = ReactTicketDashboardWrapper;
     window.ReactProjectManagerWrapper = ReactProjectManagerWrapper;
+    window.ReactResourceOverviewWrapper = ReactResourceOverviewWrapper;
+    window.ReactCapacityTimelineWrapper = ReactCapacityTimelineWrapper;
 
     console.log('✅ React Unified Wrappers registered globally (State/Actions/Dispatcher pattern)');
 }

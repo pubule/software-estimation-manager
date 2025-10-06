@@ -253,14 +253,45 @@ class ApplicationController extends BaseComponent {
             this.managers.config = new ConfigurationManager(this.managers.data);
         }
         await this.managers.config.init();
-        
+
+        // Load global resource allocations
+        await this.loadResourceAllocations();
+
+        // Initialize WorkingDaysCalculator instance globally
+        if (window.WorkingDaysCalculator && typeof window.WorkingDaysCalculator === 'function') {
+            window.WorkingDaysCalculator = new window.WorkingDaysCalculator();
+            console.log('✅ WorkingDaysCalculator instance initialized');
+        }
+
         console.log('Core managers initialized');
-        
+
         // Set up backward compatibility aliases for original components
         this.dataManager = this.managers.data;
         this.configManager = this.managers.config;
-        
+
         console.log('Backward compatibility aliases set up');
+    }
+
+    /**
+     * Load global resource allocations from capacity/allocations.json
+     */
+    async loadResourceAllocations() {
+        try {
+            console.log('📦 Loading global resource allocations...');
+            const allocations = await this.managers.data.loadResourceAllocations();
+
+            // Save to store
+            if (window.appStore) {
+                window.appStore.getState().setResourceAllocations(allocations || []);
+                console.log('✅ Resource allocations loaded:', allocations?.length || 0, 'items');
+            }
+        } catch (error) {
+            console.error('❌ Failed to load resource allocations:', error);
+            // Set empty array on error
+            if (window.appStore) {
+                window.appStore.getState().setResourceAllocations([]);
+            }
+        }
     }
 
     /**

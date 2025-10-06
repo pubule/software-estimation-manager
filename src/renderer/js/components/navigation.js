@@ -60,6 +60,8 @@ class EnhancedNavigationManager extends NavigationManager {
         this.reactCalculationsWrapper = null;
         this.reactVersionHistoryWrapper = null;
         this.reactTicketDashboardWrapper = null;
+        this.reactResourceOverviewWrapper = null;
+        this.reactCapacityTimelineWrapper = null;
 
         this.initializeNestedNavigation();
         this.setupStoreSubscription();
@@ -259,6 +261,18 @@ class EnhancedNavigationManager extends NavigationManager {
         if (this.reactTicketDashboardWrapper) {
             this.reactTicketDashboardWrapper.destroy();
             this.reactTicketDashboardWrapper = null;
+        }
+
+        // Cleanup React Resource Overview wrapper
+        if (this.reactResourceOverviewWrapper) {
+            this.reactResourceOverviewWrapper.destroy();
+            this.reactResourceOverviewWrapper = null;
+        }
+
+        // Cleanup React Capacity Timeline wrapper
+        if (this.reactCapacityTimelineWrapper) {
+            this.reactCapacityTimelineWrapper.destroy();
+            this.reactCapacityTimelineWrapper = null;
         }
     }
 
@@ -1590,85 +1604,12 @@ class EnhancedNavigationManager extends NavigationManager {
         console.log('Navigated to Ticket Dashboard page');
     }
 
-    // Special method for capacity page
+    // Legacy capacity page - redirects to Resource Overview
     showCapacityPage() {
-        // Hide all pages
-        document.querySelectorAll('.page').forEach(page => {
-            page.classList.remove('active');
-        });
+        console.log('🔄 Legacy capacity page accessed - redirecting to Resource Overview');
 
-        // Update active states
-        this.updateActiveStates('capacity');
-
-        // Show target page
-        const targetPage = document.getElementById('capacity-page');
-        if (targetPage) {
-            targetPage.classList.add('active');
-
-            // Initialize capacity manager if not exists
-            if (!this.app.capacityManager) {
-                // Check if CapacityManager class is available
-                if (typeof CapacityManager !== 'undefined') {
-                    this.app.capacityManager = new CapacityManager(this.app, this.configManager);
-                } else {
-                    console.warn('CapacityManager class not available - capacity features will be limited');
-                    // Create a mock capacity manager to prevent errors
-                    this.app.capacityManager = {
-                        render: () => {
-                            const content = document.getElementById('capacity-content');
-                            if (content) {
-                                content.innerHTML = `
-                                    <div class="capacity-placeholder">
-                                        <h3>Capacity Planning</h3>
-                                        <p>Capacity management features are currently not available.</p>
-                                        <p>This feature is planned for a future release.</p>
-                                    </div>
-                                `;
-                            }
-                        },
-                        renderResourceOverview: () => {
-                            const content = document.getElementById('resource-overview-content');
-                            if (content) {
-                                content.innerHTML = `
-                                    <div class="capacity-placeholder">
-                                        <h3>Resource Capacity Overview</h3>
-                                        <p>Resource overview features are currently not available.</p>
-                                        <p>This feature is planned for a future release.</p>
-                                    </div>
-                                `;
-                            }
-                        },
-                        renderCapacityTimeline: () => {
-                            const content = document.getElementById('capacity-timeline-content');
-                            if (content) {
-                                content.innerHTML = `
-                                    <div class="capacity-placeholder">
-                                        <h3>Capacity Planning Timeline</h3>
-                                        <p>Timeline features are currently not available.</p>
-                                        <p>This feature is planned for a future release.</p>
-                                    </div>
-                                `;
-                            }
-                        }
-                    };
-                }
-            }
-
-            // Render capacity content
-            setTimeout(() => {
-                this.app.capacityManager.render();
-            }, 100);
-        }
-
-        // Store current section
-        this.currentSection = 'capacity';
-        
-        // Update store with current section
-        if (this.store && this.store.getState().setSection) {
-            this.store.getState().setSection('capacity');
-        }
-
-        console.log('Navigated to capacity planning page');
+        // Redirect to Resource Overview (modern React implementation)
+        this.showResourceOverviewPage();
     }
     
     // Method for navigating to capacity sub-sections
@@ -1685,171 +1626,231 @@ class EnhancedNavigationManager extends NavigationManager {
     }
     
     // Method for Resource Capacity Overview
-    showResourceOverviewPage() {
-        console.log('Showing Resource Capacity Overview page');
-        
-        // Hide all pages
+    async showResourceOverviewPage() {
+        console.log('🔄 NavigationManager: showResourceOverviewPage - Using State/Actions/Dispatcher pattern');
+
+        // Check if store is available
+        if (!this.store || !this.store.getState) {
+            console.warn('Store not available for NavigationManager.showResourceOverviewPage, navigation aborted');
+            return;
+        }
+
+        const state = this.store.getState();
+
+        // Hide all pages first
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
         });
-        
+
         // Update active states
         this.updateActiveStates('resource-overview');
-        
-        // Show target page
-        const targetPage = document.getElementById('resource-overview-page');
-        if (targetPage) {
-            targetPage.classList.add('active');
-            
-            // Initialize capacity manager if not exists
-            if (!this.app.capacityManager) {
-                // Check if CapacityManager class is available
-                if (typeof CapacityManager !== 'undefined') {
-                    this.app.capacityManager = new CapacityManager(this.app, this.configManager);
+
+        // Show resource overview page
+        const resourceOverviewPage = document.getElementById('resource-overview-page');
+        if (resourceOverviewPage) {
+            resourceOverviewPage.classList.add('active');
+        }
+
+        // Smart React wrapper initialization (Pattern: avoid unnecessary re-init)
+        const isComponentAlreadyInitialized = state.isComponentInitialized('resource-overview');
+        const hasExistingWrapper = !!this.reactResourceOverviewWrapper;
+
+        if (!hasExistingWrapper || !isComponentAlreadyInitialized) {
+            console.log('🔄 Initializing React Resource Overview wrapper...');
+            console.log('ReactResourceOverviewWrapper available:', !!window.ReactResourceOverviewWrapper);
+
+            if (window.ReactResourceOverviewWrapper) {
+                this.reactResourceOverviewWrapper = new window.ReactResourceOverviewWrapper();
+
+                try {
+                    await this.reactResourceOverviewWrapper.init();
+                    console.log('✅ React Resource Overview wrapper initialized successfully');
+
+                    // Mark component as initialized in store
+                    state.setComponentInitialized('resource-overview', true);
+
+                } catch (error) {
+                    console.error('❌ Failed to initialize React Resource Overview wrapper:', error);
+                    // Show fallback content
+                    const container = document.getElementById('resource-overview-content');
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="padding: 2rem; text-align: center; color: #ff6b6b;">
+                                <h3>❌ Resource Overview Error</h3>
+                                <p>Failed to load React components</p>
+                                <p><small>Error: ${error.message}</small></p>
+                                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                                    Reload Application
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            } else {
+                console.error('❌ ReactResourceOverviewWrapper not available on window object');
+                console.log('Available on window:', Object.keys(window).filter(k => k.includes('React')));
+
+                // Mount the component directly using React
+                const container = document.getElementById('resource-overview-content');
+                if (container && window.React && window.ReactComponents?.ResourceOverviewDashboard) {
+                    console.log('🔄 Mounting ResourceOverviewDashboard component directly...');
+                    const root = window.ReactDOM.createRoot(container);
+                    root.render(window.React.createElement(window.ReactComponents.ResourceOverviewDashboard));
+
+                    // Mark component as initialized
+                    state.setComponentInitialized('resource-overview', true);
+                    console.log('✅ Resource Overview Dashboard component mounted directly');
                 } else {
-                    console.warn('CapacityManager class not available - capacity features will be limited');
-                    // Create a mock capacity manager to prevent errors
-                    this.app.capacityManager = {
-                        render: () => {
-                            const content = document.getElementById('capacity-content');
-                            if (content) {
-                                content.innerHTML = `
-                                    <div class="capacity-placeholder">
-                                        <h3>Capacity Planning</h3>
-                                        <p>Capacity management features are currently not available.</p>
-                                        <p>This feature is planned for a future release.</p>
-                                    </div>
-                                `;
-                            }
-                        },
-                        renderResourceOverview: () => {
-                            const content = document.getElementById('resource-overview-content');
-                            if (content) {
-                                content.innerHTML = `
-                                    <div class="capacity-placeholder">
-                                        <h3>Resource Capacity Overview</h3>
-                                        <p>Resource overview features are currently not available.</p>
-                                        <p>This feature is planned for a future release.</p>
-                                    </div>
-                                `;
-                            }
-                        },
-                        renderCapacityTimeline: () => {
-                            const content = document.getElementById('capacity-timeline-content');
-                            if (content) {
-                                content.innerHTML = `
-                                    <div class="capacity-placeholder">
-                                        <h3>Capacity Planning Timeline</h3>
-                                        <p>Timeline features are currently not available.</p>
-                                        <p>This feature is planned for a future release.</p>
-                                    </div>
-                                `;
-                            }
-                        }
-                    };
+                    console.error('❌ React components not available');
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="padding: 2rem; text-align: center; color: #ff6b6b;">
+                                <h3>❌ Resource Overview Unavailable</h3>
+                                <p>React components not loaded</p>
+                                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                                    Reload Application
+                                </button>
+                            </div>
+                        `;
+                    }
                 }
             }
-            
-            // Render resource overview content
-            setTimeout(async () => {
-                await this.app.capacityManager.renderResourceOverview();
-            }, 100);
+        } else {
+            console.log('✅ React Resource Overview wrapper already initialized - PRESERVING STATE');
+
+            // Ensure we're using the existing wrapper without re-init
+            if (this.reactResourceOverviewWrapper && this.reactResourceOverviewWrapper.isInitialized) {
+                console.log('🔄 Using existing resource overview wrapper - no reset needed');
+            }
         }
-        
-        // Store current section
-        this.currentSection = 'resource-overview';
-        
+
+        // Update global state
+        if (this.store && this.store.getState) {
+            this.store.getState().setSection('resource-overview');
+        }
+
         // Ensure capacity is expanded
         if (!this.capacityExpanded) {
             this.capacityExpanded = true;
             this.updateCapacityExpansion();
         }
-        
-        console.log('Navigated to resource overview page');
+
+        console.log('Navigated to Resource Overview page');
     }
     
     // Method for Capacity Planning Timeline
-    showCapacityTimelinePage() {
-        console.log('Showing Capacity Planning Timeline page');
-        
-        // Hide all pages
+    async showCapacityTimelinePage() {
+        console.log('🔄 NavigationManager: showCapacityTimelinePage - Using State/Actions/Dispatcher pattern');
+
+        // Check if store is available
+        if (!this.store || !this.store.getState) {
+            console.warn('Store not available for NavigationManager.showCapacityTimelinePage, navigation aborted');
+            return;
+        }
+
+        const state = this.store.getState();
+
+        // Hide all pages first
         document.querySelectorAll('.page').forEach(page => {
             page.classList.remove('active');
         });
-        
+
         // Update active states
         this.updateActiveStates('capacity-timeline');
-        
-        // Show target page
-        const targetPage = document.getElementById('capacity-timeline-page');
-        if (targetPage) {
-            targetPage.classList.add('active');
-            
-            // Initialize capacity manager if not exists
-            if (!this.app.capacityManager) {
-                // Check if CapacityManager class is available
-                if (typeof CapacityManager !== 'undefined') {
-                    this.app.capacityManager = new CapacityManager(this.app, this.configManager);
+
+        // Show capacity timeline page
+        const capacityTimelinePage = document.getElementById('capacity-timeline-page');
+        if (capacityTimelinePage) {
+            capacityTimelinePage.classList.add('active');
+        }
+
+        // Smart React wrapper initialization (Pattern: avoid unnecessary re-init)
+        const isComponentAlreadyInitialized = state.isComponentInitialized('capacity-timeline');
+        const hasExistingWrapper = !!this.reactCapacityTimelineWrapper;
+
+        if (!hasExistingWrapper || !isComponentAlreadyInitialized) {
+            console.log('🔄 Initializing React Capacity Timeline wrapper...');
+            console.log('ReactCapacityTimelineWrapper available:', !!window.ReactCapacityTimelineWrapper);
+
+            if (window.ReactCapacityTimelineWrapper) {
+                this.reactCapacityTimelineWrapper = new window.ReactCapacityTimelineWrapper();
+
+                try {
+                    await this.reactCapacityTimelineWrapper.init();
+                    console.log('✅ React Capacity Timeline wrapper initialized successfully');
+
+                    // Mark component as initialized in store
+                    state.setComponentInitialized('capacity-timeline', true);
+
+                } catch (error) {
+                    console.error('❌ Failed to initialize React Capacity Timeline wrapper:', error);
+                    // Show fallback content
+                    const container = document.getElementById('capacity-timeline-content');
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="padding: 2rem; text-align: center; color: #ff6b6b;">
+                                <h3>❌ Capacity Timeline Error</h3>
+                                <p>Failed to load React components</p>
+                                <p><small>Error: ${error.message}</small></p>
+                                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                                    Reload Application
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            } else {
+                console.error('❌ ReactCapacityTimelineWrapper not available on window object');
+                console.log('Available on window:', Object.keys(window).filter(k => k.includes('React')));
+
+                // Mount the component directly using React
+                const container = document.getElementById('capacity-timeline-content');
+                if (container && window.React && window.ReactComponents?.CapacityTimeline) {
+                    console.log('🔄 Mounting CapacityTimeline component directly...');
+                    const root = window.ReactDOM.createRoot(container);
+                    root.render(window.React.createElement(window.ReactComponents.CapacityTimeline, {
+                        monthsToShow: 6
+                    }));
+
+                    // Mark component as initialized
+                    state.setComponentInitialized('capacity-timeline', true);
+                    console.log('✅ Capacity Timeline component mounted directly');
                 } else {
-                    console.warn('CapacityManager class not available - capacity features will be limited');
-                    // Create a mock capacity manager to prevent errors
-                    this.app.capacityManager = {
-                        render: () => {
-                            const content = document.getElementById('capacity-content');
-                            if (content) {
-                                content.innerHTML = `
-                                    <div class="capacity-placeholder">
-                                        <h3>Capacity Planning</h3>
-                                        <p>Capacity management features are currently not available.</p>
-                                        <p>This feature is planned for a future release.</p>
-                                    </div>
-                                `;
-                            }
-                        },
-                        renderResourceOverview: () => {
-                            const content = document.getElementById('resource-overview-content');
-                            if (content) {
-                                content.innerHTML = `
-                                    <div class="capacity-placeholder">
-                                        <h3>Resource Capacity Overview</h3>
-                                        <p>Resource overview features are currently not available.</p>
-                                        <p>This feature is planned for a future release.</p>
-                                    </div>
-                                `;
-                            }
-                        },
-                        renderCapacityTimeline: () => {
-                            const content = document.getElementById('capacity-timeline-content');
-                            if (content) {
-                                content.innerHTML = `
-                                    <div class="capacity-placeholder">
-                                        <h3>Capacity Planning Timeline</h3>
-                                        <p>Timeline features are currently not available.</p>
-                                        <p>This feature is planned for a future release.</p>
-                                    </div>
-                                `;
-                            }
-                        }
-                    };
+                    console.error('❌ React components not available');
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="padding: 2rem; text-align: center; color: #ff6b6b;">
+                                <h3>❌ Capacity Timeline Unavailable</h3>
+                                <p>React components not loaded</p>
+                                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                                    Reload Application
+                                </button>
+                            </div>
+                        `;
+                    }
                 }
             }
-            
-            // Render capacity timeline content
-            setTimeout(() => {
-                this.app.capacityManager.renderCapacityTimeline();
-            }, 100);
+        } else {
+            console.log('✅ React Capacity Timeline wrapper already initialized - PRESERVING STATE');
+
+            // Ensure we're using the existing wrapper without re-init
+            if (this.reactCapacityTimelineWrapper && this.reactCapacityTimelineWrapper.isInitialized) {
+                console.log('🔄 Using existing capacity timeline wrapper - no reset needed');
+            }
         }
-        
-        // Store current section
-        this.currentSection = 'capacity-timeline';
-        
+
+        // Update global state
+        if (this.store && this.store.getState) {
+            this.store.getState().setSection('capacity-timeline');
+        }
+
         // Ensure capacity is expanded
         if (!this.capacityExpanded) {
             this.capacityExpanded = true;
             this.updateCapacityExpansion();
         }
-        
-        console.log('Navigated to capacity timeline page');
+
+        console.log('Navigated to Capacity Timeline page');
     }
     
     toggleCapacitySection() {
