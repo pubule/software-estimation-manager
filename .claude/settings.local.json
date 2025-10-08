@@ -28,7 +28,8 @@
       "mcp__serena__list_dir",
       "Bash(npm run build:react:main:*)",
       "Bash(npm run build:react:main:components:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(del \"C:\\Users\\pubul\\WebstormProjects\\software-estimates-app\\cucumber\\step-definitions\\project-switching-data-leak---valori-del-progetto-precedente-contaminano-il-nuovo-progetto-caricato-steps.js\")"
     ],
     "deny": [],
     "ask": []

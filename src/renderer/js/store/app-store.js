@@ -209,16 +209,79 @@ const appStore = window.zustand.createStore((set, get) => ({
     
     /**
      * Set the current project
+     * 🔧 FIX: Atomic reset of ALL derived states to prevent data leakage between projects
      */
     setProject: (project) => {
         console.log('🔄 Store: setProject called with project =', project ? 'EXISTS' : 'NULL');
-        
-        set({ 
+
+        // 🔧 CRITICAL FIX: Atomic reset of ALL derived states
+        // This prevents data contamination when switching between projects
+        const cleanState = {
+            // Core project state
             currentProject: project,
             isDirty: false,
-            lastSavedTime: project?.project?.lastModified ? new Date(project.project.lastModified) : null
-        });
-        
+            lastSavedTime: project?.project?.lastModified ? new Date(project.project.lastModified) : null,
+
+            // 🧹 RESET: Phases cache (will be reinitialized from new project)
+            currentPhases: [],
+            selectedSuppliers: { G1: null, G2: null, TA: null, PM: null },
+            resourceRates: { G1: 450, G2: 380, TA: 420, PM: 500 }, // Default rates
+            phasesTotals: {
+                manDays: 0,
+                manDaysByResource: { G1: 0, G2: 0, TA: 0, PM: 0 },
+                costByResource: { G1: 0, G2: 0, TA: 0, PM: 0 }
+            },
+
+            // 🧹 RESET: Calculations cache (will be recalculated for new project)
+            calculationsData: {
+                vendorCosts: [],
+                kpiData: null,
+                filters: { vendor: 'all', role: 'all', category: 'all' }, // ← RESET filters!
+                finalMDsOverrides: project?.finalMDsOverrides || {}, // ← Load from project if saved, else reset
+                version: 0
+            },
+
+            // 🧹 RESET: Assumptions UI state
+            assumptionsData: {
+                filters: { search: '', type: '', impact: '' },
+                modalState: { isOpen: false, mode: 'add', selectedAssumption: null }
+            },
+
+            // 🧹 RESET: Version History UI state
+            versionHistoryData: {
+                filters: { dateRange: '', reason: '' },
+                modalStates: {
+                    createModal: { isOpen: false, selectedVersion: null },
+                    compareModal: { isOpen: false, selectedVersion: null },
+                    restoreModal: { isOpen: false, selectedVersion: null }
+                },
+                isLoading: false
+            },
+
+            // 🧹 RESET: Feature Manager UI state
+            editingFeature: null,
+            filteredFeatures: [],
+            currentSort: { field: 'id', direction: 'asc' },
+            featureModalOpen: false,
+            featureModalEditingItem: null,
+            duplicateSourceData: null
+        };
+
+        // Apply all resets atomically (single set() call to prevent race conditions)
+        set(cleanState);
+
+        console.log('✅ Store: All derived states reset atomically for clean project switch');
+
+        // Re-initialize phases from new project data (if project exists)
+        if (project) {
+            // Use setTimeout(0) to defer initialization until after render cycle
+            setTimeout(() => {
+                const state = get();
+                state.initializePhases();
+                console.log('✅ Store: Phases reinitialized from new project data');
+            }, 0);
+        }
+
         // CRITICAL FALLBACK: Force navigation manager to update menu state
         // This ensures menu items are enabled even if subscription timing fails
         setTimeout(() => {
