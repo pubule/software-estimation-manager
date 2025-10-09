@@ -1,0 +1,1549 @@
+/**
+ * Capacity Modern CSS - Allineato a Phases/Calculations
+ * File: src/renderer/styles/capacity-modern.css
+ *
+ * ⚠️ IMPORTANTE: Tutte le classi usano prefix .capacity-modern-* per evitare regressioni
+ */
+
+/* =====================================================
+   CAPACITY MODERN - MAIN CONTAINER
+   ===================================================== */
+
+.capacity-modern-section {
+    padding: var(--spacing-lg);
+    height: 100%;
+    overflow-y: auto;
+    max-height: 95vh;
+}
+
+/* =====================================================
+   CAPACITY MODERN - HEADER
+   ===================================================== */
+
+.capacity-modern-header {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.capacity-modern-header h2 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-sm) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.capacity-modern-header h2 i {
+    color: var(--text-accent);
+}
+
+.capacity-modern-description {
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* =====================================================
+   CAPACITY MODERN - STATISTICS GRID
+   ===================================================== */
+
+.capacity-modern-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.capacity-modern-stat-card {
+    background-color: var(--bg-secondary);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+    border-left-width: 4px;
+}
+
+.capacity-modern-stat-card.capacity-modern-stat-primary {
+    border-left-color: #569cd6;
+}
+
+.capacity-modern-stat-card.capacity-modern-stat-success {
+    border-left-color: #4ec9b0;
+}
+
+.capacity-modern-stat-card.capacity-modern-stat-danger {
+    border-left-color: #f48771;
+}
+
+.capacity-modern-stat-card.capacity-modern-stat-warning {
+    border-left-color: #dcdcaa;
+}
+
+.capacity-modern-stat-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.capacity-modern-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.capacity-modern-stat-card.capacity-modern-stat-primary .capacity-modern-stat-value {
+    color: #569cd6;
+}
+
+.capacity-modern-stat-card.capacity-modern-stat-success .capacity-modern-stat-value {
+    color: #4ec9b0;
+}
+
+.capacity-modern-stat-card.capacity-modern-stat-danger .capacity-modern-stat-value {
+    color: #f48771;
+}
+
+.capacity-modern-stat-card.capacity-modern-stat-warning .capacity-modern-stat-value {
+    color: #dcdcaa;
+}
+
+.capacity-modern-stat-sublabel {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+}
+
+/* =====================================================
+   CAPACITY MODERN - CARDS (Aligned with calculations.css)
+   ===================================================== */
+
+.capacity-modern-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    transition: all var(--transition-fast);
+    display: flex;
+    flex-direction: column;
+    margin-bottom: var(--spacing-lg);
+}
+
+.capacity-modern-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Card with colored left border (matching calculations.css pattern) */
+.capacity-modern-card.card-primary {
+    border-left: 4px solid #2196f3; /* Blue */
+}
+
+.capacity-modern-card.card-success {
+    border-left: 4px solid #4caf50; /* Green */
+}
+
+.capacity-modern-card.card-warning {
+    border-left: 4px solid #ff9800; /* Orange */
+}
+
+.capacity-modern-card.card-danger {
+    border-left: 4px solid #f48771; /* Red */
+}
+
+.capacity-modern-card .card-header {
+    margin-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--border-primary);
+    padding-bottom: var(--spacing-sm);
+}
+
+.capacity-modern-card .card-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.capacity-modern-card .card-header h3 i {
+    color: var(--text-accent);
+}
+
+.capacity-modern-card .card-subtitle {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 400;
+}
+
+.capacity-modern-card .card-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.capacity-modern-card .card-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+/* Resource Capacity Card - Matching calculations pattern */
+.capacity-modern-resource-card {
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.capacity-modern-resource-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.capacity-modern-resource-card.status-available {
+    border-color: #4ec9b0;
+}
+
+.capacity-modern-resource-card.status-near-capacity {
+    border-color: #dcdcaa;
+}
+
+.capacity-modern-resource-card.status-over-allocated {
+    border-color: #f48771;
+}
+
+.capacity-modern-resource-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.capacity-modern-resource-name {
+    margin: 0 0 4px 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+}
+
+.capacity-modern-resource-meta {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+}
+
+.capacity-modern-status-badge {
+    padding: 4px var(--spacing-sm);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.capacity-modern-status-badge.status-available {
+    background-color: #4ec9b0;
+    color: #1e1e1e;
+}
+
+.capacity-modern-status-badge.status-near-capacity {
+    background-color: #dcdcaa;
+    color: #1e1e1e;
+}
+
+.capacity-modern-status-badge.status-over-allocated {
+    background-color: #f48771;
+    color: #1e1e1e;
+}
+
+.capacity-modern-utilization-bar-container {
+    margin-bottom: var(--spacing-sm);
+}
+
+.capacity-modern-utilization-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.capacity-modern-utilization-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.capacity-modern-utilization-value {
+    font-size: var(--font-size-xs);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.capacity-modern-utilization-value.over-allocated {
+    color: #f48771;
+}
+
+.capacity-modern-utilization-bar {
+    width: 100%;
+    height: 8px;
+    background-color: var(--bg-quaternary);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    position: relative;
+}
+
+.capacity-modern-utilization-progress {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.capacity-modern-utilization-progress.status-available {
+    background-color: #4ec9b0;
+}
+
+.capacity-modern-utilization-progress.status-near-capacity {
+    background-color: #dcdcaa;
+}
+
+.capacity-modern-utilization-progress.status-over-allocated {
+    background-color: #f48771;
+}
+
+.capacity-modern-utilization-overflow {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    height: 100%;
+    background-color: #f48771;
+    opacity: 0.7;
+}
+
+.capacity-modern-capacity-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+}
+
+.capacity-modern-capacity-item {
+    padding: var(--spacing-xs);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+}
+
+.capacity-modern-capacity-label {
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+    display: block;
+}
+
+.capacity-modern-capacity-value {
+    color: var(--text-primary);
+    font-weight: 600;
+    display: block;
+}
+
+.capacity-modern-capacity-value.available {
+    color: #4ec9b0;
+}
+
+.capacity-modern-capacity-value.allocated {
+    color: #f48771;
+}
+
+.capacity-modern-capacity-value.vacation {
+    color: #dcdcaa;
+}
+
+.capacity-modern-allocate-btn {
+    margin-top: var(--spacing-sm);
+    width: 100%;
+    background-color: var(--text-accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+}
+
+.capacity-modern-allocate-btn:hover {
+    background-color: #1177bb;
+}
+
+/* =====================================================
+   CAPACITY MODERN - FILTERS SECTION
+   ===================================================== */
+
+.capacity-modern-filters-section {
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+.capacity-modern-filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex: 0 0 auto;
+}
+
+.capacity-modern-filter-group label {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    margin: 0;
+    white-space: nowrap;
+}
+
+.capacity-modern-filter-select {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-fast);
+    min-width: 150px;
+}
+
+.capacity-modern-filter-select:focus {
+    outline: none;
+    border-color: var(--text-accent);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.capacity-modern-filter-select:hover {
+    border-color: var(--border-hover);
+}
+
+/* =====================================================
+   CAPACITY MODERN - BUTTONS
+   ===================================================== */
+
+.capacity-modern-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.capacity-modern-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.capacity-modern-btn:active {
+    transform: translateY(0);
+}
+
+.capacity-modern-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.capacity-modern-btn-primary {
+    background-color: var(--text-accent);
+    color: white;
+}
+
+.capacity-modern-btn-primary:hover {
+    background-color: #0066cc;
+}
+
+.capacity-modern-btn-secondary {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-primary);
+}
+
+.capacity-modern-btn-secondary:hover {
+    background-color: var(--bg-quaternary);
+}
+
+.capacity-modern-btn-success {
+    background-color: var(--success);
+    color: white;
+}
+
+.capacity-modern-btn-danger {
+    background-color: var(--error);
+    color: white;
+}
+
+/* =====================================================
+   CAPACITY MODERN - TABLE
+   ===================================================== */
+
+.capacity-modern-table-container {
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.capacity-modern-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.capacity-modern-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+    min-width: 1000px;
+}
+
+.capacity-modern-table th,
+.capacity-modern-table td {
+    padding: var(--spacing-sm);
+    text-align: center;
+    border: 1px solid var(--border-primary);
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* Table Headers */
+.capacity-modern-table thead th {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Fixed Columns */
+.capacity-modern-table .fixed-col {
+    position: sticky;
+    left: 0;
+    background-color: var(--bg-tertiary);
+    z-index: 9;
+}
+
+.capacity-modern-table thead .fixed-col {
+    z-index: 11;
+}
+
+.capacity-modern-table .col-member {
+    text-align: left;
+    min-width: 180px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.capacity-modern-table .col-project {
+    text-align: left;
+    min-width: 150px;
+    left: 180px;
+}
+
+.capacity-modern-table .col-status {
+    min-width: 100px;
+    left: 330px;
+}
+
+/* Month Columns */
+.capacity-modern-table .month-col {
+    min-width: 80px;
+    background-color: var(--bg-secondary);
+}
+
+/* Row Hover */
+.capacity-modern-table tbody tr:hover {
+    background-color: var(--bg-hover);
+}
+
+.capacity-modern-table tbody tr:hover .fixed-col {
+    background-color: var(--bg-hover);
+}
+
+/* Cell Content */
+.capacity-modern-allocation-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 40px;
+}
+
+.capacity-modern-allocation-value {
+    font-weight: 600;
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+}
+
+.capacity-modern-allocation-details {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+/* Status Badge */
+.capacity-modern-status-badge {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.capacity-modern-status-approved {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: var(--success);
+    border: 1px solid var(--success);
+}
+
+.capacity-modern-status-pending {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+}
+
+.capacity-modern-status-draft {
+    background-color: rgba(158, 158, 158, 0.2);
+    color: var(--text-muted);
+    border: 1px solid var(--border-secondary);
+}
+
+/* Capacity Indicators */
+.capacity-modern-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: var(--spacing-xs);
+}
+
+.capacity-modern-indicator.available {
+    background-color: var(--success);
+}
+
+.capacity-modern-indicator.overflow {
+    background-color: var(--error);
+}
+
+.capacity-modern-indicator.vacation {
+    background-color: var(--info);
+}
+
+/* =====================================================
+   CAPACITY MODERN - OVERVIEW GRID
+   ===================================================== */
+
+.capacity-modern-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.capacity-modern-overview-item {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    transition: all var(--transition-fast);
+}
+
+.capacity-modern-overview-item:hover {
+    border-color: var(--text-accent);
+    transform: translateY(-2px);
+}
+
+.capacity-modern-overview-item .member-name {
+    font-weight: 600;
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.capacity-modern-overview-item .member-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+}
+
+.capacity-modern-overview-item .info-label {
+    color: var(--text-secondary);
+}
+
+.capacity-modern-overview-item .info-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Capacity Bar */
+.capacity-modern-capacity-bar {
+    height: 8px;
+    background-color: var(--bg-quaternary);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-top: var(--spacing-sm);
+}
+
+.capacity-modern-capacity-fill {
+    height: 100%;
+    border-radius: var(--radius-sm);
+    transition: width 0.3s ease;
+}
+
+.capacity-modern-capacity-fill.normal {
+    background-color: var(--success);
+}
+
+.capacity-modern-capacity-fill.high {
+    background-color: var(--warning);
+}
+
+.capacity-modern-capacity-fill.overflow {
+    background-color: var(--error);
+}
+
+/* =====================================================
+   CAPACITY MODERN - EMPTY STATE
+   ===================================================== */
+
+.capacity-modern-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    text-align: center;
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-primary);
+}
+
+.capacity-modern-empty-state i {
+    font-size: 48px;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-md);
+}
+
+.capacity-modern-empty-state h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-sm) 0;
+}
+
+.capacity-modern-empty-state p {
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+    margin: 0;
+    max-width: 400px;
+}
+
+/* =====================================================
+   CAPACITY MODERN - MODALS
+   ===================================================== */
+
+.capacity-modern-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.capacity-modern-modal.active {
+    display: flex;
+}
+
+.capacity-modern-modal-content {
+    background-color: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-primary);
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+}
+
+.capacity-modern-modal-content.large {
+    max-width: 900px;
+}
+
+.capacity-modern-modal-header {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-primary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.capacity-modern-modal-header h2 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.capacity-modern-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+}
+
+.capacity-modern-modal-close:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.capacity-modern-modal-body {
+    padding: var(--spacing-md);
+}
+
+.capacity-modern-modal-footer {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-primary);
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+}
+
+/* =====================================================
+   CAPACITY MODERN - FORMS
+   ===================================================== */
+
+.capacity-modern-form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.capacity-modern-form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-xs);
+}
+
+.capacity-modern-form-group input,
+.capacity-modern-form-group select {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-fast);
+}
+
+.capacity-modern-form-group input:focus,
+.capacity-modern-form-group select:focus {
+    outline: none;
+    border-color: var(--text-accent);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.capacity-modern-form-row {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.capacity-modern-form-row .capacity-modern-form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* =====================================================
+   CAPACITY MODERN - ALERTS
+   ===================================================== */
+
+.capacity-modern-alert {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+}
+
+.capacity-modern-alert i {
+    flex-shrink: 0;
+    font-size: var(--font-size-lg);
+}
+
+.capacity-modern-alert-info {
+    background-color: rgba(33, 150, 243, 0.1);
+    border: 1px solid var(--info);
+    color: var(--info);
+}
+
+.capacity-modern-alert-warning {
+    background-color: rgba(255, 152, 0, 0.1);
+    border: 1px solid var(--warning);
+    color: var(--warning);
+}
+
+.capacity-modern-alert-error {
+    background-color: rgba(244, 67, 54, 0.1);
+    border: 1px solid var(--error);
+    color: var(--error);
+}
+
+.capacity-modern-alert-success {
+    background-color: rgba(76, 175, 80, 0.1);
+    border: 1px solid var(--success);
+    color: var(--success);
+}
+
+/* =====================================================
+   CAPACITY MODERN - LOADING STATE
+   ===================================================== */
+
+.capacity-modern-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: var(--text-secondary);
+}
+
+.capacity-modern-loading .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-primary);
+    border-top: 3px solid var(--text-accent);
+    border-radius: 50%;
+    animation: capacity-modern-spin 1s linear infinite;
+    margin-right: var(--spacing-md);
+}
+
+@keyframes capacity-modern-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* =====================================================
+   CAPACITY MODERN - TIMELINE HEADER
+   ===================================================== */
+
+.capacity-modern-timeline-header {
+    margin-bottom: var(--spacing-md);
+}
+
+.capacity-modern-controls-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.capacity-modern-nav-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.capacity-modern-filters-group {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.capacity-modern-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.capacity-modern-checkbox-label input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.capacity-modern-grid-header {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    background-color: var(--bg-tertiary);
+    border-bottom: 2px solid var(--text-accent);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.capacity-modern-grid-header-cell {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-right: 1px solid var(--border-primary);
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+}
+
+.capacity-modern-grid-header-months {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 0;
+}
+
+.capacity-modern-grid-header-month {
+    padding: var(--spacing-sm) var(--spacing-xs);
+    border: 1px solid var(--border-primary);
+    border-top: none;
+    text-align: center;
+    font-weight: 600;
+    font-size: var(--font-size-xs);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* =====================================================
+   CAPACITY MODERN - TIMELINE ROWS
+   ===================================================== */
+
+/* Member Row */
+.capacity-modern-member-row {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    border-bottom: 1px solid var(--border-primary);
+    background-color: var(--bg-secondary);
+}
+
+.capacity-modern-member-info {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-right: 1px solid var(--border-primary);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.capacity-modern-member-info:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.capacity-modern-member-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: 4px;
+}
+
+.capacity-modern-member-chevron {
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: transform var(--transition-fast);
+    width: 16px;
+}
+
+.capacity-modern-member-chevron.expanded {
+    transform: rotate(90deg);
+}
+
+.capacity-modern-member-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.capacity-modern-member-status-dot.available {
+    background-color: #4ec9b0;
+}
+
+.capacity-modern-member-status-dot.near-capacity {
+    background-color: #dcdcaa;
+}
+
+.capacity-modern-member-status-dot.over-allocated {
+    background-color: #f48771;
+}
+
+.capacity-modern-member-name {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.capacity-modern-member-role {
+    font-size: 12px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-left: 24px;
+}
+
+.capacity-modern-member-vendor {
+    font-size: 11px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-left: 24px;
+}
+
+.capacity-modern-member-utilization {
+    font-size: 11px;
+    margin-top: 4px;
+    margin-left: 24px;
+    font-weight: 600;
+}
+
+.capacity-modern-member-utilization.available {
+    color: #4ec9b0;
+}
+
+.capacity-modern-member-utilization.near-capacity {
+    color: #dcdcaa;
+}
+
+.capacity-modern-member-utilization.over-allocated {
+    color: #f48771;
+}
+
+.capacity-modern-month-cells-grid {
+    display: grid;
+    gap: 0;
+}
+
+.capacity-modern-month-cell-empty {
+    border: 1px solid var(--border-primary);
+    min-height: 50px;
+    background-color: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+/* Project Row */
+.capacity-modern-project-row {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    border-bottom: 1px solid var(--border-secondary);
+    background-color: var(--bg-primary);
+}
+
+.capacity-modern-project-info {
+    padding: var(--spacing-xs) var(--spacing-md) var(--spacing-xs) 40px;
+    border-right: 1px solid var(--border-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.capacity-modern-project-info:hover {
+    background-color: var(--bg-secondary);
+}
+
+.capacity-modern-project-chevron {
+    font-size: 10px;
+    color: var(--text-muted);
+    transition: transform var(--transition-fast);
+    width: 12px;
+}
+
+.capacity-modern-project-chevron.expanded {
+    transform: rotate(90deg);
+}
+
+.capacity-modern-project-icon {
+    font-size: 12px;
+}
+
+.capacity-modern-project-name {
+    font-size: 12px;
+    color: var(--text-primary);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.capacity-modern-project-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: var(--spacing-xs);
+    opacity: 0.4;
+    transition: opacity var(--transition-fast);
+}
+
+.capacity-modern-project-actions:hover {
+    opacity: 1.0;
+}
+
+.capacity-modern-project-edit-btn,
+.capacity-modern-project-delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    padding: 2px 4px;
+    display: flex;
+    align-items: center;
+    transition: transform var(--transition-fast);
+    line-height: 1;
+}
+
+.capacity-modern-project-edit-btn {
+    color: var(--text-accent);
+}
+
+.capacity-modern-project-delete-btn {
+    color: var(--error);
+}
+
+.capacity-modern-project-edit-btn:hover,
+.capacity-modern-project-delete-btn:hover {
+    transform: scale(1.2);
+}
+
+.capacity-modern-project-month-cell {
+    border: 1px solid var(--border-secondary);
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+}
+
+.capacity-modern-project-month-cell.has-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.capacity-modern-project-month-cell.no-value {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* Phase Row */
+.capacity-modern-phase-row {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    border-bottom: 1px solid var(--border-secondary);
+    background-color: #1a1a1a;
+}
+
+.capacity-modern-phase-info {
+    padding: 6px var(--spacing-md) 6px 64px;
+    border-right: 1px solid var(--border-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.capacity-modern-phase-bullet {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.capacity-modern-phase-name {
+    font-size: 11px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.capacity-modern-phase-month-cell {
+    border: 1px solid var(--border-secondary);
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    padding: 2px;
+}
+
+.capacity-modern-phase-edit-input {
+    width: 100%;
+    padding: 2px 4px;
+    font-size: 10px;
+    background-color: var(--bg-primary);
+    border: 1px solid #4ec9b0;
+    border-radius: var(--radius-xs);
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.capacity-modern-phase-edit-input:focus {
+    outline: none;
+    border-color: #4ec9b0;
+}
+
+.capacity-modern-phase-edit-display {
+    cursor: pointer;
+    padding: 4px;
+    width: 100%;
+    text-align: center;
+}
+
+.capacity-modern-phase-edit-display.has-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.capacity-modern-phase-edit-display.no-value {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* =====================================================
+   CAPACITY MODERN - LEGEND
+   ===================================================== */
+
+.capacity-modern-legend {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+    display: flex;
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.capacity-modern-legend-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.capacity-modern-legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.capacity-modern-legend-item span {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
+.capacity-modern-legend-box {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-xs);
+}
+
+.capacity-modern-legend-available {
+    background-color: #4ec9b0;
+}
+
+.capacity-modern-legend-near-capacity {
+    background-color: #dcdcaa;
+}
+
+.capacity-modern-legend-over-allocated {
+    background-color: #f48771;
+}
+
+.capacity-modern-legend-hint {
+    margin-left: auto;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+/* =====================================================
+   CAPACITY MODERN - RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 1200px) {
+    .capacity-modern-filters-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .capacity-modern-filter-group {
+        width: 100%;
+    }
+
+    .capacity-modern-filter-select {
+        width: 100%;
+    }
+
+    .capacity-modern-table .col-member {
+        min-width: 150px;
+    }
+
+    .capacity-modern-table .col-project {
+        min-width: 120px;
+    }
+}
+
+@media (max-width: 768px) {
+    .capacity-modern-section {
+        padding: var(--spacing-md);
+    }
+
+    .capacity-modern-header h2 {
+        font-size: var(--font-size-lg);
+        flex-direction: column;
+        text-align: center;
+        gap: var(--spacing-xs);
+    }
+
+    .capacity-modern-overview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .capacity-modern-table {
+        min-width: 800px;
+    }
+
+    .capacity-modern-form-row {
+        flex-direction: column;
+    }
+
+    .capacity-modern-modal-content {
+        max-width: 95%;
+        margin: var(--spacing-md);
+    }
+}
+
+@media (max-width: 480px) {
+    .capacity-modern-header h2 {
+        font-size: var(--font-size-base);
+    }
+
+    .capacity-modern-description {
+        font-size: var(--font-size-sm);
+    }
+
+    .capacity-modern-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .capacity-modern-card .card-actions {
+        flex-direction: column;
+    }
+}
+
+/* =====================================================
+   CAPACITY MODERN - ACCESSIBILITY
+   ===================================================== */
+
+.capacity-modern-btn:focus,
+.capacity-modern-filter-select:focus,
+.capacity-modern-form-group input:focus,
+.capacity-modern-form-group select:focus {
+    outline: 2px solid var(--text-accent);
+    outline-offset: 2px;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .capacity-modern-card,
+    .capacity-modern-table th,
+    .capacity-modern-table td {
+        border: 2px solid var(--text-primary);
+    }
+
+    .capacity-modern-alert {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .capacity-modern-btn,
+    .capacity-modern-overview-item,
+    .capacity-modern-filter-select,
+    .capacity-modern-capacity-fill {
+        transition: none;
+    }
+
+    .capacity-modern-loading .spinner {
+        animation: none;
+        border-top-color: var(--text-accent);
+    }
+}
+
+/* =====================================================
+   CAPACITY MODERN - PRINT STYLES
+   ===================================================== */
+
+@media print {
+    .capacity-modern-filters-section,
+    .capacity-modern-card .card-actions,
+    .capacity-modern-btn {
+        display: none;
+    }
+
+    .capacity-modern-table {
+        font-size: 10px;
+    }
+
+    .capacity-modern-table th,
+    .capacity-modern-table td {
+        padding: 2px 4px;
+        border: 1px solid #333;
+    }
+}

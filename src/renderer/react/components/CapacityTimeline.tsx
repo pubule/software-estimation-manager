@@ -24,6 +24,7 @@ import TimelineHeader from './TimelineHeader';
 import ExpandableTimelineRow from './ExpandableTimelineRow';
 import AssignmentModal from './AssignmentModal';
 import type { TimelineMemberCapacity } from '../hooks/useCapacityTimeline';
+import '../../styles/capacity-modern.css';
 
 interface CapacityTimelineProps {
     monthsToShow?: number; // Number of months to display (default: 6)
@@ -107,64 +108,39 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
 
     // Render statistics bar
     const renderStats = () => (
-        <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px',
-            marginBottom: '24px'
-        }}>
+        <div className="capacity-modern-stats-grid">
             {/* Total Members */}
-            <div style={{
-                backgroundColor: '#252526',
-                padding: '16px',
-                borderRadius: '6px',
-                borderLeft: '4px solid #569cd6'
-            }}>
-                <div style={{ fontSize: '12px', color: '#858585', marginBottom: '6px' }}>Team Members</div>
-                <div style={{ fontSize: '24px', fontWeight: '700', color: '#569cd6' }}>{stats.totalMembers}</div>
+            <div className="capacity-modern-stat-card capacity-modern-stat-primary">
+                <div className="capacity-modern-stat-label">Team Members</div>
+                <div className="capacity-modern-stat-value">{stats.totalMembers}</div>
             </div>
 
             {/* Average Utilization */}
-            <div style={{
-                backgroundColor: '#252526',
-                padding: '16px',
-                borderRadius: '6px',
-                borderLeft: '4px solid #4ec9b0'
-            }}>
-                <div style={{ fontSize: '12px', color: '#858585', marginBottom: '6px' }}>Avg Utilization</div>
-                <div style={{ fontSize: '24px', fontWeight: '700', color: '#4ec9b0' }}>
+            <div className="capacity-modern-stat-card capacity-modern-stat-success">
+                <div className="capacity-modern-stat-label">Avg Utilization</div>
+                <div className="capacity-modern-stat-value">
                     {stats.averageUtilization.toFixed(1)}%
                 </div>
             </div>
 
             {/* Over-allocated Count */}
-            <div style={{
-                backgroundColor: '#252526',
-                padding: '16px',
-                borderRadius: '6px',
-                borderLeft: '4px solid #f48771'
-            }}>
-                <div style={{ fontSize: '12px', color: '#858585', marginBottom: '6px' }}>Over-Allocated</div>
-                <div style={{ fontSize: '24px', fontWeight: '700', color: '#f48771' }}>
+            <div className="capacity-modern-stat-card capacity-modern-stat-danger">
+                <div className="capacity-modern-stat-label">Over-Allocated</div>
+                <div className="capacity-modern-stat-value">
                     {stats.totalOverallocated}
                 </div>
-                <div style={{ fontSize: '11px', color: '#858585', marginTop: '4px' }}>
+                <div className="capacity-modern-stat-sublabel">
                     member-months
                 </div>
             </div>
 
             {/* Months Displayed */}
-            <div style={{
-                backgroundColor: '#252526',
-                padding: '16px',
-                borderRadius: '6px',
-                borderLeft: '4px solid #dcdcaa'
-            }}>
-                <div style={{ fontSize: '12px', color: '#858585', marginBottom: '6px' }}>Timeline Range</div>
-                <div style={{ fontSize: '24px', fontWeight: '700', color: '#dcdcaa' }}>
+            <div className="capacity-modern-stat-card capacity-modern-stat-warning">
+                <div className="capacity-modern-stat-label">Timeline Range</div>
+                <div className="capacity-modern-stat-value">
                     {stats.monthsDisplayed}
                 </div>
-                <div style={{ fontSize: '11px', color: '#858585', marginTop: '4px' }}>
+                <div className="capacity-modern-stat-sublabel">
                     months
                 </div>
             </div>
@@ -174,15 +150,12 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
     // Render loading state
     if (loading) {
         return (
-            <div style={{
-                padding: '60px',
-                textAlign: 'center',
-                color: '#858585',
-                backgroundColor: '#1e1e1e',
-                minHeight: '400px'
-            }}>
-                <div style={{ fontSize: '18px', marginBottom: '12px' }}>Loading timeline data...</div>
-                <div style={{ fontSize: '14px' }}>Please wait...</div>
+            <div className="capacity-modern-section">
+                <div className="capacity-modern-empty-state">
+                    <i className="fas fa-spinner fa-spin"></i>
+                    <h3>Loading timeline data...</h3>
+                    <p>Please wait while we load your capacity information</p>
+                </div>
             </div>
         );
     }
@@ -190,30 +163,15 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
     // Render error state
     if (error) {
         return (
-            <div style={{
-                padding: '60px',
-                textAlign: 'center',
-                color: '#f48771',
-                backgroundColor: '#1e1e1e',
-                minHeight: '400px'
-            }}>
-                <div style={{ fontSize: '18px', marginBottom: '12px' }}>❌ Error</div>
-                <div style={{ fontSize: '14px', marginBottom: '20px' }}>{error}</div>
-                <button
-                    onClick={refresh}
-                    style={{
-                        backgroundColor: '#0e639c',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '10px 20px',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        fontWeight: '600'
-                    }}
-                >
-                    Retry
-                </button>
+            <div className="capacity-modern-section">
+                <div className="capacity-modern-empty-state">
+                    <i className="fas fa-exclamation-triangle" style={{ color: '#f48771' }}></i>
+                    <h3 style={{ color: '#f48771' }}>Error</h3>
+                    <p>{error}</p>
+                    <button onClick={refresh} className="capacity-modern-btn capacity-modern-btn-primary">
+                        <i className="fas fa-redo"></i> Retry
+                    </button>
+                </div>
             </div>
         );
     }
@@ -221,44 +179,29 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
     // Render empty state
     if (members.length === 0) {
         return (
-            <div style={{
-                padding: '60px',
-                textAlign: 'center',
-                color: '#858585',
-                backgroundColor: '#1e1e1e',
-                minHeight: '400px'
-            }}>
-                <div style={{ fontSize: '18px', marginBottom: '12px' }}>No team members found</div>
-                <div style={{ fontSize: '14px' }}>
-                    {filters.vendor || filters.role || filters.status
-                        ? 'Try adjusting your filters'
-                        : 'No team members configured in the system'}
+            <div className="capacity-modern-section">
+                <div className="capacity-modern-empty-state">
+                    <i className="fas fa-users"></i>
+                    <h3>No team members found</h3>
+                    <p>
+                        {filters.vendor || filters.role || filters.status
+                            ? 'Try adjusting your filters to see team members'
+                            : 'No team members configured in the system'}
+                    </p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div style={{
-            padding: '24px',
-            backgroundColor: '#1e1e1e',
-            minHeight: '100vh'
-        }}>
+        <div className="capacity-modern-section">
             {/* Page Header */}
-            <div style={{ marginBottom: '24px' }}>
-                <h1 style={{
-                    margin: '0 0 8px 0',
-                    color: '#4ec9b0',
-                    fontSize: '28px',
-                    fontWeight: '700'
-                }}>
+            <div className="capacity-modern-header">
+                <h2>
+                    <i className="fas fa-chart-timeline"></i>
                     Capacity Timeline
-                </h1>
-                <p style={{
-                    margin: 0,
-                    color: '#858585',
-                    fontSize: '14px'
-                }}>
+                </h2>
+                <p className="capacity-modern-description">
                     Resource capacity visualization across time - {months[0]?.label} to {months[months.length - 1]?.label}
                 </p>
             </div>
@@ -270,33 +213,9 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
             <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                     onClick={handleAddAssignment}
-                    style={{
-                        backgroundColor: '#0e639c',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '10px 20px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                        transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#1177bb';
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#0e639c';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-                    }}
+                    className="capacity-modern-btn capacity-modern-btn-primary"
                 >
-                    <span style={{ fontSize: '16px' }}>➕</span>
+                    <i className="fas fa-plus"></i>
                     Add Assignment
                 </button>
             </div>
@@ -314,12 +233,7 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
             />
 
             {/* Timeline Grid */}
-            <div style={{
-                backgroundColor: '#252526',
-                borderRadius: '8px',
-                overflow: 'hidden',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
-            }}>
+            <div className="capacity-modern-card">
                 {/* Member Rows */}
                 {members.map(member => (
                     <ExpandableTimelineRow
@@ -346,55 +260,26 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
             )}
 
             {/* Legend */}
-            <div style={{
-                marginTop: '20px',
-                padding: '16px',
-                backgroundColor: '#252526',
-                borderRadius: '6px',
-                display: 'flex',
-                gap: '24px',
-                flexWrap: 'wrap',
-                alignItems: 'center'
-            }}>
-                <div style={{ fontSize: '13px', color: '#858585', fontWeight: '600' }}>Legend:</div>
+            <div className="capacity-modern-legend">
+                <div className="capacity-modern-legend-label">Legend:</div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                        width: '20px',
-                        height: '20px',
-                        backgroundColor: '#4ec9b0',
-                        borderRadius: '3px'
-                    }} />
-                    <span style={{ fontSize: '13px', color: '#d4d4d4' }}>Available (0-89%)</span>
+                <div className="capacity-modern-legend-item">
+                    <div className="capacity-modern-legend-box capacity-modern-legend-available" />
+                    <span>Available (0-89%)</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                        width: '20px',
-                        height: '20px',
-                        backgroundColor: '#dcdcaa',
-                        borderRadius: '3px'
-                    }} />
-                    <span style={{ fontSize: '13px', color: '#d4d4d4' }}>Near Capacity (90-100%)</span>
+                <div className="capacity-modern-legend-item">
+                    <div className="capacity-modern-legend-box capacity-modern-legend-near-capacity" />
+                    <span>Near Capacity (90-100%)</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                        width: '20px',
-                        height: '20px',
-                        backgroundColor: '#f48771',
-                        borderRadius: '3px'
-                    }} />
-                    <span style={{ fontSize: '13px', color: '#d4d4d4' }}>Over-Allocated (&gt;100%)</span>
+                <div className="capacity-modern-legend-item">
+                    <div className="capacity-modern-legend-box capacity-modern-legend-over-allocated" />
+                    <span>Over-Allocated (&gt;100%)</span>
                 </div>
 
-                <div style={{
-                    marginLeft: 'auto',
-                    fontSize: '12px',
-                    color: '#858585',
-                    fontStyle: 'italic'
-                }}>
-                    💡 Hover over cells for detailed capacity information
+                <div className="capacity-modern-legend-hint">
+                    <i className="fas fa-info-circle"></i> Hover over cells for detailed capacity information
                 </div>
             </div>
         </div>

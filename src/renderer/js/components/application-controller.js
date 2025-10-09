@@ -931,11 +931,11 @@ class ApplicationController extends BaseComponent {
      */
     getPhaseDisplayName(key) {
         const phaseNames = {
-            functionalSpec: 'Functional Specification',
-            techSpec: 'Technical Specification', 
+            functionalAnalysis: 'Functional Analysis',
+            technicalAnalysis: 'Technical Analysis',
             development: 'Development',
-            sit: 'System Integration Test',
-            uat: 'User Acceptance Test',
+            integrationTests: 'Integration Tests',
+            uatTests: 'UAT Tests',
             vapt: 'VAPT (Security Testing)',
             consolidation: 'Consolidation',
             postGoLive: 'Post Go-Live Support'
@@ -948,11 +948,11 @@ class ApplicationController extends BaseComponent {
      */
     getPhaseType(key) {
         const phaseTypes = {
-            functionalSpec: 'Analysis',
-            techSpec: 'Analysis', 
+            functionalAnalysis: 'Analysis',
+            technicalAnalysis: 'Analysis',
             development: 'Development',
-            sit: 'Testing',
-            uat: 'Testing',
+            integrationTests: 'Testing',
+            uatTests: 'Testing',
             vapt: 'Testing',
             consolidation: 'Support',
             postGoLive: 'Support'
@@ -1133,15 +1133,15 @@ class ApplicationController extends BaseComponent {
         // Group costs by vendor
         const vendorSummary = {};
         vendorCosts.forEach(cost => {
-            if (!vendorSummary[cost.vendor]) {
-                vendorSummary[cost.vendor] = {
+            if (!vendorSummary[cost.vendorName]) {
+                vendorSummary[cost.vendorName] = {
                     manDays: 0,
                     cost: 0
                 };
             }
-            vendorSummary[cost.vendor].manDays += cost.finalMDs || cost.manDays || 0;
-            const finalCost = cost.finalMDs ? (cost.finalMDs * cost.officialRate) : cost.cost;
-            vendorSummary[cost.vendor].cost += finalCost || 0;
+            vendorSummary[cost.vendorName].manDays += cost.finalMDs || cost.estimatedMDs || 0;
+            const finalCost = cost.finalMDs ? (cost.finalMDs * cost.officialRate) : cost.totCost;
+            vendorSummary[cost.vendorName].cost += finalCost || 0;
         });
         
         // Add vendor summary rows
@@ -1303,15 +1303,24 @@ class ApplicationController extends BaseComponent {
         featuresHeaderCell.style = styles.sectionHeader;
         row++;
 
+        // Get current project from store to ensure fresh data
+        const currentProject = StateSelectors.getCurrentProject();
+
         worksheet.getCell(`A${row}`).value = 'Total Features:';
         worksheet.getCell(`A${row}`).style = { font: { bold: true } };
-        worksheet.getCell(`B${row}`).value = this.currentProject?.features?.length || 0;
+        worksheet.getCell(`B${row}`).value = currentProject?.features?.length || 0;
         row++;
 
         worksheet.getCell(`A${row}`).value = 'Total Man Days:';
         worksheet.getCell(`A${row}`).style = { font: { bold: true } };
-        const totalMD = this.currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0) || 0;
+        const totalMD = currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0) || 0;
         worksheet.getCell(`B${row}`).value = totalMD;
+        worksheet.getCell(`B${row}`).style = styles.numberCell;
+        row++;
+
+        worksheet.getCell(`A${row}`).value = 'Coverage:';
+        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+        worksheet.getCell(`B${row}`).value = currentProject?.coverage || 0;
         worksheet.getCell(`B${row}`).style = styles.numberCell;
         row++;
         row++; // Empty row
@@ -1335,45 +1344,45 @@ class ApplicationController extends BaseComponent {
         // Vendor costs data
         if (vendorCosts.length > 0) {
             vendorCosts.forEach((cost, index) => {
-                const finalCost = cost.finalMDs ? (cost.finalMDs * cost.officialRate) : cost.cost;
-                
+                const finalCost = cost.finalMDs ? (cost.finalMDs * cost.officialRate) : cost.totCost;
+
                 // Alternate row colors
-                const rowStyle = index % 2 === 0 ? 
+                const rowStyle = index % 2 === 0 ?
                     { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9F9F9' } } } : {};
-                
-                worksheet.getCell(row, 1).value = cost.vendor || '';
+
+                worksheet.getCell(row, 1).value = cost.vendorName || '';
                 worksheet.getCell(row, 1).style = { ...styles.dataCell, ...rowStyle };
-                
+
                 worksheet.getCell(row, 2).value = cost.role || '';
                 worksheet.getCell(row, 2).style = { ...styles.dataCell, ...rowStyle };
-                
+
                 worksheet.getCell(row, 3).value = cost.department || '';
                 worksheet.getCell(row, 3).style = { ...styles.dataCell, ...rowStyle };
-                
-                worksheet.getCell(row, 4).value = cost.manDays || 0;
+
+                worksheet.getCell(row, 4).value = cost.estimatedMDs || 0;
                 worksheet.getCell(row, 4).style = { ...styles.numberCell, ...rowStyle };
-                
+
                 worksheet.getCell(row, 5).value = cost.officialRate || 0;
                 worksheet.getCell(row, 5).style = { ...styles.currencyCell, ...rowStyle };
-                
-                worksheet.getCell(row, 6).value = cost.cost || 0;
+
+                worksheet.getCell(row, 6).value = cost.totCost || 0;
                 worksheet.getCell(row, 6).style = { ...styles.currencyCell, ...rowStyle };
-                
-                worksheet.getCell(row, 7).value = cost.finalMDs || cost.manDays || 0;
+
+                worksheet.getCell(row, 7).value = cost.finalMDs || cost.estimatedMDs || 0;
                 worksheet.getCell(row, 7).style = { ...styles.numberCell, ...rowStyle };
-                
+
                 worksheet.getCell(row, 8).value = finalCost || 0;
                 worksheet.getCell(row, 8).style = { ...styles.currencyCell, ...rowStyle };
-                
+
                 row++;
             });
             
             // Totals row
-            const totalManDays = vendorCosts.reduce((sum, c) => sum + (c.manDays || 0), 0);
-            const totalCost = vendorCosts.reduce((sum, c) => sum + (c.cost || 0), 0);
-            const totalFinalMDs = vendorCosts.reduce((sum, c) => sum + (c.finalMDs || c.manDays || 0), 0);
+            const totalManDays = vendorCosts.reduce((sum, c) => sum + (c.estimatedMDs || 0), 0);
+            const totalCost = vendorCosts.reduce((sum, c) => sum + (c.totCost || 0), 0);
+            const totalFinalMDs = vendorCosts.reduce((sum, c) => sum + (c.finalMDs || c.estimatedMDs || 0), 0);
             const totalFinalCost = vendorCosts.reduce((sum, c) => {
-                const finalCost = c.finalMDs ? (c.finalMDs * c.officialRate) : c.cost;
+                const finalCost = c.finalMDs ? (c.finalMDs * c.officialRate) : c.totCost;
                 return sum + (finalCost || 0);
             }, 0);
             
@@ -1519,58 +1528,6 @@ class ApplicationController extends BaseComponent {
         worksheet.getCell(row, 2).value = (kpiData.totalExternalPercentage || 0) / 100;
         worksheet.getCell(row, 2).style = { ...percentageStyle, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEAA7' } } };
         row++;
-        row++; // Empty row
-
-        // Summary by Vendor Section
-        worksheet.mergeCells(`A${row}:H${row}`);
-        const summaryHeaderCell = worksheet.getCell(`A${row}`);
-        summaryHeaderCell.value = 'SUMMARY BY VENDOR';
-        summaryHeaderCell.style = styles.sectionHeader;
-        row++;
-
-        // Summary headers
-        ['Vendor', 'Total Man Days', 'Total Cost (€)'].forEach((header, index) => {
-            const cell = worksheet.getCell(row, index + 1);
-            cell.value = header;
-            cell.style = styles.tableHeader;
-        });
-        row++;
-
-        // Group costs by vendor
-        const vendorSummary = {};
-        vendorCosts.forEach(cost => {
-            if (!vendorSummary[cost.vendor]) {
-                vendorSummary[cost.vendor] = {
-                    manDays: 0,
-                    cost: 0
-                };
-            }
-            vendorSummary[cost.vendor].manDays += cost.finalMDs || cost.manDays || 0;
-            const finalCost = cost.finalMDs ? (cost.finalMDs * cost.officialRate) : cost.cost;
-            vendorSummary[cost.vendor].cost += finalCost || 0;
-        });
-
-        // Add vendor summary rows
-        Object.entries(vendorSummary).forEach(([vendor, summary]) => {
-            worksheet.getCell(row, 1).value = vendor;
-            worksheet.getCell(row, 1).style = styles.dataCell;
-            worksheet.getCell(row, 2).value = summary.manDays;
-            worksheet.getCell(row, 2).style = styles.numberCell;
-            worksheet.getCell(row, 3).value = summary.cost;
-            worksheet.getCell(row, 3).style = styles.currencyCell;
-            row++;
-        });
-
-        // Grand total
-        const grandTotalMDs = Object.values(vendorSummary).reduce((sum, s) => sum + s.manDays, 0);
-        const grandTotalCost = Object.values(vendorSummary).reduce((sum, s) => sum + s.cost, 0);
-        
-        worksheet.getCell(row, 1).value = 'GRAND TOTAL';
-        worksheet.getCell(row, 1).style = { ...styles.totalRow, font: { bold: true, size: 12 } };
-        worksheet.getCell(row, 2).value = grandTotalMDs;
-        worksheet.getCell(row, 2).style = { ...styles.numberCell, ...styles.totalRow };
-        worksheet.getCell(row, 3).value = grandTotalCost;
-        worksheet.getCell(row, 3).style = { ...styles.currencyCell, ...styles.totalRow, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } } };
 
         // Set column widths
         worksheet.columns = [
@@ -1594,8 +1551,10 @@ class ApplicationController extends BaseComponent {
             views: [{ state: 'frozen', ySplit: 1 }]
         });
 
-        const features = this.currentProject?.features || [];
-        const projectConfig = this.currentProject?.configuration;
+        // Get current project from store to ensure fresh data
+        const currentProject = StateSelectors.getCurrentProject();
+        const features = currentProject?.features || [];
+        const projectConfig = currentProject?.config;
         
         // Lookup functions for converting IDs to readable names/descriptions
         const lookupCategoryName = (categoryId) => {
@@ -1672,8 +1631,8 @@ class ApplicationController extends BaseComponent {
             row.getCell(4).value = lookupFeatureTypeDescription(feature.category, feature.featureType); // Feature type description
             row.getCell(5).value = lookupSupplierName(feature.supplier); // Supplier name instead of ID
             row.getCell(6).value = feature.realManDays || 0;
-            row.getCell(7).value = feature.expertise || 100;
-            row.getCell(8).value = feature.riskMargin || 10;
+            row.getCell(7).value = feature.expertise ?? 100;
+            row.getCell(8).value = feature.riskMargin ?? 10; // Use nullish coalescing to handle 0 correctly
             row.getCell(9).value = feature.manDays || 0;
             row.getCell(10).value = feature.notes || '';
             

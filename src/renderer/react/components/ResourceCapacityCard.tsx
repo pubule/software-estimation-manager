@@ -7,6 +7,7 @@
 
 import React from 'react';
 import type { ResourceOverviewMember } from '../hooks/useResourceOverview';
+import '../../styles/capacity-modern.css';
 
 interface ResourceCapacityCardProps {
     member: ResourceOverviewMember;
@@ -19,141 +20,87 @@ export const ResourceCapacityCard: React.FC<ResourceCapacityCardProps> = ({ memb
     const progressWidth = Math.min(member.utilization, 100);
     const overflowWidth = Math.max(0, member.utilization - 100);
 
+    // Determine status class
+    const statusClass = member.status.replace('-', ' ');
+
     return (
         <div
             onClick={() => onClick?.(member)}
-            style={{
-                backgroundColor: '#252526',
-                border: `2px solid ${member.statusColor}`,
-                borderRadius: '8px',
-                padding: '16px',
-                marginBottom: '12px',
-                cursor: onClick ? 'pointer' : 'default',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-            }}
-            onMouseEnter={(e) => {
-                if (onClick) {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
-                }
-            }}
-            onMouseLeave={(e) => {
-                if (onClick) {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-                }
-            }}
+            className={`capacity-modern-resource-card status-${member.status}`}
+            style={{ cursor: onClick ? 'pointer' : 'default' }}
         >
             {/* Header: Name and Status Badge */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div className="capacity-modern-resource-header">
                 <div>
-                    <h3 style={{ margin: '0 0 4px 0', color: '#d4d4d4', fontSize: '16px', fontWeight: '600' }}>
+                    <h3 className="capacity-modern-resource-name">
                         {member.fullName}
                     </h3>
-                    <p style={{ margin: 0, color: '#858585', fontSize: '13px' }}>
+                    <p className="capacity-modern-resource-meta">
                         {member.role} • {member.vendorName}
                     </p>
                 </div>
 
-                <div
-                    style={{
-                        backgroundColor: member.statusColor,
-                        color: '#1e1e1e',
-                        padding: '4px 12px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        textTransform: 'capitalize'
-                    }}
-                >
-                    {member.status.replace('-', ' ')}
+                <div className={`capacity-modern-status-badge status-${member.status}`}>
+                    {statusClass}
                 </div>
             </div>
 
             {/* Utilization Progress Bar */}
-            <div style={{ marginBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '12px', color: '#858585' }}>Utilization</span>
-                    <span style={{
-                        fontSize: '13px',
-                        color: member.isOverallocated ? '#f48771' : '#d4d4d4',
-                        fontWeight: '600'
-                    }}>
+            <div className="capacity-modern-utilization-bar-container">
+                <div className="capacity-modern-utilization-header">
+                    <span className="capacity-modern-utilization-label">Utilization</span>
+                    <span className={`capacity-modern-utilization-value ${member.isOverallocated ? 'over-allocated' : ''}`}>
                         {member.utilization.toFixed(1)}%
                     </span>
                 </div>
 
-                <div style={{
-                    width: '100%',
-                    height: '8px',
-                    backgroundColor: '#3c3c3c',
-                    borderRadius: '4px',
-                    overflow: 'hidden',
-                    position: 'relative'
-                }}>
+                <div className="capacity-modern-utilization-bar">
                     {/* Main progress */}
                     <div
-                        style={{
-                            width: `${progressWidth}%`,
-                            height: '100%',
-                            backgroundColor: member.statusColor,
-                            transition: 'width 0.3s ease'
-                        }}
+                        className={`capacity-modern-utilization-progress status-${member.status}`}
+                        style={{ width: `${progressWidth}%` }}
                     />
 
                     {/* Overflow indicator */}
                     {overflowWidth > 0 && (
                         <div
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: '100%',
-                                width: `${Math.min(overflowWidth, 50)}%`,
-                                height: '100%',
-                                backgroundColor: '#f48771',
-                                opacity: 0.7
-                            }}
+                            className="capacity-modern-utilization-overflow"
+                            style={{ width: `${Math.min(overflowWidth, 50)}%` }}
                         />
                     )}
                 </div>
             </div>
 
             {/* Capacity Details Grid */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '8px',
-                fontSize: '12px'
-            }}>
-                <div>
-                    <div style={{ color: '#858585', marginBottom: '2px' }}>Monthly Capacity</div>
-                    <div style={{ color: '#d4d4d4', fontWeight: '600' }}>{member.monthlyCapacity} MD</div>
+            <div className="capacity-modern-capacity-grid">
+                <div className="capacity-modern-capacity-item">
+                    <span className="capacity-modern-capacity-label">Monthly Capacity</span>
+                    <span className="capacity-modern-capacity-value">{member.monthlyCapacity} MD</span>
                 </div>
 
-                <div>
-                    <div style={{ color: '#858585', marginBottom: '2px' }}>Working Days</div>
-                    <div style={{ color: '#d4d4d4', fontWeight: '600' }}>{member.baseWorkingDays} days</div>
+                <div className="capacity-modern-capacity-item">
+                    <span className="capacity-modern-capacity-label">Working Days</span>
+                    <span className="capacity-modern-capacity-value">{member.baseWorkingDays} days</span>
                 </div>
 
-                <div>
-                    <div style={{ color: '#858585', marginBottom: '2px' }}>Allocated</div>
-                    <div style={{ color: member.isOverallocated ? '#f48771' : '#d4d4d4', fontWeight: '600' }}>
+                <div className="capacity-modern-capacity-item">
+                    <span className="capacity-modern-capacity-label">Allocated</span>
+                    <span className={`capacity-modern-capacity-value ${member.isOverallocated ? 'allocated' : ''}`}>
                         {member.existingAllocations} MD
-                    </div>
+                    </span>
                 </div>
 
-                <div>
-                    <div style={{ color: '#858585', marginBottom: '2px' }}>Available</div>
-                    <div style={{ color: member.availableCapacity > 0 ? '#4ec9b0' : '#858585', fontWeight: '600' }}>
+                <div className="capacity-modern-capacity-item">
+                    <span className="capacity-modern-capacity-label">Available</span>
+                    <span className={`capacity-modern-capacity-value ${member.availableCapacity > 0 ? 'available' : ''}`}>
                         {member.availableCapacity} MD
-                    </div>
+                    </span>
                 </div>
 
                 {member.vacationDays > 0 && (
-                    <div style={{ gridColumn: 'span 2' }}>
-                        <div style={{ color: '#858585', marginBottom: '2px' }}>Vacation Days</div>
-                        <div style={{ color: '#dcdcaa', fontWeight: '600' }}>{member.vacationDays} days</div>
+                    <div className="capacity-modern-capacity-item" style={{ gridColumn: 'span 2' }}>
+                        <span className="capacity-modern-capacity-label">Vacation Days</span>
+                        <span className="capacity-modern-capacity-value vacation">{member.vacationDays} days</span>
                     </div>
                 )}
             </div>
@@ -165,27 +112,9 @@ export const ResourceCapacityCard: React.FC<ResourceCapacityCardProps> = ({ memb
                         e.stopPropagation(); // Don't trigger card click
                         onAllocateClick(member);
                     }}
-                    style={{
-                        marginTop: '12px',
-                        width: '100%',
-                        backgroundColor: '#0e639c',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '8px 16px',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#1177bb';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#0e639c';
-                    }}
+                    className="capacity-modern-allocate-btn"
                 >
-                    📋 Allocate Project
+                    <i className="fas fa-clipboard-list"></i> Allocate Project
                 </button>
             )}
         </div>

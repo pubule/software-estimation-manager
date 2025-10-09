@@ -9,6 +9,7 @@
 
 import React from 'react';
 import type { TimelineMonth, TimelineFilters } from '../hooks/useCapacityTimeline';
+import '../../styles/capacity-modern.css';
 
 interface TimelineHeaderProps {
     months: TimelineMonth[];
@@ -31,85 +32,48 @@ export const TimelineHeader: React.FC<TimelineHeaderProps> = ({
     onFilterChange,
     onRefresh
 }) => {
-    const buttonStyle: React.CSSProperties = {
-        backgroundColor: '#0e639c',
-        color: 'white',
-        border: 'none',
-        borderRadius: '4px',
-        padding: '8px 16px',
-        fontSize: '14px',
-        cursor: 'pointer',
-        fontWeight: '600'
-    };
-
-    const selectStyle: React.CSSProperties = {
-        backgroundColor: '#3c3c3c',
-        color: '#d4d4d4',
-        border: '1px solid #555',
-        borderRadius: '4px',
-        padding: '6px 10px',
-        fontSize: '13px',
-        cursor: 'pointer',
-        outline: 'none'
-    };
-
     return (
-        <div style={{ marginBottom: '16px' }}>
+        <div className="capacity-modern-timeline-header">
             {/* Controls Bar */}
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '16px',
-                gap: '12px',
-                flexWrap: 'wrap'
-            }}>
+            <div className="capacity-modern-controls-bar">
                 {/* Navigation Controls */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div className="capacity-modern-nav-buttons">
                     <button
                         onClick={() => onNavigate('prev')}
-                        style={buttonStyle}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1177bb'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0e639c'}
+                        className="capacity-modern-btn capacity-modern-btn-primary"
                     >
-                        ◀ Previous
+                        <i className="fas fa-chevron-left"></i> Previous
                     </button>
 
                     <button
                         onClick={onResetToToday}
-                        style={{ ...buttonStyle, backgroundColor: '#3c3c3c' }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4c4c4c'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3c3c3c'}
+                        className="capacity-modern-btn capacity-modern-btn-secondary"
                     >
-                        Today
+                        <i className="fas fa-calendar-day"></i> Today
                     </button>
 
                     <button
                         onClick={() => onNavigate('next')}
-                        style={buttonStyle}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1177bb'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0e639c'}
+                        className="capacity-modern-btn capacity-modern-btn-primary"
                     >
-                        Next ▶
+                        Next <i className="fas fa-chevron-right"></i>
                     </button>
 
                     {onRefresh && (
                         <button
                             onClick={onRefresh}
-                            style={{ ...buttonStyle, backgroundColor: '#3c3c3c' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4c4c4c'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3c3c3c'}
+                            className="capacity-modern-btn capacity-modern-btn-secondary"
                         >
-                            🔄 Refresh
+                            <i className="fas fa-sync-alt"></i> Refresh
                         </button>
                     )}
                 </div>
 
                 {/* Filters */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className="capacity-modern-filters-group">
                     {/* Vendor Filter */}
                     <select
-                        style={selectStyle}
+                        className="capacity-modern-filter-select"
                         value={filters.vendor || ''}
                         onChange={(e) => onFilterChange({ vendor: e.target.value || undefined })}
                     >
@@ -121,7 +85,7 @@ export const TimelineHeader: React.FC<TimelineHeaderProps> = ({
 
                     {/* Role Filter */}
                     <select
-                        style={selectStyle}
+                        className="capacity-modern-filter-select"
                         value={filters.role || ''}
                         onChange={(e) => onFilterChange({ role: e.target.value || undefined })}
                     >
@@ -133,7 +97,7 @@ export const TimelineHeader: React.FC<TimelineHeaderProps> = ({
 
                     {/* Status Filter */}
                     <select
-                        style={selectStyle}
+                        className="capacity-modern-filter-select"
                         value={filters.status || 'all'}
                         onChange={(e) => onFilterChange({ status: e.target.value as any })}
                     >
@@ -144,19 +108,11 @@ export const TimelineHeader: React.FC<TimelineHeaderProps> = ({
                     </select>
 
                     {/* Show Only Allocated */}
-                    <label style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '13px',
-                        color: '#d4d4d4',
-                        cursor: 'pointer'
-                    }}>
+                    <label className="capacity-modern-checkbox-label">
                         <input
                             type="checkbox"
                             checked={filters.showOnlyAllocated || false}
                             onChange={(e) => onFilterChange({ showOnlyAllocated: e.target.checked })}
-                            style={{ cursor: 'pointer' }}
                         />
                         Only Allocated
                     </label>
@@ -164,56 +120,16 @@ export const TimelineHeader: React.FC<TimelineHeaderProps> = ({
             </div>
 
             {/* Timeline Grid Header */}
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: '250px 1fr',
-                    backgroundColor: '#2d2d30',
-                    borderBottom: '2px solid #007acc',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 10
-                }}
-            >
+            <div className="capacity-modern-grid-header">
                 {/* Member Column Header */}
-                <div
-                    style={{
-                        padding: '12px 16px',
-                        borderRight: '1px solid #3c3c3c',
-                        fontWeight: '700',
-                        fontSize: '13px',
-                        color: '#d4d4d4',
-                        display: 'flex',
-                        alignItems: 'center'
-                    }}
-                >
+                <div className="capacity-modern-grid-header-cell capacity-modern-grid-header-member">
                     Team Member
                 </div>
 
                 {/* Month Headers */}
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(${months.length}, 1fr)`,
-                        gap: '0'
-                    }}
-                >
+                <div className="capacity-modern-grid-header-months">
                     {months.map(({ month, label }) => (
-                        <div
-                            key={month}
-                            style={{
-                                padding: '12px 8px',
-                                border: '1px solid #3c3c3c',
-                                borderTop: 'none',
-                                textAlign: 'center',
-                                fontWeight: '600',
-                                fontSize: '12px',
-                                color: '#d4d4d4',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
-                            }}
-                        >
+                        <div key={month} className="capacity-modern-grid-header-month">
                             {label}
                         </div>
                     ))}

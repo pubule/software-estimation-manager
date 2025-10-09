@@ -5,25 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Capacity Planning - Software Estimation Manager</title>
     <link rel="stylesheet" href="styles/capacity.css">
+    <link rel="stylesheet" href="styles/capacity-modern.css">
+    <!-- Font Awesome for modern icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <!-- Capacity Planning Section -->
-    <section id="capacity-section" class="main-section">
+    <section id="capacity-section" class="capacity-modern-section">
+
+        <!-- Modern Header -->
+        <div class="capacity-modern-header">
+            <h2><i class="fas fa-users-cog"></i> Resource Capacity Planning</h2>
+            <p class="capacity-modern-description">
+                Manage team member allocations, track capacity utilization, and plan resource distribution across projects with real-time overflow detection.
+            </p>
+        </div>
 
         <!-- Statistics and Alerts Panel -->
-        <div class="stats-panel">
-            <div class="panel-header">
-                <h2>📊 Resource Capacity Overview</h2>
-                <div class="overview-filters">
-                    <div class="filter-group">
+        <div class="capacity-modern-card">
+            <div class="card-header">
+                <h3><i class="fas fa-chart-line"></i> Capacity Overview</h3>
+                <div class="card-actions">
+                    <div class="capacity-modern-filter-group">
                         <label for="overview-member-filter">Member:</label>
-                        <select id="overview-member-filter" class="filter-select">
+                        <select id="overview-member-filter" class="capacity-modern-filter-select">
                             <option value="">All Members</option>
                         </select>
                     </div>
-                    <div class="filter-group">
+                    <div class="capacity-modern-filter-group">
                         <label for="overview-status-filter">Status View:</label>
-                        <select id="overview-status-filter" class="filter-select">
+                        <select id="overview-status-filter" class="capacity-modern-filter-select">
                             <option value="all">All Status (Forecast)</option>
                             <option value="approved">Approved Only</option>
                             <option value="pending">Pending Only</option>
@@ -31,55 +42,62 @@
                     </div>
                 </div>
             </div>
-            <div class="capacity-overview-grid" id="capacity-overview-grid">
-                <!-- Dynamic capacity overview will be generated here -->
+            <div class="card-content">
+                <div class="capacity-modern-overview-grid" id="capacity-overview-grid">
+                    <!-- Dynamic capacity overview will be generated here -->
+                    <div class="capacity-modern-empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>No Capacity Data</h3>
+                        <p>Start by adding team members and project assignments to see capacity overview.</p>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Capacity Planning Table -->
-        <div class="capacity-table-container">
-            <div class="capacity-table-header">
-                <h2>📊 Capacity Planning Timeline</h2>
-                <div class="table-actions">
-                    <button id="add-assignment-btn" class="btn-primary">
-                        ➕ Add Assignment
+        <div class="capacity-modern-card">
+            <div class="card-header">
+                <h3><i class="fas fa-table"></i> Capacity Planning Timeline</h3>
+                <div class="card-actions">
+                    <button id="add-assignment-btn" class="capacity-modern-btn capacity-modern-btn-primary">
+                        <i class="fas fa-plus"></i> Add Assignment
                     </button>
-                    <button id="export-table-btn" class="btn-secondary">
-                        📊 Export Table
+                    <button id="export-table-btn" class="capacity-modern-btn capacity-modern-btn-secondary">
+                        <i class="fas fa-file-export"></i> Export Table
                     </button>
                 </div>
             </div>
-            
+
             <!-- Table Filters -->
-            <div class="capacity-filters">
-                <div class="filter-group">
+            <div class="capacity-modern-filters-section">
+                <div class="capacity-modern-filter-group">
                     <label for="team-filter">Team:</label>
-                    <select id="team-filter" class="filter-select">
+                    <select id="team-filter" class="capacity-modern-filter-select">
                         <option value="">All Teams</option>
                         <option value="vendor-a">Vendor A</option>
                         <option value="internal">Internal Resources</option>
                     </select>
                 </div>
-                <div class="filter-group">
+                <div class="capacity-modern-filter-group">
                     <label for="projects-filter">Projects:</label>
-                    <select id="projects-filter" class="filter-select">
+                    <select id="projects-filter" class="capacity-modern-filter-select">
                         <option value="">All Projects</option>
                         <option value="customer-portal">Customer Portal</option>
                         <option value="mobile-app">Mobile App</option>
                         <option value="api-gateway">API Gateway</option>
                     </select>
                 </div>
-                <div class="filter-group">
+                <div class="capacity-modern-filter-group">
                     <label for="timeline-range">Timeline:</label>
-                    <select id="timeline-range" class="filter-select">
+                    <select id="timeline-range" class="capacity-modern-filter-select">
                         <option value="15">15 months</option>
                         <option value="12">12 months</option>
                         <option value="6">6 months</option>
                     </select>
                 </div>
-                <div class="filter-group">
+                <div class="capacity-modern-filter-group">
                     <label for="status-filter">Status:</label>
-                    <select id="status-filter" class="filter-select">
+                    <select id="status-filter" class="capacity-modern-filter-select">
                         <option value="all">All Statuses</option>
                         <option value="approved">Approved</option>
                         <option value="pending">Pending</option>
@@ -87,31 +105,31 @@
                     </select>
                 </div>
             </div>
-            
-            <div class="scrollable-table-wrapper">
-                <table id="capacity-table" class="capacity-planning-table">
+
+            <div class="capacity-modern-table-wrapper">
+                <table id="capacity-table" class="capacity-modern-table">
                     <thead>
                         <tr>
                             <!-- Fixed columns -->
-                            <th class="fixed-col col-member">Team Member</th>
-                            <th class="fixed-col col-project">Project</th>
-                            <th class="fixed-col col-status">Status</th>
+                            <th class="capacity-modern-fixed-col capacity-modern-col-member">Team Member</th>
+                            <th class="capacity-modern-fixed-col capacity-modern-col-project">Project</th>
+                            <th class="capacity-modern-fixed-col capacity-modern-col-status">Status</th>
                             <!-- Scrollable month columns - All current year months + 3 next year months -->
-                            <th class="month-col" data-month="2024-01">Jan 24</th>
-                            <th class="month-col" data-month="2024-02">Feb 24</th>
-                            <th class="month-col" data-month="2024-03">Mar 24</th>
-                            <th class="month-col" data-month="2024-04">Apr 24</th>
-                            <th class="month-col" data-month="2024-05">May 24</th>
-                            <th class="month-col" data-month="2024-06">Jun 24</th>
-                            <th class="month-col" data-month="2024-07">Jul 24</th>
-                            <th class="month-col" data-month="2024-08">Aug 24</th>
-                            <th class="month-col" data-month="2024-09">Sep 24</th>
-                            <th class="month-col" data-month="2024-10">Oct 24</th>
-                            <th class="month-col" data-month="2024-11">Nov 24</th>
-                            <th class="month-col" data-month="2024-12">Dec 24</th>
-                            <th class="month-col" data-month="2025-01">Jan 25</th>
-                            <th class="month-col" data-month="2025-02">Feb 25</th>
-                            <th class="month-col" data-month="2025-03">Mar 25</th>
+                            <th class="capacity-modern-month-col" data-month="2024-01">Jan 24</th>
+                            <th class="capacity-modern-month-col" data-month="2024-02">Feb 24</th>
+                            <th class="capacity-modern-month-col" data-month="2024-03">Mar 24</th>
+                            <th class="capacity-modern-month-col" data-month="2024-04">Apr 24</th>
+                            <th class="capacity-modern-month-col" data-month="2024-05">May 24</th>
+                            <th class="capacity-modern-month-col" data-month="2024-06">Jun 24</th>
+                            <th class="capacity-modern-month-col" data-month="2024-07">Jul 24</th>
+                            <th class="capacity-modern-month-col" data-month="2024-08">Aug 24</th>
+                            <th class="capacity-modern-month-col" data-month="2024-09">Sep 24</th>
+                            <th class="capacity-modern-month-col" data-month="2024-10">Oct 24</th>
+                            <th class="capacity-modern-month-col" data-month="2024-11">Nov 24</th>
+                            <th class="capacity-modern-month-col" data-month="2024-12">Dec 24</th>
+                            <th class="capacity-modern-month-col" data-month="2025-01">Jan 25</th>
+                            <th class="capacity-modern-month-col" data-month="2025-02">Feb 25</th>
+                            <th class="capacity-modern-month-col" data-month="2025-03">Mar 25</th>
                         </tr>
                     </thead>
                     <tbody id="capacity-table-body">
@@ -124,25 +142,25 @@
     </section>
 
     <!-- Modals -->
-    
+
     <!-- Add/Edit Team Member Modal -->
-    <div id="team-member-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="team-member-modal-title">Add Team Member</h2>
-                <button class="modal-close" onclick="closeTeamMemberModal()">×</button>
+    <div id="team-member-modal" class="capacity-modern-modal">
+        <div class="capacity-modern-modal-content">
+            <div class="capacity-modern-modal-header">
+                <h2 id="team-member-modal-title"><i class="fas fa-user-plus"></i> Add Team Member</h2>
+                <button class="capacity-modern-modal-close" onclick="closeTeamMemberModal()">×</button>
             </div>
-            <div class="modal-body">
+            <div class="capacity-modern-modal-body">
                 <form id="team-member-form">
-                    <div class="form-group">
+                    <div class="capacity-modern-form-group">
                         <label for="tm-first-name">First Name:</label>
                         <input type="text" id="tm-first-name" name="firstName" required>
                     </div>
-                    <div class="form-group">
+                    <div class="capacity-modern-form-group">
                         <label for="tm-last-name">Last Name:</label>
                         <input type="text" id="tm-last-name" name="lastName" required>
                     </div>
-                    <div class="form-group">
+                    <div class="capacity-modern-form-group">
                         <label for="tm-vendor">Vendor:</label>
                         <select id="tm-vendor" name="vendor" required>
                             <option value="">Select vendor...</option>
@@ -150,7 +168,7 @@
                             <option value="internal">Internal Resources</option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="capacity-modern-form-group">
                         <label for="tm-role">Role:</label>
                         <select id="tm-role" name="role">
                             <option value="G2">G2</option>
@@ -159,44 +177,50 @@
                             <option value="TA">TA</option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="capacity-modern-form-group">
                         <label for="tm-capacity">Monthly Capacity (working days):</label>
                         <input type="number" id="tm-capacity" name="monthlyCapacity" value="22" min="1" max="31">
                     </div>
-                    
-                    <div class="vacation-planning-section">
-                        <h3>🏖️ Vacation Planning</h3>
-                        <div class="vacation-years">
-                            <div class="vacation-year">
+
+                    <div class="capacity-modern-section-divider">
+                        <h3><i class="fas fa-umbrella-beach"></i> Vacation Planning</h3>
+                        <div class="capacity-modern-vacation-years">
+                            <div class="capacity-modern-vacation-year">
                                 <label>2024: <input type="number" id="tm-vacation-2024" min="0" max="50" value="25"> days</label>
-                                <button type="button" class="btn-secondary" onclick="editVacationCalendar(2024)">📅 Edit Calendar</button>
+                                <button type="button" class="capacity-modern-btn capacity-modern-btn-secondary" onclick="editVacationCalendar(2024)">
+                                    <i class="fas fa-calendar-alt"></i> Edit Calendar
+                                </button>
                             </div>
-                            <div class="vacation-year">
+                            <div class="capacity-modern-vacation-year">
                                 <label>2025: <input type="number" id="tm-vacation-2025" min="0" max="50" value="25"> days</label>
-                                <button type="button" class="btn-secondary" onclick="editVacationCalendar(2025)">📅 Edit Calendar</button>
+                                <button type="button" class="capacity-modern-btn capacity-modern-btn-secondary" onclick="editVacationCalendar(2025)">
+                                    <i class="fas fa-calendar-alt"></i> Edit Calendar
+                                </button>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-secondary" onclick="closeTeamMemberModal()">Cancel</button>
-                <button type="submit" class="btn-primary" onclick="saveTeamMember()">Save Member</button>
+            <div class="capacity-modern-modal-footer">
+                <button type="button" class="capacity-modern-btn capacity-modern-btn-secondary" onclick="closeTeamMemberModal()">Cancel</button>
+                <button type="submit" class="capacity-modern-btn capacity-modern-btn-primary" onclick="saveTeamMember()">
+                    <i class="fas fa-save"></i> Save Member
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Project Assignment Modal -->
-    <div id="assignment-modal" class="modal">
-        <div class="modal-content large">
-            <div class="modal-header">
-                <h2 id="assignment-modal-title">New Project Assignment</h2>
-                <button class="modal-close" onclick="closeAssignmentModal()">×</button>
+    <div id="assignment-modal" class="capacity-modern-modal">
+        <div class="capacity-modern-modal-content capacity-modern-modal-large">
+            <div class="capacity-modern-modal-header">
+                <h2 id="assignment-modal-title"><i class="fas fa-tasks"></i> New Project Assignment</h2>
+                <button class="capacity-modern-modal-close" onclick="closeAssignmentModal()">×</button>
             </div>
-            <div class="modal-body">
+            <div class="capacity-modern-modal-body">
                 <form id="assignment-form">
-                    <div class="form-row">
-                        <div class="form-group">
+                    <div class="capacity-modern-form-row">
+                        <div class="capacity-modern-form-group">
                             <label for="pa-project">Project:</label>
                             <select id="pa-project" name="projectId" required>
                                 <option value="">Select project...</option>
@@ -205,7 +229,7 @@
                                 <option value="api-gateway">API Gateway Development</option>
                             </select>
                         </div>
-                        <div class="form-group">
+                        <div class="capacity-modern-form-group">
                             <label for="pa-team-member">Team Member:</label>
                             <select id="pa-team-member" name="teamMemberId" required>
                                 <option value="">Select team member...</option>
@@ -215,17 +239,17 @@
                             </select>
                         </div>
                     </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
+
+                    <div class="capacity-modern-form-row">
+                        <div class="capacity-modern-form-group">
                             <label for="pa-start-date">Start Date:</label>
                             <input type="date" id="pa-start-date" name="startDate" required>
                         </div>
-                        <div class="form-group">
+                        <div class="capacity-modern-form-group">
                             <label for="pa-end-date">End Date (auto-calculated):</label>
                             <input type="date" id="pa-end-date" name="endDate" readonly>
                         </div>
-                        <div class="form-group">
+                        <div class="capacity-modern-form-group">
                             <label for="pa-status">Status:</label>
                             <select id="pa-status" name="status">
                                 <option value="pending">Pending</option>
@@ -234,14 +258,14 @@
                         </div>
                     </div>
 
-                    <div class="project-calculation-section">
-                        <h3>📊 Project Calculation Data</h3>
-                        <div class="calculation-info">
-                            <div class="calc-item">
+                    <div class="capacity-modern-section-divider">
+                        <h3><i class="fas fa-chart-bar"></i> Project Calculation Data</h3>
+                        <div class="capacity-modern-calculation-info">
+                            <div class="capacity-modern-calc-item">
                                 <label>Total MDs from calculations:</label>
-                                <span id="pa-total-mds" class="calc-value">120</span>
+                                <span id="pa-total-mds" class="capacity-modern-calc-value">120</span>
                             </div>
-                            <div class="calc-breakdown">
+                            <div class="capacity-modern-calc-breakdown">
                                 <span>Development: 80 MDs</span>
                                 <span>UAT: 25 MDs</span>
                                 <span>Other: 15 MDs</span>
@@ -249,58 +273,62 @@
                         </div>
                     </div>
 
-                    <div class="monthly-allocation-section">
-                        <h3>📅 Monthly Allocation (Auto-Distributed)</h3>
-                        <div class="allocation-grid">
-                            <div class="allocation-month">
+                    <div class="capacity-modern-section-divider">
+                        <h3><i class="fas fa-calendar-check"></i> Monthly Allocation (Auto-Distributed)</h3>
+                        <div class="capacity-modern-allocation-grid">
+                            <div class="capacity-modern-allocation-month">
                                 <label>Feb 2024:</label>
-                                <input type="number" class="allocation-input" value="20" min="0">
-                                <span class="capacity-indicator available">✅</span>
+                                <input type="number" class="capacity-modern-allocation-input" value="20" min="0">
+                                <span class="capacity-modern-indicator capacity-modern-available"><i class="fas fa-check-circle"></i></span>
                             </div>
-                            <div class="allocation-month">
+                            <div class="capacity-modern-allocation-month">
                                 <label>Mar 2024:</label>
-                                <input type="number" class="allocation-input" value="22" min="0">
-                                <span class="capacity-indicator available">✅</span>
+                                <input type="number" class="capacity-modern-allocation-input" value="22" min="0">
+                                <span class="capacity-modern-indicator capacity-modern-available"><i class="fas fa-check-circle"></i></span>
                             </div>
-                            <div class="allocation-month">
+                            <div class="capacity-modern-allocation-month">
                                 <label>Apr 2024:</label>
-                                <input type="number" class="allocation-input" value="18" min="0">
-                                <span class="capacity-indicator available">✅</span>
+                                <input type="number" class="capacity-modern-allocation-input" value="18" min="0">
+                                <span class="capacity-modern-indicator capacity-modern-available"><i class="fas fa-check-circle"></i></span>
                             </div>
-                            <div class="allocation-month">
+                            <div class="capacity-modern-allocation-month">
                                 <label>May 2024:</label>
-                                <input type="number" class="allocation-input overflow" value="25" min="0">
-                                <span class="capacity-indicator overflow">⚠️</span>
+                                <input type="number" class="capacity-modern-allocation-input capacity-modern-overflow" value="25" min="0">
+                                <span class="capacity-modern-indicator capacity-modern-overflow"><i class="fas fa-exclamation-triangle"></i></span>
                             </div>
-                            <div class="allocation-month">
+                            <div class="capacity-modern-allocation-month">
                                 <label>Jun 2024:</label>
-                                <input type="number" class="allocation-input" value="22" min="0">
-                                <span class="capacity-indicator available">✅</span>
+                                <input type="number" class="capacity-modern-allocation-input" value="22" min="0">
+                                <span class="capacity-modern-indicator capacity-modern-available"><i class="fas fa-check-circle"></i></span>
                             </div>
-                            <div class="allocation-month">
+                            <div class="capacity-modern-allocation-month">
                                 <label>Jul 2024:</label>
-                                <input type="number" class="allocation-input" value="13" min="0">
-                                <span class="capacity-indicator vacation">🏖️</span>
+                                <input type="number" class="capacity-modern-allocation-input" value="13" min="0">
+                                <span class="capacity-modern-indicator capacity-modern-vacation"><i class="fas fa-umbrella-beach"></i></span>
                             </div>
                         </div>
-                        <div class="auto-redistribute-section">
-                            <button type="button" class="btn-secondary" onclick="autoRedistribute()">🔄 Auto-Redistribute</button>
-                            <span class="redistribute-info">Automatically redistribute MDs to avoid overflow</span>
+                        <div class="capacity-modern-auto-redistribute">
+                            <button type="button" class="capacity-modern-btn capacity-modern-btn-secondary" onclick="autoRedistribute()">
+                                <i class="fas fa-sync-alt"></i> Auto-Redistribute
+                            </button>
+                            <span class="capacity-modern-redistribute-info">Automatically redistribute MDs to avoid overflow</span>
                         </div>
                     </div>
 
-                    <div class="overflow-alerts-section" id="assignment-overflow-alerts">
-                        <h3>⚠️ Overflow Alerts</h3>
-                        <div class="alert-item overflow">
-                            <span class="alert-icon">⚠️</span>
-                            <span class="alert-text">May 2024: Capacity exceeded by 3 MDs</span>
+                    <div class="capacity-modern-alerts-section" id="assignment-overflow-alerts">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Overflow Alerts</h3>
+                        <div class="capacity-modern-alert capacity-modern-alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>May 2024: Capacity exceeded by 3 MDs</span>
                         </div>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-secondary" onclick="closeAssignmentModal()">Cancel</button>
-                <button type="submit" class="btn-primary" onclick="saveAssignment()">Save Assignment</button>
+            <div class="capacity-modern-modal-footer">
+                <button type="button" class="capacity-modern-btn capacity-modern-btn-secondary" onclick="closeAssignmentModal()">Cancel</button>
+                <button type="submit" class="capacity-modern-btn capacity-modern-btn-primary" onclick="saveAssignment()">
+                    <i class="fas fa-save"></i> Save Assignment
+                </button>
             </div>
         </div>
     </div>
@@ -403,9 +431,9 @@
             // Look for existing row or create new one
             let memberRow = null;
             const rows = capacityTable.querySelectorAll('tbody tr');
-            
+
             rows.forEach(row => {
-                const memberCell = row.querySelector('.col-member');
+                const memberCell = row.querySelector('.capacity-modern-col-member');
                 if (memberCell && memberCell.textContent.includes(teamMemberId)) {
                     memberRow = row;
                 }
@@ -416,36 +444,36 @@
                 const tbody = capacityTable.querySelector('tbody') || capacityTable;
                 memberRow = document.createElement('tr');
                 memberRow.innerHTML = `
-                    <td class="fixed-col col-member">${teamMemberId}</td>
-                    <td class="fixed-col col-project">${projectName}</td>
-                    <td class="fixed-col col-status">${status}</td>
+                    <td class="capacity-modern-fixed-col capacity-modern-col-member">${teamMemberId}</td>
+                    <td class="capacity-modern-fixed-col capacity-modern-col-project">${projectName}</td>
+                    <td class="capacity-modern-fixed-col capacity-modern-col-status">${status}</td>
                 `;
-                
+
                 // Add month columns with distribution data
                 Object.keys(distribution).forEach(month => {
                     if (!['hasOverflow', 'overflowAmount', 'hasUnallocatedMDs', 'unallocatedAmount', 'error'].includes(month)) {
                         const allocation = distribution[month];
                         const monthCell = document.createElement('td');
-                        monthCell.className = 'month-col';
+                        monthCell.className = 'capacity-modern-month-col';
                         monthCell.dataset.month = month;
-                        
+
                         if (allocation && allocation.planned > 0) {
                             monthCell.innerHTML = `
-                                <div class="allocation-cell ${status}">
-                                    <span class="allocation-value">${allocation.planned}</span>
-                                    <div class="allocation-details">
+                                <div class="capacity-modern-allocation-cell capacity-modern-${status}">
+                                    <span class="capacity-modern-allocation-value">${allocation.planned}</span>
+                                    <div class="capacity-modern-allocation-details">
                                         <small>${projectName}</small>
                                     </div>
                                 </div>
                             `;
                         } else {
-                            monthCell.innerHTML = '<div class="allocation-cell empty">-</div>';
+                            monthCell.innerHTML = '<div class="capacity-modern-allocation-cell capacity-modern-empty">-</div>';
                         }
-                        
+
                         memberRow.appendChild(monthCell);
                     }
                 });
-                
+
                 tbody.appendChild(memberRow);
             }
         }

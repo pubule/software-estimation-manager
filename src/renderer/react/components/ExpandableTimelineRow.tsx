@@ -14,6 +14,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import TimelineMonthCell from './TimelineMonthCell';
 import type { TimelineMonth, TimelineMemberCapacity } from '../hooks/useCapacityTimeline';
+import '../../styles/capacity-modern.css';
 
 // Import Actions (available globally after build)
 declare const AllocationActions: any;
@@ -228,11 +229,11 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
         return totalUtilization / monthData.length;
     }, [member.monthlyData]);
 
-    // Get status color
-    const getRowStatusColor = () => {
-        if (averageUtilization > 100) return '#f48771'; // Red
-        if (averageUtilization >= 90) return '#dcdcaa'; // Yellow
-        return '#4ec9b0'; // Green
+    // Get status class
+    const getRowStatusClass = () => {
+        if (averageUtilization > 100) return 'over-allocated';
+        if (averageUtilization >= 90) return 'near-capacity';
+        return 'available';
     };
 
     // Toggle member expansion
@@ -491,129 +492,52 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
 
     // Render member row (always visible)
     const renderMemberRow = () => (
-        <div
-            style={{
-                display: 'grid',
-                gridTemplateColumns: '250px 1fr',
-                borderBottom: '1px solid #3c3c3c',
-                backgroundColor: '#252526'
-            }}
-        >
+        <div className="capacity-modern-member-row">
             {/* Member Info Column */}
             <div
-                style={{
-                    padding: '12px 16px',
-                    borderRight: '1px solid #3c3c3c',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s ease'
-                }}
+                className="capacity-modern-member-info"
                 onClick={toggleMemberExpansion}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#2d2d30';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                }}
             >
                 {/* Name with Chevron */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <div className="capacity-modern-member-header">
                     {/* Chevron */}
-                    <div style={{
-                        fontSize: '12px',
-                        color: '#858585',
-                        transition: 'transform 0.2s ease',
-                        transform: isMemberExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                        width: '16px'
-                    }}>
+                    <div className={`capacity-modern-member-chevron ${isMemberExpanded ? 'expanded' : ''}`}>
                         ▶
                     </div>
 
                     {/* Status Dot */}
-                    <div
-                        style={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '50%',
-                            backgroundColor: getRowStatusColor(),
-                            flexShrink: 0
-                        }}
-                    />
+                    <div className={`capacity-modern-member-status-dot ${getRowStatusClass()}`} />
 
-                    <div style={{
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#d4d4d4',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                    }}>
+                    <div className="capacity-modern-member-name">
                         {member.fullName}
                     </div>
                 </div>
 
                 {/* Role and Vendor */}
-                <div style={{
-                    fontSize: '12px',
-                    color: '#858585',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    marginLeft: '24px'
-                }}>
+                <div className="capacity-modern-member-role">
                     {member.role}
                 </div>
-                <div style={{
-                    fontSize: '11px',
-                    color: '#6a6a6a',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    marginLeft: '24px'
-                }}>
+                <div className="capacity-modern-member-vendor">
                     {member.vendorName}
                 </div>
 
                 {/* Average Utilization */}
-                <div style={{
-                    fontSize: '11px',
-                    color: getRowStatusColor(),
-                    marginTop: '4px',
-                    marginLeft: '24px',
-                    fontWeight: '600'
-                }}>
+                <div className={`capacity-modern-member-utilization ${getRowStatusClass()}`}>
                     Avg: {averageUtilization.toFixed(1)}%
                 </div>
             </div>
 
             {/* Month Cells */}
             <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: `repeat(${months.length}, 1fr)`,
-                    gap: '0'
-                }}
+                className="capacity-modern-month-cells-grid"
+                style={{ gridTemplateColumns: `repeat(${months.length}, 1fr)` }}
             >
                 {months.map(({ month, label }) => {
                     const monthData = member.monthlyData[month];
 
                     if (!monthData) {
                         return (
-                            <div
-                                key={month}
-                                style={{
-                                    border: '1px solid #3c3c3c',
-                                    minHeight: '50px',
-                                    backgroundColor: '#1e1e1e',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: '#6a6a6a',
-                                    fontSize: '11px'
-                                }}
-                            >
+                            <div key={month} className="capacity-modern-month-cell-empty">
                                 —
                             </div>
                         );
@@ -641,138 +565,52 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
         return (
             <div key={project.projectId}>
                 {/* Project Header Row */}
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: '250px 1fr',
-                        borderBottom: '1px solid #2d2d30',
-                        backgroundColor: '#1e1e1e'
-                    }}
-                >
+                <div className="capacity-modern-project-row">
                     {/* Project Info */}
                     <div
-                        style={{
-                            padding: '8px 16px 8px 40px',
-                            borderRight: '1px solid #2d2d30',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.2s ease'
-                        }}
+                        className="capacity-modern-project-info"
                         onClick={() => toggleProjectExpansion(project.projectId, project.allocationId)}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#252526';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
                     >
                         {/* Chevron for phases */}
                         {project.phaseAllocations && project.phaseAllocations.length > 0 && (
-                            <div style={{
-                                fontSize: '10px',
-                                color: '#858585',
-                                transition: 'transform 0.2s ease',
-                                transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                                width: '12px'
-                            }}>
+                            <div className={`capacity-modern-project-chevron ${isExpanded ? 'expanded' : ''}`}>
                                 ▶
                             </div>
                         )}
 
-                        <span style={{ fontSize: '12px' }}>📦</span>
-                        <span style={{
-                            fontSize: '12px',
-                            color: '#d4d4d4',
-                            fontWeight: '500',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            flex: 1
-                        }}>
+                        <i className="fas fa-box capacity-modern-project-icon"></i>
+                        <span className="capacity-modern-project-name">
                             {project.projectName}
                         </span>
 
                         {/* Action buttons - Edit and Delete */}
-                        <div
-                            style={{
-                                display: 'flex',
-                                gap: '6px',
-                                marginLeft: '8px',
-                                opacity: 0.4,
-                                transition: 'opacity 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.opacity = '1.0';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.opacity = '0.4';
-                            }}
-                        >
+                        <div className="capacity-modern-project-actions">
                             {/* Edit Button */}
                             <button
                                 onClick={(e) => handleEditAllocation(e, project)}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    padding: '2px 4px',
-                                    color: '#569cd6',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    transition: 'transform 0.2s ease',
-                                    lineHeight: 1
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1.2)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1.0)';
-                                }}
+                                className="capacity-modern-project-edit-btn"
                                 title="Edit allocation"
                                 aria-label="Edit allocation"
                             >
-                                ✏️
+                                <i className="fas fa-pen"></i>
                             </button>
 
                             {/* Delete Button */}
                             <button
                                 onClick={(e) => handleDeleteAllocation(e, project)}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    padding: '2px 4px',
-                                    color: '#f48771',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    transition: 'transform 0.2s ease',
-                                    lineHeight: 1
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1.2)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1.0)';
-                                }}
+                                className="capacity-modern-project-delete-btn"
                                 title="Delete allocation"
                                 aria-label="Delete allocation"
                             >
-                                🗑️
+                                <i className="fas fa-trash"></i>
                             </button>
                         </div>
                     </div>
 
                     {/* Project Month Cells */}
                     <div
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: `repeat(${months.length}, 1fr)`,
-                            gap: '0'
-                        }}
+                        className="capacity-modern-month-cells-grid"
+                        style={{ gridTemplateColumns: `repeat(${months.length}, 1fr)` }}
                     >
                         {months.map(({ month }) => {
                             const mds = project.monthlyAllocations[month]?.planned || 0;
@@ -780,16 +618,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                             return (
                                 <div
                                     key={month}
-                                    style={{
-                                        border: '1px solid #2d2d30',
-                                        minHeight: '40px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '11px',
-                                        color: mds > 0 ? '#d4d4d4' : '#6a6a6a',
-                                        fontWeight: mds > 0 ? '600' : '400'
-                                    }}
+                                    className={`capacity-modern-project-month-cell ${mds > 0 ? 'has-value' : 'no-value'}`}
                                 >
                                     {mds > 0 ? `${mds.toFixed(1)} MD` : '—'}
                                 </div>
@@ -813,44 +642,19 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
         const breakdown = getPhaseMonthlyBreakdown(project);
 
         return project.phaseAllocations!.map(phase => (
-            <div
-                key={phase.phaseId}
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: '250px 1fr',
-                    borderBottom: '1px solid #2d2d30',
-                    backgroundColor: '#1a1a1a'
-                }}
-            >
+            <div key={phase.phaseId} className="capacity-modern-phase-row">
                 {/* Phase Info */}
-                <div
-                    style={{
-                        padding: '6px 16px 6px 64px',
-                        borderRight: '1px solid #2d2d30',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                    }}
-                >
-                    <span style={{ fontSize: '11px', color: '#858585' }}>•</span>
-                    <span style={{
-                        fontSize: '11px',
-                        color: '#858585',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                    }}>
+                <div className="capacity-modern-phase-info">
+                    <span className="capacity-modern-phase-bullet">•</span>
+                    <span className="capacity-modern-phase-name">
                         {phase.phaseName}
                     </span>
                 </div>
 
                 {/* Phase Month Cells (editable) */}
                 <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(${months.length}, 1fr)`,
-                        gap: '0'
-                    }}
+                    className="capacity-modern-month-cells-grid"
+                    style={{ gridTemplateColumns: `repeat(${months.length}, 1fr)` }}
                 >
                     {months.map(({ month }) => {
                         const mds = breakdown[phase.phaseId]?.monthlyMDs[month] || 0;
@@ -859,18 +663,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                                          editingCell?.month === month;
 
                         return (
-                            <div
-                                key={month}
-                                style={{
-                                    border: '1px solid #2d2d30',
-                                    minHeight: '30px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '10px',
-                                    padding: '2px'
-                                }}
-                            >
+                            <div key={month} className="capacity-modern-phase-month-cell">
                                 {isEditing ? (
                                     <input
                                         type="number"
@@ -882,31 +675,23 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                                             if (e.key === 'Escape') cancelEdit();
                                         }}
                                         autoFocus
-                                        style={{
-                                            width: '100%',
-                                            padding: '2px 4px',
-                                            fontSize: '10px',
-                                            backgroundColor: '#1e1e1e',
-                                            border: '1px solid #4ec9b0',
-                                            borderRadius: '2px',
-                                            color: '#d4d4d4',
-                                            textAlign: 'center'
-                                        }}
+                                        className="capacity-modern-phase-edit-input"
                                     />
                                 ) : (
                                     <div
                                         onClick={() => startEditing(project.allocationId, phase.phaseId, month, mds)}
-                                        style={{
-                                            cursor: 'pointer',
-                                            padding: '4px',
-                                            width: '100%',
-                                            textAlign: 'center',
-                                            color: mds > 0 ? '#d4d4d4' : '#6a6a6a',
-                                            fontWeight: mds > 0 ? '600' : '400'
-                                        }}
+                                        className={`capacity-modern-phase-edit-display ${mds > 0 ? 'has-value' : 'no-value'}`}
                                         title="Click to edit"
                                     >
-                                        {mds > 0 ? `${mds.toFixed(1)} ✏️` : '— ✏️'}
+                                        {mds > 0 ? (
+                                            <>
+                                                {mds.toFixed(1)} <i className="fas fa-pen"></i>
+                                            </>
+                                        ) : (
+                                            <>
+                                                — <i className="fas fa-pen"></i>
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>

@@ -5,10 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-09-02
+## [Unreleased] - 2025-10-09
 
 ### Fixed
-- **Fix coverage showing 110% for new projects without features**: 
+- **Project Switching Data Leak**: Resolved critical bug where switching between projects contaminated new project with old project data
+  - **Root Cause**: Store `setProject()` only updated `currentProject` but left all derived states (phases cache, calculations cache, UI filters) with values from previous project
+  - **Solution**: Implemented atomic reset of ALL derived states in `setProject()` to ensure clean project switch
+  - **Affected States Reset**:
+    - Phases cache: `currentPhases`, `selectedSuppliers`, `resourceRates`, `phasesTotals`
+    - Calculations cache: `vendorCosts`, `kpiData`, `finalMDsOverrides`, **filters** (vendor/role/category)
+    - Assumptions UI: filters (search/type/impact), modal states
+    - Version History UI: filters (dateRange/reason), modal states (create/compare/restore)
+    - Feature Manager UI: `filteredFeatures`, `currentSort`, `editingFeature`, modal states
+  - **Technical Details**:
+    - Single atomic `set()` call prevents race conditions during React re-renders
+    - `finalMDsOverrides` preserved from new project if saved in JSON
+    - `initializePhases()` called asynchronously to repopulate phases from new project data
+  - **Files Modified**: `src/renderer/js/store/app-store.js` (lines 214-300)
+  - **Test Coverage**: Added comprehensive Cucumber tests (`features/project-switching-data-leak.feature`)
+
+- **Fix coverage showing 110% for new projects without features**: Coverage calculation edge case resolved
+
 ### Added
 - **Assumptions**: Migrate assumptions from vanilla JS to React following State/Actions/Dispatcher pattern
 
