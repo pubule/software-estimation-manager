@@ -69,17 +69,16 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
     onRefresh,
     onEditAllocation
 }) => {
+    // Helper function to format dates
+    const formatDate = (dateString: string): string => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
     // Expansion state
     const [isMemberExpanded, setIsMemberExpanded] = useState(false);
     const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
-
-    // Editing state
-    const [editingCell, setEditingCell] = useState<{
-        allocationId: string;
-        phaseId?: string;
-        month: string;
-    } | null>(null);
-    const [editValue, setEditValue] = useState<string>('');
 
     // Allocations data
     const [projectAllocations, setProjectAllocations] = useState<ProjectAllocation[]>([]);
@@ -106,6 +105,31 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
     useEffect(() => {
         localStorage.setItem(`timeline-expanded-${member.id}`, String(isMemberExpanded));
     }, [isMemberExpanded, member.id]);
+
+    // Reset expansion state when leaving capacity section (FIX: chevron not resetting)
+    useEffect(() => {
+        const store = window.appStore;
+        if (!store) return;
+
+        const unsubscribe = store.subscribe((state: any) => {
+            // If not on capacity section anymore, reset all expansions
+            if (state.currentSection !== 'capacity') {
+                if (isMemberExpanded || expandedProjects.size > 0) {
+                    console.log('🧹 Capacity section left, resetting expansion states');
+                    setIsMemberExpanded(false);
+                    setExpandedProjects(new Set());
+                    // Also clear localStorage to prevent restore on return
+                    localStorage.removeItem(`timeline-expanded-${member.id}`);
+                }
+            }
+        });
+
+        return () => {
+            if (typeof unsubscribe === 'function') {
+                unsubscribe();
+            }
+        };
+    }, [member.id, isMemberExpanded, expandedProjects]);
 
     const loadMemberAllocations = () => {
         try {
@@ -263,59 +287,67 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
         setExpandedProjects(newExpanded);
     };
 
-    // Start editing a cell
-    const startEditing = (allocationId: string, phaseId: string | undefined, month: string, currentValue: number) => {
-        setEditingCell({ allocationId, phaseId, month });
-        setEditValue(String(currentValue));
-    };
+    /**
+     * Calculate uniform MDs for a phase month (for reset button)
+     * Returns the evenly distributed value based on phase totalMDs and date range
+     */
+    const calculateUniformPhaseMD = (phase: { phaseId: string; phaseName: string; totalMDs: number; startDate: string; endDate: string }, month: string): number => {
+        if (!phase.startDate || !phase.endDate) return 0;
 
-    // Save edited value with full recalculation
-    const saveEdit = async () => {
-        if (!editingCell) return;
+        const startDate = new Date(phase.startDate);
+        const endDate = new Date(phase.endDate);
 
-        const newValue = parseFloat(editValue);
-        if (isNaN(newValue) || newValue < 0) {
-            alert('Please enter a valid number');
-            setEditingCell(null);
-            return;
+        // Get all months in phase range
+        let current = new Date(startDate);
+        const phaseMonths: string[] = [];
+        while (current <= endDate) {
+            const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+            phaseMonths.push(monthKey);
+            current.setMonth(current.getMonth() + 1);
         }
 
-        // If editing a phase cell, phaseId must be present
-        if (!editingCell.phaseId) {
-            console.error('Cannot edit phase cell without phaseId');
-            setEditingCell(null);
+        // Check if month is in range
+        if (!phaseMonths.includes(month)) return 0;
+
+        // Distribute totalMDs evenly
+        return phase.totalMDs / phaseMonths.length;
+    };
+
+    /**
+     * Handle phase MD input change
+     * Updates allocation with full recalculation
+     */
+    const handlePhaseMDChange = async (allocationId: string, phaseId: string, month: string, newValue: number) => {
+        if (isNaN(newValue) || newValue < 0) {
+            console.warn('Invalid value:', newValue);
             return;
         }
 
         try {
             const allocationActions = new window.AllocationActions();
-
-            // Find the allocation
-            const allocation = projectAllocations.find(p => p.allocationId === editingCell.allocationId);
+            const allocation = projectAllocations.find(p => p.allocationId === allocationId);
             if (!allocation) return;
 
-            console.log('💾 Saving phase MD edit:', {
-                phase: editingCell.phaseId,
-                month: editingCell.month,
-                oldValue: allocation.phaseMonthlyBreakdown?.[editingCell.phaseId!]?.[editingCell.month],
+            console.log('💾 Updating phase MD:', {
+                phase: phaseId,
+                month,
                 newValue
             });
 
             // 1. Update phaseMonthlyBreakdown
             const updatedBreakdown = {
                 ...(allocation.phaseMonthlyBreakdown || {}),
-                [editingCell.phaseId!]: {
-                    ...(allocation.phaseMonthlyBreakdown?.[editingCell.phaseId!] || {}),
-                    [editingCell.month]: newValue
+                [phaseId]: {
+                    ...(allocation.phaseMonthlyBreakdown?.[phaseId] || {}),
+                    [month]: newValue
                 }
             };
 
             // 2. Recalculate phase totalMDs (sum all months for the phase)
             const updatedPhaseAllocations = (allocation.phaseAllocations || []).map(phase => {
-                if (phase.phaseId === editingCell.phaseId) {
+                if (phase.phaseId === phaseId) {
                     const phaseMDs = updatedBreakdown[phase.phaseId] || {};
                     const totalMDs = Object.values(phaseMDs).reduce((sum: number, val: number) => sum + val, 0);
-                    console.log(`📊 Recalculated ${phase.phaseName} totalMDs:`, totalMDs);
                     return { ...phase, totalMDs };
                 }
                 return phase;
@@ -323,52 +355,47 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
 
             // 3. Recalculate monthly allocations (aggregate all phases per month)
             const updatedMonthlyAllocations: any = {};
-
-            // Get all months across all phases
             const allMonths = new Set<string>();
             Object.values(updatedBreakdown).forEach((phaseMDs: any) => {
-                Object.keys(phaseMDs).forEach(month => allMonths.add(month));
+                Object.keys(phaseMDs).forEach(m => allMonths.add(m));
             });
 
-            // For each month, sum across all phases
-            allMonths.forEach(month => {
+            allMonths.forEach(m => {
                 let monthTotal = 0;
                 Object.values(updatedBreakdown).forEach((phaseMDs: any) => {
-                    monthTotal += phaseMDs[month] || 0;
+                    monthTotal += phaseMDs[m] || 0;
                 });
-                updatedMonthlyAllocations[month] = {
+                updatedMonthlyAllocations[m] = {
                     planned: monthTotal,
                     actual: monthTotal
                 };
             });
 
-            console.log('📊 Recalculated monthly allocations:', updatedMonthlyAllocations);
-
-            // 4. Update allocation with all 3 recalculated structures
-            await allocationActions.updateAllocation(editingCell.allocationId, {
+            // 4. Update allocation
+            await allocationActions.updateAllocation(allocationId, {
                 phaseMonthlyBreakdown: updatedBreakdown,
                 phaseAllocations: updatedPhaseAllocations,
                 monthlyAllocations: updatedMonthlyAllocations
             });
 
-            console.log('✅ Allocation updated successfully with full recalculation');
+            console.log('✅ Allocation updated successfully');
 
-            // 5. Refresh data → This triggers capacity timeline recalculation (% + overflow)
+            // 5. Refresh data
             loadMemberAllocations();
             onRefresh?.();
-
-            setEditingCell(null);
         } catch (error) {
             console.error('❌ Error updating allocation:', error);
             alert('Failed to update allocation');
-            setEditingCell(null);
         }
     };
 
-    // Cancel editing
-    const cancelEdit = () => {
-        setEditingCell(null);
-        setEditValue('');
+    /**
+     * Reset phase month MD to uniform distribution value
+     */
+    const resetPhaseMDToUniform = async (allocationId: string, phase: { phaseId: string; phaseName: string; totalMDs: number; startDate: string; endDate: string }, month: string) => {
+        const uniformValue = calculateUniformPhaseMD(phase, month);
+        console.log(`↻ Resetting ${phase.phaseName} ${month} to uniform value:`, uniformValue);
+        await handlePhaseMDChange(allocationId, phase.phaseId, month, uniformValue);
     };
 
     // Handle edit allocation button click
@@ -645,55 +672,46 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             <div key={phase.phaseId} className="capacity-modern-phase-row">
                 {/* Phase Info */}
                 <div className="capacity-modern-phase-info">
-                    <span className="capacity-modern-phase-bullet">•</span>
-                    <span className="capacity-modern-phase-name">
-                        {phase.phaseName}
-                    </span>
+                    <div className="capacity-modern-phase-details">
+                        <strong className="capacity-modern-phase-name">
+                            {phase.phaseName}
+                        </strong>
+                        {phase.startDate && phase.endDate && (
+                            <span className="capacity-modern-phase-dates">
+                                📅 {formatDate(phase.startDate)} → {formatDate(phase.endDate)}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
-                {/* Phase Month Cells (editable) */}
+                {/* Phase Month Cells (always editable) */}
                 <div
                     className="capacity-modern-month-cells-grid"
                     style={{ gridTemplateColumns: `repeat(${months.length}, 1fr)` }}
                 >
                     {months.map(({ month }) => {
                         const mds = breakdown[phase.phaseId]?.monthlyMDs[month] || 0;
-                        const isEditing = editingCell?.allocationId === project.allocationId &&
-                                         editingCell?.phaseId === phase.phaseId &&
-                                         editingCell?.month === month;
 
                         return (
                             <div key={month} className="capacity-modern-phase-month-cell">
-                                {isEditing ? (
-                                    <input
-                                        type="number"
-                                        value={editValue}
-                                        onChange={(e) => setEditValue(e.target.value)}
-                                        onBlur={saveEdit}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') saveEdit();
-                                            if (e.key === 'Escape') cancelEdit();
-                                        }}
-                                        autoFocus
-                                        className="capacity-modern-phase-edit-input"
-                                    />
-                                ) : (
-                                    <div
-                                        onClick={() => startEditing(project.allocationId, phase.phaseId, month, mds)}
-                                        className={`capacity-modern-phase-edit-display ${mds > 0 ? 'has-value' : 'no-value'}`}
-                                        title="Click to edit"
-                                    >
-                                        {mds > 0 ? (
-                                            <>
-                                                {mds.toFixed(1)} <i className="fas fa-pen"></i>
-                                            </>
-                                        ) : (
-                                            <>
-                                                — <i className="fas fa-pen"></i>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
+                                <input
+                                    type="number"
+                                    value={mds.toFixed(1)}
+                                    onChange={(e) => {
+                                        const value = parseFloat(e.target.value) || 0;
+                                        handlePhaseMDChange(project.allocationId, phase.phaseId, month, value);
+                                    }}
+                                    className="final-mds-input"
+                                    min="0"
+                                    step="0.1"
+                                />
+                                <button
+                                    className="reset-mds-btn"
+                                    onClick={() => resetPhaseMDToUniform(project.allocationId, phase, month)}
+                                    title="Reset to uniform distribution"
+                                >
+                                    ↻
+                                </button>
                             </div>
                         );
                     })}
