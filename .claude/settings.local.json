@@ -29,7 +29,8 @@
       "Bash(npm run build:react:main:*)",
       "Bash(npm run build:react:main:components:*)",
       "Bash(npm run:*)",
-      "Bash(del \"C:\\Users\\pubul\\WebstormProjects\\software-estimates-app\\cucumber\\step-definitions\\project-switching-data-leak---valori-del-progetto-precedente-contaminano-il-nuovo-progetto-caricato-steps.js\")"
+      "Bash(del \"C:\\Users\\pubul\\WebstormProjects\\software-estimates-app\\cucumber\\step-definitions\\project-switching-data-leak---valori-del-progetto-precedente-contaminano-il-nuovo-progetto-caricato-steps.js\")",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

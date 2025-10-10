@@ -1969,26 +1969,57 @@ class ApplicationController extends BaseComponent {
                 // Calculate resource breakdown from phase effort data
                 const manDaysByResource = { G1: 0, G2: 0, TA: 0, PM: 0 };
                 const costByResource = { G1: 0, G2: 0, TA: 0, PM: 0 };
-                
-                // Extract actual resource breakdown from phase effort percentages
+
+                // Get store data for correct calculations (same logic as app-store.js::calculatePhasesTotals)
+                const storeState = window.appStore?.getState();
+                const resourceRates = storeState?.resourceRates || { G1: 450, G2: 380, TA: 420, PM: 500 };
+                const availableSuppliers = storeState?.availableSuppliers || [];
+
+                // Calculate man days by resource
                 if (phase.effort) {
-                    const selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
-                    
                     Object.entries(phase.effort).forEach(([role, percentage]) => {
                         if (percentage && percentage > 0) {
-                            // Calculate man days for this role
-                            const roleMDs = Math.round((phase.manDays * (percentage / 100)) * 10) / 10;
-                            manDaysByResource[role] = roleMDs;
-                            
-                            // Calculate cost for this role
-                            const supplierId = selectedSuppliers[role];
-                            if (supplierId) {
-                                // Find supplier rate from configurations
-                                const supplierRate = this.getSupplierRate(supplierId);
-                                costByResource[role] = Math.round(roleMDs * supplierRate);
-                            }
+                            const roleMDs = (phase.manDays * (percentage / 100));
+                            manDaysByResource[role] = Math.round(roleMDs * 10) / 10;
                         }
                     });
+                }
+
+                // Calculate costs using the same logic as app-store.js::calculatePhasesTotals()
+                // Special calculation for Development phase (uses feature-specific supplier rates)
+                if (phase.key === 'development' && currentProject?.features) {
+                    const g2EffortPercent = (phase.effort?.G2 || 0) / 100;
+                    let g2Cost = 0;
+
+                    // Calculate G2 cost using feature-specific supplier rates
+                    currentProject.features.forEach(feature => {
+                        const featureManDays = parseFloat(feature.manDays) || 0;
+                        const featureSupplier = availableSuppliers.find(s => s.id === feature.supplier);
+                        const featureRate = featureSupplier ? (featureSupplier.realRate || featureSupplier.officialRate || 0) : 0;
+                        g2Cost += featureManDays * featureRate * g2EffortPercent;
+                    });
+
+                    // Add coverage cost if present
+                    const coverageMDs = currentProject.coverage || 0;
+                    if (coverageMDs > 0) {
+                        const selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
+                        if (selectedSuppliers.G2) {
+                            const g2Supplier = availableSuppliers.find(s => s.id === selectedSuppliers.G2);
+                            const g2Rate = g2Supplier ? (g2Supplier.realRate || g2Supplier.officialRate || 0) : resourceRates.G2;
+                            g2Cost += coverageMDs * g2Rate * g2EffortPercent;
+                        }
+                    }
+
+                    costByResource.G1 = Math.round(manDaysByResource.G1 * resourceRates.G1);
+                    costByResource.G2 = Math.round(g2Cost);
+                    costByResource.TA = Math.round(manDaysByResource.TA * resourceRates.TA);
+                    costByResource.PM = Math.round(manDaysByResource.PM * resourceRates.PM);
+                } else {
+                    // Normal calculation for other phases (uses standard resource rates)
+                    costByResource.G1 = Math.round(manDaysByResource.G1 * resourceRates.G1);
+                    costByResource.G2 = Math.round(manDaysByResource.G2 * resourceRates.G2);
+                    costByResource.TA = Math.round(manDaysByResource.TA * resourceRates.TA);
+                    costByResource.PM = Math.round(manDaysByResource.PM * resourceRates.PM);
                 }
                 
                 totalManDays += phase.manDays || 0;
