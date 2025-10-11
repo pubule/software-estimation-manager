@@ -118,23 +118,6 @@ export const TimelineHeader: React.FC<TimelineHeaderProps> = ({
                     </label>
                 </div>
             </div>
-
-            {/* Timeline Grid Header */}
-            <div className="capacity-modern-grid-header">
-                {/* Member Column Header */}
-                <div className="capacity-modern-grid-header-cell capacity-modern-grid-header-member">
-                    Team Member
-                </div>
-
-                {/* Month Headers */}
-                <div className="capacity-modern-grid-header-months">
-                    {months.map(({ month, label }) => (
-                        <div key={month} className="capacity-modern-grid-header-month">
-                            {label}
-                        </div>
-                    ))}
-                </div>
-            </div>
         </div>
     );
 };
