@@ -13,6 +13,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import TimelineMonthCell from './TimelineMonthCell';
+import AvailableCapacityRow from './AvailableCapacityRow';
+import PhaseBreakdownHeader from './PhaseBreakdownHeader';
 import type { TimelineMonth, TimelineMemberCapacity } from '../hooks/useCapacityTimeline';
 import '../../styles/capacity-modern.css';
 
@@ -465,6 +467,54 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
         }
     };
 
+    // Calculate total capacity across all months
+    const calculateTotalCapacity = (): number => {
+        return Object.values(member.monthlyData).reduce((sum: number, data: any) =>
+            sum + (data.capacity || 0), 0
+        );
+    };
+
+    // Calculate total allocated across all months
+    const calculateTotalAllocated = (): number => {
+        return Object.values(member.monthlyData).reduce((sum: number, data: any) =>
+            sum + (data.allocated || 0), 0
+        );
+    };
+
+    // Calculate allocated MDs for a phase (sum of all monthly values)
+    const calculatePhaseAllocatedMDs = (phase: { phaseId: string }, phaseMonthlyBreakdown?: { [phaseId: string]: { [month: string]: number } }): number => {
+        if (!phaseMonthlyBreakdown || !phaseMonthlyBreakdown[phase.phaseId]) {
+            return 0;
+        }
+
+        const phaseMDs = phaseMonthlyBreakdown[phase.phaseId] || {};
+        return Object.values(phaseMDs).reduce((sum: number, val: number) => sum + (val || 0), 0);
+    };
+
+    // Check if phase is over-allocated
+    const isPhaseOverAllocated = (phase: { phaseId: string; totalMDs: number }, allocated: number): boolean => {
+        return allocated > phase.totalMDs;
+    };
+
+    // Calculate total MDs for a project (sum of all monthly allocations)
+    const calculateProjectTotalMDs = (project: ProjectAllocation): number => {
+        return Object.values(project.monthlyAllocations).reduce(
+            (sum: number, monthData: any) => sum + (monthData.planned || 0),
+            0
+        );
+    };
+
+    // Calculate total MDs from phases (sum of all phase totalMDs)
+    const calculateProjectPhasesTotalMDs = (project: ProjectAllocation): number => {
+        if (!project.phaseAllocations || project.phaseAllocations.length === 0) {
+            return 0;
+        }
+        return project.phaseAllocations.reduce(
+            (sum: number, phase: any) => sum + (phase.totalMDs || 0),
+            0
+        );
+    };
+
     // Calculate phase breakdown per month (for phase-based allocations)
     const getPhaseMonthlyBreakdown = (project: ProjectAllocation): PhaseMonthlyBreakdown => {
         const breakdown: PhaseMonthlyBreakdown = {};
@@ -519,8 +569,14 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
 
     // Render member row (always visible)
     const renderMemberRow = () => (
-        <div className="capacity-modern-member-row">
-            {/* Member Info Column */}
+        <div
+            className="capacity-modern-member-row"
+            style={{
+                display: 'grid',
+                gridTemplateColumns: `250px 100px 100px 100px repeat(${months.length}, 120px)`
+            }}
+        >
+            {/* Column 1: Member Info - Sticky */}
             <div
                 className="capacity-modern-member-info"
                 onClick={toggleMemberExpansion}
@@ -554,46 +610,64 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                 </div>
             </div>
 
-            {/* Month Cells */}
-            <div
-                className="capacity-modern-month-cells-grid"
-                style={{ gridTemplateColumns: `repeat(${months.length}, 1fr)` }}
-            >
-                {months.map(({ month, label }) => {
-                    const monthData = member.monthlyData[month];
-
-                    if (!monthData) {
-                        return (
-                            <div key={month} className="capacity-modern-month-cell-empty">
-                                —
-                            </div>
-                        );
-                    }
-
-                    return (
-                        <TimelineMonthCell
-                            key={month}
-                            month={month}
-                            monthLabel={label}
-                            memberName={member.fullName}
-                            data={monthData}
-                            onClick={onCellClick}
-                        />
-                    );
-                })}
+            {/* Column 2: Actions - Sticky */}
+            <div className="capacity-modern-member-actions">
+                <i className="fas fa-user-circle" title={member.fullName}></i>
             </div>
+
+            {/* Column 3: Total MDs - Sticky */}
+            <div className="capacity-modern-member-total">
+                {calculateTotalCapacity().toFixed(1)} MDs
+            </div>
+
+            {/* Column 4: Allocated MDs - Sticky */}
+            <div className="capacity-modern-member-allocated">
+                {calculateTotalAllocated().toFixed(1)} MDs
+            </div>
+
+            {/* Month Cells (scrollable) */}
+            {months.map(({ month, label }) => {
+                const monthData = member.monthlyData[month];
+
+                if (!monthData) {
+                    return (
+                        <div key={month} className="capacity-modern-month-cell-empty">
+                            —
+                        </div>
+                    );
+                }
+
+                return (
+                    <TimelineMonthCell
+                        key={month}
+                        month={month}
+                        monthLabel={label}
+                        memberName={member.fullName}
+                        data={monthData}
+                        onClick={onCellClick}
+                    />
+                );
+            })}
         </div>
     );
 
     // Render project row
     const renderProjectRow = (project: ProjectAllocation) => {
         const isExpanded = expandedProjects.has(project.projectId);
+        const phasesTotalMDs = calculateProjectPhasesTotalMDs(project);
+        const allocatedMDs = calculateProjectTotalMDs(project);
 
         return (
             <div key={project.projectId}>
                 {/* Project Header Row */}
-                <div className="capacity-modern-project-row">
-                    {/* Project Info */}
+                <div
+                    className="capacity-modern-project-row"
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: `250px 100px 100px 100px repeat(${months.length}, 120px)`
+                    }}
+                >
+                    {/* Column 1: Project Info - Sticky */}
                     <div
                         className="capacity-modern-project-info"
                         onClick={() => toggleProjectExpansion(project.projectId, project.allocationId)}
@@ -609,54 +683,66 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                         <span className="capacity-modern-project-name">
                             {project.projectName}
                         </span>
-
-                        {/* Action buttons - Edit and Delete */}
-                        <div className="capacity-modern-project-actions">
-                            {/* Edit Button */}
-                            <button
-                                onClick={(e) => handleEditAllocation(e, project)}
-                                className="capacity-modern-project-edit-btn"
-                                title="Edit allocation"
-                                aria-label="Edit allocation"
-                            >
-                                <i className="fas fa-pen"></i>
-                            </button>
-
-                            {/* Delete Button */}
-                            <button
-                                onClick={(e) => handleDeleteAllocation(e, project)}
-                                className="capacity-modern-project-delete-btn"
-                                title="Delete allocation"
-                                aria-label="Delete allocation"
-                            >
-                                <i className="fas fa-trash"></i>
-                            </button>
-                        </div>
                     </div>
 
-                    {/* Project Month Cells */}
-                    <div
-                        className="capacity-modern-month-cells-grid"
-                        style={{ gridTemplateColumns: `repeat(${months.length}, 1fr)` }}
-                    >
-                        {months.map(({ month }) => {
-                            const mds = project.monthlyAllocations[month]?.planned || 0;
+                    {/* Column 2: Actions - Sticky */}
+                    <div className="capacity-modern-project-actions-col">
+                        {/* Edit Button */}
+                        <button
+                            onClick={(e) => handleEditAllocation(e, project)}
+                            className="btn btn-small btn-secondary edit-btn"
+                            title="Edit allocation"
+                            aria-label="Edit allocation"
+                        >
+                            <i className="fas fa-edit"></i>
+                        </button>
 
-                            return (
-                                <div
-                                    key={month}
-                                    className={`capacity-modern-project-month-cell ${mds > 0 ? 'has-value' : 'no-value'}`}
-                                >
-                                    {mds > 0 ? `${mds.toFixed(1)} MD` : '—'}
-                                </div>
-                            );
-                        })}
+                        {/* Delete Button */}
+                        <button
+                            onClick={(e) => handleDeleteAllocation(e, project)}
+                            className="btn btn-small btn-danger delete-btn"
+                            title="Delete allocation"
+                            aria-label="Delete allocation"
+                        >
+                            <i className="fas fa-trash"></i>
+                        </button>
                     </div>
+
+                    {/* Column 3: Total MDs - Sticky */}
+                    <div className="capacity-modern-project-total">
+                        {phasesTotalMDs > 0 ? `${phasesTotalMDs.toFixed(1)} MDs` : '—'}
+                    </div>
+
+                    {/* Column 4: Allocated MDs - Sticky */}
+                    <div className="capacity-modern-project-allocated">
+                        {allocatedMDs.toFixed(1)} MDs
+                    </div>
+
+                    {/* Month Cells (scrollable) */}
+                    {months.map(({ month }) => {
+                        const mds = project.monthlyAllocations[month]?.planned || 0;
+
+                        return (
+                            <div
+                                key={month}
+                                className={`capacity-modern-project-month-cell ${mds > 0 ? 'has-value' : 'no-value'}`}
+                            >
+                                {mds > 0 ? `${mds.toFixed(1)} MD` : '—'}
+                            </div>
+                        );
+                    })}
                 </div>
 
                 {/* Phase Rows (if expanded) */}
                 {isExpanded && project.phaseAllocations && project.phaseAllocations.length > 0 && (
                     <>
+                        {/* Phase Breakdown Header */}
+                        <PhaseBreakdownHeader
+                            projectName={project.projectName}
+                            months={months}
+                        />
+
+                        {/* Phase Rows */}
                         {renderPhaseRows(project)}
                     </>
                 )}
@@ -668,27 +754,55 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
     const renderPhaseRows = (project: ProjectAllocation) => {
         const breakdown = getPhaseMonthlyBreakdown(project);
 
-        return project.phaseAllocations!.map(phase => (
-            <div key={phase.phaseId} className="capacity-modern-phase-row">
-                {/* Phase Info */}
-                <div className="capacity-modern-phase-info">
-                    <div className="capacity-modern-phase-details">
-                        <strong className="capacity-modern-phase-name">
-                            {phase.phaseName}
-                        </strong>
-                        {phase.startDate && phase.endDate && (
-                            <span className="capacity-modern-phase-dates">
-                                📅 {formatDate(phase.startDate)} → {formatDate(phase.endDate)}
-                            </span>
-                        )}
-                    </div>
-                </div>
+        return project.phaseAllocations!.map(phase => {
+            // Calculate allocated MDs for this phase
+            const allocatedMDs = calculatePhaseAllocatedMDs(phase, project.phaseMonthlyBreakdown);
+            const overAllocated = isPhaseOverAllocated(phase, allocatedMDs);
 
-                {/* Phase Month Cells (always editable) */}
+            return (
                 <div
-                    className="capacity-modern-month-cells-grid"
-                    style={{ gridTemplateColumns: `repeat(${months.length}, 1fr)` }}
+                    key={phase.phaseId}
+                    className="capacity-modern-phase-row"
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: `550px repeat(${months.length}, 120px)`
+                    }}
                 >
+                    {/* Phase Info - Sticky (550px total with inner grid) */}
+                    <div className="capacity-modern-phase-info">
+                        {/* Column: PHASE NAME */}
+                        <div className="capacity-modern-phase-details">
+                            <strong className="capacity-modern-phase-name">
+                                {phase.phaseName}
+                            </strong>
+                        </div>
+
+                        {/* Column: DATE RANGE */}
+                        <div className="phase-daterange">
+                            {phase.startDate && phase.endDate ? (
+                                <span>
+                                    {formatDate(phase.startDate)} - {formatDate(phase.endDate)}
+                                </span>
+                            ) : (
+                                <span>—</span>
+                            )}
+                        </div>
+
+                        {/* Column: TOTAL MDS */}
+                        <div className="phase-total-mds">
+                            {phase.totalMDs.toFixed(1)}
+                        </div>
+
+                        {/* Column: ALLOCATED MDS (with over-allocation indicator) */}
+                        <div className={`phase-allocated-mds ${overAllocated ? 'over-allocated' : 'normal'}`}>
+                            {allocatedMDs.toFixed(1)}
+                            {overAllocated && (
+                                <i className="fas fa-exclamation-triangle" title="Over-allocated"></i>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Month Cells (scrollable) */}
                     {months.map(({ month }) => {
                         const mds = breakdown[phase.phaseId]?.monthlyMDs[month] || 0;
 
@@ -716,8 +830,8 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                         );
                     })}
                 </div>
-            </div>
-        ));
+            );
+        });
     };
 
     return (
@@ -725,10 +839,23 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             {/* Member Row (always visible) */}
             {renderMemberRow()}
 
-            {/* Expanded Project/Phase Rows */}
-            {isMemberExpanded && projectAllocations.length > 0 && (
+            {/* Expanded: Available Capacity + Projects/Phases */}
+            {isMemberExpanded && (
                 <>
-                    {projectAllocations.map(project => renderProjectRow(project))}
+                    {/* Available Capacity Row */}
+                    <AvailableCapacityRow
+                        member={member}
+                        months={months}
+                        totalCapacity={calculateTotalCapacity()}
+                        totalAllocated={calculateTotalAllocated()}
+                    />
+
+                    {/* Project/Phase Rows */}
+                    {projectAllocations.length > 0 && (
+                        <>
+                            {projectAllocations.map(project => renderProjectRow(project))}
+                        </>
+                    )}
                 </>
             )}
         </>

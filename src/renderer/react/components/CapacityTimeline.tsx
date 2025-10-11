@@ -23,6 +23,8 @@ import { useCapacityTimeline } from '../hooks/useCapacityTimeline';
 import TimelineHeader from './TimelineHeader';
 import ExpandableTimelineRow from './ExpandableTimelineRow';
 import AssignmentModal from './AssignmentModal';
+import CollapsibleSection from './CollapsibleSection';
+import EmptyStateAllocation from './EmptyStateAllocation';
 import type { TimelineMemberCapacity } from '../hooks/useCapacityTimeline';
 import '../../styles/capacity-modern.css';
 
@@ -57,6 +59,10 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
     const [selectedMemberId, setSelectedMemberId] = useState<string | undefined>(undefined);
     const [selectedMonth, setSelectedMonth] = useState<string | undefined>(undefined);
     const [editingAllocation, setEditingAllocation] = useState<any | undefined>(undefined);
+
+    // Collapsible sections state
+    const [projectPhasesExpanded, setProjectPhasesExpanded] = useState(false);
+    const [teamMemberAllocationsExpanded, setTeamMemberAllocationsExpanded] = useState(true);
 
     // Handle Add Assignment button click
     const handleAddAssignment = () => {
@@ -147,6 +153,44 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
         </div>
     );
 
+    // Render table header with columns
+    const renderTableHeader = () => (
+        <div
+            className="capacity-modern-table-header"
+            style={{
+                display: 'grid',
+                gridTemplateColumns: `250px 100px 100px 100px repeat(${months.length}, 120px)`
+            }}
+        >
+            {/* Column 1: TEAM MEMBER - Sticky */}
+            <div className="capacity-modern-table-header-cell" style={{ textAlign: 'left' }}>
+                <i className="fas fa-user"></i> TEAM MEMBER
+            </div>
+
+            {/* Column 2: ACTIONS - Sticky */}
+            <div className="capacity-modern-table-header-cell" style={{ textAlign: 'center' }}>
+                ACTIONS
+            </div>
+
+            {/* Column 3: TOTAL MDS - Sticky */}
+            <div className="capacity-modern-table-header-cell" style={{ textAlign: 'center' }}>
+                TOTAL MDS
+            </div>
+
+            {/* Column 4: ALLOCATED MDS - Sticky */}
+            <div className="capacity-modern-table-header-cell" style={{ textAlign: 'center' }}>
+                ALLOCATED MDS
+            </div>
+
+            {/* Months (scrollable) */}
+            {months.map(({ label }) => (
+                <div key={label} className="capacity-modern-table-header-cell" style={{ textAlign: 'center' }}>
+                    {label}
+                </div>
+            ))}
+        </div>
+    );
+
     // Render loading state
     if (loading) {
         return (
@@ -232,21 +276,50 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
                 onRefresh={refresh}
             />
 
-            {/* Timeline Grid */}
-            <div className="capacity-modern-card">
-                {/* Member Rows */}
-                {members.map(member => (
-                    <ExpandableTimelineRow
-                        key={member.id}
-                        member={member}
-                        months={months}
-                        onCellClick={handleCellClickInternal}
-                        onMemberClick={onMemberClick}
-                        onRefresh={refresh}
-                        onEditAllocation={handleEditAllocation}
-                    />
-                ))}
-            </div>
+            {/* Section 1: PROJECT PHASES TIMELINE (Collapsible) */}
+            <CollapsibleSection
+                title="PROJECT PHASES TIMELINE"
+                icon="fas fa-project-diagram"
+                isExpanded={projectPhasesExpanded}
+                onToggle={() => setProjectPhasesExpanded(!projectPhasesExpanded)}
+            >
+                <div className="capacity-modern-card">
+                    {/* Future implementation: Project phases timeline view */}
+                    <div style={{ padding: 'var(--spacing-md)', color: 'var(--text-secondary)' }}>
+                        <i className="fas fa-info-circle"></i> Project phases timeline view will be implemented here
+                    </div>
+                </div>
+            </CollapsibleSection>
+
+            {/* Section 2: TEAM MEMBER ALLOCATIONS (Collapsible) */}
+            <CollapsibleSection
+                title="TEAM MEMBER ALLOCATIONS"
+                icon="fas fa-users"
+                isExpanded={teamMemberAllocationsExpanded}
+                onToggle={() => setTeamMemberAllocationsExpanded(!teamMemberAllocationsExpanded)}
+            >
+                <div className="capacity-modern-card">
+                    {/* Table Header */}
+                    {renderTableHeader()}
+
+                    {/* Member Rows or Empty State */}
+                    {members.length === 0 ? (
+                        <EmptyStateAllocation />
+                    ) : (
+                        members.map(member => (
+                            <ExpandableTimelineRow
+                                key={member.id}
+                                member={member}
+                                months={months}
+                                onCellClick={handleCellClickInternal}
+                                onMemberClick={onMemberClick}
+                                onRefresh={refresh}
+                                onEditAllocation={handleEditAllocation}
+                            />
+                        ))
+                    )}
+                </div>
+            </CollapsibleSection>
 
             {/* Assignment Modal */}
             {isModalOpen && (
