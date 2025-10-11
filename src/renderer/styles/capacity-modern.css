@@ -470,7 +470,6 @@
 .capacity-modern-available-row {
     display: grid;
     background-color: rgba(78, 201, 176, 0.08);
-    border-left: 3px solid var(--color-success);
     border-bottom: 1px solid var(--border-primary);
     min-width: fit-content;
 }
