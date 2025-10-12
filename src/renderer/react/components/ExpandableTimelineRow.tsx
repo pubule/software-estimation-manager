@@ -11,7 +11,7 @@
  * - Persistent expansion state (localStorage)
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import TimelineMonthCell from './TimelineMonthCell';
 import AvailableCapacityRow from './AvailableCapacityRow';
 import PhaseBreakdownHeader from './PhaseBreakdownHeader';
@@ -84,11 +84,24 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
     const [isMemberExpanded, setIsMemberExpanded] = useState(false);
     const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
 
+    // Refs for cleanup useEffect (to avoid re-subscription on every state change)
+    const isMemberExpandedRef = useRef(isMemberExpanded);
+    const expandedProjectsRef = useRef(expandedProjects);
+
     // Allocations data
     const [projectAllocations, setProjectAllocations] = useState<ProjectAllocation[]>([]);
 
     // Track which projects have loaded phases from project file (for backward compatibility)
     const [loadedProjectPhases, setLoadedProjectPhases] = useState<Set<string>>(new Set());
+
+    // Sync refs with state (for cleanup useEffect)
+    useEffect(() => {
+        isMemberExpandedRef.current = isMemberExpanded;
+    }, [isMemberExpanded]);
+
+    useEffect(() => {
+        expandedProjectsRef.current = expandedProjects;
+    }, [expandedProjects]);
 
     // Load member's allocations when expanded
     useEffect(() => {
@@ -124,9 +137,14 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
         if (!store) return;
 
         const unsubscribe = store.subscribe((state: any) => {
+            // Check if still in capacity-related sections
+            const isCapacitySection = state.currentSection?.startsWith('capacity') ||
+                                      state.currentSection === 'resource-overview';
+
             // If not on capacity section anymore, reset all expansions
-            if (state.currentSection !== 'capacity') {
-                if (isMemberExpanded || expandedProjects.size > 0) {
+            if (!isCapacitySection) {
+                // Use refs to check current state without causing re-subscription
+                if (isMemberExpandedRef.current || expandedProjectsRef.current.size > 0) {
                     console.log('🧹 Capacity section left, resetting expansion states');
                     setIsMemberExpanded(false);
                     setExpandedProjects(new Set());
@@ -142,7 +160,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                 unsubscribe();
             }
         };
-    }, [member.id, isMemberExpanded, expandedProjects]);
+    }, [member.id]); // Only member.id as dependency to avoid re-subscription
 
     const loadMemberAllocations = () => {
         try {
