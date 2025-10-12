@@ -11,7 +11,14 @@
 export interface PhaseAllocation {
     phaseId: string;
     phaseName: string;
-    totalMDs: number;
+
+    // NEW: Distinguish between project total (READ-ONLY) and allocated (EDITABLE)
+    phaseTotalMDs: number;  // Total MDs for this role from project phase (informational, READ-ONLY)
+    allocatedMDs: number;    // MDs actually allocated to this team member (EDITABLE)
+
+    // DEPRECATED: Use phaseTotalMDs and allocatedMDs instead
+    totalMDs?: number;       // For backward compatibility with existing allocations
+
     startDate: string; // ISO date 'YYYY-MM-DD'
     endDate: string;   // ISO date 'YYYY-MM-DD'
 }

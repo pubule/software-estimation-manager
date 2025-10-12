@@ -43,7 +43,9 @@ interface ProjectAllocation {
     phaseAllocations?: {
         phaseId: string;
         phaseName: string;
-        totalMDs: number;
+        phaseTotalMDs: number;  // Phase total from project (READ-ONLY)
+        allocatedMDs: number;    // Actually allocated MDs (EDITABLE)
+        totalMDs: number;        // DEPRECATED: For backward compatibility
         startDate: string;
         endDate: string;
     }[];
@@ -145,7 +147,13 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                 projectName: allocation.projectName || allocation.projectId,
                 allocationId: allocation.id,
                 monthlyAllocations: allocation.monthlyAllocations || {},
-                phaseAllocations: allocation.phaseAllocations || [],
+                phaseAllocations: allocation.phaseAllocations?.map((phase: any) => ({
+                    ...phase,
+                    // Ensure new fields exist with backward compatibility
+                    phaseTotalMDs: phase.phaseTotalMDs ?? phase.totalMDs ?? 0,
+                    allocatedMDs: phase.allocatedMDs ?? phase.totalMDs ?? 0,
+                    totalMDs: phase.totalMDs ?? 0  // Keep for backward compatibility
+                })) || [],
                 phaseMonthlyBreakdown: allocation.phaseMonthlyBreakdown || {}
             }));
 
@@ -790,7 +798,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
 
                         {/* Column: TOTAL MDS */}
                         <div className="phase-total-mds">
-                            {phase.totalMDs.toFixed(1)}
+                            {phase.phaseTotalMDs.toFixed(1)}
                         </div>
 
                         {/* Column: ALLOCATED MDS (with over-allocation indicator) */}

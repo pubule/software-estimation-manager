@@ -158,10 +158,16 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
             const initialAllocations: Record<string, PhaseAllocation> = {};
 
             allocation.phaseAllocations.forEach((phase: any) => {
+                // Handle backward compatibility: if no allocatedMDs/phaseTotalMDs, use totalMDs
+                const phaseTotalMDs = phase.phaseTotalMDs ?? phase.totalMDs ?? 0;
+                const allocatedMDs = phase.allocatedMDs ?? phase.totalMDs ?? 0;
+
                 initialAllocations[phase.phaseId] = {
                     phaseId: phase.phaseId,
                     phaseName: phase.phaseName,
-                    totalMDs: phase.totalMDs || 0,
+                    phaseTotalMDs: phaseTotalMDs,   // Phase total (READ-ONLY)
+                    allocatedMDs: allocatedMDs,      // Allocated (EDITABLE)
+                    totalMDs: allocatedMDs,          // Backward compatibility
                     startDate: phase.startDate || '',
                     endDate: phase.endDate || ''
                 };
@@ -250,7 +256,9 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 initialAllocations[phase.id] = {
                     phaseId: phase.id,
                     phaseName: phase.name,
-                    totalMDs: mdsForRole,  // Use calculated MDs for role, not total phase MDs
+                    phaseTotalMDs: mdsForRole,  // Phase total for this role (READ-ONLY)
+                    allocatedMDs: mdsForRole,    // Initially same as total, but user can change
+                    totalMDs: mdsForRole,        // Backward compatibility
                     startDate: '',
                     endDate: ''
                 };
@@ -471,7 +479,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
      * When a phase's start date or MDs change, recalculate its end date
      * and cascade the calculation to all subsequent phases
      */
-    const recalculatePhaseDates = (changedPhaseId: string, changedField?: 'startDate' | 'endDate' | 'totalMDs') => {
+    const recalculatePhaseDates = (changedPhaseId: string, changedField?: 'startDate' | 'endDate' | 'allocatedMDs') => {
         setPhaseAllocations(prev => {
             const updated = { ...prev };
 
@@ -501,12 +509,12 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 if (i === changedIndex) {
                     // For the changed phase:
                     // - If endDate was manually changed: keep it, don't recalculate
-                    // - If startDate or totalMDs changed: recalculate endDate from start + MDs
+                    // - If startDate or allocatedMDs changed: recalculate endDate from start + MDs
                     if (changedField === 'endDate') {
                         console.log(`  ✏️ Phase ${allocation.phaseName}: endDate manually set, keeping ${allocation.endDate}`);
                         // Don't recalculate, use the manually set endDate
-                    } else if (allocation.startDate && allocation.totalMDs >= 0) {
-                        const newEndDate = calculateEndDateFromMDs(allocation.startDate, allocation.totalMDs);
+                    } else if (allocation.startDate && allocation.allocatedMDs >= 0) {
+                        const newEndDate = calculateEndDateFromMDs(allocation.startDate, allocation.allocatedMDs);
                         console.log(`  ✏️ Phase ${allocation.phaseName}: endDate ${allocation.endDate} → ${newEndDate}`);
                         allocation.endDate = newEndDate;
                     }
@@ -524,8 +532,8 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                         allocation.startDate = newStartDate;
 
                         // End = start + MDs (include 0 MDs case)
-                        if (allocation.totalMDs >= 0) {
-                            const newEndDate = calculateEndDateFromMDs(allocation.startDate, allocation.totalMDs);
+                        if (allocation.allocatedMDs >= 0) {
+                            const newEndDate = calculateEndDateFromMDs(allocation.startDate, allocation.allocatedMDs);
                             console.log(`  ⏭️ Phase ${allocation.phaseName}: endDate ${allocation.endDate} → ${newEndDate}`);
                             allocation.endDate = newEndDate;
                         }
@@ -541,12 +549,14 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
     /**
      * Handle phase allocation changes
      */
-    const handlePhaseChange = (phaseId: string, field: 'startDate' | 'endDate' | 'totalMDs', value: string | number) => {
+    const handlePhaseChange = (phaseId: string, field: 'startDate' | 'endDate' | 'allocatedMDs', value: string | number) => {
         setPhaseAllocations(prev => {
             const existing = prev[phaseId] || {
                 phaseId,
                 phaseName: projectPhases.find(p => p.id === phaseId)?.name || '',
-                totalMDs: 0,
+                phaseTotalMDs: 0,
+                allocatedMDs: 0,
+                totalMDs: 0, // backward compat
                 startDate: '',
                 endDate: ''
             };
@@ -555,15 +565,17 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 ...prev,
                 [phaseId]: {
                     ...existing,
-                    [field]: value
+                    [field]: value,
+                    // Keep totalMDs in sync with allocatedMDs for backward compatibility
+                    ...(field === 'allocatedMDs' ? { totalMDs: value } : {})
                 }
             };
         });
 
         // Trigger cascade recalculation after state update
-        // For startDate or totalMDs: recalculate end date and cascade to next phases
+        // For startDate or allocatedMDs: recalculate end date and cascade to next phases
         // For endDate in EDIT mode: also cascade (user wants to shift subsequent phases)
-        if (field === 'startDate' || field === 'totalMDs' || (isEditing && field === 'endDate')) {
+        if (field === 'startDate' || field === 'allocatedMDs' || (isEditing && field === 'endDate')) {
             setTimeout(() => recalculatePhaseDates(phaseId, field), 0);
         }
     };
@@ -594,7 +606,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
 
         const invalidPhases: string[] = [];
         phasesList.forEach(phase => {
-            if (!phase.startDate || !phase.endDate || phase.totalMDs === undefined || phase.totalMDs < 0) {
+            if (!phase.startDate || !phase.endDate || phase.allocatedMDs === undefined || phase.allocatedMDs < 0) {
                 invalidPhases.push(phase.phaseName);
             }
         });
@@ -640,7 +652,17 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 console.log('📊 Has phase allocations:', hasPhaseAllocations);
 
                 const phaseAllocationsArray = hasPhaseAllocations
-                    ? Object.values(phaseAllocations).filter(p => p.totalMDs >= 0 && p.startDate && p.endDate)
+                    ? Object.values(phaseAllocations)
+                        .filter(p => p.allocatedMDs >= 0 && p.startDate && p.endDate)
+                        .map(p => ({
+                            ...p,
+                            // Convert allocatedMDs from string to number if needed
+                            allocatedMDs: typeof p.allocatedMDs === 'string' ? parseFloat(p.allocatedMDs) : p.allocatedMDs,
+                            // Keep totalMDs in sync for backward compatibility
+                            totalMDs: typeof p.allocatedMDs === 'string' ? parseFloat(p.allocatedMDs) : p.allocatedMDs,
+                            // Ensure phaseTotalMDs is a number
+                            phaseTotalMDs: typeof p.phaseTotalMDs === 'string' ? parseFloat(p.phaseTotalMDs) : p.phaseTotalMDs
+                        }))
                     : undefined;
 
                 console.log('📊 Phase allocations array (edit):', phaseAllocationsArray);
@@ -668,7 +690,17 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 console.log('📊 Has phase allocations:', hasPhaseAllocations);
 
                 const phaseAllocationsArray = hasPhaseAllocations
-                    ? Object.values(phaseAllocations).filter(p => p.totalMDs >= 0 && p.startDate && p.endDate)
+                    ? Object.values(phaseAllocations)
+                        .filter(p => p.allocatedMDs >= 0 && p.startDate && p.endDate)
+                        .map(p => ({
+                            ...p,
+                            // Convert allocatedMDs from string to number if needed
+                            allocatedMDs: typeof p.allocatedMDs === 'string' ? parseFloat(p.allocatedMDs) : p.allocatedMDs,
+                            // Keep totalMDs in sync for backward compatibility
+                            totalMDs: typeof p.allocatedMDs === 'string' ? parseFloat(p.allocatedMDs) : p.allocatedMDs,
+                            // Ensure phaseTotalMDs is a number
+                            phaseTotalMDs: typeof p.phaseTotalMDs === 'string' ? parseFloat(p.phaseTotalMDs) : p.phaseTotalMDs
+                        }))
                     : undefined;
 
                 console.log('📊 Phase allocations array:', phaseAllocationsArray);
@@ -978,6 +1010,8 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                     const allocation = phaseAllocations[phase.id] || {
                                         phaseId: phase.id,
                                         phaseName: phase.name,
+                                        phaseTotalMDs: 0,
+                                        allocatedMDs: 0,
                                         totalMDs: 0,
                                         startDate: '',
                                         endDate: ''
@@ -1010,7 +1044,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                         {selectedMember.role}: {phase.effort[selectedMember.role]}%{' '}
                                                         <span style={{ color: '#4ec9b0' }}>→</span>{' '}
                                                         <strong style={{ color: '#d4d4d4' }}>
-                                                            {(phase.manDays * phase.effort[selectedMember.role] / 100).toFixed(1)} MD allocable
+                                                            {allocation.phaseTotalMDs.toFixed(1)} MD (from project - READ-ONLY)
                                                         </strong>
                                                     </>
                                                 )}
@@ -1069,19 +1103,19 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                     />
                                                 </div>
 
-                                                {/* Man Days */}
+                                                {/* Allocated Man Days (EDITABLE) */}
                                                 <div>
                                                     <label
                                                         htmlFor={`phase-${phase.id}-mds`}
                                                         style={{ fontSize: '11px', color: '#858585', display: 'block', marginBottom: '4px' }}
                                                     >
-                                                        Man Days
+                                                        Allocated MDs
                                                     </label>
                                                     <input
                                                         type="number"
                                                         id={`phase-${phase.id}-mds`}
-                                                        value={allocation.totalMDs || ''}
-                                                        onChange={(e) => handlePhaseChange(phase.id, 'totalMDs', e.target.value)}
+                                                        value={allocation.allocatedMDs || ''}
+                                                        onChange={(e) => handlePhaseChange(phase.id, 'allocatedMDs', e.target.value)}
                                                         min="0"
                                                         step="0.1"
                                                         placeholder="0.0"
@@ -1124,7 +1158,9 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                 {phase.phaseName}
                                             </div>
                                             <div style={{ fontSize: '11px', color: '#858585', marginBottom: '8px' }}>
-                                                Allocated: {phase.totalMDs} MD
+                                                Phase Total: <strong style={{ color: '#d4d4d4' }}>{phase.phaseTotalMDs.toFixed(1)} MD</strong> (READ-ONLY from project)
+                                                {' '}<span style={{ color: '#4ec9b0' }}>|</span>{' '}
+                                                Allocated: <strong style={{ color: '#4ec9b0' }}>{phase.allocatedMDs.toFixed(1)} MD</strong> (EDITABLE)
                                             </div>
 
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
@@ -1178,19 +1214,19 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                     />
                                                 </div>
 
-                                                {/* Man Days */}
+                                                {/* Allocated Man Days (EDITABLE) */}
                                                 <div>
                                                     <label
                                                         htmlFor={`phase-${phase.phaseId}-mds`}
                                                         style={{ fontSize: '11px', color: '#858585', display: 'block', marginBottom: '4px' }}
                                                     >
-                                                        Man Days
+                                                        Allocated MDs
                                                     </label>
                                                     <input
                                                         type="number"
                                                         id={`phase-${phase.phaseId}-mds`}
-                                                        value={phase.totalMDs}
-                                                        onChange={(e) => handlePhaseChange(phase.phaseId, 'totalMDs', e.target.value)}
+                                                        value={phase.allocatedMDs}
+                                                        onChange={(e) => handlePhaseChange(phase.phaseId, 'allocatedMDs', e.target.value)}
                                                         step="0.1"
                                                         min="0"
                                                         style={{
