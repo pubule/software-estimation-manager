@@ -1809,7 +1809,7 @@ class EnhancedNavigationManager extends NavigationManager {
                     console.log('🔄 Mounting CapacityTimeline component directly...');
                     const root = window.ReactDOM.createRoot(container);
                     root.render(window.React.createElement(window.ReactComponents.CapacityTimeline, {
-                        monthsToShow: 6
+                        monthsToShow: 8
                     }));
 
                     // Mark component as initialized

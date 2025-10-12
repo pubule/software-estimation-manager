@@ -29,13 +29,13 @@ import type { TimelineMemberCapacity } from '../hooks/useCapacityTimeline';
 import '../../styles/capacity-modern.css';
 
 interface CapacityTimelineProps {
-    monthsToShow?: number; // Number of months to display (default: 6)
+    monthsToShow?: number; // Number of months to display (default: 8)
     onMemberClick?: (member: TimelineMemberCapacity) => void;
     onCellClick?: (month: string, memberName: string, data: any) => void;
 }
 
 export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
-    monthsToShow = 6,
+    monthsToShow = 8,
     onMemberClick,
     onCellClick
 }) => {

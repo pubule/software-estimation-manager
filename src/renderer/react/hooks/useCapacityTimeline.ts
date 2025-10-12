@@ -65,7 +65,7 @@ export interface TimelineStats {
     monthsDisplayed: number;
 }
 
-export const useCapacityTimeline = (monthsToShow: number = 6) => {
+export const useCapacityTimeline = (monthsToShow: number = 8) => {
     // Calculate initial month range (current month + next N months)
     const initialMonths = useMemo(() => {
         const today = new Date();
