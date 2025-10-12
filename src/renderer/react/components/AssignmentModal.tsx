@@ -176,9 +176,10 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 initialAllocations[phase.phaseId] = {
                     phaseId: phase.phaseId,
                     phaseName: phase.phaseName,
-                    phaseTotalMDs: phaseTotalMDs,   // Phase total (READ-ONLY)
-                    allocatedMDs: allocatedMDs,      // Allocated (EDITABLE) - from monthly if exists
-                    totalMDs: allocatedMDs,          // Backward compatibility
+                    phaseTotalMDs: phaseTotalMDs,               // Phase total (READ-ONLY)
+                    allocatedMDs: allocatedMDs,                  // Allocated (EDITABLE) - from monthly if exists
+                    originalAllocatedMDs: phase.originalAllocatedMDs, // Preserve original value for reset
+                    totalMDs: allocatedMDs,                      // Backward compatibility
                     startDate: phase.startDate || '',
                     endDate: phase.endDate || ''
                 };
@@ -267,9 +268,10 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 initialAllocations[phase.id] = {
                     phaseId: phase.id,
                     phaseName: phase.name,
-                    phaseTotalMDs: phase.manDays,  // Total phase MDs from project (for date calculation)
-                    allocatedMDs: mdsForRole,       // Role-specific MDs (user can edit)
-                    totalMDs: mdsForRole,           // Backward compatibility
+                    phaseTotalMDs: phase.manDays,      // Total phase MDs from project (for date calculation)
+                    allocatedMDs: mdsForRole,           // Role-specific MDs (user can edit)
+                    originalAllocatedMDs: mdsForRole,   // Original value for reset button
+                    totalMDs: mdsForRole,               // Backward compatibility
                     startDate: '',
                     endDate: ''
                 };

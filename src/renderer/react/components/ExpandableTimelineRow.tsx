@@ -43,9 +43,10 @@ interface ProjectAllocation {
     phaseAllocations?: {
         phaseId: string;
         phaseName: string;
-        phaseTotalMDs: number;  // Phase total from project (READ-ONLY)
-        allocatedMDs: number;    // Actually allocated MDs (EDITABLE)
-        totalMDs: number;        // DEPRECATED: For backward compatibility
+        phaseTotalMDs: number;        // Phase total from project (READ-ONLY)
+        allocatedMDs: number;          // Actually allocated MDs (EDITABLE)
+        originalAllocatedMDs?: number; // Original value for reset button
+        totalMDs: number;              // DEPRECATED: For backward compatibility
         startDate: string;
         endDate: string;
     }[];

@@ -15,6 +15,7 @@ export interface PhaseAllocation {
     // NEW: Distinguish between project total (READ-ONLY) and allocated (EDITABLE)
     phaseTotalMDs: number;  // Total MDs for this role from project phase (informational, READ-ONLY)
     allocatedMDs: number;    // MDs actually allocated to this team member (EDITABLE)
+    originalAllocatedMDs?: number; // Original value from mdsForRole calculation (for reset button)
 
     // DEPRECATED: Use phaseTotalMDs and allocatedMDs instead
     totalMDs?: number;       // For backward compatibility with existing allocations
