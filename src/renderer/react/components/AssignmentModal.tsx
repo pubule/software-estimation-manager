@@ -72,6 +72,9 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
     // Phase allocations state (per-phase MDs and dates)
     const [phaseAllocations, setPhaseAllocations] = useState<Record<string, PhaseAllocation>>({});
 
+    // Track phases with invalidated monthly breakdown (modified allocatedMDs in modal)
+    const [invalidatedPhases, setInvalidatedPhases] = useState<Set<string>>(new Set());
+
     // Working Days Calculator singleton instance
     const [workingDaysCalc, setWorkingDaysCalc] = useState<any>(null);
 
@@ -160,13 +163,21 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
             allocation.phaseAllocations.forEach((phase: any) => {
                 // Handle backward compatibility: if no allocatedMDs/phaseTotalMDs, use totalMDs
                 const phaseTotalMDs = phase.phaseTotalMDs ?? phase.totalMDs ?? 0;
-                const allocatedMDs = phase.allocatedMDs ?? phase.totalMDs ?? 0;
+                let allocatedMDs = phase.allocatedMDs ?? phase.totalMDs ?? 0;
+
+                // ✅ SYNC: If monthly breakdown exists for this phase, recalculate allocatedMDs from monthly sum
+                if (allocation.phaseMonthlyBreakdown && allocation.phaseMonthlyBreakdown[phase.phaseId]) {
+                    const monthlyValues = Object.values(allocation.phaseMonthlyBreakdown[phase.phaseId]) as number[];
+                    const sumFromMonthly = monthlyValues.reduce((sum: number, val: number) => sum + (val || 0), 0);
+                    console.log(`  🔄 ${phase.phaseName}: allocatedMDs ${allocatedMDs} → ${sumFromMonthly} (recalculated from monthly breakdown)`);
+                    allocatedMDs = sumFromMonthly;
+                }
 
                 initialAllocations[phase.phaseId] = {
                     phaseId: phase.phaseId,
                     phaseName: phase.phaseName,
                     phaseTotalMDs: phaseTotalMDs,   // Phase total (READ-ONLY)
-                    allocatedMDs: allocatedMDs,      // Allocated (EDITABLE)
+                    allocatedMDs: allocatedMDs,      // Allocated (EDITABLE) - from monthly if exists
                     totalMDs: allocatedMDs,          // Backward compatibility
                     startDate: phase.startDate || '',
                     endDate: phase.endDate || ''
@@ -550,6 +561,16 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
      * Handle phase allocation changes
      */
     const handlePhaseChange = (phaseId: string, field: 'startDate' | 'endDate' | 'allocatedMDs', value: string | number) => {
+        // ✅ SYNC: If user modifies allocatedMDs in modal (edit mode), invalidate monthly breakdown for this phase
+        if (field === 'allocatedMDs' && isEditing) {
+            setInvalidatedPhases(prev => {
+                const updated = new Set(prev);
+                updated.add(phaseId);
+                console.log(`⚠️ Phase ${phaseId} invalidated - monthly breakdown will be removed on save`);
+                return updated;
+            });
+        }
+
         setPhaseAllocations(prev => {
             const existing = prev[phaseId] || {
                 phaseId,
@@ -672,13 +693,29 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
 
                 console.log('📊 Phase allocations array (edit):', phaseAllocationsArray);
 
+                // ✅ SYNC: Filter out invalidated phases from phaseMonthlyBreakdown
+                let filteredMonthlyBreakdown = allocation.phaseMonthlyBreakdown;
+                if (filteredMonthlyBreakdown && invalidatedPhases.size > 0) {
+                    filteredMonthlyBreakdown = { ...filteredMonthlyBreakdown };
+                    invalidatedPhases.forEach(phaseId => {
+                        if (filteredMonthlyBreakdown[phaseId]) {
+                            console.log(`🗑️ Removing monthly breakdown for invalidated phase: ${phaseId}`);
+                            delete filteredMonthlyBreakdown[phaseId];
+                        }
+                    });
+                }
+
                 // Update existing allocation
                 const updateData = {
                     projectId: formData.projectId,
                     projectName: formData.projectName,
                     teamMemberId: allocation.teamMemberId || formData.teamMemberId, // ✅ Include teamMemberId for recalculation
                     notes: formData.notes,
-                    phaseAllocations: phaseAllocationsArray
+                    phaseAllocations: phaseAllocationsArray,
+                    // ✅ SYNC: Preserve phaseMonthlyBreakdown (excluding invalidated phases)
+                    ...(filteredMonthlyBreakdown && Object.keys(filteredMonthlyBreakdown).length > 0 && {
+                        phaseMonthlyBreakdown: filteredMonthlyBreakdown
+                    })
                 };
 
                 console.log('📦 Update data to send:', updateData);
