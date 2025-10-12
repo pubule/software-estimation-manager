@@ -582,10 +582,19 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 endDate: ''
             };
 
-            // Convert allocatedMDs from string to number
-            const processedValue = field === 'allocatedMDs'
-                ? (typeof value === 'string' ? parseFloat(value) || 0 : value)
-                : value;
+            // Convert allocatedMDs from string to number, allowing empty string temporarily
+            let processedValue: any = value;
+            if (field === 'allocatedMDs') {
+                if (typeof value === 'string') {
+                    if (value === '') {
+                        // Allow empty string (user is deleting to type new value)
+                        processedValue = '';
+                    } else {
+                        const parsed = parseFloat(value);
+                        processedValue = isNaN(parsed) ? 0 : parsed;
+                    }
+                }
+            }
 
             return {
                 ...prev,
@@ -593,7 +602,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                     ...existing,
                     [field]: processedValue,
                     // Keep totalMDs in sync with allocatedMDs for backward compatibility
-                    ...(field === 'allocatedMDs' ? { totalMDs: processedValue } : {})
+                    ...(field === 'allocatedMDs' ? { totalMDs: processedValue === '' ? 0 : processedValue } : {})
                 }
             };
         });
@@ -632,7 +641,10 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
 
         const invalidPhases: string[] = [];
         phasesList.forEach(phase => {
-            if (!phase.startDate || !phase.endDate || phase.allocatedMDs === undefined || phase.allocatedMDs < 0) {
+            // Convert allocatedMDs to number for validation (handle empty string case)
+            const allocatedMDs = phase.allocatedMDs === '' ? 0 : phase.allocatedMDs;
+
+            if (!phase.startDate || !phase.endDate || allocatedMDs === undefined || allocatedMDs < 0) {
                 invalidPhases.push(phase.phaseName);
             }
         });

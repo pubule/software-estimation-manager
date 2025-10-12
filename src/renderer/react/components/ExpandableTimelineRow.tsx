@@ -818,10 +818,23 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                             <div key={month} className="capacity-modern-phase-month-cell">
                                 <input
                                     type="number"
-                                    value={mds.toFixed(1)}
+                                    value={mds}
                                     onChange={(e) => {
-                                        const value = parseFloat(e.target.value) || 0;
-                                        handlePhaseMDChange(project.allocationId, phase.phaseId, month, value);
+                                        const value = parseFloat(e.target.value);
+                                        if (!isNaN(value) && value >= 0) {
+                                            handlePhaseMDChange(project.allocationId, phase.phaseId, month, value);
+                                        } else if (e.target.value === '') {
+                                            // Allow empty for deletion
+                                            handlePhaseMDChange(project.allocationId, phase.phaseId, month, 0);
+                                        }
+                                    }}
+                                    onBlur={(e) => {
+                                        // On blur, ensure valid number or reset to 0
+                                        const value = parseFloat(e.target.value);
+                                        if (isNaN(value) || value < 0) {
+                                            e.target.value = '0';
+                                            handlePhaseMDChange(project.allocationId, phase.phaseId, month, 0);
+                                        }
                                     }}
                                     className="final-mds-input"
                                     min="0"
