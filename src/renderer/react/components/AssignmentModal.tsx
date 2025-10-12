@@ -251,14 +251,14 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 const effortPercentage = phase.effort?.[role] || 0;
                 const mdsForRole = phase.manDays * (effortPercentage / 100);
 
-                console.log(`  📊 ${phase.name}: ${phase.manDays} MD × ${effortPercentage}% (${role}) = ${mdsForRole} MD`);
+                console.log(`  📊 ${phase.name}: ${phase.manDays} MD total, ${role} (${effortPercentage}%) = ${mdsForRole} MD allocated`);
 
                 initialAllocations[phase.id] = {
                     phaseId: phase.id,
                     phaseName: phase.name,
-                    phaseTotalMDs: mdsForRole,  // Phase total for this role (READ-ONLY)
-                    allocatedMDs: mdsForRole,    // Initially same as total, but user can change
-                    totalMDs: mdsForRole,        // Backward compatibility
+                    phaseTotalMDs: phase.manDays,  // Total phase MDs from project (for date calculation)
+                    allocatedMDs: mdsForRole,       // Role-specific MDs (user can edit)
+                    totalMDs: mdsForRole,           // Backward compatibility
                     startDate: '',
                     endDate: ''
                 };
@@ -509,13 +509,13 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 if (i === changedIndex) {
                     // For the changed phase:
                     // - If endDate was manually changed: keep it, don't recalculate
-                    // - If startDate or allocatedMDs changed: recalculate endDate from start + MDs
+                    // - If startDate or allocatedMDs changed: recalculate endDate from start + phaseTotalMDs (duration = phase total)
                     if (changedField === 'endDate') {
                         console.log(`  ✏️ Phase ${allocation.phaseName}: endDate manually set, keeping ${allocation.endDate}`);
                         // Don't recalculate, use the manually set endDate
-                    } else if (allocation.startDate && allocation.allocatedMDs >= 0) {
-                        const newEndDate = calculateEndDateFromMDs(allocation.startDate, allocation.allocatedMDs);
-                        console.log(`  ✏️ Phase ${allocation.phaseName}: endDate ${allocation.endDate} → ${newEndDate}`);
+                    } else if (allocation.startDate && allocation.phaseTotalMDs >= 0) {
+                        const newEndDate = calculateEndDateFromMDs(allocation.startDate, allocation.phaseTotalMDs);
+                        console.log(`  ✏️ Phase ${allocation.phaseName}: endDate ${allocation.endDate} → ${newEndDate} (using phaseTotalMDs: ${allocation.phaseTotalMDs})`);
                         allocation.endDate = newEndDate;
                     }
                 } else {
@@ -531,10 +531,10 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                         console.log(`  ⏭️ Phase ${allocation.phaseName}: startDate ${allocation.startDate} → ${newStartDate}`);
                         allocation.startDate = newStartDate;
 
-                        // End = start + MDs (include 0 MDs case)
-                        if (allocation.allocatedMDs >= 0) {
-                            const newEndDate = calculateEndDateFromMDs(allocation.startDate, allocation.allocatedMDs);
-                            console.log(`  ⏭️ Phase ${allocation.phaseName}: endDate ${allocation.endDate} → ${newEndDate}`);
+                        // End = start + phaseTotalMDs (duration based on phase total from project)
+                        if (allocation.phaseTotalMDs >= 0) {
+                            const newEndDate = calculateEndDateFromMDs(allocation.startDate, allocation.phaseTotalMDs);
+                            console.log(`  ⏭️ Phase ${allocation.phaseName}: endDate ${allocation.endDate} → ${newEndDate} (using phaseTotalMDs: ${allocation.phaseTotalMDs})`);
                             allocation.endDate = newEndDate;
                         }
                     }
@@ -561,13 +561,18 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 endDate: ''
             };
 
+            // Convert allocatedMDs from string to number
+            const processedValue = field === 'allocatedMDs'
+                ? (typeof value === 'string' ? parseFloat(value) || 0 : value)
+                : value;
+
             return {
                 ...prev,
                 [phaseId]: {
                     ...existing,
-                    [field]: value,
+                    [field]: processedValue,
                     // Keep totalMDs in sync with allocatedMDs for backward compatibility
-                    ...(field === 'allocatedMDs' ? { totalMDs: value } : {})
+                    ...(field === 'allocatedMDs' ? { totalMDs: processedValue } : {})
                 }
             };
         });
@@ -1044,7 +1049,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                         {selectedMember.role}: {phase.effort[selectedMember.role]}%{' '}
                                                         <span style={{ color: '#4ec9b0' }}>→</span>{' '}
                                                         <strong style={{ color: '#d4d4d4' }}>
-                                                            {allocation.phaseTotalMDs.toFixed(1)} MD (from project - READ-ONLY)
+                                                            {allocation.allocatedMDs.toFixed(1)} MD
                                                         </strong>
                                                     </>
                                                 )}
