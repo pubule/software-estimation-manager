@@ -1081,7 +1081,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                         type="number"
                                                         id={`phase-${phase.id}-mds`}
                                                         value={allocation.totalMDs || ''}
-                                                        onChange={(e) => handlePhaseChange(phase.id, 'totalMDs', parseFloat(e.target.value) || 0)}
+                                                        onChange={(e) => handlePhaseChange(phase.id, 'totalMDs', e.target.value)}
                                                         min="0"
                                                         step="0.1"
                                                         placeholder="0.0"
@@ -1190,7 +1190,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                         type="number"
                                                         id={`phase-${phase.phaseId}-mds`}
                                                         value={phase.totalMDs}
-                                                        onChange={(e) => handlePhaseChange(phase.phaseId, 'totalMDs', parseFloat(e.target.value) || 0)}
+                                                        onChange={(e) => handlePhaseChange(phase.phaseId, 'totalMDs', e.target.value)}
                                                         step="0.1"
                                                         min="0"
                                                         style={{
