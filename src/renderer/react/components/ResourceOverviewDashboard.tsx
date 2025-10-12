@@ -109,10 +109,10 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
             }}>
                 <div style={{ fontSize: '13px', color: '#858585', marginBottom: '8px' }}>Total Capacity</div>
                 <div style={{ fontSize: '32px', fontWeight: '700', color: '#dcdcaa' }}>
-                    {stats.totalCapacity} MD
+                    {stats.totalCapacity.toFixed(1)} MD
                 </div>
                 <div style={{ fontSize: '12px', color: '#858585', marginTop: '4px' }}>
-                    Allocated: {stats.totalAllocated} MD
+                    Allocated: {stats.totalAllocated.toFixed(1)} MD
                 </div>
             </div>
 
@@ -126,7 +126,7 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
             }}>
                 <div style={{ fontSize: '13px', color: '#858585', marginBottom: '8px' }}>Available</div>
                 <div style={{ fontSize: '32px', fontWeight: '700', color: '#4ec9b0' }}>
-                    {stats.totalAvailable} MD
+                    {stats.totalAvailable.toFixed(1)} MD
                 </div>
             </div>
 

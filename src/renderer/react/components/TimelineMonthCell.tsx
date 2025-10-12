@@ -94,7 +94,7 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: '#858585' }}>Monthly Capacity:</span>
-                        <span style={{ color: '#d4d4d4', fontWeight: '600' }}>{data.monthlyCapacity} MD</span>
+                        <span style={{ color: '#d4d4d4', fontWeight: '600' }}>{data.monthlyCapacity.toFixed(1)} MD</span>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -121,7 +121,7 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
                             color: data.isOverallocated ? '#f48771' : '#d4d4d4',
                             fontWeight: '600'
                         }}>
-                            {data.existingAllocations} MD
+                            {data.existingAllocations.toFixed(1)} MD
                         </span>
                     </div>
 
@@ -131,7 +131,7 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
                             color: data.availableCapacity > 0 ? '#4ec9b0' : '#858585',
                             fontWeight: '600'
                         }}>
-                            {data.availableCapacity} MD
+                            {data.availableCapacity.toFixed(1)} MD
                         </span>
                     </div>
 
@@ -208,7 +208,7 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
             }}>
                 {data.existingAllocations > 0 ? (
                     <>
-                        <div>{data.existingAllocations} MD</div>
+                        <div>{data.existingAllocations.toFixed(1)} MD</div>
                         <div style={{ fontSize: '10px', marginTop: '2px' }}>
                             {data.utilization.toFixed(0)}%
                         </div>

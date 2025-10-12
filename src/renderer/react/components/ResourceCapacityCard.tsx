@@ -75,7 +75,7 @@ export const ResourceCapacityCard: React.FC<ResourceCapacityCardProps> = ({ memb
             <div className="capacity-modern-capacity-grid">
                 <div className="capacity-modern-capacity-item">
                     <span className="capacity-modern-capacity-label">Monthly Capacity</span>
-                    <span className="capacity-modern-capacity-value">{member.monthlyCapacity} MD</span>
+                    <span className="capacity-modern-capacity-value">{member.monthlyCapacity.toFixed(1)} MD</span>
                 </div>
 
                 <div className="capacity-modern-capacity-item">
@@ -86,14 +86,14 @@ export const ResourceCapacityCard: React.FC<ResourceCapacityCardProps> = ({ memb
                 <div className="capacity-modern-capacity-item">
                     <span className="capacity-modern-capacity-label">Allocated</span>
                     <span className={`capacity-modern-capacity-value ${member.isOverallocated ? 'allocated' : ''}`}>
-                        {member.existingAllocations} MD
+                        {member.existingAllocations.toFixed(1)} MD
                     </span>
                 </div>
 
                 <div className="capacity-modern-capacity-item">
                     <span className="capacity-modern-capacity-label">Available</span>
                     <span className={`capacity-modern-capacity-value ${member.availableCapacity > 0 ? 'available' : ''}`}>
-                        {member.availableCapacity} MD
+                        {member.availableCapacity.toFixed(1)} MD
                     </span>
                 </div>
 
