@@ -36,8 +36,8 @@ export const AvailableCapacityRow: React.FC<AvailableCapacityRowProps> = ({
         const monthData = member.monthlyData[month];
         if (!monthData) return 0;
 
-        const capacity = monthData.capacity || 0;
-        const allocated = monthData.allocated || 0;
+        const capacity = monthData.monthlyCapacity || 0;
+        const allocated = monthData.existingAllocations || 0;
         return Math.max(0, capacity - allocated);
     };
 

@@ -470,14 +470,14 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
     // Calculate total capacity across all months
     const calculateTotalCapacity = (): number => {
         return Object.values(member.monthlyData).reduce((sum: number, data: any) =>
-            sum + (data.capacity || 0), 0
+            sum + (data.monthlyCapacity || 0), 0
         );
     };
 
     // Calculate total allocated across all months
     const calculateTotalAllocated = (): number => {
         return Object.values(member.monthlyData).reduce((sum: number, data: any) =>
-            sum + (data.allocated || 0), 0
+            sum + (data.existingAllocations || 0), 0
         );
     };
 
