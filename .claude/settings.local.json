@@ -31,7 +31,8 @@
       "Bash(npm run:*)",
       "Bash(del \"C:\\Users\\pubul\\WebstormProjects\\software-estimates-app\\cucumber\\step-definitions\\project-switching-data-leak---valori-del-progetto-precedente-contaminano-il-nuovo-progetto-caricato-steps.js\")",
       "Bash(cat:*)",
-      "mcp__serena__think_about_collected_information"
+      "mcp__serena__think_about_collected_information",
+      "mcp__serena__find_referencing_symbols"
     ],
     "deny": [],
     "ask": []

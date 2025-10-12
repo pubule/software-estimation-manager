@@ -105,10 +105,18 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
         }
     }, [member.id]);
 
-    // Save expansion state to localStorage
+    // Load projects expansion state from localStorage on mount
     useEffect(() => {
-        localStorage.setItem(`timeline-expanded-${member.id}`, String(isMemberExpanded));
-    }, [isMemberExpanded, member.id]);
+        const saved = localStorage.getItem(`timeline-projects-expanded-${member.id}`);
+        if (saved) {
+            try {
+                const projectIds = JSON.parse(saved);
+                setExpandedProjects(new Set(projectIds));
+            } catch (error) {
+                console.error('Failed to parse expanded projects:', error);
+            }
+        }
+    }, [member.id]);
 
     // Reset expansion state when leaving capacity section (FIX: chevron not resetting)
     useEffect(() => {
@@ -124,6 +132,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                     setExpandedProjects(new Set());
                     // Also clear localStorage to prevent restore on return
                     localStorage.removeItem(`timeline-expanded-${member.id}`);
+                    localStorage.removeItem(`timeline-projects-expanded-${member.id}`);
                 }
             }
         });
@@ -272,7 +281,10 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
 
     // Toggle member expansion
     const toggleMemberExpansion = () => {
-        setIsMemberExpanded(!isMemberExpanded);
+        const newExpandedState = !isMemberExpanded;
+        setIsMemberExpanded(newExpandedState);
+        // Save SYNCHRONOUSLY to localStorage to prevent loss on parent refresh
+        localStorage.setItem(`timeline-expanded-${member.id}`, String(newExpandedState));
     };
 
     // Toggle project expansion
@@ -295,6 +307,9 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             }
         }
         setExpandedProjects(newExpanded);
+        // Save SYNCHRONOUSLY to localStorage to prevent loss on parent refresh
+        const projectIds = Array.from(newExpanded);
+        localStorage.setItem(`timeline-projects-expanded-${member.id}`, JSON.stringify(projectIds));
     };
 
     /**
@@ -390,9 +405,8 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
 
             console.log('✅ Allocation updated successfully');
 
-            // 5. Refresh data
+            // 5. Refresh data locally (no need to refresh parent - it would cause re-render and lose expansion state)
             loadMemberAllocations();
-            onRefresh?.();
         } catch (error) {
             console.error('❌ Error updating allocation:', error);
             alert('Failed to update allocation');
