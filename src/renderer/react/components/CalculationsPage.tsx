@@ -416,6 +416,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                   <th>Total MDs</th>
                   <th>Official Tot MDs</th>
                   <th>Final Tot MDs</th>
+                  <th>Real Rate</th>
                   <th>Official Rate</th>
                   <th>Total Cost</th>
                   <th>Final Tot Cost</th>
@@ -457,6 +458,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                         ↻
                       </button>
                     </td>
+                    <td className="real-rate">€{cost.realRate.toLocaleString()}</td>
                     <td className="official-rate">€{cost.officialRate.toLocaleString()}</td>
                     <td className="total-cost">€{cost.totCost.toLocaleString()}</td>
                     <td className="final-tot-cost">
@@ -469,7 +471,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
               {/* Footer con totali */}
               <tfoot>
                 <tr className="totals-row">
-                  <td colSpan={7}><strong>TOTALS</strong></td>
+                  <td colSpan={8}><strong>TOTALS</strong></td>
                   <td className="total-cost">
                     <strong>€{filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0).toLocaleString()}</strong>
                   </td>
