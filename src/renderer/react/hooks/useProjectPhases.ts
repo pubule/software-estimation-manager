@@ -70,6 +70,7 @@ export const useProjectPhases = (projectId: string | null, projectsList: any[]) 
                         description: phase.description,
                         type: phase.type,
                         manDays: phase.manDays || 0,
+                        effort: phase.effort || phase.defaultEffort, // ← ADDED: Extract effort field
                         editable: phase.editable !== false
                     }));
 

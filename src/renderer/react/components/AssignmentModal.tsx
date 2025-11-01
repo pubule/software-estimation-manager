@@ -242,6 +242,15 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
 
     // Auto-populate phase allocations with MDs from project phases (CREATE mode only)
     useEffect(() => {
+        console.log('🔍 Allocation Effect Debug:', {
+            isEditing,
+            projectPhases_length: projectPhases?.length,
+            projectId: formData.projectId,
+            teamMemberId: formData.teamMemberId,
+            loadingPhases,
+            first_phase_effort: projectPhases?.[0]?.effort
+        });
+
         if (!isEditing && projectPhases.length > 0 && formData.projectId && formData.teamMemberId && !loadingPhases) {
             console.log('📋 Auto-populating phase allocations from project phases:', projectPhases);
 
@@ -260,6 +269,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
 
             projectPhases.forEach(phase => {
                 // Calculate MDs for this specific role based on effort percentage
+                console.log(`🔎 Phase ${phase.name}: effort field = `, phase.effort);
                 const effortPercentage = phase.effort?.[role] || 0;
                 const mdsForRole = phase.manDays * (effortPercentage / 100);
 

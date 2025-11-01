@@ -269,12 +269,93 @@ class DataManager extends BaseComponent {
 
     /**
      * Load global resource allocations from capacity/allocations.json
+     * Includes automatic migration for legacy allocations missing phaseMonthlyBreakdown
      */
     async loadResourceAllocations() {
         return this.withErrorBoundary(async () => {
             this.logOperation('loadResourceAllocations');
             const result = await this.persistenceStrategy.loadResourceAllocations();
-            return result.success ? result.data : [];
+
+            if (!result.success || !result.data) {
+                return [];
+            }
+
+            const allocations = result.data;
+            let migratedCount = 0;
+            let migrationErrors = 0;
+
+            // Migrate legacy allocations that lack phaseMonthlyBreakdown
+            for (const allocation of allocations) {
+                // Check if migration is needed
+                if (!allocation.phaseMonthlyBreakdown && allocation.phaseAllocations?.length > 0 && allocation.teamMemberId) {
+                    try {
+                        console.log(`🔄 Migrating legacy allocation ${allocation.id} - regenerating phaseMonthlyBreakdown...`);
+
+                        // Get AllocationActions (available globally after initialization)
+                        const AllocationActions = window.AllocationActions;
+                        if (!AllocationActions) {
+                            console.warn(`⚠️ AllocationActions not available for migration, skipping allocation ${allocation.id}`);
+                            migrationErrors++;
+                            continue;
+                        }
+
+                        // Create instance and regenerate phase breakdown
+                        const allocationActions = new AllocationActions();
+
+                        // Convert phase allocations to format expected by autoDistributePhases
+                        const phases = allocation.phaseAllocations.map(pa => ({
+                            phaseId: pa.phaseId,
+                            phaseName: pa.phaseName,
+                            startDate: new Date(pa.startDate),
+                            endDate: new Date(pa.endDate),
+                            estimatedMDs: pa.totalMDs
+                        }));
+
+                        // Call autoDistributePhases to regenerate working-days-aware distribution
+                        const distribution = allocationActions.autoDistributePhases(phases, allocation.teamMemberId);
+
+                        // Extract monthlyDistribution for each phase
+                        if (distribution.phaseBreakdown) {
+                            const phaseMonthlyBreakdown = {};
+                            Object.keys(distribution.phaseBreakdown).forEach(phaseId => {
+                                const phaseData = distribution.phaseBreakdown[phaseId];
+                                if (phaseData?.monthlyDistribution) {
+                                    phaseMonthlyBreakdown[phaseId] = phaseData.monthlyDistribution;
+                                }
+                            });
+
+                            // Apply migration if breakdown was successfully generated
+                            if (Object.keys(phaseMonthlyBreakdown).length > 0) {
+                                allocation.phaseMonthlyBreakdown = phaseMonthlyBreakdown;
+                                migratedCount++;
+                                console.log(`✅ Migration successful for allocation ${allocation.id}`, phaseMonthlyBreakdown);
+                            } else {
+                                console.warn(`⚠️ No phaseMonthlyBreakdown generated for allocation ${allocation.id}`);
+                                migrationErrors++;
+                            }
+                        } else {
+                            console.warn(`⚠️ No phaseBreakdown in distribution result for allocation ${allocation.id}`);
+                            migrationErrors++;
+                        }
+                    } catch (error) {
+                        console.error(`❌ Error migrating allocation ${allocation.id}:`, error);
+                        migrationErrors++;
+                    }
+                }
+            }
+
+            // Log migration summary
+            if (migratedCount > 0 || migrationErrors > 0) {
+                console.log(`📊 Allocation migration summary: ${migratedCount} migrated, ${migrationErrors} errors`);
+
+                // Save migrated allocations back to disk if any were migrated successfully
+                if (migratedCount > 0) {
+                    console.log(`💾 Saving ${migratedCount} migrated allocation(s) back to disk...`);
+                    await this.saveResourceAllocations(allocations);
+                }
+            }
+
+            return allocations;
         }, 'loadResourceAllocations', {
             showNotification: false,
             defaultValue: []

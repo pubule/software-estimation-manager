@@ -398,10 +398,12 @@ class AutoDistribution {
         // Process phases in chronological order, consuming capacity month by month
         for (const phase of sortedPhases) {
             console.log(`\n🔍 Processing phase: ${phase.phaseName} (${phase.estimatedMDs} MDs needed)`);
-            
+            console.log(`  📅 Phase date range: ${phase.startDate} to ${phase.endDate}`);
+
             const phaseStart = new Date(phase.startDate);
             const phaseEnd = new Date(phase.endDate);
             const phaseMonths = this._getMonthsBetween(phaseStart, phaseEnd);
+            console.log(`  📅 phaseMonths extracted: ${JSON.stringify(phaseMonths)}`);
             
             let phaseRemainingMDs = phase.estimatedMDs;
             
@@ -412,16 +414,47 @@ class AutoDistribution {
                 // Calculate available capacity for this month
                 const isFirstMonth = month === phaseMonths[0];
                 const isLastMonth = month === phaseMonths[phaseMonths.length - 1];
-                const monthStartDate = isFirstMonth ? phaseStart : null;
-                const monthEndDate = isLastMonth ? phaseEnd : null;
+
+                // IMPROVED PARTIAL MONTH LOGIC
+                // If phase covers significant portion of month (≥10 days), use full month capacity
+                let monthStartDate = isFirstMonth ? phaseStart : null;
+                let monthEndDate = isLastMonth ? phaseEnd : null;
+
+                // Check if last month coverage is significant
+                if (isLastMonth && monthEndDate) {
+                    const lastMonthYear = parseInt(month.split('-')[0]);
+                    const lastMonthNum = parseInt(month.split('-')[1]);
+                    const monthLastDay = new Date(lastMonthYear, lastMonthNum, 0).getDate();
+                    const endDay = monthEndDate.getDate();
+
+                    // If phase covers ≥10 days of the last month, treat as full month
+                    if (endDay >= 10) {
+                        console.log(`  📅 Phase extends significantly into ${month} (until day ${endDay}), using full month capacity`);
+                        monthEndDate = null; // Use full month
+                    }
+                }
+
+                // Similarly for first month
+                if (isFirstMonth && monthStartDate) {
+                    const firstMonthYear = parseInt(month.split('-')[0]);
+                    const firstMonthNum = parseInt(month.split('-')[1]);
+                    const monthLastDay = new Date(firstMonthYear, firstMonthNum, 0).getDate();
+                    const startDay = monthStartDate.getDate();
+                    const daysInMonth = monthLastDay - startDay + 1;
+
+                    // If phase covers ≥10 days of the first month, treat as significant
+                    if (daysInMonth >= 10) {
+                        console.log(`  📅 Phase starts significantly in ${month} (from day ${startDay}), using ${daysInMonth} days capacity`);
+                    }
+                }
 
                 let monthCapacity;
                 try {
                     monthCapacity = this.workingDaysCalculator.calculateAvailableCapacity(
-                        teamMember, 
-                        month, 
+                        teamMember,
+                        month,
                         monthStartDate,
-                        true, // excludeExistingAllocations 
+                        true, // excludeExistingAllocations
                         monthEndDate
                     );
                 } catch (error) {
@@ -457,6 +490,78 @@ class AutoDistribution {
                     console.log(`  ✅ Allocated ${toAllocate} MDs to ${phase.phaseName} in ${month}. Phase remaining: ${phaseRemainingMDs}`);
                 } else {
                     console.log(`  ❌ No capacity available in ${month} for ${phase.phaseName}`);
+                }
+            }
+
+            // BACKFILL LOGIC: Try to fill remaining MDs in previous months if they have available capacity
+            if (phaseRemainingMDs > 0) {
+                console.log(`  🔄 Attempting backfill for ${phaseRemainingMDs} remaining MDs in ${phase.phaseName}...`);
+                console.log(`  📋 Backfill will iterate through months (backwards): ${JSON.stringify(phaseMonths)}`);
+
+                // Iterate backwards through phase months to find available capacity
+                for (let i = phaseMonths.length - 1; i >= 0 && phaseRemainingMDs > 0; i--) {
+                    const month = phaseMonths[i];
+                    console.log(`  🔄 Backfill iteration: month=${month}, index=${i}, remaining=${phaseRemainingMDs}`);
+
+                    // Recalculate capacity for this month (to find unused capacity)
+                    const isFirstMonth = month === phaseMonths[0];
+                    const isLastMonth = month === phaseMonths[phaseMonths.length - 1];
+
+                    let monthStartDate = isFirstMonth ? phaseStart : null;
+                    let monthEndDate = isLastMonth ? phaseEnd : null;
+
+                    // Apply same improved partial month logic
+                    if (isLastMonth && monthEndDate) {
+                        const lastMonthYear = parseInt(month.split('-')[0]);
+                        const lastMonthNum = parseInt(month.split('-')[1]);
+                        const monthLastDay = new Date(lastMonthYear, lastMonthNum, 0).getDate();
+                        const endDay = monthEndDate.getDate();
+                        if (endDay >= 10) {
+                            monthEndDate = null;
+                        }
+                    }
+
+                    let monthCapacity;
+                    try {
+                        monthCapacity = this.workingDaysCalculator.calculateAvailableCapacity(
+                            teamMember,
+                            month,
+                            monthStartDate,
+                            true,
+                            monthEndDate
+                        );
+                    } catch (error) {
+                        console.error(`  ❌ Error calculating capacity for backfill month ${month}:`, error);
+                        monthCapacity = 0;
+                    }
+
+                    // Calculate still-available capacity in this month
+                    const existingInMonth = this._calculateExistingAllocationsForMonth(month, existingAllocations);
+                    const monthlyUsed = monthlyCapacityUsed[month] || 0;
+                    const capacityStillAvailable = Math.max(0, monthCapacity - existingInMonth - monthlyUsed);
+
+                    console.log(`  🔍 Backfill DEBUG ${month}: monthCapacity=${monthCapacity}, existing=${existingInMonth}, monthlyUsed=${monthlyUsed}, available=${capacityStillAvailable}`);
+
+                    if (capacityStillAvailable > 0) {
+                        const toBackfill = Math.min(phaseRemainingMDs, capacityStillAvailable);
+
+                        // Update allocations
+                        result[month].planned += toBackfill;
+                        result[month].actual += toBackfill;
+
+                        if (!phaseAllocations[phase.phaseId].monthlyDistribution[month]) {
+                            phaseAllocations[phase.phaseId].monthlyDistribution[month] = 0;
+                        }
+                        phaseAllocations[phase.phaseId].monthlyDistribution[month] += toBackfill;
+                        phaseAllocations[phase.phaseId].allocated += toBackfill;
+
+                        monthlyCapacityUsed[month] += toBackfill;
+                        phaseRemainingMDs -= toBackfill;
+
+                        console.log(`  ✅ Backfilled ${toBackfill} MDs to ${month} for ${phase.phaseName}. Remaining: ${phaseRemainingMDs}`);
+                    } else {
+                        console.log(`  ⏭️ No capacity available in ${month} for backfill (capacity=${monthCapacity}, existing=${existingInMonth}, used=${monthlyUsed})`);
+                    }
                 }
             }
 
@@ -552,19 +657,16 @@ class AutoDistribution {
     _getMonthsBetween(startDate, endDate) {
         const months = [];
         const current = new Date(startDate);
+        current.setDate(1); // Set to first day of start month for consistent comparison
 
         // Continue while current month is before or equal to end date month
-        while (current <= endDate) {
+        while (current.getFullYear() < endDate.getFullYear() ||
+               (current.getFullYear() === endDate.getFullYear() && current.getMonth() <= endDate.getMonth())) {
             const monthString = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
             months.push(monthString);
-            
+
             // Move to next month
             current.setMonth(current.getMonth() + 1);
-            
-            // If we've moved beyond the end date, stop
-            if (current > endDate) {
-                break;
-            }
         }
 
         return months;

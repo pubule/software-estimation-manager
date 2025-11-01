@@ -150,27 +150,70 @@ export class AllocationActions {
                 hasOverflow = distribution.hasOverflow;
                 overflowAmount = distribution.overflowAmount;
 
-                // Calculate phase monthly breakdown for inline editing
-                data.phaseAllocations.forEach(phase => {
-                    const startDate = new Date(phase.startDate);
-                    const endDate = new Date(phase.endDate);
-
-                    // Get all months in phase range
-                    const phaseMonths: string[] = [];
-                    let current = new Date(startDate);
-                    while (current <= endDate) {
-                        const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
-                        phaseMonths.push(monthKey);
-                        current.setMonth(current.getMonth() + 1);
-                    }
-
-                    // Distribute totalMDs evenly across months
-                    const mdsPerMonth = phase.totalMDs / phaseMonths.length;
-                    phaseMonthlyBreakdown[phase.phaseId] = {};
-                    phaseMonths.forEach(month => {
-                        phaseMonthlyBreakdown[phase.phaseId][month] = mdsPerMonth;
+                // Extract phase monthly breakdown from working-days-aware distribution
+                // The autoDistributePhases() already calculated proper monthly distribution
+                // based on working days, not simple even distribution
+                if (distribution.phaseBreakdown) {
+                    // Extract monthlyDistribution from each phase in phaseBreakdown
+                    Object.keys(distribution.phaseBreakdown).forEach(phaseId => {
+                        const phaseData = distribution.phaseBreakdown[phaseId];
+                        if (phaseData && phaseData.monthlyDistribution) {
+                            // Use the working-days-aware monthlyDistribution
+                            phaseMonthlyBreakdown[phaseId] = phaseData.monthlyDistribution;
+                            console.log(`✅ Phase ${phaseId}: Using working-days-aware distribution`, phaseData.monthlyDistribution);
+                        }
                     });
-                });
+
+                    if (Object.keys(phaseMonthlyBreakdown).length > 0) {
+                        console.log('✅ All phases using working-days-aware breakdown from autoDistributePhases');
+                    } else {
+                        console.warn('⚠️ phaseBreakdown found but no monthlyDistribution data, using fallback even distribution');
+                        // Fallback: use even distribution
+                        data.phaseAllocations.forEach(phase => {
+                            const startDate = new Date(phase.startDate);
+                            const endDate = new Date(phase.endDate);
+
+                            // Get all months in phase range
+                            const phaseMonths: string[] = [];
+                            let current = new Date(startDate);
+                            while (current <= endDate) {
+                                const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+                                phaseMonths.push(monthKey);
+                                current.setMonth(current.getMonth() + 1);
+                            }
+
+                            // Distribute totalMDs evenly across months
+                            const mdsPerMonth = phase.totalMDs / phaseMonths.length;
+                            phaseMonthlyBreakdown[phase.phaseId] = {};
+                            phaseMonths.forEach(month => {
+                                phaseMonthlyBreakdown[phase.phaseId][month] = mdsPerMonth;
+                            });
+                        });
+                    }
+                } else {
+                    // Fallback: calculate phase breakdown if not provided
+                    console.warn('⚠️ phaseBreakdown not found in distribution result, using fallback even distribution');
+                    data.phaseAllocations.forEach(phase => {
+                        const startDate = new Date(phase.startDate);
+                        const endDate = new Date(phase.endDate);
+
+                        // Get all months in phase range
+                        const phaseMonths: string[] = [];
+                        let current = new Date(startDate);
+                        while (current <= endDate) {
+                            const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+                            phaseMonths.push(monthKey);
+                            current.setMonth(current.getMonth() + 1);
+                        }
+
+                        // Distribute totalMDs evenly across months
+                        const mdsPerMonth = phase.totalMDs / phaseMonths.length;
+                        phaseMonthlyBreakdown[phase.phaseId] = {};
+                        phaseMonths.forEach(month => {
+                            phaseMonthlyBreakdown[phase.phaseId][month] = mdsPerMonth;
+                        });
+                    });
+                }
 
                 // Calculate date range from phases
                 const allDates = data.phaseAllocations.flatMap(p => [p.startDate, p.endDate]);
@@ -354,28 +397,80 @@ export class AllocationActions {
             if (updates.phaseAllocations && Array.isArray(updates.phaseAllocations) && teamMemberId) {
                 console.log('🔄 Recalculating monthly allocations from updated phases...');
 
-                // Calculate phaseMonthlyBreakdown
-                const phaseMonthlyBreakdown: Record<string, Record<string, number>> = {};
-                updates.phaseAllocations.forEach(phase => {
-                    const startDate = new Date(phase.startDate);
-                    const endDate = new Date(phase.endDate);
+                // Use working-days-aware distribution instead of simple even distribution
+                const phases: Phase[] = updates.phaseAllocations.map((pa: any) => ({
+                    phaseId: pa.phaseId,
+                    phaseName: pa.phaseName,
+                    startDate: pa.startDate,
+                    endDate: pa.endDate,
+                    estimatedMDs: pa.totalMDs
+                }));
 
-                    // Get all months in phase range
-                    const phaseMonths: string[] = [];
-                    let current = new Date(startDate);
-                    while (current <= endDate) {
-                        const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
-                        phaseMonths.push(monthKey);
-                        current.setMonth(current.getMonth() + 1);
-                    }
+                const distribution = this.autoDistributePhases(phases, teamMemberId);
 
-                    // Distribute totalMDs evenly across months
-                    const mdsPerMonth = phase.totalMDs / phaseMonths.length;
-                    phaseMonthlyBreakdown[phase.phaseId] = {};
-                    phaseMonths.forEach(month => {
-                        phaseMonthlyBreakdown[phase.phaseId][month] = mdsPerMonth;
+                // Extract phase monthly breakdown from working-days-aware distribution
+                let phaseMonthlyBreakdown: Record<string, Record<string, number>> = {};
+                if (distribution.phaseBreakdown) {
+                    // Extract monthlyDistribution from each phase in phaseBreakdown
+                    Object.keys(distribution.phaseBreakdown).forEach(phaseId => {
+                        const phaseData = distribution.phaseBreakdown[phaseId];
+                        if (phaseData && phaseData.monthlyDistribution) {
+                            // Use the working-days-aware monthlyDistribution
+                            phaseMonthlyBreakdown[phaseId] = phaseData.monthlyDistribution;
+                            console.log(`✅ Phase ${phaseId}: Using working-days-aware distribution`, phaseData.monthlyDistribution);
+                        }
                     });
-                });
+
+                    if (Object.keys(phaseMonthlyBreakdown).length > 0) {
+                        console.log('✅ All phases using working-days-aware breakdown from autoDistributePhases');
+                    } else {
+                        console.warn('⚠️ phaseBreakdown found but no monthlyDistribution data, using fallback even distribution');
+                        // Fallback: use even distribution
+                        updates.phaseAllocations.forEach((phase: any) => {
+                            const startDate = new Date(phase.startDate);
+                            const endDate = new Date(phase.endDate);
+
+                            // Get all months in phase range
+                            const phaseMonths: string[] = [];
+                            let current = new Date(startDate);
+                            while (current <= endDate) {
+                                const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+                                phaseMonths.push(monthKey);
+                                current.setMonth(current.getMonth() + 1);
+                            }
+
+                            // Distribute totalMDs evenly across months
+                            const mdsPerMonth = phase.totalMDs / phaseMonths.length;
+                            phaseMonthlyBreakdown[phase.phaseId] = {};
+                            phaseMonths.forEach(month => {
+                                phaseMonthlyBreakdown[phase.phaseId][month] = mdsPerMonth;
+                            });
+                        });
+                    }
+                } else {
+                    // Fallback: calculate phase breakdown if not provided
+                    console.warn('⚠️ phaseBreakdown not found in distribution result, using fallback even distribution');
+                    updates.phaseAllocations.forEach((phase: any) => {
+                        const startDate = new Date(phase.startDate);
+                        const endDate = new Date(phase.endDate);
+
+                        // Get all months in phase range
+                        const phaseMonths: string[] = [];
+                        let current = new Date(startDate);
+                        while (current <= endDate) {
+                            const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+                            phaseMonths.push(monthKey);
+                            current.setMonth(current.getMonth() + 1);
+                        }
+
+                        // Distribute totalMDs evenly across months
+                        const mdsPerMonth = phase.totalMDs / phaseMonths.length;
+                        phaseMonthlyBreakdown[phase.phaseId] = {};
+                        phaseMonths.forEach(month => {
+                            phaseMonthlyBreakdown[phase.phaseId][month] = mdsPerMonth;
+                        });
+                    });
+                }
 
                 // Calculate monthly allocations (aggregate all phases per month)
                 const monthlyAllocations: Record<string, { planned: number; actual: number }> = {};
