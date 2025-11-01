@@ -931,16 +931,36 @@ const appStore = window.zustand.createStore((set, get) => ({
         console.log('  Coverage MDs:', coverageMDs);
         console.log('  Total calculated:', totalDevelopmentMDs);
         console.log('  Stored in JSON:', storedDevelopmentMDs);
-        
-        const updatedPhases = currentState.currentPhases.map(phase => 
-            phase.id === 'development' ? { 
-                ...phase, 
-                manDays: Math.round(totalDevelopmentMDs * 10) / 10,
-                lastModified: new Date().toISOString()
+
+        const roundedDevelopmentMDs = Math.round(totalDevelopmentMDs * 10) / 10;
+        const now = new Date().toISOString();
+
+        // Update currentPhases array
+        const updatedPhases = currentState.currentPhases.map(phase =>
+            phase.id === 'development' ? {
+                ...phase,
+                manDays: roundedDevelopmentMDs,
+                lastModified: now
             } : phase
         );
-        
-        set({ currentPhases: updatedPhases });
+
+        // Also sync to currentProject.phases for persistence in saved JSON
+        const updatedProject = {
+            ...currentState.currentProject,
+            phases: {
+                ...currentState.currentProject.phases,
+                development: {
+                    ...currentState.currentProject.phases.development,
+                    manDays: roundedDevelopmentMDs,
+                    lastModified: now
+                }
+            }
+        };
+
+        set({
+            currentPhases: updatedPhases,
+            currentProject: updatedProject
+        });
     },
     
     /**
