@@ -1200,13 +1200,14 @@ class ApplicationController extends BaseComponent {
                 console.error('Failed to calculate project costs for export:', error);
             }
         }
-        
+
         // Get calculated data directly from store (new React pattern)
         const store = window.appStore;
         const state = store?.getState();
         const calculationsData = state?.calculationsData || {};
         const vendorCosts = calculationsData.vendorCosts || [];
         const kpiData = calculationsData.kpiData || {};
+        const finalMDsOverrides = calculationsData.finalMDsOverrides || {};
         
         // Define styles
         const styles = {
@@ -1344,7 +1345,11 @@ class ApplicationController extends BaseComponent {
         // Vendor costs data
         if (vendorCosts.length > 0) {
             vendorCosts.forEach((cost, index) => {
-                const finalCost = cost.finalMDs ? (cost.finalMDs * cost.officialRate) : cost.totCost;
+                // Get override value if present
+                const overrideKey = `${cost.vendorId}_${cost.role}_${cost.department}`;
+                const overrideFinalMDs = finalMDsOverrides[overrideKey];
+                const displayFinalMDs = overrideFinalMDs !== undefined ? overrideFinalMDs : (cost.finalMDs || cost.estimatedMDs || 0);
+                const finalCost = displayFinalMDs * (cost.officialRate || 0);
 
                 // Alternate row colors
                 const rowStyle = index % 2 === 0 ?
@@ -1368,22 +1373,30 @@ class ApplicationController extends BaseComponent {
                 worksheet.getCell(row, 6).value = cost.totCost || 0;
                 worksheet.getCell(row, 6).style = { ...styles.currencyCell, ...rowStyle };
 
-                worksheet.getCell(row, 7).value = cost.finalMDs || cost.estimatedMDs || 0;
+                worksheet.getCell(row, 7).value = displayFinalMDs;
                 worksheet.getCell(row, 7).style = { ...styles.numberCell, ...rowStyle };
 
-                worksheet.getCell(row, 8).value = finalCost || 0;
+                worksheet.getCell(row, 8).value = Math.round(finalCost);
                 worksheet.getCell(row, 8).style = { ...styles.currencyCell, ...rowStyle };
 
                 row++;
             });
             
-            // Totals row
+            // Totals row - use override values where present
             const totalManDays = vendorCosts.reduce((sum, c) => sum + (c.estimatedMDs || 0), 0);
             const totalCost = vendorCosts.reduce((sum, c) => sum + (c.totCost || 0), 0);
-            const totalFinalMDs = vendorCosts.reduce((sum, c) => sum + (c.finalMDs || c.estimatedMDs || 0), 0);
+            const totalFinalMDs = vendorCosts.reduce((sum, c) => {
+                const overrideKey = `${c.vendorId}_${c.role}_${c.department}`;
+                const overrideFinalMDs = finalMDsOverrides[overrideKey];
+                const displayFinalMDs = overrideFinalMDs !== undefined ? overrideFinalMDs : (c.finalMDs || c.estimatedMDs || 0);
+                return sum + displayFinalMDs;
+            }, 0);
             const totalFinalCost = vendorCosts.reduce((sum, c) => {
-                const finalCost = c.finalMDs ? (c.finalMDs * c.officialRate) : c.totCost;
-                return sum + (finalCost || 0);
+                const overrideKey = `${c.vendorId}_${c.role}_${c.department}`;
+                const overrideFinalMDs = finalMDsOverrides[overrideKey];
+                const displayFinalMDs = overrideFinalMDs !== undefined ? overrideFinalMDs : (c.finalMDs || c.estimatedMDs || 0);
+                const finalCost = displayFinalMDs * (c.officialRate || 0);
+                return sum + finalCost;
             }, 0);
             
             worksheet.getCell(row, 1).value = 'TOTAL';
@@ -1401,8 +1414,8 @@ class ApplicationController extends BaseComponent {
             
             worksheet.getCell(row, 7).value = totalFinalMDs;
             worksheet.getCell(row, 7).style = { ...styles.numberCell, ...styles.totalRow };
-            
-            worksheet.getCell(row, 8).value = totalFinalCost;
+
+            worksheet.getCell(row, 8).value = Math.round(totalFinalCost);
             worksheet.getCell(row, 8).style = { ...styles.currencyCell, ...styles.totalRow };
             row++;
         } else {
