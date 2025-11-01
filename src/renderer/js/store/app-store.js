@@ -970,14 +970,24 @@ const appStore = window.zustand.createStore((set, get) => ({
             if (phase.id === 'development' && currentProject?.features) {
                 const g2EffortPercent = effort.G2 / 100;
                 let g2Cost = 0;
-                
+
+                // Sum feature-specific G2 costs (using each feature's supplier rate)
                 currentProject.features.forEach(feature => {
                     const featureManDays = parseFloat(feature.manDays) || 0;
                     const featureSupplier = currentState.availableSuppliers.find(s => s.id === feature.supplier);
                     const featureRate = featureSupplier ? (featureSupplier.realRate || featureSupplier.officialRate || 0) : 0;
                     g2Cost += featureManDays * featureRate * g2EffortPercent;
                 });
-                
+
+                // Add coverage cost using selected G2 supplier rate
+                const coverage = currentProject.coverage || 0;
+                if (coverage > 0) {
+                    const selectedSuppliers = currentProject.phases?.selectedSuppliers || currentState.selectedSuppliers;
+                    const g2Supplier = currentState.availableSuppliers.find(s => s.id === selectedSuppliers?.G2);
+                    const g2Rate = g2Supplier ? (g2Supplier.realRate || g2Supplier.officialRate || 0) : resourceRates.G2;
+                    g2Cost += coverage * g2Rate * g2EffortPercent;
+                }
+
                 costByResource = {
                     G1: Math.round(manDaysByResource.G1 * resourceRates.G1),
                     G2: Math.round(g2Cost),
