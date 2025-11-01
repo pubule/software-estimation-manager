@@ -461,7 +461,9 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                     <td className="real-rate">€{cost.realRate.toLocaleString()}</td>
                     <td className="official-rate">€{cost.officialRate.toLocaleString()}</td>
                     <td className="total-cost">€{cost.totCost.toLocaleString()}</td>
-                    <td className="final-tot-cost">
+                    <td className={`final-tot-cost ${
+                      cost.finalTotCost >= cost.totCost ? 'final-cost-higher' : 'final-cost-lower'
+                    }`}>
                       <strong>€{cost.finalTotCost.toLocaleString()}</strong>
                     </td>
                   </tr>
@@ -475,9 +477,17 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                   <td className="total-cost">
                     <strong>€{filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0).toLocaleString()}</strong>
                   </td>
-                  <td className="total-final-cost">
-                    <strong>€{filteredCosts.reduce((sum, cost) => sum + cost.finalTotCost, 0).toLocaleString()}</strong>
-                  </td>
+                  {(() => {
+                    const totalCost = filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0);
+                    const totalFinalCost = filteredCosts.reduce((sum, cost) => sum + cost.finalTotCost, 0);
+                    return (
+                      <td className={`total-final-cost ${
+                        totalFinalCost >= totalCost ? 'final-cost-higher' : 'final-cost-lower'
+                      }`}>
+                        <strong>€{totalFinalCost.toLocaleString()}</strong>
+                      </td>
+                    );
+                  })()}
                 </tr>
               </tfoot>
             </table>

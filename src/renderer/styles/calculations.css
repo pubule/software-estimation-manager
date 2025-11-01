@@ -479,6 +479,7 @@
 
 .total-cost {
     font-weight: 600;
+    color: var(--text-primary) !important;
 }
 
 /* Table Footer */
@@ -500,21 +501,36 @@
 }
 
 /* Final Tot Cost in totals row */
-.totals-row .final-cost {
+.totals-row .total-final-cost {
     color: var(--text-primary);
     font-size: var(--font-size-base);
     font-weight: 600;
 }
 
 /* Dynamic styling for Final Tot Cost based on comparison with Total Cost */
-.totals-row .final-cost.final-cost-higher {
-    color: var(--success);
+.totals-row .total-final-cost.final-cost-higher {
+    background-color: rgba(34, 197, 94, 0.2);
+    color: rgb(34, 197, 94);
     font-weight: 700;
 }
 
-.totals-row .final-cost.final-cost-lower {
-    color: var(--error);
+.totals-row .total-final-cost.final-cost-higher strong {
+    color: rgb(34, 197, 94) !important;
+}
+
+.totals-row .total-final-cost.final-cost-lower {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: rgb(239, 68, 68);
     font-weight: 700;
+}
+
+.totals-row .total-final-cost.final-cost-lower strong {
+    color: rgb(239, 68, 68) !important;
+}
+
+/* Override global styles for calculations table */
+.calculations-table .total-cost strong {
+    color: var(--text-primary) !important;
 }
 
 /* No Data State */
@@ -700,16 +716,25 @@
     font-weight: 600;
 }
 
-/* Visual feedback for value updates */
-.value-updated {
-    background-color: var(--accent-primary) !important;
-    color: white !important;
-    transition: all 0.3s ease;
+/* Color coding for final cost comparison on table cell */
+.final-tot-cost.final-cost-higher {
+    background-color: rgba(34, 197, 94, 0.2) !important;
+    color: rgb(34, 197, 94) !important;
 }
 
-.final-mds-input.value-updated {
-    border-color: var(--accent-primary) !important;
-    box-shadow: 0 0 0 2px var(--accent-primary-alpha) !important;
+.final-tot-cost.final-cost-higher strong {
+    color: rgb(34, 197, 94) !important;
+    font-weight: 700;
+}
+
+.final-tot-cost.final-cost-lower {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+    color: rgb(239, 68, 68) !important;
+}
+
+.final-tot-cost.final-cost-lower strong {
+    color: rgb(239, 68, 68) !important;
+    font-weight: 700;
 }
 
 /* Responsive adjustments for new columns */
