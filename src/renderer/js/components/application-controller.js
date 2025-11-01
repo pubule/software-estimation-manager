@@ -1962,9 +1962,8 @@ class ApplicationController extends BaseComponent {
                 // Get phase type from key - React-only simplified approach
                 const phaseType = this.getPhaseType(phase.key);
                 
-                // Simplified calculation for React-only approach
+                // Calculate phase total cost based on resource breakdown (not phase.cost)
                 const manDays = phase.manDays || 0;
-                const phaseTotalCost = phase.cost || 0;
                 
                 // Calculate resource breakdown from phase effort data
                 const manDaysByResource = { G1: 0, G2: 0, TA: 0, PM: 0 };
@@ -1999,10 +1998,12 @@ class ApplicationController extends BaseComponent {
                         g2Cost += featureManDays * featureRate * g2EffortPercent;
                     });
 
+                    // Get selected suppliers for TA, PM, and coverage
+                    const selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
+
                     // Add coverage cost if present
                     const coverageMDs = currentProject.coverage || 0;
                     if (coverageMDs > 0) {
-                        const selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
                         if (selectedSuppliers.G2) {
                             const g2Supplier = availableSuppliers.find(s => s.id === selectedSuppliers.G2);
                             const g2Rate = g2Supplier ? (g2Supplier.realRate || g2Supplier.officialRate || 0) : resourceRates.G2;
@@ -2012,8 +2013,27 @@ class ApplicationController extends BaseComponent {
 
                     costByResource.G1 = Math.round(manDaysByResource.G1 * resourceRates.G1);
                     costByResource.G2 = Math.round(g2Cost);
-                    costByResource.TA = Math.round(manDaysByResource.TA * resourceRates.TA);
-                    costByResource.PM = Math.round(manDaysByResource.PM * resourceRates.PM);
+
+                    // Use selected supplier rates for TA and PM instead of hardcoded resourceRates
+                    let taCost = 0;
+                    if (manDaysByResource.TA > 0 && selectedSuppliers.TA) {
+                        const taSupplier = availableSuppliers.find(s => s.id === selectedSuppliers.TA);
+                        const taRate = taSupplier ? (taSupplier.realRate || taSupplier.officialRate || 0) : resourceRates.TA;
+                        taCost = Math.round(manDaysByResource.TA * taRate);
+                    } else {
+                        taCost = Math.round(manDaysByResource.TA * resourceRates.TA);
+                    }
+                    costByResource.TA = taCost;
+
+                    let pmCost = 0;
+                    if (manDaysByResource.PM > 0 && selectedSuppliers.PM) {
+                        const pmSupplier = availableSuppliers.find(s => s.id === selectedSuppliers.PM);
+                        const pmRate = pmSupplier ? (pmSupplier.realRate || pmSupplier.officialRate || 0) : resourceRates.PM;
+                        pmCost = Math.round(manDaysByResource.PM * pmRate);
+                    } else {
+                        pmCost = Math.round(manDaysByResource.PM * resourceRates.PM);
+                    }
+                    costByResource.PM = pmCost;
                 } else {
                     // Normal calculation for other phases (uses standard resource rates)
                     costByResource.G1 = Math.round(manDaysByResource.G1 * resourceRates.G1);
@@ -2021,7 +2041,10 @@ class ApplicationController extends BaseComponent {
                     costByResource.TA = Math.round(manDaysByResource.TA * resourceRates.TA);
                     costByResource.PM = Math.round(manDaysByResource.PM * resourceRates.PM);
                 }
-                
+
+                // Calculate phase total cost from resource breakdown
+                const phaseTotalCost = costByResource.G1 + costByResource.G2 + costByResource.TA + costByResource.PM;
+
                 totalManDays += phase.manDays || 0;
                 totalCost += phaseTotalCost;
                 
