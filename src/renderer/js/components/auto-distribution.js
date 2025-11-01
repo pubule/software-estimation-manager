@@ -375,13 +375,13 @@ class AutoDistribution {
         // Initialize result structure
         const result = {};
         const phaseAllocations = {}; // Track allocations per phase
-        const monthlyCapacityUsed = {}; // Track used capacity per month
+        const monthlyCapacityUsedByRange = {}; // Track used capacity by date range within each month
         let totalOverflow = 0;
 
-        // Initialize months in result
+        // Initialize months in result and capacity tracking by range
         allMonths.forEach(month => {
             result[month] = { planned: 0, actual: 0, locked: false };
-            monthlyCapacityUsed[month] = 0;
+            monthlyCapacityUsedByRange[month] = []; // Array of {startDate, endDate, used} objects
         });
 
         // Initialize phase tracking
@@ -464,27 +464,39 @@ class AutoDistribution {
 
                 // Subtract existing allocations (from other projects)
                 const existingInMonth = this._calculateExistingAllocationsForMonth(month, existingAllocations);
-                const availableCapacity = Math.max(0, monthCapacity - existingInMonth - monthlyCapacityUsed[month]);
 
-                console.log(`  📊 Month ${month}: Capacity=${monthCapacity}, Used=${monthlyCapacityUsed[month]}, Existing=${existingInMonth}, Available=${availableCapacity}`);
+                // Calculate used capacity ONLY in the date range of this phase (not entire month)
+                const usedInPhaseRange = this._calculateUsedCapacityInRange(month, monthStartDate || phaseStart, monthEndDate || phaseEnd, monthlyCapacityUsedByRange);
+                const availableCapacity = Math.max(0, monthCapacity - existingInMonth - usedInPhaseRange);
+
+                console.log(`  📊 Month ${month}: Capacity=${monthCapacity}, UsedInRange=${usedInPhaseRange}, Existing=${existingInMonth}, Available=${availableCapacity}`);
 
                 if (availableCapacity > 0) {
                     // Consume available capacity for this phase
                     const toAllocate = Math.min(phaseRemainingMDs, availableCapacity);
-                    
+
                     // Update result allocation
                     result[month].planned += toAllocate;
                     result[month].actual += toAllocate;
-                    
+
                     // Update phase tracking
                     if (!phaseAllocations[phase.phaseId].monthlyDistribution[month]) {
                         phaseAllocations[phase.phaseId].monthlyDistribution[month] = 0;
                     }
                     phaseAllocations[phase.phaseId].monthlyDistribution[month] += toAllocate;
                     phaseAllocations[phase.phaseId].allocated += toAllocate;
-                    
-                    // Update capacity tracking
-                    monthlyCapacityUsed[month] += toAllocate;
+
+                    // Update capacity tracking by range
+                    const rangeStart = monthStartDate || phaseStart;
+                    const rangeEnd = monthEndDate || phaseEnd;
+                    monthlyCapacityUsedByRange[month].push({
+                        startDate: rangeStart,
+                        endDate: rangeEnd,
+                        used: toAllocate,
+                        phaseId: phase.phaseId,
+                        phaseName: phase.phaseName
+                    });
+
                     phaseRemainingMDs -= toAllocate;
 
                     console.log(`  ✅ Allocated ${toAllocate} MDs to ${phase.phaseName} in ${month}. Phase remaining: ${phaseRemainingMDs}`);
@@ -535,12 +547,12 @@ class AutoDistribution {
                         monthCapacity = 0;
                     }
 
-                    // Calculate still-available capacity in this month
+                    // Calculate still-available capacity in this month's date range
                     const existingInMonth = this._calculateExistingAllocationsForMonth(month, existingAllocations);
-                    const monthlyUsed = monthlyCapacityUsed[month] || 0;
-                    const capacityStillAvailable = Math.max(0, monthCapacity - existingInMonth - monthlyUsed);
+                    const usedInRange = this._calculateUsedCapacityInRange(month, monthStartDate || phaseStart, monthEndDate || phaseEnd, monthlyCapacityUsedByRange);
+                    const capacityStillAvailable = Math.max(0, monthCapacity - existingInMonth - usedInRange);
 
-                    console.log(`  🔍 Backfill DEBUG ${month}: monthCapacity=${monthCapacity}, existing=${existingInMonth}, monthlyUsed=${monthlyUsed}, available=${capacityStillAvailable}`);
+                    console.log(`  🔍 Backfill DEBUG ${month}: monthCapacity=${monthCapacity}, existing=${existingInMonth}, usedInRange=${usedInRange}, available=${capacityStillAvailable}`);
 
                     if (capacityStillAvailable > 0) {
                         const toBackfill = Math.min(phaseRemainingMDs, capacityStillAvailable);
@@ -555,12 +567,23 @@ class AutoDistribution {
                         phaseAllocations[phase.phaseId].monthlyDistribution[month] += toBackfill;
                         phaseAllocations[phase.phaseId].allocated += toBackfill;
 
-                        monthlyCapacityUsed[month] += toBackfill;
+                        // Update capacity tracking by range
+                        const rangeStart = monthStartDate || phaseStart;
+                        const rangeEnd = monthEndDate || phaseEnd;
+                        monthlyCapacityUsedByRange[month].push({
+                            startDate: rangeStart,
+                            endDate: rangeEnd,
+                            used: toBackfill,
+                            phaseId: phase.phaseId,
+                            phaseName: phase.phaseName,
+                            isBackfill: true
+                        });
+
                         phaseRemainingMDs -= toBackfill;
 
                         console.log(`  ✅ Backfilled ${toBackfill} MDs to ${month} for ${phase.phaseName}. Remaining: ${phaseRemainingMDs}`);
                     } else {
-                        console.log(`  ⏭️ No capacity available in ${month} for backfill (capacity=${monthCapacity}, existing=${existingInMonth}, used=${monthlyUsed})`);
+                        console.log(`  ⏭️ No capacity available in ${month} for backfill (capacity=${monthCapacity}, existing=${existingInMonth}, used=${usedInRange})`);
                     }
                 }
             }
@@ -670,6 +693,57 @@ class AutoDistribution {
         }
 
         return months;
+    }
+
+    /**
+     * Calculate how much capacity has been used in a specific date range within a month
+     * @private
+     * @param {string} month Month in YYYY-MM format
+     * @param {Date} rangeStartDate Start date of the range
+     * @param {Date} rangeEndDate End date of the range
+     * @param {Array} monthlyCapacityUsedByRange Array of {startDate, endDate, used} tracking objects
+     * @returns {number} Total MDs used in the specified range
+     */
+    _calculateUsedCapacityInRange(month, rangeStartDate, rangeEndDate, monthlyCapacityUsedByRange) {
+        const rangesInMonth = monthlyCapacityUsedByRange[month] || [];
+        let totalUsedInRange = 0;
+
+        // Check each previously allocated range for overlap with current phase range
+        for (const allocatedRange of rangesInMonth) {
+            // Parse dates
+            const allocStart = new Date(allocatedRange.startDate);
+            const allocEnd = new Date(allocatedRange.endDate);
+            const phaseStart = new Date(rangeStartDate);
+            const phaseEnd = new Date(rangeEndDate);
+
+            // Check for overlap: if allocated range overlaps with current phase range
+            if (allocStart <= phaseEnd && allocEnd >= phaseStart) {
+                // Calculate the overlapping portion
+                const overlapStart = new Date(Math.max(allocStart.getTime(), phaseStart.getTime()));
+                const overlapEnd = new Date(Math.min(allocEnd.getTime(), phaseEnd.getTime()));
+
+                // Count working days in the overlap
+                const overlapWorkingDays = this.workingDaysCalculator.calculateWorkingDaysBetween(overlapStart, overlapEnd);
+                const overlapCapacity = allocatedRange.used * (overlapWorkingDays / this._calculateDaysBetween(allocStart, allocEnd));
+
+                totalUsedInRange += overlapCapacity;
+            }
+        }
+
+        return totalUsedInRange;
+    }
+
+    /**
+     * Calculate calendar days between two dates (inclusive)
+     * @private
+     * @param {Date} startDate
+     * @param {Date} endDate
+     * @returns {number} Number of days
+     */
+    _calculateDaysBetween(startDate, endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        return Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
     }
 
     /**
