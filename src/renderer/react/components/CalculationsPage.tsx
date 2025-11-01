@@ -143,10 +143,10 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     resetAllFinalMDs();
   };
   
-  // Helper function to get input value from finalMDsOverrides or fallback to estimatedMDs
+  // Helper function to get input value from finalMDsOverrides or fallback to finalMDs (calculated value)
   const getInputValue = (cost: any) => {
     const key = `${cost.vendorId}_${cost.role}_${cost.department}`;
-    return finalMDsOverrides[key] ?? cost.estimatedMDs;
+    return finalMDsOverrides[key] ?? cost.finalMDs;
   };
 
   // Computed values per UI (derived state) - LOCAL reactive filtering
@@ -436,7 +436,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                     </td>
                     <td className="vendor-department">{cost.department}</td>
                     <td className="total-mds">{cost.estimatedMDs}</td>
-                    <td className="official-tot-mds">{cost.estimatedMDs}</td>
+                    <td className="official-tot-mds">{cost.finalMDs}</td>
                     <td className="final-tot-mds">
                       <input
                         type="number"

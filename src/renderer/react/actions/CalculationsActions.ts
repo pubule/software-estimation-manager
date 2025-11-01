@@ -143,6 +143,14 @@ export class CalculationsActions {
         const taSupplier = this.getSupplierData(selectedTA);
 
         if (taSupplier) {
+          const totCost = Math.round(developmentTA_MDs * (taSupplier.realRate || 0));
+          const finalMDs_TA = Math.round((totCost / (taSupplier.officialRate || 1)) * 10) / 10;
+          console.log('🔍 Development TA finalMDs:', {
+            developmentTA_MDs,
+            totCost,
+            officialRate: taSupplier.officialRate,
+            calculatedFinalMDs: finalMDs_TA
+          });
           const taCost: VendorCost = {
             vendorId: selectedTA,
             vendorName: taSupplier.name || selectedTA,
@@ -151,9 +159,9 @@ export class CalculationsActions {
             officialRate: taSupplier.officialRate || 0,
             realRate: taSupplier.realRate || 0,
             estimatedMDs: developmentTA_MDs,
-            finalMDs: developmentTA_MDs,
-            totCost: Math.round(developmentTA_MDs * (taSupplier.realRate || 0)),
-            finalTotCost: Math.round(developmentTA_MDs * (taSupplier.officialRate || 0)),
+            finalMDs: finalMDs_TA,
+            totCost: totCost,
+            finalTotCost: Math.round(finalMDs_TA * (taSupplier.officialRate || 0)),
             isInternal: taSupplier.type === 'internal'
           };
           allCosts.push(taCost);
@@ -167,6 +175,14 @@ export class CalculationsActions {
         const pmSupplier = this.getSupplierData(selectedPM);
 
         if (pmSupplier) {
+          const totCost = Math.round(developmentPM_MDs * (pmSupplier.realRate || 0));
+          const finalMDs_PM = Math.round((totCost / (pmSupplier.officialRate || 1)) * 10) / 10;
+          console.log('🔍 Development PM finalMDs:', {
+            developmentPM_MDs,
+            totCost,
+            officialRate: pmSupplier.officialRate,
+            calculatedFinalMDs: finalMDs_PM
+          });
           const pmCost: VendorCost = {
             vendorId: selectedPM,
             vendorName: pmSupplier.name || selectedPM,
@@ -175,9 +191,9 @@ export class CalculationsActions {
             officialRate: pmSupplier.officialRate || 0,
             realRate: pmSupplier.realRate || 0,
             estimatedMDs: developmentPM_MDs,
-            finalMDs: developmentPM_MDs,
-            totCost: Math.round(developmentPM_MDs * (pmSupplier.realRate || 0)),
-            finalTotCost: Math.round(developmentPM_MDs * (pmSupplier.officialRate || 0)),
+            finalMDs: finalMDs_PM,
+            totCost: totCost,
+            finalTotCost: Math.round(finalMDs_PM * (pmSupplier.officialRate || 0)),
             isInternal: pmSupplier.type === 'internal'
           };
           allCosts.push(pmCost);
@@ -225,6 +241,14 @@ export class CalculationsActions {
         console.warn('Supplier not found for feature:', feature.id, feature.supplier);
         return;
       }
+      const totCost = (feature.manDays || 0) * (supplierData.realRate || 0);
+      const calculatedFinalMDs = Math.round((totCost / (supplierData.officialRate || 1)) * 10) / 10;
+      console.log('🔍 Feature finalMDs:', {
+        featureId: feature.id,
+        totCost,
+        officialRate: supplierData.officialRate,
+        calculatedFinalMDs
+      });
       const cost: VendorCost = {
         vendorId: feature.supplier,
         vendorName: supplierData.name,
@@ -233,9 +257,9 @@ export class CalculationsActions {
         officialRate: supplierData.officialRate || 0,
         realRate: supplierData.realRate || 0,
         estimatedMDs: feature.manDays || 0,
-        finalMDs: feature.manDays || 0,
-        totCost: (feature.manDays || 0) * (supplierData.realRate || 0),
-        finalTotCost: (feature.manDays || 0) * (supplierData.officialRate || 0),
+        finalMDs: calculatedFinalMDs,
+        totCost: totCost,
+        finalTotCost: Math.round(calculatedFinalMDs * (supplierData.officialRate || 0)),
         isInternal: supplierData.type === 'internal'
       };
       
@@ -271,7 +295,17 @@ export class CalculationsActions {
           
           // Calculate MDs for this role in this phase (round to 1 decimal)
           const phaseMDs = Math.round((phaseData.manDays * (percentage / 100)) * 10) / 10;
-          
+          const totCost = Math.round(phaseMDs * (supplierData.realRate || 0));
+          const calculatedFinalMDs = Math.round((totCost / (supplierData.officialRate || 1)) * 10) / 10;
+          console.log('🔍 Phase finalMDs:', {
+            phaseKey,
+            role,
+            phaseMDs,
+            totCost,
+            officialRate: supplierData.officialRate,
+            calculatedFinalMDs
+          });
+
           const cost: VendorCost = {
             vendorId: supplierId,
             vendorName: supplierData.name || supplierId,
@@ -280,9 +314,9 @@ export class CalculationsActions {
             officialRate: supplierData.officialRate || 0,
             realRate: supplierData.realRate || 0,
             estimatedMDs: phaseMDs,
-            finalMDs: phaseMDs,
-            totCost: Math.round(phaseMDs * (supplierData.realRate || 0)),
-            finalTotCost: Math.round(phaseMDs * (supplierData.officialRate || 0)),
+            finalMDs: calculatedFinalMDs,
+            totCost: totCost,
+            finalTotCost: Math.round(calculatedFinalMDs * (supplierData.officialRate || 0)),
             isInternal: supplierData.type === 'internal' || false
           };
           
@@ -327,7 +361,17 @@ export class CalculationsActions {
           
           // Calculate MDs for this role in this phase (round to 1 decimal)
           const phaseMDs = Math.round((phaseData.manDays * (percentage / 100)) * 10) / 10;
-          
+          const totCost = Math.round(phaseMDs * (supplierData.realRate || 0));
+          const calculatedFinalMDs = Math.round((totCost / (supplierData.officialRate || 1)) * 10) / 10;
+          console.log('🔍 Phase finalMDs:', {
+            phaseKey,
+            role,
+            phaseMDs,
+            totCost,
+            officialRate: supplierData.officialRate,
+            calculatedFinalMDs
+          });
+
           const cost: VendorCost = {
             vendorId: supplierId,
             vendorName: supplierData.name || supplierId,
@@ -336,9 +380,9 @@ export class CalculationsActions {
             officialRate: supplierData.officialRate || 0,
             realRate: supplierData.realRate || 0,
             estimatedMDs: phaseMDs,
-            finalMDs: phaseMDs,
-            totCost: Math.round(phaseMDs * (supplierData.realRate || 0)),
-            finalTotCost: Math.round(phaseMDs * (supplierData.officialRate || 0)),
+            finalMDs: calculatedFinalMDs,
+            totCost: totCost,
+            finalTotCost: Math.round(calculatedFinalMDs * (supplierData.officialRate || 0)),
             isInternal: supplierData.type === 'internal' || false
           };
           
@@ -360,6 +404,15 @@ export class CalculationsActions {
       return null;
     }
     
+    const totCost = Math.round(coverage * (supplierData.realRate || 0));
+    const calculatedFinalMDs = Math.round((totCost / (supplierData.officialRate || 1)) * 10) / 10;
+    console.log('🔍 Coverage finalMDs:', {
+      g2VendorId,
+      coverage,
+      totCost,
+      officialRate: supplierData.officialRate,
+      calculatedFinalMDs
+    });
     const coverageCost: VendorCost = {
       vendorId: g2VendorId,
       vendorName: supplierData.name || g2VendorId,
@@ -368,9 +421,9 @@ export class CalculationsActions {
       officialRate: supplierData.officialRate || 0,
       realRate: supplierData.realRate || 0,
       estimatedMDs: coverage,
-      finalMDs: coverage,
-      totCost: Math.round(coverage * (supplierData.realRate || 0)),
-      finalTotCost: Math.round(coverage * (supplierData.officialRate || 0)),
+      finalMDs: calculatedFinalMDs,
+      totCost: totCost,
+      finalTotCost: totCost,
       isInternal: supplierData.type === 'internal' || false
     };
     
@@ -389,10 +442,18 @@ export class CalculationsActions {
       if (consolidated.has(key)) {
         const existing = consolidated.get(key)!;
         existing.estimatedMDs = Math.round((existing.estimatedMDs + cost.estimatedMDs) * 10) / 10;
-        existing.finalMDs = Math.round((existing.finalMDs + cost.finalMDs) * 10) / 10;
+        const newFinalMDs = Math.round((existing.finalMDs + cost.finalMDs) * 10) / 10;
+        console.log('🔍 Consolidating finalMDs:', {
+          key,
+          existingFinalMDs: existing.finalMDs,
+          costFinalMDs: cost.finalMDs,
+          newTotal: newFinalMDs
+        });
+        existing.finalMDs = newFinalMDs;
         existing.totCost = Math.round(existing.totCost + cost.totCost);
-        existing.finalTotCost = Math.round(existing.finalTotCost + cost.finalTotCost);
+        existing.finalTotCost = Math.round(newFinalMDs * existing.officialRate);
       } else {
+        console.log('🔍 First cost for key:', { key, finalMDs: cost.finalMDs });
         consolidated.set(key, { ...cost });
       }
     });
@@ -478,7 +539,6 @@ export class CalculationsActions {
       if (override !== undefined) {
         return {
           ...cost,
-          finalMDs: override,
           finalTotCost: override * cost.officialRate
         };
       }
