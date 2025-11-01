@@ -118,26 +118,86 @@ export class CalculationsActions {
    */
   private processAllCosts(project: any): VendorCost[] {
     const allCosts: VendorCost[] = [];
-    
+
     // 1. SEMPRE processare features per development
     if (project.features && project.features.length > 0) {
       const featuresCosts = this.processFeaturesCosts(project.features);
       allCosts.push(...featuresCosts);
     }
-    
+
+    // 1b. Aggiungere Development TA e PM usando selected suppliers
+    // Development Total MDs = features + coverage (come calcolato in calculateDevelopmentPhase)
+    const featuresTotal = (project.features || []).reduce((sum: number, feature: any) => {
+      return sum + (parseFloat(feature.manDays) || 0);
+    }, 0);
+    const coverageMDs = project.coverage || 0;
+    const developmentTotal = featuresTotal + coverageMDs;
+
+    if (developmentTotal > 0 && project.phases?.development?.effort && project.phases?.selectedSuppliers) {
+      const developmentEffort = project.phases.development.effort;
+
+      // Development TA
+      if (developmentEffort.TA && developmentEffort.TA > 0 && project.phases.selectedSuppliers.TA) {
+        const developmentTA_MDs = Math.round((developmentTotal * developmentEffort.TA) / 100 * 10) / 10;
+        const selectedTA = project.phases.selectedSuppliers.TA;
+        const taSupplier = this.getSupplierData(selectedTA);
+
+        if (taSupplier) {
+          const taCost: VendorCost = {
+            vendorId: selectedTA,
+            vendorName: taSupplier.name || selectedTA,
+            role: 'TA',
+            department: taSupplier.department || 'TA',
+            officialRate: taSupplier.officialRate || 0,
+            realRate: taSupplier.realRate || 0,
+            estimatedMDs: developmentTA_MDs,
+            finalMDs: developmentTA_MDs,
+            totCost: Math.round(developmentTA_MDs * (taSupplier.realRate || 0)),
+            finalTotCost: Math.round(developmentTA_MDs * (taSupplier.officialRate || 0)),
+            isInternal: taSupplier.type === 'internal'
+          };
+          allCosts.push(taCost);
+        }
+      }
+
+      // Development PM
+      if (developmentEffort.PM && developmentEffort.PM > 0 && project.phases.selectedSuppliers.PM) {
+        const developmentPM_MDs = Math.round((developmentTotal * developmentEffort.PM) / 100 * 10) / 10;
+        const selectedPM = project.phases.selectedSuppliers.PM;
+        const pmSupplier = this.getSupplierData(selectedPM);
+
+        if (pmSupplier) {
+          const pmCost: VendorCost = {
+            vendorId: selectedPM,
+            vendorName: pmSupplier.name || selectedPM,
+            role: 'PM',
+            department: pmSupplier.department || 'PM',
+            officialRate: pmSupplier.officialRate || 0,
+            realRate: pmSupplier.realRate || 0,
+            estimatedMDs: developmentPM_MDs,
+            finalMDs: developmentPM_MDs,
+            totCost: Math.round(developmentPM_MDs * (pmSupplier.realRate || 0)),
+            finalTotCost: Math.round(developmentPM_MDs * (pmSupplier.officialRate || 0)),
+            isInternal: pmSupplier.type === 'internal'
+          };
+          allCosts.push(pmCost);
+        }
+      }
+    }
+
     // 2. Processare altre phases (non-development) se disponibili
-    const hasValidPhases = project.phases && 
-                          Object.keys(project.phases).some(key => 
-                            key !== 'selectedSuppliers' && 
+    const hasValidPhases = project.phases &&
+                          Object.keys(project.phases).some(key =>
+                            key !== 'selectedSuppliers' &&
                             key !== 'development' && // Skip development, già processato da features
                             project.phases[key]?.manDays > 0
                           );
-    
+
     if (hasValidPhases) {
       const phasesCosts = this.processNonDevelopmentPhases(project.phases);
       allCosts.push(...phasesCosts);
     }
-    
+
     // 3. Processare coverage assegnato al vendor G2 selezionato
     if (project.coverage && project.coverage > 0 && project.phases?.selectedSuppliers?.G2) {
       const coverageCost = this.processCoverageCost(project.coverage, project.phases.selectedSuppliers.G2);
@@ -145,10 +205,10 @@ export class CalculationsActions {
         allCosts.push(coverageCost);
       }
     }
-    
+
     // 4. Raggruppa per vendor + role + department
     const consolidatedCosts = this.consolidateVendorCosts(allCosts);
-    
+
     return consolidatedCosts;
   }
 
@@ -848,15 +908,35 @@ ${assumptionsList}`;
     const store = this.getStore();
     const state = store.getState();
     const { vendorCosts = [] } = state.calculationsData || {};
-    
+
     const gtoCount = vendorCosts.filter(cost => cost.role === 'G2' || cost.role === 'TA').length;
     const gdsCount = vendorCosts.filter(cost => cost.role === 'G1' || cost.role === 'PM').length;
-    
+
     return {
       all: vendorCosts.length,
       gto: gtoCount,
       gds: gdsCount
     };
+  }
+
+  /**
+   * Clear all Final MDs overrides (without recalculating)
+   * Called when project changes to reset manual overrides
+   * Actual recalculation happens in the component's useEffect
+   */
+  clearFinalMDsOverrides(): void {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+
+      // Clear overrides from both store and currentProject
+      state.clearFinalMDsOverrides();
+
+      console.log('🧹 Final MDs overrides cleared (recalculation will follow)');
+    } catch (error) {
+      console.error('Failed to clear Final MDs overrides:', error);
+      throw error;
+    }
   }
 }
 

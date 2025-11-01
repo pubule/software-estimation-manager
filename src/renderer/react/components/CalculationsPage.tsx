@@ -18,9 +18,13 @@ interface CalculationsPageProps {
 const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   // State for copy feedback
   const [isCopied, setIsCopied] = React.useState(false);
-  
+
+  // Ref to track previous project for detecting project changes
+  const previousProjectIdRef = React.useRef<string | undefined>();
+
   // SOLO lettura dallo store - Selettori specifici per massima reattività
   const currentProject = useStore(state => state.currentProject);
+  const currentPhases = useStore(state => state.currentPhases);
   const calculationsData = useStore(state => state.calculationsData);
   
   // Selettori specifici per ogni proprietà per forzare re-render
@@ -74,24 +78,29 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     copyToClipboard,
     resetAllFinalMDs,
     resetSingleFinalMD,
-    getVendorCountsByCategory
+    getVendorCountsByCategory,
+    clearFinalMDsOverrides
   } = useCalculationsActions();
-  
-  // Calcola al mount e quando cambia progetto (calcoli ogni volta come richiesto)
+
+  // Calcola al mount e quando cambia progetto o phases (calcoli ogni volta come richiesto)
   useEffect(() => {
-    
     if (currentProject) {
-      // CRITICAL: Check if there are manual finalMDsOverrides that should be preserved
-      const existingOverrides = calculationsData?.finalMDsOverrides;
-      const hasManualOverrides = existingOverrides && Object.keys(existingOverrides).length > 0;
-      
-      if (hasManualOverrides) {
-      } else {
-        calculateProjectCosts();
+      // Check if project changed (by ID)
+      const projectIdChanged = currentProject.id !== previousProjectIdRef.current;
+
+      if (projectIdChanged) {
+        console.log('📦 Project changed - clearing overrides and recalculating');
+        // Reset all overrides on project change
+        clearFinalMDsOverrides();
+        previousProjectIdRef.current = currentProject.id;
       }
-    } else {
+
+      // ALWAYS recalculate when project or phases change
+      // This ensures Development phase changes are reflected in calculations
+      console.log('🔄 Recalculating project costs (project or phases changed)');
+      calculateProjectCosts();
     }
-  }, [currentProject, calculateProjectCosts, calculationsData?.finalMDsOverrides]);
+  }, [currentProject, currentPhases, calculateProjectCosts, clearFinalMDsOverrides]);
   
   // Handler eventi (SOLO chiamate ad Actions)
   const handleFinalMDsChange = (vendorId: string, role: string, department: string, value: number) => {

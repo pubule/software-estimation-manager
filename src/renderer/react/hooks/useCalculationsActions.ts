@@ -89,21 +89,30 @@ export const useCalculationsActions = () => {
     }
   }, []);
 
+  const clearFinalMDsOverrides = useCallback(() => {
+    try {
+      calculationsActions.clearFinalMDsOverrides();
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
   return {
     // Core calculations
     calculateProjectCosts,
-    
+
     // Data editing
     updateFinalMDs,
     resetAllFinalMDs,
     resetSingleFinalMD,
-    
+    clearFinalMDsOverrides,
+
     // Filtering
     applyFilters,
     applyCategoryFilter,
     getVendorCountsByCategory,
     getFilteredCosts,
-    
+
     // Export/Share
     shareByEmail,
     copyToClipboard
