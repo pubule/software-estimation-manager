@@ -46,6 +46,32 @@ export interface AllocationFormData {
 }
 
 /**
+ * Resource Allocation (stored allocation data)
+ * Internal representation of a created allocation with all calculated fields
+ */
+export interface ResourceAllocation {
+    id: string;
+    projectId: string;
+    projectName: string;
+    teamMemberId: string;
+
+    // Phase and monthly breakdown
+    phaseAllocations?: PhaseAllocation[];
+    phaseMonthlyBreakdown: Record<string, Record<string, number>>; // phaseId → month → MDs
+    originalPhaseMonthlyBreakdown: Record<string, Record<string, number>>; // Original auto-calculated breakdown (for reset functionality)
+    monthlyAllocations: Record<string, { planned: number; actual: number }>;
+
+    // Date range
+    startDate: string;
+    endDate: string;
+
+    // Metadata
+    notes?: string;
+    created: string;
+    lastModified: string;
+}
+
+/**
  * Monthly Allocations Map
  * Key: month in 'YYYY-MM' format
  * Value: planned and actual MDs

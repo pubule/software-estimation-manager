@@ -433,12 +433,32 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
     };
 
     /**
-     * Reset phase month MD to uniform distribution value
+     * Reset phase month MD to original auto-calculated value
+     * Uses originalPhaseMonthlyBreakdown saved at allocation creation time
      */
     const resetPhaseMDToUniform = async (allocationId: string, phase: { phaseId: string; phaseName: string; totalMDs: number; startDate: string; endDate: string }, month: string) => {
-        const uniformValue = calculateUniformPhaseMD(phase, month);
-        console.log(`↻ Resetting ${phase.phaseName} ${month} to uniform value:`, uniformValue);
-        await handlePhaseMDChange(allocationId, phase.phaseId, month, uniformValue);
+        try {
+            // Get allocation from store to access originalPhaseMonthlyBreakdown
+            const store = window.appStore?.getState?.();
+            const allocation = store?.resourceAllocations?.find((a: any) => a.id === allocationId);
+
+            let originalValue = 0;
+
+            if (allocation?.originalPhaseMonthlyBreakdown?.[phase.phaseId]?.[month] !== undefined) {
+                // Use the original working-days-aware calculated value
+                originalValue = allocation.originalPhaseMonthlyBreakdown[phase.phaseId][month];
+                console.log(`↻ Resetting ${phase.phaseName} ${month} to original calculated value:`, originalValue);
+            } else {
+                // Fallback: calculate uniform distribution (for backward compatibility with old allocations)
+                originalValue = calculateUniformPhaseMD(phase, month);
+                console.log(`↻ Resetting ${phase.phaseName} ${month} to uniform distribution (fallback):`, originalValue);
+            }
+
+            await handlePhaseMDChange(allocationId, phase.phaseId, month, originalValue);
+        } catch (error) {
+            console.error('❌ Error resetting phase MD:', error);
+            alert('Failed to reset value');
+        }
     };
 
     // Handle edit allocation button click
@@ -850,28 +870,37 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                         return (
                             <div key={month} className="capacity-modern-phase-month-cell">
                                 <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="decimal"
+                                    pattern="[0-9]*\.?[0-9]*"
                                     value={mds}
                                     onChange={(e) => {
-                                        const value = parseFloat(e.target.value);
+                                        const inputValue = e.target.value;
+
+                                        // Allow empty string for clearing
+                                        if (inputValue === '') {
+                                            handlePhaseMDChange(project.allocationId, phase.phaseId, month, 0);
+                                            return;
+                                        }
+
+                                        // Parse and validate numeric input
+                                        const value = parseFloat(inputValue);
                                         if (!isNaN(value) && value >= 0) {
                                             handlePhaseMDChange(project.allocationId, phase.phaseId, month, value);
-                                        } else if (e.target.value === '') {
-                                            // Allow empty for deletion
-                                            handlePhaseMDChange(project.allocationId, phase.phaseId, month, 0);
                                         }
+                                        // If invalid, don't update - let onBlur handle it
                                     }}
                                     onBlur={(e) => {
                                         // On blur, ensure valid number or reset to 0
-                                        const value = parseFloat(e.target.value);
-                                        if (isNaN(value) || value < 0) {
+                                        const inputValue = e.target.value.trim();
+                                        const value = parseFloat(inputValue);
+                                        if (inputValue === '' || isNaN(value) || value < 0) {
                                             e.target.value = '0';
                                             handlePhaseMDChange(project.allocationId, phase.phaseId, month, 0);
                                         }
                                     }}
                                     className="final-mds-input"
-                                    min="0"
-                                    step="0.1"
+                                    placeholder="0"
                                 />
                                 <button
                                     className="reset-mds-btn"

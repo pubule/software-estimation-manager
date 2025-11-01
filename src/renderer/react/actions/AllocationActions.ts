@@ -256,6 +256,7 @@ export class AllocationActions {
                 monthlyAllocations,
                 phaseAllocations: data.phaseAllocations || [], // Save phase allocations for drill-down UI
                 phaseMonthlyBreakdown, // Monthly MDs per phase for inline editing
+                originalPhaseMonthlyBreakdown: JSON.parse(JSON.stringify(phaseMonthlyBreakdown)), // Deep copy for reset functionality
                 startDate: data.startDate,
                 endDate: data.endDate,
                 notes: data.notes || '',
@@ -386,6 +387,11 @@ export class AllocationActions {
                 return { success: false, error: 'Allocation not found' };
             }
 
+            // Preserve originalPhaseMonthlyBreakdown if not provided in updates
+            if (!updates.originalPhaseMonthlyBreakdown && existing.originalPhaseMonthlyBreakdown) {
+                updates.originalPhaseMonthlyBreakdown = existing.originalPhaseMonthlyBreakdown;
+            }
+
             console.log('🔍 Existing allocation for update:', existing);
             console.log('🔍 Updates to apply:', updates);
 
@@ -393,9 +399,18 @@ export class AllocationActions {
             const teamMemberId = updates.teamMemberId || existing.teamMemberId;
             console.log('🔍 TeamMemberId for recalculation:', teamMemberId);
 
-            // If phaseAllocations are being updated, recalculate monthly allocations
-            if (updates.phaseAllocations && Array.isArray(updates.phaseAllocations) && teamMemberId) {
-                console.log('🔄 Recalculating monthly allocations from updated phases...');
+            // CRITICAL FIX: Distinguish between two cases:
+            // 1. Creating/updating allocation: phaseAllocations WITHOUT phaseMonthlyBreakdown → auto-distribute
+            // 2. Manual user override: phaseAllocations WITH phaseMonthlyBreakdown → preserve user values
+            const isManualOverride = updates.phaseMonthlyBreakdown !== undefined;
+            console.log(`🔍 Is manual override? ${isManualOverride}`);
+
+            // If phaseAllocations are being updated WITHOUT phaseMonthlyBreakdown, recalculate using auto-distribution
+            if (updates.phaseAllocations &&
+                Array.isArray(updates.phaseAllocations) &&
+                teamMemberId &&
+                !isManualOverride) {
+                console.log('🔄 Recalculating monthly allocations from updated phases (no manual override detected)...');
 
                 // Use working-days-aware distribution instead of simple even distribution
                 const phases: Phase[] = updates.phaseAllocations.map((pa: any) => ({
@@ -504,6 +519,44 @@ export class AllocationActions {
                 const allDates = updates.phaseAllocations.flatMap((p: any) => [p.startDate, p.endDate]);
                 updates.startDate = allDates.sort()[0];
                 updates.endDate = allDates.sort()[allDates.length - 1];
+            } else if (isManualOverride && updates.phaseMonthlyBreakdown) {
+                // MANUAL OVERRIDE CASE: User has provided phaseMonthlyBreakdown with manual values
+                // Only recalculate monthly allocations (aggregation), do NOT redistribute phases
+                console.log('✅ Processing manual override: preserving user-provided phaseMonthlyBreakdown');
+
+                // Recalculate monthly allocations based on provided phaseMonthlyBreakdown
+                const monthlyAllocations: Record<string, { planned: number; actual: number }> = {};
+                const allMonths = new Set<string>();
+
+                // Collect all months from all phases
+                Object.values(updates.phaseMonthlyBreakdown).forEach((phaseMDs: any) => {
+                    Object.keys(phaseMDs).forEach(month => allMonths.add(month));
+                });
+
+                // Sum MDs per month across all phases
+                allMonths.forEach(month => {
+                    let monthTotal = 0;
+                    Object.values(updates.phaseMonthlyBreakdown).forEach((phaseMDs: any) => {
+                        monthTotal += phaseMDs[month] || 0;
+                    });
+                    monthlyAllocations[month] = {
+                        planned: monthTotal,
+                        actual: monthTotal
+                    };
+                });
+
+                console.log('✅ Recalculated monthly allocations from user-provided breakdown:', monthlyAllocations);
+                console.log('✅ Preserving user values in phaseMonthlyBreakdown:', updates.phaseMonthlyBreakdown);
+
+                // Update only monthly allocations (phaseMonthlyBreakdown is already in updates)
+                updates.monthlyAllocations = monthlyAllocations;
+
+                // Update date range if phaseAllocations were provided
+                if (updates.phaseAllocations && updates.phaseAllocations.length > 0) {
+                    const allDates = updates.phaseAllocations.flatMap((p: any) => [p.startDate, p.endDate]);
+                    updates.startDate = allDates.sort()[0];
+                    updates.endDate = allDates.sort()[allDates.length - 1];
+                }
             }
 
             // Update lastModified timestamp
