@@ -4,23 +4,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 🚨 REGOLE CRITICHE DI SVILUPPO
 
-### 1. Test Strategy - SOLO CUCUMBER
-- **MAI creare test Jest/unit/behavioral**
-- **SOLO test Cucumber** (.feature files + step definitions)
-- Tutti i test attraverso workflow automatizzato
-- Test PRIMA del codice (TDD con Cucumber)
-- Test dal punto di vista utente, non implementazione
-- **⚠️ BUG FIX**: Test descrivono comportamento CORRETTO (non replicano il bug!)
-
-### 2. Workflow Obbligatorio
-Per OGNI implementazione/bugfix DEVI:
-1. Attivare auto-workflow: `node agents/auto-workflow.js [tipo] [descrizione]`
-2. Il workflow crea test Cucumber automaticamente
-3. Implementazione DEVE seguire pattern State/Actions
-4. Changelog update con conferma user
-
-**NESSUNA ECCEZIONE** - Anche bugfix minori passano dal workflow
-
 ### 3. Pattern Architetturale ENFORCED
 
 ```
@@ -34,13 +17,6 @@ React Component → Actions → Store → State Update
 - **Actions**: `src/renderer/react/actions/*.ts` - TUTTA la business logic qui
 - **Components**: SOLO presentazione, ZERO business logic
 - **State Management**: SEMPRE attraverso store, MAI state locale per dati business
-
-### 4. Auto-Triggers Claude
-Quando ricevi questi prompt, esegui AUTOMATICAMENTE:
-- "implementa/aggiungi/crea X" → `node agents/auto-workflow.js feature X`
-- "fix/risolvi/sistema Y" → `node agents/auto-workflow.js bugfix Y`  
-- "test Z" → `node agents/auto-workflow.js test-update Z`
-- Qualsiasi task → SEMPRE attraverso workflow
 
 ### 5. File Structure ATTUALE
 ```
@@ -62,12 +38,6 @@ cucumber/                     # Test framework UNICO
 └── fixtures/                # Test data
 
 features/                    # SOLO file .feature (Gherkin)
-
-agents/                      # Sistema di agenti automatizzati
-├── auto-workflow.js         # Orchestratore principale
-├── cucumber-test-creator/   # Crea SOLO test Cucumber
-├── pattern-enforcer/        # Verifica State/Actions pattern
-└── changelog-manager/       # Gestisce CHANGELOG.md
 ```
 
 ## Common Commands
@@ -77,17 +47,6 @@ agents/                      # Sistema di agenti automatizzati
 - `npm start` - Start Electron application
 - `npm run build:mac` - Build for macOS
 - `npm run build:win` - Build for Windows
-
-### Testing (SOLO CUCUMBER)
-- `npx cucumber-js` - Run ALL Cucumber tests
-- `npx cucumber-js features/[name].feature` - Run specific feature
-- ~~`npm test`~~ - **DEPRECATO** (non usare più!)
-
-### Workflow Automatizzato
-- `node agents/auto-workflow.js feature "name"` - Nuova feature con test
-- `node agents/auto-workflow.js bugfix "name"` - Bugfix con test
-- `node agents/auto-workflow.js interactive` - Modalità guidata
-- `node agents/auto-workflow.js auto-detect "prompt"` - Auto-detect da prompt
 
 ## Migration Status
 - ✅ Feature page → React migrated (FeatureManager, FeatureTable, FeatureModal)
@@ -161,10 +120,7 @@ export class FeatureActions {
 6. **MAI test che replicano bug** - Test descrivono comportamento CORRETTO
 
 ### ✅ OBBLIGHI
-1. **SEMPRE usare workflow** per ogni task
-2. **SEMPRE test Cucumber prima del codice**
 3. **SEMPRE State/Actions pattern**
-4. **SEMPRE chiedere conferma per CHANGELOG**
 5. **SEMPRE verificare pattern con pattern-enforcer**
 
 ## Troubleshooting Common Issues
@@ -172,10 +128,6 @@ export class FeatureActions {
 ### "Cannot find store"
 - Verificare che app-store.js sia caricato
 - Usare `window.appStore` per accesso globale
-
-### "Test not running"
-- Usare SOLO `npx cucumber-js`
-- NON usare `npm test` (deprecato)
 
 ### "State not updating"
 - Verificare uso di Actions class
@@ -191,27 +143,3 @@ export class FeatureActions {
 - **Auto-save**: Every 2 minutes con dirty state tracking
 - **VSCode Theme**: Dark theme throughout application
 - **Component Migration**: Graduale da legacy JS a React/TypeScript
-
-## 🎯 Checklist per Nuove Feature
-
-- [ ] Eseguire `node agents/auto-workflow.js feature "nome"`
-- [ ] Test Cucumber generato e verificato
-- [ ] Actions class creata in `/react/actions/`
-- [ ] Store aggiornato con nuovo state se necessario
-- [ ] Component React (solo presentazione)
-- [ ] Pattern verificato con pattern-enforcer
-- [ ] Test Cucumber passa
-- [ ] CHANGELOG aggiornato (se confermato)
-
-## 🐛 Checklist per Bugfix
-
-- [ ] Eseguire `node agents/auto-workflow.js bugfix "nome"`  
-- [ ] **Test Cucumber descrive comportamento CORRETTO** (non riproduce bug!)
-- [ ] Test fallisce perché bug esiste (TDD)
-- [ ] Identifica bug in Actions class o Store
-- [ ] Fix implementato SOLO in Actions/Store (MAI nei componenti!)
-- [ ] Test Cucumber passa (bug fixato)
-- [ ] Pattern State/Actions/Dispatcher rispettato
-- [ ] CHANGELOG aggiornato (se confermato)
-
-**IMPORTANTE**: I test per bugfix descrivono come l'app DOVREBBE comportarsi correttamente, non come si comporta con il bug!
