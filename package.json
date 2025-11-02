@@ -17,13 +17,6 @@
     "dist": "npm run build",
     "pack": "electron-builder --dir",
     "postinstall": "electron-builder install-app-deps",
-    "workflow:feature": "node agents/auto-workflow.js feature",
-    "workflow:bugfix": "node agents/auto-workflow.js bugfix",
-    "workflow:interactive": "node agents/auto-workflow.js interactive",
-    "workflow:test-update": "node agents/auto-workflow.js test-update",
-    "workflow:changelog": "node agents/auto-workflow.js changelog",
-    "workflow:analyze": "node agents/auto-workflow.js analyze",
-    "workflow": "node agents/auto-workflow.js interactive",
     "restart": "pkill -f electron && npm run build:react && npm run start",
     "restart:dev": "pkill -f electron && npm run build:react:dev && npm run dev"
   },
