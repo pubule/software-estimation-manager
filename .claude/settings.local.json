@@ -32,7 +32,8 @@
       "Bash(del \"C:\\Users\\pubul\\WebstormProjects\\software-estimates-app\\cucumber\\step-definitions\\project-switching-data-leak---valori-del-progetto-precedente-contaminano-il-nuovo-progetto-caricato-steps.js\")",
       "Bash(cat:*)",
       "mcp__serena__think_about_collected_information",
-      "mcp__serena__find_referencing_symbols"
+      "mcp__serena__find_referencing_symbols",
+      "Bash(ls -la \"C:\\Users\\pubul\\WebstormProjects\\software-estimates-app\\src\\renderer\"\" 2>/dev/null || echo \"Path not found \")"
     ],
     "deny": [],
     "ask": []
