@@ -93,15 +93,24 @@ export const useProjectActions = () => {
     }
   }, []);
 
+  const updateApprovalStatus = useCallback((status: string) => {
+    try {
+      projectActions.updateApprovalStatus(status);
+    } catch (error) {
+      console.error('Failed to update approval status:', error);
+      throw error;
+    }
+  }, []);
+
   const handleUnsavedChanges = useCallback(async (): Promise<boolean> => {
     // 🔧 FIX: Se no project loaded o project clean → continue senza dialog
     if (!isDirty) {
       console.log('🔍 No unsaved changes, continuing operation');
       return true; // No unsaved changes, continue with operation
     }
-    
+
     console.log('🔍 Project has unsaved changes, showing dialog');
-    // Solo se dirty → mostra dialog  
+    // Solo se dirty → mostra dialog
     const save = await projectActions.showUnsavedChangesDialog();
     if (save === null) {
       console.log('🔍 User cancelled unsaved changes dialog');
@@ -126,15 +135,18 @@ export const useProjectActions = () => {
     closeProject,
     deleteProject,
     exportProject,
-    
+
     // Recent projects management
     removeRecentProject,
     clearRecentProjects,
-    
+
+    // Approval status
+    updateApprovalStatus,
+
     // Utility functions
     handleUnsavedChanges,
-    
+
     // State
     isDirty
   };
-};;
+};

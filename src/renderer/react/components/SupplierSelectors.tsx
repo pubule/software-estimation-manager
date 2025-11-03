@@ -76,7 +76,7 @@ const SupplierSelectors: React.FC<SupplierSelectorsProps> = ({
 
   return (
     <div className="supplier-selectors">
-      {resourceTypes.map(({ key, label }) => 
+      {resourceTypes.map(({ key, label }) =>
         renderSupplierDropdown(key, label)
       )}
     </div>

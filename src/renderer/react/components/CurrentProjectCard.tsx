@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../hooks/useStore';
+import ApprovalStatusIcon from './ApprovalStatusIcon';
 
 interface CurrentProjectCardProps {
   onSave: () => void;
@@ -27,20 +28,21 @@ const CurrentProjectCard: React.FC<CurrentProjectCardProps> = ({
   onSave,
   onClose
 }) => {
-  const { currentProject, isDirty } = useStore(state => ({
+  const { currentProject, isDirty, approvalStatus } = useStore(state => ({
     currentProject: state.currentProject,
-    isDirty: state.isDirty
+    isDirty: state.isDirty,
+    approvalStatus: state.currentProject?.project?.approvalStatus || "Pending Approval"
   }));
 
   // Simplified project detection logic
   const project = currentProject?.project;
   const app = (window as any).app;
-  
-  const hasLoadedProject = project && 
-    project.name && 
-    project.name !== 'New Project' && 
+
+  const hasLoadedProject = project &&
+    project.name &&
+    project.name !== 'New Project' &&
     (app?.dataManager?.currentProjectPath || project.id || Array.isArray(currentProject?.features));
-  
+
 
   const projectName = hasLoadedProject ? project.name : 'No Project Loaded';
   const projectCreated = hasLoadedProject ? formatDate(project.created) : '-';
@@ -72,20 +74,25 @@ const CurrentProjectCard: React.FC<CurrentProjectCardProps> = ({
               <i className="fas fa-code-branch"></i>
               <span id="current-project-version">{projectVersion}</span>
             </span>
+            {hasLoadedProject && (
+              <span className="project-detail">
+                <ApprovalStatusIcon status={approvalStatus} />
+              </span>
+            )}
           </div>
         </div>
         <div className="project-actions">
-          <button 
+          <button
             className={`btn btn-small ${isDirty ? 'btn-primary' : 'btn-secondary'}`}
-            id="save-current-project-btn" 
+            id="save-current-project-btn"
             disabled={saveDisabled}
             onClick={onSave}
           >
             <i className="fas fa-save"></i> Save
           </button>
-          <button 
-            className="btn btn-small btn-secondary" 
-            id="close-current-project-btn" 
+          <button
+            className="btn btn-small btn-secondary"
+            id="close-current-project-btn"
             disabled={closeDisabled}
             onClick={onClose}
           >

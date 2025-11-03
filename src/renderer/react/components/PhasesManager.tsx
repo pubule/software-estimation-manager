@@ -3,7 +3,9 @@ import { useProject } from '../hooks/useStore';
 import { useStore } from '../hooks/useStore';
 import { usePhasesActions } from '../hooks/usePhasesActions';
 import { useNavigationActions } from '../hooks/useNavigationActions';
+import { useProjectActions } from '../hooks/useProjectActions';
 import DevelopmentNotice from './DevelopmentNotice';
+import ApprovalStatusSelector from './ApprovalStatusSelector';
 import SupplierSelectors from './SupplierSelectors';
 import PhasesTable from './PhasesTable';
 
@@ -14,26 +16,28 @@ interface PhasesManagerProps {
 const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { currentProject } = useProject();
-  
+
   // PATTERN: State/Actions/Dispatcher - Use hook for navigation actions
   const { setComponentInitialized } = useNavigationActions();
-  
+
   // Get phases state from store
-  const { 
-    currentPhases, 
-    selectedSuppliers, 
-    resourceRates, 
-    availableSuppliers, 
-    phasesTotals
+  const {
+    currentPhases,
+    selectedSuppliers,
+    resourceRates,
+    availableSuppliers,
+    phasesTotals,
+    currentApprovalStatus
   } = useStore(state => ({
     currentPhases: state.currentPhases,
     selectedSuppliers: state.selectedSuppliers,
     resourceRates: state.resourceRates,
     availableSuppliers: state.availableSuppliers,
-    phasesTotals: state.phasesTotals
+    phasesTotals: state.phasesTotals,
+    currentApprovalStatus: state.currentProject?.project?.approvalStatus || "Pending Approval"
   }));
-  
-  const { 
+
+  const {
     loadPhaseData,
     updatePhaseManDays,
     updatePhaseEffort,
@@ -44,19 +48,22 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
     showErrorNotification
   } = usePhasesActions();
 
+  // Get approval status action from custom hook
+  const { updateApprovalStatus } = useProjectActions();
+
   // PATTERN: State/Actions/Dispatcher - NO business logic in component!
   // Track previous project ID to detect real project changes
   const [previousProjectId, setPreviousProjectId] = useState<string | null>(null);
-  
+
   useEffect(() => {
     if (currentProject) {
       // Only reload if project ID actually changed (not just metadata like lastModified)
       const projectChanged = currentProject.projectId !== previousProjectId;
-      
+
       if (projectChanged) {
         setIsLoading(true);
         setPreviousProjectId(currentProject.projectId);
-        
+
         // PATTERN: Delega TUTTA la business logic alle Actions
         console.log('PhasesManager: Loading phase data - new project detected');
         loadPhaseData()
@@ -81,7 +88,7 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
   useEffect(() => {
     // PATTERN: State/Actions/Dispatcher - Use Actions through hook
     setComponentInitialized('phases', true);
-    
+
     return () => {
       // Cleanup on unmount
       setComponentInitialized('phases', false);
@@ -162,13 +169,17 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
           </p>
         </div>
 
-        <DevelopmentNotice 
+        <DevelopmentNotice
           featuresCount={currentProject.features?.length || 0}
           developmentPhase={currentPhases.find(p => p.id === 'development')}
           coverage={currentProject.coverage || 0}
         />
 
         <div className="phases-controls">
+          <ApprovalStatusSelector
+            currentStatus={currentApprovalStatus}
+            onStatusChange={updateApprovalStatus}
+          />
           <SupplierSelectors
             selectedSuppliers={selectedSuppliers}
             availableSuppliers={availableSuppliers}

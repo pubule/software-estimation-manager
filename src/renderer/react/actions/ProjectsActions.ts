@@ -9,6 +9,7 @@ export interface RecentProject {
   version: string;
   lastOpened: string;
   filePath?: string;
+  approvalStatus?: string;
 }
 
 export interface SavedProject {
@@ -19,6 +20,7 @@ export interface SavedProject {
     name: string;
     version: string;
     lastModified: string;
+    approvalStatus?: string;
   };
   fileSize: number;
   lastModified: string;
@@ -46,23 +48,23 @@ export class ProjectActions {
     try {
       const data = localStorage.getItem('recent-projects');
       const projects = data ? JSON.parse(data) : [];
-      
-      
+
+
       // LAZY VALIDATION: Filter out projects whose files no longer exist
       const validProjects: RecentProject[] = [];
       const app = this.getApp();
-      
-      
+
+
       // SIMPLIFIED: Skip file existence validation since checkFileExists method is not available
       // Just keep all projects for now - file validation can be done when actually loading
       validProjects.push(...projects);
-      
+
       // Update store if available
       const store = this.getStore();
       if (store) {
         store.getState().setRecentProjects?.(validProjects);
       }
-      
+
       console.log(`✅ Loaded ${validProjects.length} recent projects`);
       return validProjects;
     } catch (error) {
@@ -109,13 +111,13 @@ export class ProjectActions {
    */
   async loadProject(projectId: string): Promise<void> {
     const store = this.getStore();
-    
+
     try {
       console.log('🔄 Starting project load process...', projectId);
-      
+
       // Set loading state for project loading
       store.getState().setLoading('project-loading', true);
-      
+
       const app = this.getApp();
       if (!app?.managers?.project) {
         throw new Error('Project manager not available');
@@ -124,26 +126,26 @@ export class ProjectActions {
       console.log('🔄 Loading recent project with enhanced timing...');
       // Delegate to existing project manager logic
       await app.managers.project.loadRecentProject(projectId);
-      
+
       console.log('🔄 Auto-repair check for project data...');
       // Auto-repair project data if needed
       await this.repairProjectDataIfNeeded();
-      
+
       console.log('🧹 Clearing calculations cache for fresh project data...');
       // CRITICAL: Clear calculations cache to prevent stale data display
       this.clearAllCalculationsCache();
-      
+
       console.log('🔄 Force recalculating with fresh project data...');
-      // CRITICAL: Force recalculation with fresh project data  
+      // CRITICAL: Force recalculation with fresh project data
       await this.forceRecalculateOnProjectLoad();
-      
+
       console.log('🔄 Refreshing project lists...');
       // Update store state
       if (store) {
         // Refresh recent projects after loading
         await this.loadRecentProjects();
       }
-      
+
       console.log('✅ Project loaded successfully:', projectId);
     } catch (error) {
       console.error('❌ Failed to load project:', error);
@@ -160,13 +162,13 @@ export class ProjectActions {
    */
   async loadProjectFromFile(filePath: string): Promise<void> {
     const store = this.getStore();
-    
+
     try {
       console.log('🔄 Starting project load from file process...', filePath);
-      
+
       // Set loading state for project loading
       store.getState().setLoading('project-loading', true);
-      
+
       const app = this.getApp();
       if (!app?.managers?.project) {
         throw new Error('Project manager not available');
@@ -175,19 +177,19 @@ export class ProjectActions {
       console.log('🔄 Loading saved project with enhanced timing...');
       // Delegate to existing project manager logic
       await app.managers.project.loadSavedProject(filePath);
-      
+
       console.log('🔄 Auto-repair check for project data...');
       // Auto-repair project data if needed
       await this.repairProjectDataIfNeeded();
-      
+
       console.log('🧹 Clearing calculations cache for fresh project data...');
       // CRITICAL: Clear calculations cache to prevent stale data display
       this.clearAllCalculationsCache();
-      
+
       console.log('🔄 Force recalculating with fresh project data...');
-      // CRITICAL: Force recalculation with fresh project data  
+      // CRITICAL: Force recalculation with fresh project data
       await this.forceRecalculateOnProjectLoad();
-      
+
       console.log('🔄 Refreshing project lists...');
       // Update store state
       if (store) {
@@ -195,7 +197,7 @@ export class ProjectActions {
         await this.loadRecentProjects();
         await this.loadSavedProjects();
       }
-      
+
       console.log('✅ Project loaded from file successfully:', filePath);
     } catch (error) {
       console.error('❌ Failed to load project from file:', error);
@@ -214,19 +216,19 @@ export class ProjectActions {
     try {
       const recentProjects = await this.loadRecentProjects();
       const updatedProjects = recentProjects.filter(p => p.id !== projectId);
-      
+
       // Update localStorage
       localStorage.setItem('recent-projects', JSON.stringify(updatedProjects));
-      
+
       // Update store
       const store = this.getStore();
       if (store) {
         store.getState().setRecentProjects?.(updatedProjects);
       }
-      
+
       // Emit event for components listening
       window.dispatchEvent(new CustomEvent('recent-projects-updated'));
-      
+
       console.log('Recent project removed:', projectId);
     } catch (error) {
       console.error('Failed to remove recent project:', error);
@@ -241,16 +243,16 @@ export class ProjectActions {
     try {
       // Clear localStorage
       localStorage.removeItem('recent-projects');
-      
+
       // Update store
       const store = this.getStore();
       if (store) {
         store.getState().setRecentProjects?.([]);
       }
-      
+
       // Emit event for components listening
       window.dispatchEvent(new CustomEvent('recent-projects-updated'));
-      
+
       console.log('Recent projects cleared');
     } catch (error) {
       console.error('Failed to clear recent projects:', error);
@@ -270,7 +272,7 @@ export class ProjectActions {
 
       // Delegate to existing export logic
       await app.managers.project.exportProject(filePath);
-      
+
       console.log('Project exported successfully:', filePath);
     } catch (error) {
       console.error('Failed to export project:', error);
@@ -291,32 +293,32 @@ export class ProjectActions {
       // EAGER CLEANUP: Remove from recent projects before deletion
       const recentProjects = await this.loadRecentProjects();
       const updatedRecentProjects = recentProjects.filter(p => p.filePath !== filePath);
-      
+
       if (updatedRecentProjects.length !== recentProjects.length) {
         // Update localStorage
         localStorage.setItem('recent-projects', JSON.stringify(updatedRecentProjects));
-        
+
         // Update store
         const store = this.getStore();
         if (store) {
           store.getState().setRecentProjects?.(updatedRecentProjects);
         }
-        
+
         // Emit event for components listening
         window.dispatchEvent(new CustomEvent('recent-projects-updated'));
-        
+
         console.log('🔄 Removed deleted project from recent projects:', filePath);
       }
 
       // Delete the project file
       await app.dataManager.deleteProject(filePath);
-      
+
       // Refresh saved projects list
       await this.loadSavedProjects();
-      
+
       // Emit event for components listening
       window.dispatchEvent(new CustomEvent('saved-projects-updated'));
-      
+
       console.log('Project deleted successfully:', filePath);
     } catch (error) {
       console.error('Failed to delete project:', error);
@@ -330,10 +332,10 @@ export class ProjectActions {
   async refreshSavedProjects(): Promise<void> {
     try {
       await this.loadSavedProjects();
-      
+
       // Emit event for components listening
       window.dispatchEvent(new CustomEvent('saved-projects-updated'));
-      
+
       console.log('Saved projects refreshed');
     } catch (error) {
       console.error('Failed to refresh saved projects:', error);
@@ -390,19 +392,19 @@ export class ProjectActions {
 
       // Delegate to existing project creation logic
       await app.managers.project.createNewProject();
-      
+
       console.log('🧹 Clearing calculations cache for new project...');
       // CRITICAL: Clear calculations cache when creating new project
       this.clearAllCalculationsCache();
-      
+
       console.log('🔄 Force recalculating for new project...');
       // CRITICAL: Force recalculation with new project data
       await this.forceRecalculateOnProjectLoad();
-      
+
       // Refresh project lists
       await this.loadRecentProjects();
       await this.loadSavedProjects();
-      
+
       console.log('New project created successfully');
     } catch (error) {
       console.error('Failed to create new project:', error);
@@ -415,13 +417,13 @@ export class ProjectActions {
    */
   async createProject(formData: NewProjectFormData): Promise<void> {
     const store = this.getStore();
-    
+
     try {
       console.log('🔄 Starting project creation process...');
-      
+
       // Set loading state for project creation
       store.getState().setLoading('project-creation', true);
-      
+
       const app = this.getApp();
       if (!app?.managers?.project) {
         throw new Error('Project manager not available');
@@ -430,22 +432,22 @@ export class ProjectActions {
       console.log('🔄 Creating new project with enhanced timing...');
       // Delegate to existing project creation logic with form data
       await app.managers.project.createNewProject(formData);
-      
+
       console.log('🧹 Clearing calculations cache for new project...');
       // CRITICAL: Clear calculations cache when creating new project
       this.clearAllCalculationsCache();
-      
+
       console.log('🔄 Force recalculating for new project...');
       // CRITICAL: Force recalculation with new project data
       await this.forceRecalculateOnProjectLoad();
-      
+
       console.log('🔄 Refreshing project lists...');
       // Refresh project lists
       await this.loadRecentProjects();
       await this.loadSavedProjects();
-      
+
       // Update window title for new project (will be handled by store subscription)
-      
+
       console.log('✅ New project created successfully with form data:', formData);
     } catch (error) {
       console.error('❌ Failed to create new project:', error);
@@ -470,18 +472,18 @@ export class ProjectActions {
       }
 
       console.log('🧹 CACHE CLEARING: Invalidating calculations cache...');
-      
+
       // Preserve finalMDsOverrides from current project if available
       const currentProject = store.getState().currentProject;
       const preserveOverrides = currentProject?.finalMDsOverrides || {};
-      
+
       // PATTERN: Clear calculations data through Store methods
       store.getState().clearCalculations(preserveOverrides);
-      
+
       console.log('🧹 CACHE CLEARING: Reinitializing phases state...');
       // PATTERN: Reinitialize phases to ensure they reflect current project data
       store.getState().initializePhases();
-      
+
       console.log('✅ CACHE CLEARING: All caches cleared and phases reinitialized successfully');
     } catch (error) {
       console.error('❌ CACHE CLEARING: Failed to clear caches:', error);
@@ -507,7 +509,7 @@ export class ProjectActions {
       }
 
       console.log('🔄 FORCE RECALC: Starting forced recalculation after project load...');
-      
+
       // PATTERN: Use CalculationsActions for business logic
       if (window.calculationsActions) {
         console.log('🔄 FORCE RECALC: Triggering calculations refresh...');
@@ -516,7 +518,7 @@ export class ProjectActions {
       } else {
         console.warn('⚠️ FORCE RECALC: calculationsActions not available, skipping recalculation');
       }
-      
+
     } catch (error) {
       console.error('❌ FORCE RECALC: Failed to force recalculate on project load:', error);
       // Don't throw - forced recalculation is optional but recommended
@@ -530,7 +532,7 @@ export class ProjectActions {
     try {
       const store = this.getStore();
       const currentProject = store.getState().currentProject;
-      
+
       if (!currentProject?.phases) {
         console.log('⚠️ No phases data found, skipping auto-repair');
         return;
@@ -539,19 +541,19 @@ export class ProjectActions {
       // Check if phases only contains selectedSuppliers (incomplete)
       const phaseKeys = Object.keys(currentProject.phases);
       const hasOnlySelectedSuppliers = phaseKeys.length === 1 && phaseKeys[0] === 'selectedSuppliers';
-      
+
       if (hasOnlySelectedSuppliers) {
         console.log('🔧 AUTO-REPAIR: Detected incomplete phases, adding missing phase definitions');
-        
+
         // Get the preserved selectedSuppliers
         const selectedSuppliers = currentProject.phases.selectedSuppliers;
-        
+
         // Create complete phases (using same logic as ProjectBusinessLogic.createInitialPhases)
         const repairedPhases = this.createCompletePhases(selectedSuppliers);
-        
+
         // Update project with repaired phases
         store.getState().updateProjectPhases(repairedPhases);
-        
+
         console.log('✅ AUTO-REPAIR: Project phases repaired successfully');
         console.log('🔍 AUTO-REPAIR: Phases now include:', Object.keys(repairedPhases));
       } else {
@@ -568,7 +570,7 @@ export class ProjectActions {
    */
   private createCompletePhases(selectedSuppliers: any) {
     const now = new Date().toISOString();
-    
+
     // Phase definitions (consistent with ProjectBusinessLogic)
     const phaseDefinitions = [
       {
@@ -576,7 +578,7 @@ export class ProjectActions {
         defaultEffort: { G1: 100, G2: 0, TA: 20, PM: 50 }
       },
       {
-        id: "technicalAnalysis", 
+        id: "technicalAnalysis",
         defaultEffort: { G1: 0, G2: 100, TA: 60, PM: 20 }
       },
       {
@@ -588,7 +590,7 @@ export class ProjectActions {
         defaultEffort: { G1: 100, G2: 50, TA: 50, PM: 75 }
       },
       {
-        id: "uatTests", 
+        id: "uatTests",
         defaultEffort: { G1: 50, G2: 50, TA: 40, PM: 75 }
       },
       {
@@ -600,25 +602,25 @@ export class ProjectActions {
         defaultEffort: { G1: 30, G2: 30, TA: 30, PM: 20 }
       },
       {
-        id: "postGoLive", 
+        id: "postGoLive",
         defaultEffort: { G1: 0, G2: 100, TA: 50, PM: 100 }
       }
     ];
 
     // Create phases object
     const phases: any = {};
-    
+
     // Get current project to preserve existing values
     const store = this.getStore();
     const currentProject = store?.getState().currentProject;
     const existingPhases = currentProject?.phases || {};
-    
+
     console.log('🔧 AUTO-REPAIR: Preserving existing phase values:', Object.keys(existingPhases));
-    
+
     // Initialize each phase, preserving existing values instead of overwriting
     phaseDefinitions.forEach(def => {
       const existingPhase = existingPhases[def.id] || {};
-      
+
       // CRITICAL FIX: Preserve manDays, effort, cost, and lastModified if they exist
       phases[def.id] = {
         manDays: existingPhase.manDays !== undefined ? existingPhase.manDays : 0,
@@ -627,14 +629,14 @@ export class ProjectActions {
         cost: existingPhase.cost !== undefined ? existingPhase.cost : 0,
         lastModified: existingPhase.lastModified || now
       };
-      
+
       console.log(`🔧 AUTO-REPAIR: Phase ${def.id} - preserved manDays: ${phases[def.id].manDays}`);
     });
 
     // Preserve existing selectedSuppliers
     phases.selectedSuppliers = selectedSuppliers || {
       G1: null,
-      G2: null, 
+      G2: null,
       TA: null,
       PM: null
     };
@@ -652,7 +654,7 @@ export class ProjectActions {
         console.warn('Store not available for notification');
         return;
       }
-      
+
       const state = store.getState();
       if (state.addNotification) {
         const notificationConfig = {
@@ -684,7 +686,7 @@ export class ProjectActions {
         console.warn('Store not available for notification');
         return;
       }
-      
+
       const state = store.getState();
       if (state.addNotification) {
         const notificationConfig = {
@@ -773,15 +775,15 @@ export class ProjectActions {
       }
 
       await app.managers.project.closeCurrentProject();
-      
+
       console.log('🧹 Clearing calculations cache after project close...');
       // CRITICAL: Clear calculations cache when closing project
       this.clearAllCalculationsCache();
-      
+
       // Refresh project lists
       await this.loadRecentProjects();
       await this.loadSavedProjects();
-      
+
       console.log('Project closed successfully');
     } catch (error) {
       console.error('Failed to close project:', error);
@@ -800,7 +802,7 @@ export class ProjectActions {
       }
 
       await app.managers.project.updateWindowTitle(projectData);
-      
+
       console.log('Window title updated successfully');
     } catch (error) {
       console.error('Failed to update window title:', error);
@@ -819,10 +821,44 @@ export class ProjectActions {
       }
 
       await app.managers.project.resetWindowTitle();
-      
+
       console.log('Window title reset successfully');
     } catch (error) {
       console.error('Failed to reset window title:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update project approval status - Business Logic for Approval Status feature
+   * PATTERN: State/Actions/Dispatcher - All business logic in Actions layer
+   */
+  updateApprovalStatus(status: string): void {
+    const validStatuses = ["Approved", "Pending Approval"];
+
+    if (!validStatuses.includes(status)) {
+      console.error(`Invalid approval status "${status}". Must be "Approved" or "Pending Approval".`);
+      return;
+    }
+
+    try {
+      const store = this.getStore();
+      if (!store) {
+        throw new Error('Store not available');
+      }
+
+      // Get current state
+      const state = store.getState();
+      if (!state.currentProject) {
+        throw new Error('No project loaded');
+      }
+
+      // Update store with new approval status
+      state.setProjectApprovalStatus(status);
+
+      console.log(`✅ Approval status updated to "${status}"`);
+    } catch (error) {
+      console.error('Failed to update approval status:', error);
       throw error;
     }
   }

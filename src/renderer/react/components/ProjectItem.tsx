@@ -1,4 +1,5 @@
 import React from 'react';
+import ApprovalStatusIcon from './ApprovalStatusIcon';
 
 interface BaseProject {
   id: string;
@@ -9,6 +10,7 @@ interface BaseProject {
 interface RecentProject extends BaseProject {
   lastOpened: string;
   filePath?: string;
+  approvalStatus?: string;
 }
 
 interface SavedProject {
@@ -16,6 +18,7 @@ interface SavedProject {
   fileName: string;
   project: BaseProject & {
     lastModified: string;
+    approvalStatus?: string;
   };
   fileSize: number;
   lastModified: string;
@@ -37,7 +40,7 @@ const escapeHtml = (text: string): string => {
   return div.innerHTML;
 };
 
-// Helper function to format date - replicating Helpers.formatDate  
+// Helper function to format date - replicating Helpers.formatDate
 const formatDate = (dateString: string): string => {
   try {
     const date = new Date(dateString);
@@ -101,18 +104,21 @@ const ProjectItem: React.FC<ProjectItemProps> = ({
             <span className="project-date">
               <i className="fas fa-eye"></i> {formatDate(recentProject.lastOpened)}
             </span>
+            <span className="project-detail">
+              <ApprovalStatusIcon status={recentProject.approvalStatus || "Pending Approval"} />
+            </span>
           </div>
         </div>
         <div className="project-actions">
-          <button 
-            className="btn btn-icon btn-primary" 
+          <button
+            className="btn btn-icon btn-primary"
             onClick={() => handleAction('load')}
             title="Load Project"
           >
             <i className="fas fa-folder-open"></i>
           </button>
-          <button 
-            className="btn btn-icon btn-danger" 
+          <button
+            className="btn btn-icon btn-danger"
             onClick={() => handleAction('remove')}
             title="Remove from Recent"
           >
@@ -138,25 +144,28 @@ const ProjectItem: React.FC<ProjectItemProps> = ({
             <i className="fas fa-edit"></i> {formatDate(savedProject.project.lastModified)}
           </span>
           <span className="project-size">{formatBytes(savedProject.fileSize)}</span>
+          <span className="project-detail">
+            <ApprovalStatusIcon status={savedProject.project.approvalStatus || "Pending Approval"} />
+          </span>
         </div>
       </div>
       <div className="project-actions">
-        <button 
-          className="btn btn-icon btn-primary" 
+        <button
+          className="btn btn-icon btn-primary"
           onClick={() => handleAction('load')}
           title="Load Project"
         >
           <i className="fas fa-folder-open"></i>
         </button>
-        <button 
-          className="btn btn-icon btn-secondary" 
+        <button
+          className="btn btn-icon btn-secondary"
           onClick={() => handleAction('export')}
           title="Export Project"
         >
           <i className="fas fa-download"></i>
         </button>
-        <button 
-          className="btn btn-icon btn-danger" 
+        <button
+          className="btn btn-icon btn-danger"
           onClick={() => handleAction('delete')}
           title="Delete Project"
         >

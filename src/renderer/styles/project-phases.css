@@ -105,6 +105,47 @@
     font-family: monospace;
 }
 
+/* Approval Status Selector */
+.approval-status-selector {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.approval-status-selector label {
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 180px;
+    margin: 0;
+}
+
+.approval-status-select {
+    flex: 1;
+    min-width: 200px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-fast);
+}
+
+.approval-status-select:focus {
+    outline: none;
+    border-color: var(--text-accent);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.approval-status-select:hover {
+    border-color: var(--border-hover);
+}
+
 /* Supplier Selectors */
 .supplier-selectors {
     display: flex;
