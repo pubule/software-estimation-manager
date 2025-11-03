@@ -55,16 +55,15 @@
 
 /* Phases Controls */
 .phases-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 180px 1fr;
     margin-bottom: var(--spacing-lg);
     padding: var(--spacing-md);
-    background-color: var(--bg-secondary);
+    background-color: rgba(255, 255, 255, 0.03);
     border-radius: var(--radius-md);
-    border: 1px solid var(--border-primary);
-    flex-wrap: wrap;
+    border: none;
     gap: var(--spacing-md);
+    row-gap: var(--spacing-md);
 }
 
 .controls-left {
@@ -107,33 +106,33 @@
 
 /* Approval Status Selector */
 .approval-status-selector {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    background-color: var(--bg-tertiary);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-secondary);
-    font-size: var(--font-size-sm);
+    display: contents;
 }
 
 .approval-status-selector label {
     font-weight: 600;
     color: var(--text-primary);
-    min-width: 180px;
+    padding: var(--spacing-sm);
     margin: 0;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+    border-right: none;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+    display: flex;
+    align-items: center;
+    font-size: var(--font-size-sm);
+    min-height: 36px;
 }
 
 .approval-status-select {
-    flex: 1;
-    min-width: 200px;
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: var(--spacing-sm);
     border: 1px solid var(--border-secondary);
-    border-radius: var(--radius-sm);
     background-color: var(--bg-secondary);
     color: var(--text-primary);
     font-size: var(--font-size-sm);
     transition: all var(--transition-fast);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    min-height: 36px;
 }
 
 .approval-status-select:focus {
@@ -148,39 +147,37 @@
 
 /* Supplier Selectors */
 .supplier-selectors {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
+    display: contents;
     font-size: var(--font-size-sm);
 }
 
 .supplier-selector {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    background-color: var(--bg-tertiary);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-secondary);
+    display: contents;
 }
 
 .supplier-selector label {
     font-weight: 600;
     color: var(--text-primary);
-    min-width: 180px;
+    padding: var(--spacing-sm);
     margin: 0;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+    border-right: none;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+    display: flex;
+    align-items: center;
+    min-height: 36px;
 }
 
 .supplier-select {
-    flex: 1;
-    min-width: 200px;
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: var(--spacing-sm);
     border: 1px solid var(--border-secondary);
-    border-radius: var(--radius-sm);
     background-color: var(--bg-secondary);
     color: var(--text-primary);
     font-size: var(--font-size-sm);
     transition: all var(--transition-fast);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    min-height: 36px;
 }
 
 .supplier-select:focus {
@@ -198,7 +195,11 @@
     font-size: var(--font-size-xs);
     color: var(--text-muted);
     font-style: italic;
-    margin-left: var(--spacing-sm);
+    grid-column: 1 / -1;
+    padding: var(--spacing-xs) var(--spacing-sm) var(--spacing-sm) var(--spacing-sm);
+    background-color: transparent;
+    border: none;
+    display: block;
 }
 
 /* Phases Table Container */
