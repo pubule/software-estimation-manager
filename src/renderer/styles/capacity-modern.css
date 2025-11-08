@@ -225,11 +225,14 @@
     background-color: var(--bg-secondary);
     border-radius: 4px;
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: auto; /* Changed from 'visible' - enable vertical scroll within container */
+    max-height: calc(95vh - 420px); /* Constrain height - reserves space for header/stats/controls/legend */
+    position: relative; /* Positioning context for absolute children */
 }
 
 .capacity-modern-card::-webkit-scrollbar {
     height: 8px;
+    width: 8px; /* Added: vertical scrollbar width */
 }
 
 .capacity-modern-card::-webkit-scrollbar-track {
@@ -243,6 +246,19 @@
 
 .capacity-modern-card::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-height: 768px) {
+    .capacity-modern-card {
+        max-height: calc(95vh - 350px); /* Less reserved space on small screens */
+    }
+}
+
+@media (max-height: 600px) {
+    .capacity-modern-card {
+        max-height: 400px; /* Minimum usable height for very small screens */
+    }
 }
 
 /* =====================================================
