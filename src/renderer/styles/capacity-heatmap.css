@@ -1,0 +1,551 @@
+/**
+ * Capacity Heatmap Styles
+ * Annual resource overview with 12-month heatmap visualization
+ */
+
+/* =====================================================
+   CONTAINER & LAYOUT
+   ===================================================== */
+
+.resource-heatmap-container {
+    padding: 24px;
+    background-color: #1e1e1e;
+    min-height: calc(100vh - 100px);
+}
+
+/* Header */
+.heatmap-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.heatmap-header h2 {
+    color: #cccccc;
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.heatmap-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* =====================================================
+   SEARCH & FILTERS
+   ===================================================== */
+
+.heatmap-filters {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.search-container {
+    flex: 1;
+    min-width: 300px;
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 40px 10px 14px;
+    background-color: #252526;
+    border: 1px solid: #3c3c3c;
+    border-radius: 4px;
+    color: #cccccc;
+    font-size: 14px;
+}
+
+.search-input:focus {
+    outline: 2px solid #007acc;
+    border-color: #007acc;
+}
+
+.search-clear {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #969696;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+}
+
+.search-clear:hover {
+    color: #cccccc;
+}
+
+.filter-dropdowns {
+    display: flex;
+    gap: 12px;
+}
+
+.filter-select {
+    padding: 10px 14px;
+    background-color: #252526;
+    border: 1px solid #3c3c3c;
+    border-radius: 4px;
+    color: #cccccc;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.filter-select:hover {
+    background-color: #2a2d2e;
+}
+
+.filter-select:focus {
+    outline: 2px solid #007acc;
+    border-color: #007acc;
+}
+
+/* Quick Filters (Status Chips) */
+.quick-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.quick-filter {
+    padding: 8px 16px;
+    background-color: #252526;
+    border: 1px solid #3c3c3c;
+    border-radius: 4px;
+    color: #cccccc;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.quick-filter:hover {
+    background-color: #2a2d2e;
+    border-color: #565656;
+}
+
+.quick-filter.active {
+    background-color: #007acc;
+    border-color: #007acc;
+    color: #ffffff;
+}
+
+.quick-filter.over.active {
+    background-color: #f48771;
+    border-color: #f48771;
+}
+
+.quick-filter.near.active {
+    background-color: #dcdcaa;
+    border-color: #dcdcaa;
+    color: #1e1e1e;
+}
+
+.quick-filter.under.active {
+    background-color: #569cd6;
+    border-color: #569cd6;
+}
+
+.quick-filter.available.active {
+    background-color: #4ec9b0;
+    border-color: #4ec9b0;
+}
+
+/* =====================================================
+   HEATMAP TABLE
+   ===================================================== */
+
+.heatmap-scroll-container {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(95vh - 450px);
+    background-color: #252526;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.heatmap-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+/* Table Header */
+.heatmap-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #3e3e42;
+}
+
+.heatmap-table th {
+    padding: 12px 8px;
+    text-align: center;
+    color: #cccccc;
+    font-weight: 600;
+    border: 1px solid #2d2d30;
+}
+
+.heatmap-table th.col-name {
+    position: sticky;
+    left: 0;
+    z-index: 11;
+    background-color: #3e3e42;
+    text-align: left;
+    min-width: 180px;
+    max-width: 200px;
+}
+
+.heatmap-table th.col-month {
+    min-width: 60px;
+    width: 70px;
+}
+
+.heatmap-table th.col-avg {
+    min-width: 80px;
+    background-color: #2d2d30;
+}
+
+.heatmap-table th.col-status {
+    min-width: 100px;
+    background-color: #2d2d30;
+}
+
+/* Table Body */
+.heatmap-table tbody tr {
+    border-bottom: 1px solid #2d2d30;
+}
+
+.heatmap-table tbody tr:hover .cell-name {
+    background-color: #2a2d2e;
+}
+
+.heatmap-table td {
+    padding: 8px;
+    text-align: center;
+    border: 1px solid #2d2d30;
+}
+
+/* Name Column (Sticky) */
+.heatmap-table td.cell-name {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background-color: #252526;
+    text-align: left;
+    padding: 12px;
+}
+
+.heatmap-table .member-row:hover .cell-name {
+    background-color: #2a2d2e;
+}
+
+.member-name {
+    font-weight: 600;
+    color: #cccccc;
+    margin-bottom: 4px;
+}
+
+.member-role {
+    font-size: 11px;
+    color: #969696;
+}
+
+.cell-name-icon {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background-color: #252526;
+}
+
+/* Month Cells */
+.heatmap-table td.cell-month {
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+}
+
+.heatmap-table td.cell-month:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 8px rgba(0, 122, 204, 0.5);
+    z-index: 3;
+}
+
+/* Cell Colors Based on Utilization */
+.cell-month.under {
+    background-color: rgba(86, 156, 214, 0.3);
+    color: #569cd6;
+}
+
+.cell-month.available {
+    background-color: rgba(78, 201, 176, 0.3);
+    color: #4ec9b0;
+}
+
+.cell-month.near {
+    background-color: rgba(220, 220, 170, 0.3);
+    color: #dcdcaa;
+}
+
+.cell-month.over {
+    background-color: rgba(244, 135, 113, 0.5);
+    color: #f48771;
+}
+
+/* Avg Column */
+.cell-avg {
+    font-weight: 700;
+    font-size: 14px;
+    background-color: #2d2d30;
+}
+
+.cell-avg.under { color: #569cd6; }
+.cell-avg.available { color: #4ec9b0; }
+.cell-avg.near { color: #dcdcaa; }
+.cell-avg.over { color: #f48771; }
+
+/* Status Column */
+.cell-status {
+    font-weight: 600;
+    font-size: 13px;
+    background-color: #2d2d30;
+}
+
+.status-critical {
+    color: #f48771;
+}
+
+.status-warning {
+    color: #dcdcaa;
+}
+
+.status-under {
+    color: #569cd6;
+}
+
+.status-stable {
+    color: #4ec9b0;
+}
+
+/* Icon Row */
+.icon-row {
+    height: 24px;
+}
+
+.cell-icon {
+    padding: 2px;
+    font-size: 16px;
+    border-top: none;
+}
+
+/* No Results */
+.no-results {
+    padding: 40px;
+    text-align: center;
+    color: #969696;
+    font-style: italic;
+}
+
+/* =====================================================
+   LEGEND
+   ===================================================== */
+
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 16px;
+    background-color: #252526;
+    border-radius: 4px;
+    margin-bottom: 16px;
+}
+
+.legend-title {
+    font-weight: 600;
+    color: #cccccc;
+}
+
+.legend-items {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #cccccc;
+}
+
+.legend-icon {
+    font-size: 16px;
+}
+
+/* =====================================================
+   SUMMARY STATS
+   ===================================================== */
+
+.heatmap-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background-color: #252526;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #cccccc;
+}
+
+.heatmap-summary strong {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.stat-critical {
+    color: #f48771;
+}
+
+.stat-warning {
+    color: #dcdcaa;
+}
+
+/* =====================================================
+   LOADING & ERROR STATES
+   ===================================================== */
+
+.heatmap-loading,
+.heatmap-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: #cccccc;
+    gap: 16px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #3e3e42;
+    border-top-color: #007acc;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.error-icon {
+    font-size: 48px;
+    color: #f48771;
+}
+
+.error-message {
+    font-size: 16px;
+    color: #969696;
+}
+
+/* =====================================================
+   MODAL (Drill-down)
+   ===================================================== */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: #252526;
+    border-radius: 8px;
+    padding: 32px;
+    min-width: 500px;
+    max-width: 800px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h3 {
+    margin: 0 0 16px 0;
+    color: #cccccc;
+}
+
+.modal-content p {
+    color: #cccccc;
+    margin: 8px 0;
+}
+
+.text-muted {
+    color: #969696;
+    font-style: italic;
+}
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 1200px) {
+    .heatmap-filters {
+        flex-direction: column;
+    }
+
+    .search-container {
+        min-width: 100%;
+    }
+
+    .filter-dropdowns {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 768px) {
+    .resource-heatmap-container {
+        padding: 16px;
+    }
+
+    .heatmap-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .heatmap-header h2 {
+        font-size: 20px;
+    }
+
+    .quick-filters {
+        flex-direction: column;
+    }
+
+    .quick-filter {
+        width: 100%;
+    }
+
+    .heatmap-scroll-container {
+        max-height: 60vh;
+    }
+
+    .heatmap-table th.col-name {
+        min-width: 140px;
+    }
+
+    .heatmap-table th.col-month {
+        min-width: 50px;
+        font-size: 11px;
+    }
+}

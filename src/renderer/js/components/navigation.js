@@ -1692,10 +1692,10 @@ class EnhancedNavigationManager extends NavigationManager {
 
                 // Mount the component directly using React
                 const container = document.getElementById('resource-overview-content');
-                if (container && window.React && window.ReactComponents?.ResourceOverviewDashboard) {
-                    console.log('🔄 Mounting ResourceOverviewDashboard component directly...');
+                if (container && window.React && window.ReactComponents?.ResourceOverviewHeatmap) {
+                    console.log('🔄 Mounting ResourceOverviewHeatmap component directly...');
                     const root = window.ReactDOM.createRoot(container);
-                    root.render(window.React.createElement(window.ReactComponents.ResourceOverviewDashboard));
+                    root.render(window.React.createElement(window.ReactComponents.ResourceOverviewHeatmap));
 
                     // Mark component as initialized
                     state.setComponentInitialized('resource-overview', true);

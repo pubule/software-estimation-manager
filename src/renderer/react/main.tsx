@@ -41,6 +41,7 @@ import TicketDashboard from './components/TicketDashboard';
 
 // Import capacity/resource management components
 import ResourceOverviewDashboard from './components/ResourceOverviewDashboard';
+import ResourceOverviewHeatmap from './components/ResourceOverviewHeatmap';
 import ResourceCapacityCard from './components/ResourceCapacityCard';
 import ResourceFilters from './components/ResourceFilters';
 import CapacityTimeline from './components/CapacityTimeline';
@@ -97,6 +98,7 @@ declare global {
       RestoreVersionModal: typeof RestoreVersionModal;
       TicketDashboard: typeof TicketDashboard;
       ResourceOverviewDashboard: typeof ResourceOverviewDashboard;
+      ResourceOverviewHeatmap: typeof ResourceOverviewHeatmap;
       ResourceCapacityCard: typeof ResourceCapacityCard;
       ResourceFilters: typeof ResourceFilters;
       CapacityTimeline: typeof CapacityTimeline;
@@ -143,6 +145,7 @@ window.ReactComponents = {
   RestoreVersionModal,
   TicketDashboard,
   ResourceOverviewDashboard,
+  ResourceOverviewHeatmap,
   ResourceCapacityCard,
   ResourceFilters,
   CapacityTimeline,

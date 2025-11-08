@@ -233,7 +233,7 @@ class ReactPageWrapperActions {
             },
             'resource-overview': {
                 pageId: 'resource-overview-page',
-                componentName: 'ResourceOverviewDashboard',
+                componentName: 'ResourceOverviewHeatmap',
                 containerId: 'resource-overview-content',
                 wrapperName: 'ReactResourceOverviewWrapper'
             },
