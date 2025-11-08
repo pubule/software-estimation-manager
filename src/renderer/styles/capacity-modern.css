@@ -959,3 +959,17 @@
     gap: var(--spacing-sm);
     align-items: center;
 }
+
+/* =====================================================
+   ANIMATIONS
+   ===================================================== */
+
+/* Pulse warning animation for over-allocated cells */
+@keyframes pulse-warning {
+    0%, 100% {
+        opacity: 0.8;
+    }
+    50% {
+        opacity: 1;
+    }
+}

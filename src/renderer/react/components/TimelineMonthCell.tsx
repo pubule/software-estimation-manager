@@ -42,17 +42,33 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
 }) => {
     const [showTooltip, setShowTooltip] = useState(false);
 
-    // Calculate background opacity based on utilization
+    // Calculate background fill based on utilization (horizontal bar from left to right)
     const getBackgroundStyle = (): React.CSSProperties => {
         // Base color from status
         const baseColor = data.statusColor;
 
-        // Opacity based on utilization (min 20%, max 100%)
-        const opacity = Math.max(0.2, Math.min(1, data.utilization / 100));
+        // Fill width based on utilization (0-100%+)
+        const fillWidth = data.existingAllocations > 0 ? Math.min(100, data.utilization) : 0;
 
         return {
-            backgroundColor: baseColor,
-            opacity: data.existingAllocations > 0 ? opacity : 0.1
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: `${fillWidth}%`,
+            background: `linear-gradient(to right, ${baseColor}60, ${baseColor}30)`,
+            transition: 'width 0.3s ease',
+            ...(data.isOverallocated && {
+                width: '100%',
+                background: `repeating-linear-gradient(
+                    45deg,
+                    ${baseColor}80,
+                    ${baseColor}80 10px,
+                    ${baseColor}50 10px,
+                    ${baseColor}50 20px
+                )`,
+                animation: 'pulse-warning 2s ease-in-out infinite'
+            })
         };
     };
 
@@ -187,15 +203,8 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
             onMouseLeave={() => setShowTooltip(false)}
             onClick={() => onClick?.(month, memberName, data)}
         >
-            {/* Background with color coding */}
-            <div
-                style={{
-                    position: 'absolute',
-                    inset: 0,
-                    ...getBackgroundStyle(),
-                    transition: 'opacity 0.2s ease'
-                }}
-            />
+            {/* Background with color coding - horizontal fill bar */}
+            <div style={getBackgroundStyle()} />
 
             {/* Content */}
             <div style={{
@@ -203,8 +212,9 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
                 zIndex: 1,
                 textAlign: 'center',
                 fontSize: '12px',
-                fontWeight: '600',
-                color: data.existingAllocations > 0 ? '#1e1e1e' : '#858585'
+                fontWeight: data.existingAllocations > 0 ? '700' : '600',
+                color: data.existingAllocations > 0 ? '#ffffff' : '#858585',
+                textShadow: data.existingAllocations > 0 ? '0 1px 3px rgba(0,0,0,0.8)' : 'none'
             }}>
                 {data.existingAllocations > 0 ? (
                     <>
