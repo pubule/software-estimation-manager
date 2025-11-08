@@ -856,6 +856,37 @@ export class ProjectActions {
       // Update store with new approval status
       state.setProjectApprovalStatus(status);
 
+      // Sync approval status to recent projects list
+      try {
+        const recentProjectsJson = localStorage.getItem('recent-projects');
+        if (recentProjectsJson) {
+          const recentProjects = JSON.parse(recentProjectsJson);
+          const currentProjectId = state.currentProject.project?.id;
+          
+          // Find and update the matching project in recent projects
+          const updatedRecentProjects = recentProjects.map((project: any) => {
+            if (project.id === currentProjectId) {
+              return {
+                ...project,
+                approvalStatus: status
+              };
+            }
+            return project;
+          });
+
+          // Write back to localStorage
+          localStorage.setItem('recent-projects', JSON.stringify(updatedRecentProjects));
+
+          // Emit event to trigger UI refresh in RecentProjectsList
+          window.dispatchEvent(new CustomEvent('recent-projects-updated'));
+
+          console.log(`✅ Recent projects list updated with approval status "${status}"`);
+        }
+      } catch (storageError) {
+        console.warn('Could not sync approval status to recent projects:', storageError);
+        // Don't throw - this shouldn't block the main update
+      }
+
       console.log(`✅ Approval status updated to "${status}"`);
     } catch (error) {
       console.error('Failed to update approval status:', error);
