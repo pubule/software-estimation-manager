@@ -116,8 +116,10 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
         const saved = localStorage.getItem(`timeline-expanded-${member.id}`);
         if (saved === 'true') {
             setIsMemberExpanded(true);
+        } else {
+            setIsMemberExpanded(false);
         }
-    }, [member.id]);
+    }, [member.id, member]);
 
     // Load projects expansion state from localStorage on mount
     useEffect(() => {
@@ -129,8 +131,10 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             } catch (error) {
                 console.error('Failed to parse expanded projects:', error);
             }
+        } else {
+            setExpandedProjects(new Set());
         }
-    }, [member.id]);
+    }, [member.id, member]);
 
     // Reset expansion state when leaving capacity section (FIX: chevron not resetting)
     useEffect(() => {

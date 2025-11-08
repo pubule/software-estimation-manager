@@ -104,9 +104,26 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
         setEditingAllocation(undefined);
     };
 
+    // Helper function to collapse all timeline chevrons by clearing localStorage
+    const collapseAllTimelineChevrons = () => {
+        // Get all localStorage keys
+        const keys = Object.keys(localStorage);
+
+        // Remove all timeline expansion state keys
+        keys.forEach(key => {
+            if (key.startsWith('timeline-expanded-') ||
+                key.startsWith('timeline-projects-expanded-')) {
+                localStorage.removeItem(key);
+            }
+        });
+
+        console.log('🧹 All timeline chevron states cleared from localStorage');
+    };
+
     // Handle successful save
     const handleSave = (updatedAllocation?: any) => {
         console.log('💾 CapacityTimeline: handleSave called with:', updatedAllocation);
+        collapseAllTimelineChevrons(); // Collapse all chevrons before refresh
         refresh(); // Refresh data to show new allocation
         handleModalClose();
         console.log('✅ CapacityTimeline: Data refreshed and modal closed');
