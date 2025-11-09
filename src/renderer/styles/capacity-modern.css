@@ -131,6 +131,27 @@
     border: 1px solid var(--border-primary);
 }
 
+.capacity-modern-allocate-btn {
+    padding: 6px 12px;
+    border-radius: 3px;
+    font-size: var(--font-sm);
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
+    background-color: var(--color-accent);
+    color: white;
+}
+
+.capacity-modern-allocate-btn:hover {
+    background-color: #006bb3;
+}
+
+.capacity-modern-allocate-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* =====================================================
    FILTERS SECTION (3 dropdowns)
    ===================================================== */

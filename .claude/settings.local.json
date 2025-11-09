@@ -19,7 +19,11 @@
       "mcp__serena__find_file",
       "mcp__serena__search_for_pattern",
       "Bash(nul)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(timeout 10 npm run:*)",
+      "Bash(taskkill:*)",
+      "Bash(timeout 5 echo:*)",
+      "mcp__serena__find_referencing_symbols"
     ],
     "deny": [],
     "ask": []

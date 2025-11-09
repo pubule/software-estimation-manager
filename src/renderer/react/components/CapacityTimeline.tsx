@@ -256,30 +256,29 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
 
     return (
         <div className="capacity-modern-section">
-            {/* Page Header */}
-            <div className="capacity-modern-header">
-                <h2>
-                    <i className="fas fa-chart-timeline"></i>
-                    Capacity Timeline
-                </h2>
-                <p className="capacity-modern-description">
-                    Resource capacity visualization across time - {months[0]?.label} to {months[months.length - 1]?.label}
-                </p>
+            {/* Page Header with Add Assignment Button */}
+            <div className="page-header">
+                <div>
+                    <h2>
+                        <i className="fas fa-chart-timeline"></i>
+                        Capacity Timeline
+                    </h2>
+                    <p className="capacity-modern-description">
+                        Resource capacity visualization across time - {months[0]?.label} to {months[months.length - 1]?.label}
+                    </p>
+                </div>
+                <div className="page-actions">
+                    <button
+                        onClick={handleAddAssignment}
+                        className="btn btn-primary"
+                    >
+                        <i className="fas fa-plus"></i> Add Assignment
+                    </button>
+                </div>
             </div>
 
             {/* Statistics */}
             {renderStats()}
-
-            {/* Add Assignment Button */}
-            <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                    onClick={handleAddAssignment}
-                    className="capacity-modern-btn capacity-modern-btn-primary"
-                >
-                    <i className="fas fa-plus"></i>
-                    Add Assignment
-                </button>
-            </div>
 
             {/* Timeline Controls and Header */}
             <TimelineHeader
