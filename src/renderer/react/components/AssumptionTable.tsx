@@ -9,6 +9,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Assumption } from '../actions/AssumptionsActions';
+import '../../styles/assumptions.css';
 
 interface AssumptionTableProps {
   assumptions: Assumption[];

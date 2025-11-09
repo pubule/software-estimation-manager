@@ -1,0 +1,41 @@
+/* Assumptions Page Styles */
+
+/* Impact Badge - Conforme a style-guide */
+/* Higher specificity to override version-history.css */
+.assumptions-table .impact-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    border: none;
+    background-clip: padding-box;
+    box-shadow: none;
+    text-transform: none;
+    letter-spacing: normal;
+    margin-bottom: 0;
+}
+
+/* Remove pseudo-element animation from version-history.css */
+.assumptions-table .impact-badge::before {
+    display: none;
+}
+
+.assumptions-table .impact-badge.low {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: var(--color-success);
+    border-color: transparent;
+}
+
+.assumptions-table .impact-badge.medium {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: var(--color-warning);
+    border-color: transparent;
+}
+
+.assumptions-table .impact-badge.high {
+    background-color: rgba(244, 67, 54, 0.2);
+    color: var(--color-error);
+    border-color: transparent;
+}
