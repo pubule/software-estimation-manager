@@ -165,7 +165,7 @@
 .heatmap-scroll-container {
     overflow-x: auto;
     overflow-y: auto;
-    max-height: calc(95vh - 450px);
+    max-height: calc(95vh - 350px);
     background-color: #252526;
     border-radius: 4px;
     margin-bottom: 20px;
