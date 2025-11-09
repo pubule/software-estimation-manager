@@ -114,28 +114,7 @@ export const ResourceOverviewHeatmap: React.FC<ResourceOverviewHeatmapProps> = (
         <div className="resource-heatmap-container">
             {/* Header */}
             <div className="heatmap-header">
-                <div className="header-left">
-                    <h2>Resource Overview - Annual Capacity Heatmap</h2>
-                    <div className="year-navigation">
-                        <button
-                            onClick={() => setYear(year - 1)}
-                            className="btn-year-nav"
-                            title="Previous year"
-                            aria-label="Previous year"
-                        >
-                            <i className="fas fa-chevron-left"></i>
-                        </button>
-                        <span className="current-year">{year}</span>
-                        <button
-                            onClick={() => setYear(year + 1)}
-                            className="btn-year-nav"
-                            title="Next year"
-                            aria-label="Next year"
-                        >
-                            <i className="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
-                </div>
+                <h2>Resource Overview - Annual Capacity Heatmap</h2>
                 <div className="heatmap-actions">
                     <button onClick={refresh} className="btn btn-secondary" title="Refresh data">
                         <i className="fas fa-sync-alt"></i> Refresh
@@ -238,6 +217,27 @@ export const ResourceOverviewHeatmap: React.FC<ResourceOverviewHeatmapProps> = (
                 >
                     🟩 Healthy ({stats.healthyCount})
                 </button>
+
+                {/* Year Navigation */}
+                <div className="year-navigation">
+                    <button
+                        onClick={() => setYear(year - 1)}
+                        className="btn-year-nav"
+                        title="Previous year"
+                        aria-label="Previous year"
+                    >
+                        <i className="fas fa-chevron-left"></i>
+                    </button>
+                    <span className="current-year">{year}</span>
+                    <button
+                        onClick={() => setYear(year + 1)}
+                        className="btn-year-nav"
+                        title="Next year"
+                        aria-label="Next year"
+                    >
+                        <i className="fas fa-chevron-right"></i>
+                    </button>
+                </div>
             </div>
 
             {/* Heatmap Table */}

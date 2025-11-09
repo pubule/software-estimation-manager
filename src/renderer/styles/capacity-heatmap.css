@@ -21,12 +21,6 @@
     margin-bottom: 24px;
 }
 
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
 .heatmap-header h2 {
     color: #cccccc;
     font-size: 24px;
@@ -39,7 +33,7 @@
     gap: 12px;
 }
 
-/* Year Navigation Controls */
+/* Year Navigation Controls (inside quick-filters) */
 .year-navigation {
     display: flex;
     align-items: center;
@@ -48,6 +42,7 @@
     background-color: #2d2d30;
     border-radius: 4px;
     border: 1px solid #3c3c3c;
+    margin-left: auto; /* Align to right */
 }
 
 .btn-year-nav {
