@@ -2156,38 +2156,31 @@ class ApplicationController extends BaseComponent {
         row++;
         row++; // Empty row
 
-        // Selected Suppliers Section
+        // Features Summary Section
         worksheet.mergeCells(`A${row}:L${row}`);
-        const suppliersHeaderCell = worksheet.getCell(`A${row}`);
-        suppliersHeaderCell.value = 'SELECTED SUPPLIERS';
-        suppliersHeaderCell.style = styles.sectionHeader;
+        const featuresHeaderCell = worksheet.getCell(`A${row}`);
+        featuresHeaderCell.value = 'FEATURES SUMMARY';
+        featuresHeaderCell.style = styles.sectionHeader;
         row++;
 
-        // Suppliers table headers
-        ['Resource Type', 'Selected Supplier'].forEach((header, index) => {
-            const cell = worksheet.getCell(row, index + 1);
-            cell.value = header;
-            cell.style = styles.header;
-        });
+        worksheet.getCell(`A${row}`).value = 'Total Features:';
+        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+        worksheet.getCell(`B${row}`).value = currentProject?.features?.length || 0;
         row++;
 
-        // List selected suppliers
-        Object.entries(selectedSuppliers).forEach(([resourceType, supplierId]) => {
-            if (supplierId) {
-                // Get supplier name from configuration
-                const allSuppliers = [
-                    ...(this.managers.config?.globalConfig?.suppliers || []),
-                    ...(this.managers.config?.globalConfig?.internalResources || [])
-                ];
-                const supplier = allSuppliers.find(s => s.id === supplierId);
-                
-                worksheet.getCell(row, 1).value = resourceType;
-                worksheet.getCell(row, 1).style = styles.dataCell;
-                worksheet.getCell(row, 2).value = supplier?.name || supplierId;
-                worksheet.getCell(row, 2).style = styles.dataCell;
-                row++;
-            }
-        });
+        worksheet.getCell(`A${row}`).value = 'Total Man Days:';
+        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+        const totalMD = currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0) || 0;
+        worksheet.getCell(`B${row}`).value = totalMD;
+        worksheet.getCell(`B${row}`).style = styles.numberCell;
+        row++;
+
+        worksheet.getCell(`A${row}`).value = 'Coverage:';
+        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+        worksheet.getCell(`B${row}`).value = currentProject?.coverage || 0;
+        worksheet.getCell(`B${row}`).style = styles.numberCell;
+        row++;
+        row++; // Empty row
 
         // Set column widths
         worksheet.columns = [
