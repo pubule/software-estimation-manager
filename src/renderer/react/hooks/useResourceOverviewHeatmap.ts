@@ -8,9 +8,13 @@
 
 import { useState, useEffect, useMemo } from 'react';
 
-// Import Actions (available globally after build)
-declare const CapacityActions: any;
-declare const TeamHelpers: any;
+// Extend window interface for global Actions
+declare global {
+    interface Window {
+        CapacityActions: any;
+        TeamHelpers: any;
+    }
+}
 
 export interface HeatmapCell {
     month: number; // 0-11 (Jan-Dec)
@@ -77,8 +81,24 @@ export const useResourceOverviewHeatmap = (initialYear: number): UseResourceOver
         setError(null);
 
         try {
+            // Wait for window globals to be available (Actions loaded async)
+            let attempts = 0;
+            const maxAttempts = 50;
+
+            while ((!window.CapacityActions || !window.TeamHelpers) && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+
+            if (!window.CapacityActions || !window.TeamHelpers) {
+                throw new Error('Required Actions not available after timeout');
+            }
+
+            // Instantiate CapacityActions
+            const capacityActions = new window.CapacityActions();
+
             // Get all team members
-            const teamMembers = TeamHelpers.getAllTeamMembers() || [];
+            const teamMembers = window.TeamHelpers.getAllTeamMembers() || [];
 
             if (teamMembers.length === 0) {
                 setAllMembers([]);
@@ -91,6 +111,7 @@ export const useResourceOverviewHeatmap = (initialYear: number): UseResourceOver
 
             for (const member of teamMembers) {
                 const months: HeatmapCell[] = [];
+                const fullName = `${member.firstName} ${member.lastName}`;
 
                 // Fetch capacity for each month
                 for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
@@ -99,7 +120,7 @@ export const useResourceOverviewHeatmap = (initialYear: number): UseResourceOver
 
                     try {
                         // Get capacity data for this month
-                        const capacityData = CapacityActions.calculateMemberCapacity(member.id, monthString);
+                        const capacityData = capacityActions.calculateAvailableCapacity(member.id, monthString);
 
                         months.push({
                             month: monthIndex,
@@ -110,7 +131,7 @@ export const useResourceOverviewHeatmap = (initialYear: number): UseResourceOver
                             vacationDays: capacityData?.vacationDays || 0
                         });
                     } catch (err) {
-                        console.error(`Error calculating capacity for ${member.fullName} in month ${monthIndex}:`, err);
+                        console.error(`Error calculating capacity for ${fullName} in month ${monthIndex}:`, err);
                         // Add default empty month data
                         months.push({
                             month: monthIndex,
@@ -128,7 +149,7 @@ export const useResourceOverviewHeatmap = (initialYear: number): UseResourceOver
 
                 heatmapData.push({
                     id: member.id,
-                    fullName: member.fullName || 'Unknown',
+                    fullName,
                     role: member.role || 'No Role',
                     vendorName: member.vendorName || 'Internal',
                     email: member.email || '',
