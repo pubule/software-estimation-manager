@@ -21,6 +21,12 @@
     margin-bottom: 24px;
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
 .heatmap-header h2 {
     color: #cccccc;
     font-size: 24px;
@@ -31,6 +37,50 @@
 .heatmap-actions {
     display: flex;
     gap: 12px;
+}
+
+/* Year Navigation Controls */
+.year-navigation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background-color: #2d2d30;
+    border-radius: 4px;
+    border: 1px solid #3c3c3c;
+}
+
+.btn-year-nav {
+    background: transparent;
+    border: 1px solid #3c3c3c;
+    color: #cccccc;
+    padding: 4px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-year-nav:hover {
+    background-color: #007acc;
+    border-color: #007acc;
+    color: #ffffff;
+}
+
+.btn-year-nav:active {
+    transform: scale(0.95);
+}
+
+.current-year {
+    font-size: 18px;
+    font-weight: 700;
+    color: #007acc;
+    min-width: 60px;
+    text-align: center;
+    user-select: none;
 }
 
 /* =====================================================

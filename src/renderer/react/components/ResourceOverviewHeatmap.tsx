@@ -114,7 +114,28 @@ export const ResourceOverviewHeatmap: React.FC<ResourceOverviewHeatmapProps> = (
         <div className="resource-heatmap-container">
             {/* Header */}
             <div className="heatmap-header">
-                <h2>Resource Overview - Annual Capacity Heatmap {year}</h2>
+                <div className="header-left">
+                    <h2>Resource Overview - Annual Capacity Heatmap</h2>
+                    <div className="year-navigation">
+                        <button
+                            onClick={() => setYear(year - 1)}
+                            className="btn-year-nav"
+                            title="Previous year"
+                            aria-label="Previous year"
+                        >
+                            <i className="fas fa-chevron-left"></i>
+                        </button>
+                        <span className="current-year">{year}</span>
+                        <button
+                            onClick={() => setYear(year + 1)}
+                            className="btn-year-nav"
+                            title="Next year"
+                            aria-label="Next year"
+                        >
+                            <i className="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
                 <div className="heatmap-actions">
                     <button onClick={refresh} className="btn btn-secondary" title="Refresh data">
                         <i className="fas fa-sync-alt"></i> Refresh
@@ -176,10 +197,11 @@ export const ResourceOverviewHeatmap: React.FC<ResourceOverviewHeatmapProps> = (
                         value={year}
                         onChange={(e) => setYear(parseInt(e.target.value))}
                         className="filter-select"
+                        aria-label="Select year"
                     >
-                        <option value={year - 1}>{year - 1}</option>
-                        <option value={year}>{year}</option>
-                        <option value={year + 1}>{year + 1}</option>
+                        {Array.from({ length: 16 }, (_, i) => 2020 + i).map(y => (
+                            <option key={y} value={y}>{y}</option>
+                        ))}
                     </select>
                 </div>
             </div>
