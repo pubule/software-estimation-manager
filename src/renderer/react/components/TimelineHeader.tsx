@@ -107,15 +107,16 @@ export const TimelineHeader: React.FC<TimelineHeaderProps> = ({
                         <option value="over-allocated">Over-Allocated</option>
                     </select>
 
-                    {/* Show Only Allocated */}
-                    <label className="capacity-modern-checkbox-label">
-                        <input
-                            type="checkbox"
-                            checked={filters.showOnlyAllocated || false}
-                            onChange={(e) => onFilterChange({ showOnlyAllocated: e.target.checked })}
-                        />
-                        Only Allocated
-                    </label>
+                    {/* Allocation Filter */}
+                    <select
+                        className="capacity-modern-filter-select"
+                        value={filters.allocationFilter || ''}
+                        onChange={(e) => onFilterChange({ allocationFilter: e.target.value as any })}
+                    >
+                        <option value="">All Members</option>
+                        <option value="allocated">Only Allocated</option>
+                        <option value="unallocated">Only Unallocated</option>
+                    </select>
                 </div>
             </div>
         </div>

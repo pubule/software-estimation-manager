@@ -55,7 +55,7 @@ export interface TimelineFilters {
     vendor?: string;
     role?: string;
     status?: 'all' | 'available' | 'near-capacity' | 'over-allocated';
-    showOnlyAllocated?: boolean;
+    allocationFilter?: '' | 'allocated' | 'unallocated';
 }
 
 export interface TimelineStats {
@@ -214,11 +214,17 @@ export const useCapacityTimeline = (monthsToShow: number = 8) => {
             });
         }
 
-        // Filter: show only members with allocations
-        if (filters.showOnlyAllocated) {
+        // Filter by allocation status
+        if (filters.allocationFilter === 'allocated') {
             filtered = filtered.filter(m => {
                 return Object.values(m.monthlyData).some((data: any) =>
                     data.existingAllocations > 0
+                );
+            });
+        } else if (filters.allocationFilter === 'unallocated') {
+            filtered = filtered.filter(m => {
+                return Object.values(m.monthlyData).every((data: any) =>
+                    data.existingAllocations === 0
                 );
             });
         }
