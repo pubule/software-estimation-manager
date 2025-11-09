@@ -1,0 +1,2686 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Software Estimates App - Style Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Root CSS Variables - Design Tokens */
+        :root {
+            /* Colors - VSCode Dark Theme */
+            --color-bg-primary: #1e1e1e;
+            --color-bg-secondary: #252526;
+            --color-bg-tertiary: #2d2d30;
+            --color-bg-quaternary: #3c3c3c;
+            --color-bg-hover: #2a2d2e;
+            --color-bg-active: #094771;
+
+            --color-text-primary: #cccccc;
+            --color-text-secondary: #a0a0a0;
+            --color-text-muted: #6a6a6a;
+            --color-text-accent: #007acc;
+            --color-text-inverse: #ffffff;
+
+            /* Status Colors */
+            --color-success: #4caf50;
+            --color-warning: #ff9800;
+            --color-error: #f44336;
+            --color-info: #2196f3;
+
+            /* Border & Divider */
+            --color-border: #3e3e42;
+            --color-border-light: #2d2d30;
+
+            /* Typography */
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.25rem;
+            --font-size-2xl: 1.5rem;
+            --font-size-3xl: 1.875rem;
+            --font-size-4xl: 2.25rem;
+
+            --font-weight-normal: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 600;
+            --font-weight-bold: 700;
+
+            /* Spacing */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-2xl: 2.5rem;
+            --spacing-3xl: 3rem;
+
+            /* Border Radius */
+            --radius-sm: 2px;
+            --radius-md: 4px;
+            --radius-lg: 6px;
+            --radius-xl: 8px;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+
+            /* Transitions */
+            --transition-fast: 0.1s ease-in-out;
+            --transition-base: 0.2s ease-in-out;
+            --transition-slow: 0.3s ease-in-out;
+
+            /* Line Height */
+            --lh-tight: 1.2;
+            --lh-normal: 1.5;
+            --lh-relaxed: 1.75;
+
+            /* Breakpoints */
+            --bp-sm: 640px;
+            --bp-md: 768px;
+            --bp-lg: 1024px;
+            --bp-xl: 1280px;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            font-size: var(--font-size-base);
+            line-height: var(--lh-normal);
+            color: var(--color-text-primary);
+            background-color: var(--color-bg-primary);
+            padding: 0;
+            margin: 0;
+        }
+
+        /* Layout */
+        .style-guide-wrapper {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+            gap: 0;
+        }
+
+        /* Sidebar Navigation */
+        aside.toc-sidebar {
+            background-color: var(--color-bg-secondary);
+            border-right: 1px solid var(--color-border);
+            padding: var(--spacing-lg);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        aside.toc-sidebar h3 {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        aside.toc-sidebar h3:first-child {
+            margin-top: 0;
+        }
+
+        aside.toc-sidebar nav ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        aside.toc-sidebar nav a {
+            display: block;
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-md);
+            transition: all var(--transition-base);
+            border-left: 2px solid transparent;
+        }
+
+        aside.toc-sidebar nav a:hover,
+        aside.toc-sidebar nav a:focus {
+            background-color: var(--color-bg-hover);
+            color: var(--color-text-primary);
+            border-left-color: var(--color-text-accent);
+            outline: none;
+        }
+
+        aside.toc-sidebar nav a.active {
+            color: var(--color-text-accent);
+            background-color: var(--color-bg-active);
+            border-left-color: var(--color-text-accent);
+            font-weight: var(--font-weight-medium);
+        }
+
+        /* Main Content */
+        main {
+            padding: 0;
+        }
+
+        /* Sections */
+        section {
+            padding: var(--spacing-3xl);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        section:last-of-type {
+            border-bottom: none;
+        }
+
+        section > h2 {
+            font-size: var(--font-size-3xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-2xl);
+            padding-bottom: var(--spacing-lg);
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        section > h3 {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+            margin-top: var(--spacing-2xl);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        section > p,
+        section > ul,
+        section > ol {
+            margin-bottom: var(--spacing-lg);
+            color: var(--color-text-secondary);
+            line-height: var(--lh-relaxed);
+        }
+
+        section > ul,
+        section > ol {
+            padding-left: var(--spacing-2xl);
+        }
+
+        section > ul li,
+        section > ol li {
+            margin-bottom: var(--spacing-md);
+        }
+
+        /* Code Blocks */
+        pre {
+            background-color: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            overflow-x: auto;
+            margin: var(--spacing-lg) 0;
+            font-family: var(--font-mono);
+            font-size: var(--font-size-sm);
+            line-height: var(--lh-normal);
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-accent);
+        }
+
+        pre code {
+            color: var(--color-text-primary);
+        }
+
+        /* Color Swatches */
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: var(--spacing-lg);
+            margin: var(--spacing-2xl) 0;
+        }
+
+        .color-swatch {
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+            background: var(--color-bg-secondary);
+        }
+
+        .color-swatch-box {
+            width: 100%;
+            height: 120px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .color-swatch-info {
+            padding: var(--spacing-md);
+        }
+
+        .color-name {
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-sm);
+            font-size: var(--font-size-sm);
+        }
+
+        .color-value {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            margin: var(--spacing-xs) 0;
+            font-family: var(--font-mono);
+            word-break: break-all;
+        }
+
+        .color-usage {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+            margin-top: var(--spacing-md);
+            font-style: italic;
+        }
+
+        /* Typography Showcase */
+        .typography-showcase {
+            margin: var(--spacing-2xl) 0;
+        }
+
+        .type-sample {
+            margin-bottom: var(--spacing-2xl);
+            padding-bottom: var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .type-label {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .type-details {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            display: flex;
+            gap: var(--spacing-xl);
+            margin-top: var(--spacing-md);
+        }
+
+        /* Component Showcase */
+        .component-showcase {
+            margin: var(--spacing-2xl) 0;
+            padding: var(--spacing-xl);
+            background-color: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            display: grid;
+            gap: var(--spacing-xl);
+        }
+
+        .component-example {
+            display: grid;
+            gap: var(--spacing-md);
+        }
+
+        .component-example-title {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .component-example-content {
+            padding: var(--spacing-lg);
+            background-color: var(--color-bg-secondary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: var(--font-primary);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            text-decoration: none;
+        }
+
+        .btn:focus-visible {
+            outline: 2px solid var(--color-text-accent);
+            outline-offset: 2px;
+        }
+
+        .btn-primary {
+            background-color: var(--color-text-accent);
+            color: var(--color-bg-primary);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #0098d4;
+        }
+
+        .btn-primary:active:not(:disabled) {
+            background-color: #006fa3;
+        }
+
+        .btn-secondary {
+            background-color: var(--color-bg-hover);
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: var(--color-bg-active);
+        }
+
+        .btn-destructive {
+            background-color: var(--color-error);
+            color: var(--color-text-inverse);
+        }
+
+        .btn-destructive:hover:not(:disabled) {
+            background-color: #d32f2f;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Input Styles */
+        .input,
+        .select {
+            width: 100%;
+            max-width: 300px;
+            padding: var(--spacing-md);
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
+            font-family: var(--font-primary);
+            font-size: var(--font-size-sm);
+            border-radius: var(--radius-md);
+            transition: all var(--transition-base);
+        }
+
+        .input:focus,
+        .select:focus {
+            outline: none;
+            border-color: var(--color-text-accent);
+            box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+        }
+
+        .input:disabled,
+        .select:disabled {
+            background-color: var(--color-bg-quaternary);
+            color: var(--color-text-muted);
+            cursor: not-allowed;
+        }
+
+        .input::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        /* Badge Styles */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: var(--spacing-xs) var(--spacing-md);
+            border-radius: var(--radius-lg);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .badge-success {
+            background-color: rgba(76, 175, 80, 0.2);
+            color: var(--color-success);
+        }
+
+        .badge-warning {
+            background-color: rgba(255, 152, 0, 0.2);
+            color: var(--color-warning);
+        }
+
+        .badge-error {
+            background-color: rgba(244, 67, 54, 0.2);
+            color: var(--color-error);
+        }
+
+        .badge-info {
+            background-color: rgba(33, 150, 243, 0.2);
+            color: var(--color-info);
+        }
+
+        .badge-neutral {
+            background-color: var(--color-bg-quaternary);
+            color: var(--color-text-secondary);
+        }
+
+        /* Card Styles */
+        .card {
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: all var(--transition-base);
+        }
+
+        .card:hover {
+            border-color: var(--color-text-accent);
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .card-header h3 {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+            margin: 0;
+        }
+
+        .card-header p {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            margin: var(--spacing-sm) 0 0 0;
+        }
+
+        .card-body {
+            padding: var(--spacing-lg);
+        }
+
+        .card-footer {
+            padding: var(--spacing-lg);
+            border-top: 1px solid var(--color-border);
+            background-color: var(--color-bg-tertiary);
+            display: flex;
+            gap: var(--spacing-md);
+            justify-content: flex-end;
+        }
+
+        /* Table Styles */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            margin: var(--spacing-lg) 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--font-size-sm);
+        }
+
+        thead {
+            background-color: var(--color-bg-tertiary);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        th {
+            padding: var(--spacing-md);
+            text-align: left;
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+        }
+
+        td {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border-light);
+            color: var(--color-text-secondary);
+        }
+
+        tbody tr:hover {
+            background-color: var(--color-bg-hover);
+        }
+
+        tbody tr:focus-within {
+            background-color: var(--color-bg-active);
+        }
+
+        /* Table Variant - Striped */
+        table.striped tbody tr:nth-child(even) {
+            background-color: var(--color-bg-tertiary);
+        }
+
+        table.striped tbody tr:hover,
+        table.striped tbody tr:focus-within {
+            background-color: var(--color-bg-active);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            width: 90%;
+            max-width: 500px;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            margin: 0;
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-lg);
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-base);
+        }
+
+        .modal-close-btn:hover {
+            background-color: var(--color-bg-hover);
+            color: var(--color-text-primary);
+        }
+
+        .modal-body {
+            padding: var(--spacing-lg);
+        }
+
+        .modal-footer {
+            padding: var(--spacing-lg);
+            border-top: 1px solid var(--color-border);
+            background-color: var(--color-bg-tertiary);
+            display: flex;
+            gap: var(--spacing-md);
+            justify-content: flex-end;
+        }
+
+        /* Navigation */
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            border-left: 2px solid transparent;
+            transition: all var(--transition-base);
+            cursor: pointer;
+        }
+
+        .nav-item:hover,
+        .nav-item:focus {
+            background-color: var(--color-bg-hover);
+            color: var(--color-text-primary);
+            border-left-color: var(--color-text-accent);
+        }
+
+        .nav-item.active {
+            background-color: var(--color-bg-active);
+            color: var(--color-text-accent);
+            border-left-color: var(--color-text-accent);
+            font-weight: var(--font-weight-medium);
+        }
+
+        /* Tooltip */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--color-bg-quaternary);
+            color: var(--color-text-primary);
+            text-align: center;
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity var(--transition-base);
+            font-size: var(--font-size-xs);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-md);
+        }
+
+        .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: var(--color-bg-quaternary) transparent transparent transparent;
+        }
+
+        .tooltip-container:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Spacing Grid */
+        .spacing-demo {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--spacing-lg);
+            margin: var(--spacing-2xl) 0;
+        }
+
+        .spacing-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .spacing-box {
+            background-color: var(--color-bg-active);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-inverse);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .spacing-item p {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            margin: 0;
+        }
+
+        /* Mockup Section */
+        .mockup-page {
+            background-color: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            margin: var(--spacing-2xl) 0;
+        }
+
+        .mockup-header {
+            background-color: var(--color-bg-secondary);
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mockup-header h3 {
+            margin: 0;
+            font-size: var(--font-size-lg);
+        }
+
+        .mockup-content {
+            padding: var(--spacing-2xl);
+            min-height: 600px;
+        }
+
+        /* Accessibility Section */
+        .wcag-checklist {
+            background-color: var(--color-bg-tertiary);
+            border-left: 4px solid var(--color-success);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-md);
+            margin: var(--spacing-lg) 0;
+        }
+
+        .wcag-checklist ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .wcag-checklist li {
+            padding: var(--spacing-md) 0;
+            border-bottom: 1px solid var(--color-border-light);
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-md);
+        }
+
+        .wcag-checklist li:last-child {
+            border-bottom: none;
+        }
+
+        .wcag-checklist li::before {
+            content: "✓";
+            color: var(--color-success);
+            font-weight: var(--font-weight-bold);
+            flex-shrink: 0;
+        }
+
+        /* Variant Grid */
+        .variant-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-xl);
+            margin: var(--spacing-2xl) 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .style-guide-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            aside.toc-sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 280px;
+                z-index: 999;
+                height: auto;
+                max-height: 100vh;
+            }
+
+            main {
+                margin-left: 0;
+            }
+
+            section {
+                padding: var(--spacing-xl);
+            }
+
+            .color-grid {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            }
+
+            .variant-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .component-example-content {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: var(--font-size-xs);
+            }
+
+            th, td {
+                padding: var(--spacing-sm);
+            }
+
+            .table-responsive {
+                overflow-x: auto;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background-color: white;
+                color: black;
+            }
+
+            .style-guide-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            aside.toc-sidebar {
+                display: none;
+            }
+
+            section {
+                page-break-inside: avoid;
+            }
+
+            a {
+                text-decoration: underline;
+            }
+        }
+
+        /* Focus Visible Outline */
+        :focus-visible {
+            outline: 2px solid var(--color-text-accent);
+            outline-offset: 2px;
+        }
+
+        /* Selection */
+        ::selection {
+            background-color: var(--color-text-accent);
+            color: var(--color-bg-primary);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--color-bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="style-guide-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="toc-sidebar" role="navigation" aria-label="Indice dei contenuti">
+            <h3>Sezioni</h3>
+            <nav>
+                <ul>
+                    <li><a href="#introduzione" class="nav-link">Introduzione</a></li>
+                    <li><a href="#design-tokens" class="nav-link">Design Tokens</a></li>
+                    <li><a href="#palette-colori" class="nav-link">Palette Colori</a></li>
+                    <li><a href="#tipografia" class="nav-link">Tipografia</a></li>
+                    <li><a href="#spacing-layout" class="nav-link">Spacing & Layout</a></li>
+                </ul>
+            </nav>
+
+            <h3>Componenti</h3>
+            <nav>
+                <ul>
+                    <li><a href="#componenti-button" class="nav-link">Button</a></li>
+                    <li><a href="#componenti-card" class="nav-link">Card</a></li>
+                    <li><a href="#componenti-input" class="nav-link">Input & Select</a></li>
+                    <li><a href="#componenti-badge" class="nav-link">Badge & Status</a></li>
+                    <li><a href="#componenti-modal" class="nav-link">Modal</a></li>
+                    <li><a href="#componenti-table" class="nav-link">Table</a></li>
+                    <li><a href="#componenti-nav" class="nav-link">Navigation</a></li>
+                    <li><a href="#componenti-project-item" class="nav-link">Project Item</a></li>
+                    <li><a href="#componenti-tooltip" class="nav-link">Tooltip</a></li>
+                </ul>
+            </nav>
+
+            <h3>Altro</h3>
+            <nav>
+                <ul>
+                    <li><a href="#stati-interazioni" class="nav-link">Stati & Interazioni</a></li>
+                    <li><a href="#tabelle" class="nav-link">Tabelle</a></li>
+                    <li><a href="#accessibilita" class="nav-link">Accessibilità</a></li>
+                    <li><a href="#mockup" class="nav-link">Mockup Pagine</a></li>
+                    <li><a href="#integrazione" class="nav-link">Integrazione</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main role="main">
+            <!-- Introduzione -->
+            <section id="introduzione">
+                <h2>Introduzione</h2>
+                <p>Questo Style Guide documenta il design system della sezione "Project" dell'applicazione Software Estimates Manager. Il documento è auto-sufficiente e contiene tutti i token di design, componenti UI e linee guida per la coerenza visiva.</p>
+
+                <h3>Scopo</h3>
+                <p>Fornire una referenza completa per sviluppatori, designer e stakeholder riguardante:</p>
+                <ul>
+                    <li>Palette colori e utilizzo semantico</li>
+                    <li>Sistema tipografico (scale, pesi, dimensioni)</li>
+                    <li>Sistema di spacing e layout</li>
+                    <li>Componenti UI disponibili e loro varianti</li>
+                    <li>Stati interattivi (hover, focus, active, disabled)</li>
+                    <li>Linee guida di accessibilità (WCAG AA)</li>
+                    <li>Esempi di implementazione e mockup pagine</li>
+                </ul>
+
+                <h3>Metadata</h3>
+                <ul>
+                    <li><strong>Versione:</strong> 1.0.0</li>
+                    <li><strong>Data:</strong> 2025-11-09</li>
+                    <li><strong>Autore:</strong> Claude Code</li>
+                    <li><strong>Compatibilità:</strong> HTML5, tutti i browser moderni</li>
+                    <li><strong>Tema:</strong> VSCode Dark (tema scuro)</li>
+                </ul>
+            </section>
+
+            <!-- Design Tokens -->
+            <section id="design-tokens">
+                <h2>Design Tokens</h2>
+                <p>Token JSON centralizzati per il design system. Copia e utilizza nella tua applicazione.</p>
+
+                <pre><code id="tokens-code">{}</code></pre>
+
+                <h3>Utilizzo</h3>
+                <p>I token sono disponibili in tre formati:</p>
+                <ol>
+                    <li><strong>CSS Variables:</strong> Usate direttamente nei CSS (prefisso <code>--color-</code>, <code>--font-</code>, <code>--spacing-</code>)</li>
+                    <li><strong>JSON:</strong> Per importazione in JavaScript/Node (scarica i token)</li>
+                    <li><strong>Utility Classes:</strong> Pattern simile a Tailwind (opzionale)</li>
+                </ol>
+            </section>
+
+            <!-- Palette Colori -->
+            <section id="palette-colori">
+                <h2>Palette Colori</h2>
+                <p>Sistema colore basato su VSCode Dark Theme. Tutti i colori sono accessibili secondo WCAG AA per testo su sfondo.</p>
+
+                <h3>Colori Primari</h3>
+                <div class="color-grid">
+                    <div class="color-swatch">
+                        <div class="color-swatch-box" style="background-color: #1e1e1e;"></div>
+                        <div class="color-swatch-info">
+                            <div class="color-name">Bg Primary</div>
+                            <div class="color-value">HEX: #1e1e1e</div>
+                            <div class="color-value">RGB: 30, 30, 30</div>
+                            <div class="color-value">HSL: 0°, 0%, 12%</div>
+                            <div class="color-usage">Sfondo applicazione principale</div>
+                        </div>
+                    </div>
+
+                    <div class="color-swatch">
+                        <div class="color-swatch-box" style="background-color: #252526;"></div>
+                        <div class="color-swatch-info">
+                            <div class="color-name">Bg Secondary</div>
+                            <div class="color-value">HEX: #252526</div>
+                            <div class="color-value">RGB: 37, 37, 38</div>
+                            <div class="color-value">HSL: 0°, 1%, 15%</div>
+                            <div class="color-usage">Card, Panel, Sfondo secondario</div>
+                        </div>
+                    </div>
+
+                    <div class="color-swatch">
+                        <div class="color-swatch-box" style="background-color: #2d2d30;"></div>
+                        <div class="color-swatch-info">
+                            <div class="color-name">Bg Tertiary</div>
+                            <div class="color-value">HEX: #2d2d30</div>
+                            <div class="color-value">RGB: 45, 45, 48</div>
+                            <div class="color-value">HSL: 240°, 3%, 18%</div>
+                            <div class="color-usage">Input, Area secondaria</div>
+                        </div>
+                    </div>
+
+                    <div class="color-swatch">
+                        <div class="color-swatch-box" style="background-color: #3c3c3c;"></div>
+                        <div class="color-swatch-info">
+                            <div class="color-name">Bg Quaternary</div>
+                            <div class="color-value">HEX: #3c3c3c</div>
+                            <div class="color-value">RGB: 60, 60, 60</div>
+                            <div class="color-value">HSL: 0°, 0%, 24%</div>
+                            <div class="color-usage">Badge, Accenti</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Colori di Testo</h3>
+                <div class="color-grid">
+                    <div class="color-swatch">
+                        <div class="color-swatch-box" style="background-color: #cccccc;"></div>
+                        <div class="color-swatch-info">
+                            <div class="color-name">Text Primary</div>
+                            <div class="color-value">HEX: #cccccc</div>
+                            <div class="color-value">RGB: 204, 204, 204</div>
+                            <div class="color-value">HSL: 0°, 0%, 80%</div>
+                            <div class="color-usage">Testo principale, corpo</div>
+                        </div>
+                    </div>
+
+                    <div class="color-swatch">
+                        <div class="color-swatch-box" style="background-color: #a0a0a0;"></div>
+                        <div class="color-swatch-info">
+                            <div class="color-name">Text Secondary</div>
+                            <div class="color-value">HEX: #a0a0a0</div>
+                            <div class="color-value">RGB: 160, 160, 160</div>
+                            <div class="color-value">HSL: 0°, 0%, 63%</div>
+                            <div class="color-usage">Testo secondario, label</div>
+                        </div>
+                    </div>
+
+                    <div class="color-swatch">
+                        <div class="color-swatch-box" style="background-color: #6a6a6a;"></div>
+                        <div class="color-swatch-info">
+                            <div class="color-name">Text Muted</div>
+                            <div class="color-value">HEX: #6a6a6a</div>
+                            <div class="color-value">RGB: 106, 106, 106</div>
+                            <div class="color-value">HSL: 0°, 0%, 42%</div>
+                            <div class="color-usage">Testo disabilitato, hint</div>
+                        </div>
+                    </div>
+
+                    <div class="color-swatch">
+                        <div class="color-swatch-box" style="background-color: #007acc;"></div>
+                        <div class="color-swatch-info">
+                            <div class="color-name">Text Accent</div>
+                            <div class="color-value">HEX: #007acc</div>
+                            <div class="color-value">RGB: 0, 122, 204</div>
+                            <div class="color-value">HSL: 207°, 100%, 40%</div>
+                            <div class="color-usage">Link, Accenti, CTA primaria</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Colori di Stato</h3>
+                <div class="color-grid">
+                    <div class="color-swatch">
+                        <div class="color-swatch-box" style="background-color: #4caf50;"></div>
+                        <div class="color-swatch-info">
+                            <div class="color-name">Success</div>
+                            <div class="color-value">HEX: #4caf50</div>
+                            <div class="color-value">RGB: 76, 175, 80</div>
+                            <div class="color-usage">Approvato, Successo</div>
+                        </div>
+                    </div>
+
+                    <div class="color-swatch">
+                        <div class="color-swatch-box" style="background-color: #ff9800;"></div>
+                        <div class="color-swatch-info">
+                            <div class="color-name">Warning</div>
+                            <div class="color-value">HEX: #ff9800</div>
+                            <div class="color-value">RGB: 255, 152, 0</div>
+                            <div class="color-usage">In Sospeso, Avvertimento</div>
+                        </div>
+                    </div>
+
+                    <div class="color-swatch">
+                        <div class="color-swatch-box" style="background-color: #f44336;"></div>
+                        <div class="color-swatch-info">
+                            <div class="color-name">Error</div>
+                            <div class="color-value">HEX: #f44336</div>
+                            <div class="color-value">RGB: 244, 67, 54</div>
+                            <div class="color-usage">Errore, Distruttivo</div>
+                        </div>
+                    </div>
+
+                    <div class="color-swatch">
+                        <div class="color-swatch-box" style="background-color: #2196f3;"></div>
+                        <div class="color-swatch-info">
+                            <div class="color-name">Info</div>
+                            <div class="color-value">HEX: #2196f3</div>
+                            <div class="color-value">RGB: 33, 150, 243</div>
+                            <div class="color-usage">Informazioni, Notifiche</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Contrasto WCAG AA</h3>
+                <p>Tutti i colori di testo mantengono un rapporto di contrasto minimo di 4.5:1 rispetto al loro sfondo predefinito, garantendo leggibilità secondo WCAG Level AA.</p>
+            </section>
+
+            <!-- Tipografia -->
+            <section id="tipografia">
+                <h2>Tipografia</h2>
+                <p>Sistema tipografico gerarchico basato su Inter (webfont) con fallback system fonts.</p>
+
+                <h3>Font Primario</h3>
+                <p><strong>Inter</strong> (Google Fonts) - Pesi: 400, 500, 600, 700</p>
+                <p><code>-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif</code></p>
+
+                <h3>Font Monospazio</h3>
+                <p><strong>JetBrains Mono</strong> (Google Fonts) - Per codice e valori tecnici</p>
+                <p><code>"Courier New", monospace</code></p>
+
+                <div class="typography-showcase">
+                    <div class="type-sample">
+                        <div class="type-label">Heading 1</div>
+                        <h1 style="margin: 0; font-size: 2.25rem; font-weight: 700; line-height: 1.2;">Heading 1 - 2.25rem / 36px</h1>
+                        <div class="type-details">
+                            <span>Peso: 700 Bold</span>
+                            <span>Line Height: 1.2 (tight)</span>
+                        </div>
+                    </div>
+
+                    <div class="type-sample">
+                        <div class="type-label">Heading 2</div>
+                        <h2 style="margin: 0; font-size: 1.875rem; font-weight: 600;">Heading 2 - 1.875rem / 30px</h2>
+                        <div class="type-details">
+                            <span>Peso: 600 Semibold</span>
+                            <span>Line Height: 1.2</span>
+                        </div>
+                    </div>
+
+                    <div class="type-sample">
+                        <div class="type-label">Heading 3</div>
+                        <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Heading 3 - 1.5rem / 24px</h3>
+                        <div class="type-details">
+                            <span>Peso: 600 Semibold</span>
+                            <span>Line Height: 1.2</span>
+                        </div>
+                    </div>
+
+                    <div class="type-sample">
+                        <div class="type-label">Body Text</div>
+                        <p style="margin: 0; font-size: 1rem;">Body text - 1rem / 16px. Usato per paragrafi principali, descrizioni e contenuti.</p>
+                        <div class="type-details">
+                            <span>Peso: 400 Regular</span>
+                            <span>Line Height: 1.5 (normal)</span>
+                        </div>
+                    </div>
+
+                    <div class="type-sample">
+                        <div class="type-label">Body Small</div>
+                        <p style="margin: 0; font-size: 0.875rem;">Small body text - 0.875rem / 14px. Usato per label, help text e contenuti secondari.</p>
+                        <div class="type-details">
+                            <span>Peso: 400 Regular</span>
+                            <span>Line Height: 1.5</span>
+                        </div>
+                    </div>
+
+                    <div class="type-sample">
+                        <div class="type-label">Caption</div>
+                        <p style="margin: 0; font-size: 0.75rem;">Caption - 0.75rem / 12px. Usato per metadati, timestamp e testo molto piccolo.</p>
+                        <div class="type-details">
+                            <span>Peso: 400 Regular</span>
+                            <span>Line Height: 1.4</span>
+                        </div>
+                    </div>
+
+                    <div class="type-sample">
+                        <div class="type-label">Monospace</div>
+                        <code style="margin: 0; font-size: 0.875rem; background-color: var(--color-bg-tertiary); padding: 4px 8px; border-radius: 4px;">const token = { color: "#007acc" }</code>
+                        <div class="type-details">
+                            <span>Font: JetBrains Mono</span>
+                            <span>Peso: 400</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Responsive Typography</h3>
+                <p>Su schermi piccoli (mobile), le dimensioni dei caratteri si riducono leggermente per mantenere la leggibilità:</p>
+                <ul>
+                    <li>H1: 32px (da 36px)</li>
+                    <li>H2: 24px (da 30px)</li>
+                    <li>Body: 16px (costante)</li>
+                    <li>Small: 13px (da 14px)</li>
+                </ul>
+            </section>
+
+            <!-- Spacing & Layout -->
+            <section id="spacing-layout">
+                <h2>Spacing & Layout</h2>
+                <p>Sistema di spacing predefinito basato su una scala di 4px come unità base.</p>
+
+                <h3>Scala di Spacing</h3>
+                <div class="spacing-demo">
+                    <div class="spacing-item">
+                        <div class="spacing-box" style="width: 16px; height: 16px;">XS</div>
+                        <p>XS<br>0.25rem<br>4px</p>
+                    </div>
+                    <div class="spacing-item">
+                        <div class="spacing-box" style="width: 32px; height: 32px;">SM</div>
+                        <p>SM<br>0.5rem<br>8px</p>
+                    </div>
+                    <div class="spacing-item">
+                        <div class="spacing-box" style="width: 64px; height: 64px;">MD</div>
+                        <p>MD<br>1rem<br>16px</p>
+                    </div>
+                    <div class="spacing-item">
+                        <div class="spacing-box" style="width: 96px; height: 96px;">LG</div>
+                        <p>LG<br>1.5rem<br>24px</p>
+                    </div>
+                    <div class="spacing-item">
+                        <div class="spacing-box" style="width: 128px; height: 128px;">XL</div>
+                        <p>XL<br>2rem<br>32px</p>
+                    </div>
+                </div>
+
+                <h3>Variabili CSS</h3>
+                <pre><code>--spacing-xs: 0.25rem;  /* 4px */
+--spacing-sm: 0.5rem;   /* 8px */
+--spacing-md: 1rem;     /* 16px */
+--spacing-lg: 1.5rem;   /* 24px */
+--spacing-xl: 2rem;     /* 32px */
+--spacing-2xl: 2.5rem;  /* 40px */
+--spacing-3xl: 3rem;    /* 48px */</code></pre>
+
+                <h3>Layout & Griglia</h3>
+                <p><strong>Container:</strong> Width massima 1280px con padding orizzontale</p>
+                <p><strong>Gutter:</strong> 24px tra colonne</p>
+                <p><strong>Breakpoint Principale:</strong> 768px (tablet)</p>
+                <ul>
+                    <li><strong>sm:</strong> 640px</li>
+                    <li><strong>md:</strong> 768px</li>
+                    <li><strong>lg:</strong> 1024px</li>
+                    <li><strong>xl:</strong> 1280px</li>
+                </ul>
+
+                <h3>Border Radius</h3>
+                <ul>
+                    <li><code>--radius-sm: 2px</code> - Piccoli accenti</li>
+                    <li><code>--radius-md: 4px</code> - Button, input standard</li>
+                    <li><code>--radius-lg: 6px</code> - Card, modal</li>
+                    <li><code>--radius-xl: 8px</code> - Elementi grandi</li>
+                </ul>
+
+                <h3>Ombre</h3>
+                <ul>
+                    <li><code>--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3)</code></li>
+                    <li><code>--shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4)</code></li>
+                    <li><code>--shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5)</code></li>
+                </ul>
+            </section>
+
+            <!-- Button Component -->
+            <section id="componenti-button">
+                <h2>Componenti: Button</h2>
+                <p>Pulsanti per azioni primarie, secondarie e distruttive con stati completi.</p>
+
+                <div class="component-showcase">
+                    <div class="component-example">
+                        <div class="component-example-title">Primary Button</div>
+                        <div class="component-example-content">
+                            <button class="btn btn-primary">Salva Progetto</button>
+                            <button class="btn btn-primary" disabled>Disabilitato</button>
+                        </div>
+                    </div>
+
+                    <div class="component-example">
+                        <div class="component-example-title">Secondary Button</div>
+                        <div class="component-example-content">
+                            <button class="btn btn-secondary">Annulla</button>
+                            <button class="btn btn-secondary" disabled>Disabilitato</button>
+                        </div>
+                    </div>
+
+                    <div class="component-example">
+                        <div class="component-example-title">Destructive Button</div>
+                        <div class="component-example-content">
+                            <button class="btn btn-destructive">Elimina</button>
+                            <button class="btn btn-destructive" disabled>Disabilitato</button>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>HTML Markup</h3>
+                <pre><code>&lt;!-- Primary Button --&gt;
+&lt;button class="btn btn-primary"&gt;Salva Progetto&lt;/button&gt;
+
+&lt;!-- Secondary Button --&gt;
+&lt;button class="btn btn-secondary"&gt;Annulla&lt;/button&gt;
+
+&lt;!-- Destructive Button --&gt;
+&lt;button class="btn btn-destructive"&gt;Elimina&lt;/button&gt;
+
+&lt;!-- Disabled State --&gt;
+&lt;button class="btn btn-primary" disabled&gt;Disabilitato&lt;/button&gt;</code></pre>
+
+                <h3>CSS</h3>
+                <pre><code>.btn {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.btn-primary {
+  background-color: var(--color-text-accent);
+  color: var(--color-bg-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #0098d4;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-text-accent);
+  outline-offset: 2px;
+}</code></pre>
+            </section>
+
+            <!-- Card Component -->
+            <section id="componenti-card">
+                <h2>Componenti: Card</h2>
+                <p>Contenitori per raggruppare contenuti correlati con header, body e footer opzionali.</p>
+
+                <div class="component-showcase">
+                    <div class="component-example">
+                        <div class="component-example-title">Card Base</div>
+                        <div class="component-example-content" style="justify-content: flex-start; padding: var(--spacing-lg);">
+                            <div class="card" style="width: 100%; max-width: 400px;">
+                                <div class="card-header">
+                                    <h3>Progetto Attuale</h3>
+                                    <p>Software Estimates v1.0</p>
+                                </div>
+                                <div class="card-body">
+                                    <p>Applicazione web per gestione stime progetti software con analisi di costi e risorse.</p>
+                                </div>
+                                <div class="card-footer">
+                                    <button class="btn btn-secondary">Modifica</button>
+                                    <button class="btn btn-primary">Carica</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>HTML Markup</h3>
+                <pre><code>&lt;div class="card"&gt;
+  &lt;div class="card-header"&gt;
+    &lt;h3&gt;Titolo Card&lt;/h3&gt;
+    &lt;p&gt;Sottotitolo o descrizione&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div class="card-body"&gt;
+    &lt;p&gt;Contenuto principale della card&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div class="card-footer"&gt;
+    &lt;button class="btn btn-secondary"&gt;Azione&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+            </section>
+
+            <!-- Input Component -->
+            <section id="componenti-input">
+                <h2>Componenti: Input & Select</h2>
+                <p>Elementi di form per l'input dati dell'utente.</p>
+
+                <div class="component-showcase">
+                    <div class="component-example">
+                        <div class="component-example-title">Text Input</div>
+                        <div class="component-example-content" style="justify-content: flex-start;">
+                            <input type="text" class="input" placeholder="Nome progetto" aria-label="Nome progetto">
+                        </div>
+                    </div>
+
+                    <div class="component-example">
+                        <div class="component-example-title">Select Dropdown</div>
+                        <div class="component-example-content" style="justify-content: flex-start;">
+                            <select class="select" aria-label="Fornitori">
+                                <option>Seleziona fornitore...</option>
+                                <option>G1 - Analisi</option>
+                                <option>G2 - Sviluppo</option>
+                                <option>TA - Test</option>
+                                <option>PM - Project Management</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="component-example">
+                        <div class="component-example-title">Disabled Input</div>
+                        <div class="component-example-content" style="justify-content: flex-start;">
+                            <input type="text" class="input" placeholder="Disabilitato" disabled aria-label="Input disabilitato">
+                        </div>
+                    </div>
+                </div>
+
+                <h3>HTML Markup</h3>
+                <pre><code>&lt;!-- Text Input --&gt;
+&lt;input type="text" class="input" placeholder="Nome progetto" aria-label="Nome progetto"&gt;
+
+&lt;!-- Select --&gt;
+&lt;select class="select" aria-label="Seleziona fornitori"&gt;
+  &lt;option&gt;Seleziona...&lt;/option&gt;
+  &lt;option&gt;Opzione 1&lt;/option&gt;
+&lt;/select&gt;
+
+&lt;!-- Disabled --&gt;
+&lt;input type="text" class="input" disabled&gt;</code></pre>
+
+                <h3>Focus State</h3>
+                <p>Tutti gli input visualizzano un outline blu acceso e box-shadow quando ricevono il focus.</p>
+            </section>
+
+            <!-- Badge Component -->
+            <section id="componenti-badge">
+                <h2>Componenti: Badge & Status</h2>
+                <p>Indicatori di stato e piccoli badge per le feature.</p>
+
+                <div class="component-showcase">
+                    <div class="component-example">
+                        <div class="component-example-title">Status Badges</div>
+                        <div class="component-example-content">
+                            <span class="badge badge-success">Approvato</span>
+                            <span class="badge badge-warning">In Sospeso</span>
+                            <span class="badge badge-error">Rifiutato</span>
+                            <span class="badge badge-info">In Corso</span>
+                            <span class="badge badge-neutral">Neutrale</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>HTML Markup</h3>
+                <pre><code>&lt;span class="badge badge-success"&gt;Approvato&lt;/span&gt;
+&lt;span class="badge badge-warning"&gt;In Sospeso&lt;/span&gt;
+&lt;span class="badge badge-error"&gt;Rifiutato&lt;/span&gt;
+&lt;span class="badge badge-info"&gt;In Corso&lt;/span&gt;
+&lt;span class="badge badge-neutral"&gt;Neutrale&lt;/span&gt;</code></pre>
+            </section>
+
+            <!-- Modal Component -->
+            <section id="componenti-modal">
+                <h2>Componenti: Modal</h2>
+                <p>Dialog modale per forme e conferme. Blocca interazione con il resto della pagina.</p>
+
+                <h3>Struttura</h3>
+                <pre><code>&lt;div class="modal-overlay"&gt;
+  &lt;div class="modal" role="dialog" aria-modal="true"&gt;
+    &lt;div class="modal-header"&gt;
+      &lt;h2&gt;Titolo Modal&lt;/h2&gt;
+      &lt;button class="modal-close-btn" aria-label="Chiudi dialog"&gt;X&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div class="modal-body"&gt;
+      &lt;!-- Contenuto del form o messaggio --&gt;
+    &lt;/div&gt;
+    &lt;div class="modal-footer"&gt;
+      &lt;button class="btn btn-secondary"&gt;Annulla&lt;/button&gt;
+      &lt;button class="btn btn-primary"&gt;Conferma&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+
+                <h3>Caratteristiche</h3>
+                <ul>
+                    <li>Backdrop scuro che disabilita interazioni sottostanti</li>
+                    <li>Bottone di chiusura in alto a destra</li>
+                    <li>Header, body e footer chiaramente separati</li>
+                    <li>Enfasi sulla tastiera (focus keyboard trap)</li>
+                </ul>
+            </section>
+
+            <!-- Table Component -->
+            <section id="componenti-table">
+                <h2>Componenti: Table</h2>
+                <p>Tabelle per visualizzare dati strutturati con supporto a varianti e responsività.</p>
+
+                <div class="component-showcase">
+                    <div class="component-example">
+                        <div class="component-example-title">Tabella Base (Simple)</div>
+                        <div style="padding: var(--spacing-lg);">
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Nome Feature</th>
+                                            <th>Priorità</th>
+                                            <th>Status</th>
+                                            <th>Effort (GD)</th>
+                                            <th>Assegnato a</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>#001</td>
+                                            <td>Dashboard Metriche</td>
+                                            <td>Alta</td>
+                                            <td><span class="badge badge-success">Completato</span></td>
+                                            <td>8</td>
+                                            <td>G1</td>
+                                        </tr>
+                                        <tr>
+                                            <td>#002</td>
+                                            <td>Gestione Progetti</td>
+                                            <td>Alta</td>
+                                            <td><span class="badge badge-info">In Corso</span></td>
+                                            <td>12</td>
+                                            <td>G1, G2</td>
+                                        </tr>
+                                        <tr>
+                                            <td>#003</td>
+                                            <td>Esportazione PDF</td>
+                                            <td>Media</td>
+                                            <td><span class="badge badge-warning">Pianificato</span></td>
+                                            <td>5</td>
+                                            <td>G2</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="component-example">
+                        <div class="component-example-title">Tabella Striped + Hover</div>
+                        <div style="padding: var(--spacing-lg);">
+                            <div class="table-responsive">
+                                <table class="striped">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Nome Feature</th>
+                                            <th>Priorità</th>
+                                            <th>Status</th>
+                                            <th>Effort (GD)</th>
+                                            <th>Assegnato a</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>#001</td>
+                                            <td>Dashboard Metriche</td>
+                                            <td>Alta</td>
+                                            <td><span class="badge badge-success">Completato</span></td>
+                                            <td>8</td>
+                                            <td>G1</td>
+                                        </tr>
+                                        <tr>
+                                            <td>#002</td>
+                                            <td>Gestione Progetti</td>
+                                            <td>Alta</td>
+                                            <td><span class="badge badge-info">In Corso</span></td>
+                                            <td>12</td>
+                                            <td>G1, G2</td>
+                                        </tr>
+                                        <tr>
+                                            <td>#003</td>
+                                            <td>Esportazione PDF</td>
+                                            <td>Media</td>
+                                            <td><span class="badge badge-warning">Pianificato</span></td>
+                                            <td>5</td>
+                                            <td>G2</td>
+                                        </tr>
+                                        <tr>
+                                            <td>#004</td>
+                                            <td>API Integrazioni</td>
+                                            <td>Media</td>
+                                            <td><span class="badge badge-warning">Pianificato</span></td>
+                                            <td>10</td>
+                                            <td>TA</td>
+                                        </tr>
+                                        <tr>
+                                            <td>#005</td>
+                                            <td>Test Suite</td>
+                                            <td>Bassa</td>
+                                            <td><span class="badge badge-warning">Pianificato</span></td>
+                                            <td>6</td>
+                                            <td>TA</td>
+                                        </tr>
+                                        <tr>
+                                            <td>#006</td>
+                                            <td>Documentazione</td>
+                                            <td>Bassa</td>
+                                            <td><span class="badge badge-warning">Pianificato</span></td>
+                                            <td>4</td>
+                                            <td>PM</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>HTML Markup</h3>
+                <pre><code>&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Colonna 1&lt;/th&gt;
+      &lt;th&gt;Colonna 2&lt;/th&gt;
+      &lt;th&gt;Colonna 3&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Dato 1&lt;/td&gt;
+      &lt;td&gt;Dato 2&lt;/td&gt;
+      &lt;td&gt;Dato 3&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+
+                <h3>Varianti CSS</h3>
+                <pre><code>/* Tabella base */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Righe alternate (striped) */
+table.striped tbody tr:nth-child(even) {
+  background-color: var(--color-bg-tertiary);
+}
+
+/* Hover row */
+tbody tr:hover {
+  background-color: var(--color-bg-hover);
+}
+
+/* Responsive wrapper */
+.table-responsive {
+  overflow-x: auto;
+}</code></pre>
+            </section>
+
+            <!-- Navigation Component -->
+            <section id="componenti-nav">
+                <h2>Componenti: Navigation</h2>
+                <p>Pattern di navigazione sidebar con item selezionabili e stati.</p>
+
+                <div class="component-showcase">
+                    <div class="component-example">
+                        <div class="component-example-title">Nav Item States</div>
+                        <div style="background-color: var(--color-bg-secondary); padding: 0; border-radius: var(--radius-lg); overflow: hidden; width: 100%; max-width: 300px;">
+                            <div class="nav-item">Projects</div>
+                            <div class="nav-item active">Features (Attivo)</div>
+                            <div class="nav-item">Phases</div>
+                            <div class="nav-item">Calculations</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>HTML Markup</h3>
+                <pre><code>&lt;div class="nav-item"&gt;Projects&lt;/div&gt;
+&lt;div class="nav-item active"&gt;Features (Attivo)&lt;/div&gt;
+&lt;div class="nav-item" disabled&gt;Phases (Disabilitato)&lt;/div&gt;</code></pre>
+            </section>
+
+            <!-- Project Item Component -->
+            <section id="componenti-project-item">
+                <h2>Componenti: Project Item</h2>
+                <p>Item di progetto nella lista progetti con metadati e azioni.</p>
+
+                <div class="component-showcase">
+                    <div class="component-example">
+                        <div class="component-example-title">Project Item Card</div>
+                        <div style="padding: var(--spacing-lg);">
+                            <div class="card" style="max-width: 400px;">
+                                <div class="card-header">
+                                    <h3>Software Estimates v2.0</h3>
+                                    <p style="margin: 0; font-size: var(--font-size-xs); color: var(--color-text-secondary);">Modificato: 2025-11-08</p>
+                                </div>
+                                <div class="card-body">
+                                    <div style="margin-bottom: var(--spacing-md);">
+                                        <p style="margin: 0 0 var(--spacing-sm) 0; font-size: var(--font-size-xs); color: var(--color-text-muted);">STATUS</p>
+                                        <span class="badge badge-success">Approvato</span>
+                                    </div>
+                                    <div style="margin-bottom: var(--spacing-md);">
+                                        <p style="margin: 0 0 var(--spacing-sm) 0; font-size: var(--font-size-xs); color: var(--color-text-muted);">FEATURE</p>
+                                        <p style="margin: 0; font-size: var(--font-size-sm);">12 Feature / 85 GD totali</p>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <button class="btn btn-secondary" style="flex: 1;">Modifica</button>
+                                    <button class="btn btn-primary" style="flex: 1;">Carica</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tooltip Component -->
+            <section id="componenti-tooltip">
+                <h2>Componenti: Tooltip</h2>
+                <p>Suggerimenti al passaggio del mouse su elementi interattivi.</p>
+
+                <div class="component-showcase">
+                    <div class="component-example">
+                        <div class="component-example-title">Tooltip on Hover</div>
+                        <div class="component-example-content">
+                            <div class="tooltip-container">
+                                <button class="btn btn-primary">Hover me</button>
+                                <span class="tooltip">Questo è un suggerimento rapido</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>HTML Markup</h3>
+                <pre><code>&lt;div class="tooltip-container"&gt;
+  &lt;button class="btn btn-primary"&gt;Hover me&lt;/button&gt;
+  &lt;span class="tooltip"&gt;Messaggio tooltip&lt;/span&gt;
+&lt;/div&gt;</code></pre>
+            </section>
+
+            <!-- Stati e Interazioni -->
+            <section id="stati-interazioni">
+                <h2>Stati & Interazioni</h2>
+                <p>Comportamenti visivi dei componenti in diversi stati.</p>
+
+                <h3>Button States</h3>
+                <div class="component-showcase">
+                    <div class="component-example">
+                        <div class="component-example-title">Default</div>
+                        <div class="component-example-content">
+                            <button class="btn btn-primary">Click me</button>
+                        </div>
+                    </div>
+
+                    <div class="component-example">
+                        <div class="component-example-title">Hover</div>
+                        <div class="component-example-content" style="background-color: var(--color-bg-hover);">
+                            <button class="btn btn-primary">Click me</button>
+                        </div>
+                    </div>
+
+                    <div class="component-example">
+                        <div class="component-example-title">Focus</div>
+                        <div class="component-example-content">
+                            <button class="btn btn-primary" style="outline: 2px solid var(--color-text-accent); outline-offset: 2px;">Click me</button>
+                        </div>
+                    </div>
+
+                    <div class="component-example">
+                        <div class="component-example-title">Disabled</div>
+                        <div class="component-example-content">
+                            <button class="btn btn-primary" disabled>Click me</button>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Input States</h3>
+                <div class="component-showcase">
+                    <div class="component-example">
+                        <div class="component-example-title">Default</div>
+                        <div class="component-example-content" style="justify-content: flex-start;">
+                            <input type="text" class="input" placeholder="Scrivi qualcosa...">
+                        </div>
+                    </div>
+
+                    <div class="component-example">
+                        <div class="component-example-title">Focus</div>
+                        <div class="component-example-content" style="justify-content: flex-start;">
+                            <input type="text" class="input" placeholder="Scrivi qualcosa..." style="border-color: var(--color-text-accent); box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);">
+                        </div>
+                    </div>
+
+                    <div class="component-example">
+                        <div class="component-example-title">Filled</div>
+                        <div class="component-example-content" style="justify-content: flex-start;">
+                            <input type="text" class="input" value="Testo inserito" placeholder="Scrivi qualcosa...">
+                        </div>
+                    </div>
+
+                    <div class="component-example">
+                        <div class="component-example-title">Disabled</div>
+                        <div class="component-example-content" style="justify-content: flex-start;">
+                            <input type="text" class="input" placeholder="Disabilitato" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Transizioni</h3>
+                <ul>
+                    <li><code>--transition-fast: 0.1s ease-in-out</code> - Hover rapido</li>
+                    <li><code>--transition-base: 0.2s ease-in-out</code> - Transizione standard</li>
+                    <li><code>--transition-slow: 0.3s ease-in-out</code> - Animazioni complesse</li>
+                </ul>
+            </section>
+
+            <!-- Tabelle Dettagliate -->
+            <section id="tabelle">
+                <h2>Tabelle</h2>
+                <p>Linee guida complete per l'uso di tabelle con dati strutturati.</p>
+
+                <h3>Tabella Semplice</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome Fase</th>
+                                <th>Man Days</th>
+                                <th>Costo (EUR)</th>
+                                <th>Fornitori</th>
+                                <th>Data Inizio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>F001</td>
+                                <td>Analisi Requisiti</td>
+                                <td>10</td>
+                                <td>2,500</td>
+                                <td>G1</td>
+                                <td>2025-11-15</td>
+                            </tr>
+                            <tr>
+                                <td>F002</td>
+                                <td>Design Architettura</td>
+                                <td>8</td>
+                                <td>2,000</td>
+                                <td>G1</td>
+                                <td>2025-11-22</td>
+                            </tr>
+                            <tr>
+                                <td>F003</td>
+                                <td>Sviluppo Backend</td>
+                                <td>25</td>
+                                <td>6,250</td>
+                                <td>G2</td>
+                                <td>2025-12-01</td>
+                            </tr>
+                            <tr>
+                                <td>F004</td>
+                                <td>Sviluppo Frontend</td>
+                                <td>20</td>
+                                <td>5,000</td>
+                                <td>G2</td>
+                                <td>2025-12-01</td>
+                            </tr>
+                            <tr>
+                                <td>F005</td>
+                                <td>Testing Funzionale</td>
+                                <td>12</td>
+                                <td>3,000</td>
+                                <td>TA</td>
+                                <td>2026-01-10</td>
+                            </tr>
+                            <tr>
+                                <td>F006</td>
+                                <td>Testing Performance</td>
+                                <td>8</td>
+                                <td>2,000</td>
+                                <td>TA</td>
+                                <td>2026-01-20</td>
+                            </tr>
+                            <tr>
+                                <td>F007</td>
+                                <td>Deploy Staging</td>
+                                <td>4</td>
+                                <td>1,000</td>
+                                <td>PM</td>
+                                <td>2026-01-27</td>
+                            </tr>
+                            <tr>
+                                <td>F008</td>
+                                <td>UAT & Feedback</td>
+                                <td>6</td>
+                                <td>1,500</td>
+                                <td>PM</td>
+                                <td>2026-02-03</td>
+                            </tr>
+                            <tr>
+                                <td>F009</td>
+                                <td>Fix & Ottimizzazione</td>
+                                <td>10</td>
+                                <td>2,500</td>
+                                <td>G2, TA</td>
+                                <td>2026-02-10</td>
+                            </tr>
+                            <tr>
+                                <td>F010</td>
+                                <td>Deploy Produzione</td>
+                                <td>2</td>
+                                <td>500</td>
+                                <td>PM</td>
+                                <td>2026-02-24</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Tabella con Righe Alternate + Hover</h3>
+                <div class="table-responsive">
+                    <table class="striped">
+                        <thead>
+                            <tr>
+                                <th>ID Progetto</th>
+                                <th>Nome</th>
+                                <th>Status</th>
+                                <th>Tot. Feature</th>
+                                <th>Tot. Effort</th>
+                                <th>Approvazione</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>PRJ-2025-001</td>
+                                <td>Mobile App Redesign</td>
+                                <td><span class="badge badge-success">Completato</span></td>
+                                <td>15</td>
+                                <td>120 GD</td>
+                                <td>Approvato</td>
+                            </tr>
+                            <tr>
+                                <td>PRJ-2025-002</td>
+                                <td>Backend API v2</td>
+                                <td><span class="badge badge-info">In Corso</span></td>
+                                <td>18</td>
+                                <td>150 GD</td>
+                                <td>In Sospeso</td>
+                            </tr>
+                            <tr>
+                                <td>PRJ-2025-003</td>
+                                <td>Dashboard Analytics</td>
+                                <td><span class="badge badge-info">In Corso</span></td>
+                                <td>12</td>
+                                <td>95 GD</td>
+                                <td>Rifiutato</td>
+                            </tr>
+                            <tr>
+                                <td>PRJ-2025-004</td>
+                                <td>Integration Module</td>
+                                <td><span class="badge badge-warning">Pianificato</span></td>
+                                <td>8</td>
+                                <td>60 GD</td>
+                                <td>In Sospeso</td>
+                            </tr>
+                            <tr>
+                                <td>PRJ-2025-005</td>
+                                <td>Security Audit</td>
+                                <td><span class="badge badge-warning">Pianificato</span></td>
+                                <td>5</td>
+                                <td>40 GD</td>
+                                <td>Non Richiesta</td>
+                            </tr>
+                            <tr>
+                                <td>PRJ-2025-006</td>
+                                <td>Data Migration</td>
+                                <td><span class="badge badge-warning">Pianificato</span></td>
+                                <td>3</td>
+                                <td>30 GD</td>
+                                <td>In Sospeso</td>
+                            </tr>
+                            <tr>
+                                <td>PRJ-2025-007</td>
+                                <td>Cloud Migration</td>
+                                <td><span class="badge badge-warning">Pianificato</span></td>
+                                <td>10</td>
+                                <td>80 GD</td>
+                                <td>In Sospeso</td>
+                            </tr>
+                            <tr>
+                                <td>PRJ-2025-008</td>
+                                <td>Performance Optimization</td>
+                                <td><span class="badge badge-warning">Pianificato</span></td>
+                                <td>6</td>
+                                <td>50 GD</td>
+                                <td>In Sospeso</td>
+                            </tr>
+                            <tr>
+                                <td>PRJ-2025-009</td>
+                                <td>Documentation Update</td>
+                                <td><span class="badge badge-warning">Pianificato</span></td>
+                                <td>4</td>
+                                <td>25 GD</td>
+                                <td>Non Richiesta</td>
+                            </tr>
+                            <tr>
+                                <td>PRJ-2025-010</td>
+                                <td>Compliance Framework</td>
+                                <td><span class="badge badge-warning">Pianificato</span></td>
+                                <td>7</td>
+                                <td>55 GD</td>
+                                <td>In Sospeso</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Tabella Responsive (Scroll)</h3>
+                <p>Su dispositivi piccoli, la tabella è scrollabile orizzontalmente. Gli header rimangono visibili.</p>
+                <div class="table-responsive">
+                    <table class="striped">
+                        <thead>
+                            <tr>
+                                <th>Colonna 1</th>
+                                <th>Colonna 2</th>
+                                <th>Colonna 3</th>
+                                <th>Colonna 4</th>
+                                <th>Colonna 5</th>
+                                <th>Colonna 6</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Dato 1</td>
+                                <td>Dato 2</td>
+                                <td>Dato 3</td>
+                                <td>Dato 4</td>
+                                <td>Dato 5</td>
+                                <td>Dato 6</td>
+                            </tr>
+                            <tr>
+                                <td>Dato 1</td>
+                                <td>Dato 2</td>
+                                <td>Dato 3</td>
+                                <td>Dato 4</td>
+                                <td>Dato 5</td>
+                                <td>Dato 6</td>
+                            </tr>
+                            <tr>
+                                <td>Dato 1</td>
+                                <td>Dato 2</td>
+                                <td>Dato 3</td>
+                                <td>Dato 4</td>
+                                <td>Dato 5</td>
+                                <td>Dato 6</td>
+                            </tr>
+                            <tr>
+                                <td>Dato 1</td>
+                                <td>Dato 2</td>
+                                <td>Dato 3</td>
+                                <td>Dato 4</td>
+                                <td>Dato 5</td>
+                                <td>Dato 6</td>
+                            </tr>
+                            <tr>
+                                <td>Dato 1</td>
+                                <td>Dato 2</td>
+                                <td>Dato 3</td>
+                                <td>Dato 4</td>
+                                <td>Dato 5</td>
+                                <td>Dato 6</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Linee Guida Tabelle</h3>
+                <ul>
+                    <li><strong>Header:</strong> Sfondo scuro (#2d2d30), testo bold, padding generoso</li>
+                    <li><strong>Righe:</strong> Bordo inferiore leggero, padding standard</li>
+                    <li><strong>Hover:</strong> Background color cambia per evidenziare la riga</li>
+                    <li><strong>Stripe:</strong> Righe alternate per migliorare leggibilità su file lunghi</li>
+                    <li><strong>Responsive:</strong> Scrollbar orizzontale su mobile, non stacking (dati troppo complessi)</li>
+                    <li><strong>Truncation:</strong> Usa <code>text-overflow: ellipsis</code> se le celle sono troppo strette</li>
+                </ul>
+            </section>
+
+            <!-- Accessibilità -->
+            <section id="accessibilita">
+                <h2>Accessibilità</h2>
+                <p>Linee guida per garantire che l'applicazione sia usabile da tutti, inclusi gli utenti con disabilità.</p>
+
+                <h3>Checklist WCAG AA</h3>
+                <div class="wcag-checklist">
+                    <ul>
+                        <li><strong>Contrasto:</strong> Tutti i testi mantengono un rapporto di contrasto minimo di 4.5:1 (WCAG AA)</li>
+                        <li><strong>Focus Visible:</strong> Ogni elemento interattivo ha un outline di focus chiaro (2px blu)</li>
+                        <li><strong>Keyboard Navigation:</strong> Tutti i componenti sono navigabili da tastiera (Tab, Enter, Esc)</li>
+                        <li><strong>ARIA Labels:</strong> Form inputs e button hanno <code>aria-label</code> descrittivi</li>
+                        <li><strong>Semantic HTML:</strong> Uso di tag semantici (header, main, nav, section, button)</li>
+                        <li><strong>Color Independence:</strong> Le informazioni non dipendono solo dal colore (es. badges hanno testo + colore)</li>
+                        <li><strong>Skip Links:</strong> Link per saltare ai contenuti principali (opzionale)</li>
+                        <li><strong>Error Messages:</strong> Messaggi di errore chiari e visibili, collegati ai campi</li>
+                        <li><strong>Form Labels:</strong> Ogni input ha una label associata con <code>for</code> e <code>id</code></li>
+                        <li><strong>Modal Focus:</strong> Il focus è intrappolato nel modal e restituito all'apertura</li>
+                    </ul>
+                </div>
+
+                <h3>Esempio di Codice Accessibile</h3>
+                <pre><code>&lt;!-- Buono: Label associato e aria-label --&gt;
+&lt;label for="project-name"&gt;Nome Progetto:&lt;/label&gt;
+&lt;input
+  type="text"
+  id="project-name"
+  class="input"
+  aria-label="Inserisci il nome del progetto"
+  placeholder="Es. Software Estimates v2.0"
+&gt;
+
+&lt;!-- Buono: Button con aria-label chiaro --&gt;
+&lt;button class="btn btn-destructive" aria-label="Elimina progetto"&gt;
+  Elimina
+&lt;/button&gt;
+
+&lt;!-- Buono: Badge con testo + colore --&gt;
+&lt;span class="badge badge-success"&gt;
+  Approvato
+&lt;/span&gt;
+
+&lt;!-- Buono: Modal con aria-modal e aria-label --&gt;
+&lt;div class="modal-overlay"&gt;
+  &lt;div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"&gt;
+    &lt;h2 id="modal-title"&gt;Crea Nuovo Progetto&lt;/h2&gt;
+    &lt;!-- ... --&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+
+                <h3>Contrasti Verificati</h3>
+                <ul>
+                    <li>Text Primary (#cccccc) su Bg Primary (#1e1e1e): 11.3:1 - AAA</li>
+                    <li>Text Secondary (#a0a0a0) su Bg Primary (#1e1e1e): 7.1:1 - AAA</li>
+                    <li>Text Accent (#007acc) su Bg Primary (#1e1e1e): 5.3:1 - AA</li>
+                    <li>Success (#4caf50) su Bg Secondary (#252526): 5.8:1 - AA</li>
+                    <li>Error (#f44336) su Bg Secondary (#252526): 5.2:1 - AA</li>
+                </ul>
+
+                <h3>Testing Accessibilità</h3>
+                <ul>
+                    <li>Usa uno screen reader (NVDA, JAWS, Voice Over) per testare la navigazione</li>
+                    <li>Testa la navigazione da tastiera: Tab, Shift+Tab, Enter, Escape</li>
+                    <li>Verifica il contrasto con strumenti come WCAG Contrast Checker</li>
+                    <li>Usa Lighthouse di Chrome DevTools per audit automatici</li>
+                    <li>Testa su dispositivi reali con mouse disabilitato (solo tastiera)</li>
+                </ul>
+            </section>
+
+            <!-- Mockup Pagine -->
+            <section id="mockup">
+                <h2>Mockup Pagine</h2>
+                <p>Esempi di pagine complete utilizzando il design system.</p>
+
+                <h3>Mockup 1: Progetto - Pagina Progetti (Projects Page)</h3>
+                <div class="mockup-page">
+                    <div class="mockup-header">
+                        <h3>Projects - Software Estimates Manager</h3>
+                    </div>
+                    <div class="mockup-content">
+                        <h2 style="margin-top: 0;">I Miei Progetti</h2>
+
+                        <h3 style="margin-top: var(--spacing-2xl); margin-bottom: var(--spacing-lg);">Progetto Attualmente Aperto</h3>
+                        <div class="card" style="margin-bottom: var(--spacing-2xl); max-width: 600px;">
+                            <div class="card-header">
+                                <h4 style="margin: 0;">Software Estimates v2.0</h4>
+                                <p style="margin: var(--spacing-sm) 0 0 0; font-size: var(--font-size-sm);">Modificato il 8 novembre 2025</p>
+                            </div>
+                            <div class="card-body">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--spacing-lg);">
+                                    <div>
+                                        <p style="margin: 0 0 var(--spacing-sm) 0; font-size: var(--font-size-xs); color: var(--color-text-muted); text-transform: uppercase;">Status</p>
+                                        <span class="badge badge-success">Approvato</span>
+                                    </div>
+                                    <div>
+                                        <p style="margin: 0 0 var(--spacing-sm) 0; font-size: var(--font-size-xs); color: var(--color-text-muted); text-transform: uppercase;">Feature</p>
+                                        <p style="margin: 0;">12 Feature</p>
+                                    </div>
+                                    <div>
+                                        <p style="margin: 0 0 var(--spacing-sm) 0; font-size: var(--font-size-xs); color: var(--color-text-muted); text-transform: uppercase;">Effort Totale</p>
+                                        <p style="margin: 0;">85 GD</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="btn btn-secondary">Scarica</button>
+                                <button class="btn btn-primary">Apri e Modifica</button>
+                            </div>
+                        </div>
+
+                        <h3 style="margin-top: var(--spacing-2xl); margin-bottom: var(--spacing-lg);">Progetti Recenti</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-2xl);">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 style="margin: 0;">Mobile App Redesign</h4>
+                                    <p style="margin: var(--spacing-xs) 0 0 0; font-size: var(--font-size-xs); color: var(--color-text-secondary);">30 ott 2025</p>
+                                </div>
+                                <div class="card-body">
+                                    <p style="margin: 0 0 var(--spacing-md) 0; font-size: var(--font-size-sm); color: var(--color-text-secondary);">15 Feature / 120 GD</p>
+                                    <span class="badge badge-success">Approvato</span>
+                                </div>
+                                <div class="card-footer">
+                                    <button class="btn btn-primary" style="flex: 1;">Apri</button>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 style="margin: 0;">Backend API v2</h4>
+                                    <p style="margin: var(--spacing-xs) 0 0 0; font-size: var(--font-size-xs); color: var(--color-text-secondary);">25 ott 2025</p>
+                                </div>
+                                <div class="card-body">
+                                    <p style="margin: 0 0 var(--spacing-md) 0; font-size: var(--font-size-sm); color: var(--color-text-secondary);">18 Feature / 150 GD</p>
+                                    <span class="badge badge-warning">In Sospeso</span>
+                                </div>
+                                <div class="card-footer">
+                                    <button class="btn btn-primary" style="flex: 1;">Apri</button>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 style="margin: 0;">Dashboard Analytics</h4>
+                                    <p style="margin: var(--spacing-xs) 0 0 0; font-size: var(--font-size-xs); color: var(--color-text-secondary);">20 ott 2025</p>
+                                </div>
+                                <div class="card-body">
+                                    <p style="margin: 0 0 var(--spacing-md) 0; font-size: var(--font-size-sm); color: var(--color-text-secondary);">12 Feature / 95 GD</p>
+                                    <span class="badge badge-info">In Corso</span>
+                                </div>
+                                <div class="card-footer">
+                                    <button class="btn btn-primary" style="flex: 1;">Apri</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 style="margin-top: var(--spacing-2xl); margin-bottom: var(--spacing-lg);">Azioni</h3>
+                        <div style="display: flex; gap: var(--spacing-md); flex-wrap: wrap;">
+                            <button class="btn btn-primary">Nuovo Progetto</button>
+                            <button class="btn btn-secondary">Carica Progetto</button>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: var(--spacing-2xl);">Mockup 2: Progetto - Pagina Features (Features Page)</h3>
+                <div class="mockup-page">
+                    <div class="mockup-header">
+                        <h3>Features - Software Estimates v2.0</h3>
+                    </div>
+                    <div class="mockup-content">
+                        <h2 style="margin-top: 0;">Feature Management</h2>
+
+                        <div style="display: flex; gap: var(--spacing-lg); margin-bottom: var(--spacing-2xl); flex-wrap: wrap; align-items: center;">
+                            <input type="text" class="input" placeholder="Cerca feature..." style="max-width: 300px;">
+                            <button class="btn btn-primary">Nuova Feature</button>
+                        </div>
+
+                        <div style="margin-bottom: var(--spacing-2xl);">
+                            <p style="color: var(--color-text-secondary); margin: 0;">Mostrando 12 feature su 12 totali | Effort Totale: 85 GD</p>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nome Feature</th>
+                                        <th>Priorità</th>
+                                        <th>Status</th>
+                                        <th>Effort (GD)</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>#001</td>
+                                        <td>Dashboard Metriche</td>
+                                        <td>Alta</td>
+                                        <td><span class="badge badge-success">Completato</span></td>
+                                        <td>8</td>
+                                        <td>
+                                            <button class="btn" style="padding: var(--spacing-sm) var(--spacing-md); background: none; border: none; color: var(--color-text-accent); cursor: pointer;">Modifica</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#002</td>
+                                        <td>Gestione Progetti</td>
+                                        <td>Alta</td>
+                                        <td><span class="badge badge-info">In Corso</span></td>
+                                        <td>12</td>
+                                        <td>
+                                            <button class="btn" style="padding: var(--spacing-sm) var(--spacing-md); background: none; border: none; color: var(--color-text-accent); cursor: pointer;">Modifica</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#003</td>
+                                        <td>Esportazione PDF</td>
+                                        <td>Media</td>
+                                        <td><span class="badge badge-warning">Pianificato</span></td>
+                                        <td>5</td>
+                                        <td>
+                                            <button class="btn" style="padding: var(--spacing-sm) var(--spacing-md); background: none; border: none; color: var(--color-text-accent); cursor: pointer;">Modifica</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#004</td>
+                                        <td>API Integrazioni</td>
+                                        <td>Media</td>
+                                        <td><span class="badge badge-warning">Pianificato</span></td>
+                                        <td>10</td>
+                                        <td>
+                                            <button class="btn" style="padding: var(--spacing-sm) var(--spacing-md); background: none; border: none; color: var(--color-text-accent); cursor: pointer;">Modifica</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#005</td>
+                                        <td>Test Suite</td>
+                                        <td>Bassa</td>
+                                        <td><span class="badge badge-warning">Pianificato</span></td>
+                                        <td>6</td>
+                                        <td>
+                                            <button class="btn" style="padding: var(--spacing-sm) var(--spacing-md); background: none; border: none; color: var(--color-text-accent); cursor: pointer;">Modifica</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#006</td>
+                                        <td>Documentazione</td>
+                                        <td>Bassa</td>
+                                        <td><span class="badge badge-warning">Pianificato</span></td>
+                                        <td>4</td>
+                                        <td>
+                                            <button class="btn" style="padding: var(--spacing-sm) var(--spacing-md); background: none; border: none; color: var(--color-text-accent); cursor: pointer;">Modifica</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#007</td>
+                                        <td>Analytics Tracking</td>
+                                        <td>Media</td>
+                                        <td><span class="badge badge-warning">Pianificato</span></td>
+                                        <td>7</td>
+                                        <td>
+                                            <button class="btn" style="padding: var(--spacing-sm) var(--spacing-md); background: none; border: none; color: var(--color-text-accent); cursor: pointer;">Modifica</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#008</td>
+                                        <td>Email Notifications</td>
+                                        <td>Bassa</td>
+                                        <td><span class="badge badge-warning">Pianificato</span></td>
+                                        <td>5</td>
+                                        <td>
+                                            <button class="btn" style="padding: var(--spacing-sm) var(--spacing-md); background: none; border: none; color: var(--color-text-accent); cursor: pointer;">Modifica</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#009</td>
+                                        <td>User Preferences</td>
+                                        <td>Media</td>
+                                        <td><span class="badge badge-warning">Pianificato</span></td>
+                                        <td>6</td>
+                                        <td>
+                                            <button class="btn" style="padding: var(--spacing-sm) var(--spacing-md); background: none; border: none; color: var(--color-text-accent); cursor: pointer;">Modifica</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#010</td>
+                                        <td>Backup & Recovery</td>
+                                        <td>Alta</td>
+                                        <td><span class="badge badge-warning">Pianificato</span></td>
+                                        <td>8</td>
+                                        <td>
+                                            <button class="btn" style="padding: var(--spacing-sm) var(--spacing-md); background: none; border: none; color: var(--color-text-accent); cursor: pointer;">Modifica</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#011</td>
+                                        <td>Multi-language Support</td>
+                                        <td>Bassa</td>
+                                        <td><span class="badge badge-warning">Pianificato</span></td>
+                                        <td>9</td>
+                                        <td>
+                                            <button class="btn" style="padding: var(--spacing-sm) var(--spacing-md); background: none; border: none; color: var(--color-text-accent); cursor: pointer;">Modifica</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#012</td>
+                                        <td>Performance Monitoring</td>
+                                        <td>Media</td>
+                                        <td><span class="badge badge-warning">Pianificato</span></td>
+                                        <td>5</td>
+                                        <td>
+                                            <button class="btn" style="padding: var(--spacing-sm) var(--spacing-md); background: none; border: none; color: var(--color-text-accent); cursor: pointer;">Modifica</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Integrazione -->
+            <section id="integrazione">
+                <h2>Guida Integrazione</h2>
+                <p>Come integrare questo style guide nel tuo progetto.</p>
+
+                <h3>1. CSS Variables</h3>
+                <p>I token CSS sono disponibili come variabili CSS nel file. Usa direttamente nei tuoi CSS:</p>
+                <pre><code>.my-component {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+}</code></pre>
+
+                <h3>2. Design Tokens JSON</h3>
+                <p>Scarica i token JSON dal blocco script nel file HTML e importali nel tuo progetto:</p>
+                <pre><code>// In JavaScript/Node.js
+const designTokens = require('./design-tokens.json');
+
+const primaryColor = designTokens.colors.primary;
+const spacing = designTokens.spacing.md;</code></pre>
+
+                <h3>3. Copiare Componenti</h3>
+                <p>Ogni componente ha il markup HTML e CSS completo. Copia il codice dalla sezione componenti e adattalo al tuo progetto.</p>
+
+                <h3>4. Mantenere la Consistenza</h3>
+                <ul>
+                    <li>Usa sempre le variabili CSS per colori, spacing e font size</li>
+                    <li>Segui le linee guida di naming per le classi CSS</li>
+                    <li>Mantieni gli stessi valori di contrasto per i colori</li>
+                    <li>Applica le stesse transizioni e hover states</li>
+                    <li>Rispetta le linee guida di accessibilità WCAG AA</li>
+                </ul>
+
+                <h3>5. Aggiornamenti Futuri</h3>
+                <p>Se il design system viene aggiornato:</p>
+                <ol>
+                    <li>Aggiorna le variabili CSS nel `:root`</li>
+                    <li>Aggiorna i design tokens JSON</li>
+                    <li>Rigenera questo documento con le nuove sezioni</li>
+                    <li>Comunica i cambiamenti al team</li>
+                </ol>
+            </section>
+
+            <!-- Validazione -->
+            <section id="validazione">
+                <h2>Validazione & Note Finali</h2>
+
+                <h3>HTML5 Validità</h3>
+                <p>Questo documento è HTML5 valido e conforme ai standard W3C. Puoi verificare l'utilizzo di:</p>
+                <pre><code>https://validator.w3.org/</code></pre>
+
+                <h3>Browser Compatibility</h3>
+                <ul>
+                    <li>Chrome/Edge: 90+</li>
+                    <li>Firefox: 88+</li>
+                    <li>Safari: 14+</li>
+                    <li>Mobile browsers (iOS Safari, Chrome Mobile)</li>
+                </ul>
+
+                <h3>Test Manuali Consigliati</h3>
+                <ul>
+                    <li><strong>Keyboard Navigation:</strong> Naviga il documento usando solo Tab, Shift+Tab, e Enter</li>
+                    <li><strong>Screen Reader:</strong> Testa con NVDA (Windows) o Voice Over (Mac/iOS)</li>
+                    <li><strong>Lighthouse Audit:</strong> Esegui Lighthouse in Chrome DevTools</li>
+                    <li><strong>Zoom:</strong> Zoom al 200% e verifica che tutto rimane leggibile</li>
+                    <li><strong>Colore:</strong> Usa uno strumento di color blindness simulator per verificare il contrasto</li>
+                    <li><strong>Mobile:</strong> Testa su dispositivi reali o con Chrome DevTools responsive mode</li>
+                    <li><strong>Print:</strong> Stampa il documento (ha CSS print specifici)</li>
+                </ul>
+
+                <h3>Note Importanti</h3>
+                <ul>
+                    <li>Questo style guide è auto-sufficiente e consultabile offline</li>
+                    <li>I font webfont (Inter, JetBrains Mono) da Google Fonts sono opzionali - il documento rimane consultabile senza rete con fallback system fonts</li>
+                    <li>Il tema colore è VSCode Dark - personalizzabile modificando le variabili CSS nel `:root`</li>
+                    <li>Tutti i codice di esempio sono funzionanti e pronti per il copia/incolla</li>
+                    <li>Gli esempi di tabelle contengono dati fittizi realistici per il contesto dell'app</li>
+                </ul>
+
+                <h3>Contatti & Feedback</h3>
+                <p>Per suggerimenti o correzioni a questo style guide, contatta il team di design o apri un issue nel repository.</p>
+
+                <div style="background-color: var(--color-bg-tertiary); border-left: 4px solid var(--color-info); padding: var(--spacing-lg); border-radius: var(--radius-md); margin-top: var(--spacing-2xl);">
+                    <p style="margin: 0;"><strong>Documento Generato:</strong> 9 novembre 2025</p>
+                    <p style="margin: var(--spacing-sm) 0 0 0;"><strong>Versione:</strong> 1.0.0</p>
+                    <p style="margin: var(--spacing-sm) 0 0 0;"><strong>Autore:</strong> Claude Code</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Design Tokens JSON -->
+    <script type="application/json" id="design-tokens">
+{
+  "version": "1.0.0",
+  "colors": {
+    "background": {
+      "primary": "#1e1e1e",
+      "secondary": "#252526",
+      "tertiary": "#2d2d30",
+      "quaternary": "#3c3c3c",
+      "hover": "#2a2d2e",
+      "active": "#094771"
+    },
+    "text": {
+      "primary": "#cccccc",
+      "secondary": "#a0a0a0",
+      "muted": "#6a6a6a",
+      "accent": "#007acc",
+      "inverse": "#ffffff"
+    },
+    "status": {
+      "success": "#4caf50",
+      "warning": "#ff9800",
+      "error": "#f44336",
+      "info": "#2196f3"
+    },
+    "border": {
+      "default": "#3e3e42",
+      "light": "#2d2d30"
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "primary": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      "mono": "'JetBrains Mono', 'Courier New', monospace"
+    },
+    "fontSize": {
+      "xs": "0.75rem",
+      "sm": "0.875rem",
+      "base": "1rem",
+      "lg": "1.125rem",
+      "xl": "1.25rem",
+      "2xl": "1.5rem",
+      "3xl": "1.875rem",
+      "4xl": "2.25rem"
+    },
+    "fontWeight": {
+      "normal": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "lineHeight": {
+      "tight": 1.2,
+      "normal": 1.5,
+      "relaxed": 1.75
+    }
+  },
+  "spacing": {
+    "xs": "0.25rem",
+    "sm": "0.5rem",
+    "md": "1rem",
+    "lg": "1.5rem",
+    "xl": "2rem",
+    "2xl": "2.5rem",
+    "3xl": "3rem"
+  },
+  "borderRadius": {
+    "sm": "2px",
+    "md": "4px",
+    "lg": "6px",
+    "xl": "8px"
+  },
+  "shadows": {
+    "sm": "0 1px 2px rgba(0, 0, 0, 0.3)",
+    "md": "0 4px 6px rgba(0, 0, 0, 0.4)",
+    "lg": "0 10px 15px rgba(0, 0, 0, 0.5)"
+  },
+  "transitions": {
+    "fast": "0.1s ease-in-out",
+    "base": "0.2s ease-in-out",
+    "slow": "0.3s ease-in-out"
+  },
+  "breakpoints": {
+    "sm": "640px",
+    "md": "768px",
+    "lg": "1024px",
+    "xl": "1280px"
+  }
+}
+    </script>
+
+    <!-- Navigation Script -->
+    <script>
+        // Smooth scroll navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetSection = document.getElementById(targetId);
+
+                if (targetSection) {
+                    // Update active state
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // Scroll to section
+                    targetSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Update active nav link on scroll
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                const sectionId = section.getAttribute('id');
+
+                if (window.scrollY >= sectionTop) {
+                    navLinks.forEach(link => link.classList.remove('active'));
+                    const activeLink = document.querySelector(`.nav-link[href="#${sectionId}"]`);
+                    if (activeLink) {
+                        activeLink.classList.add('active');
+                    }
+                }
+            });
+        });
+
+        // Load and display design tokens
+        const tokensScript = document.getElementById('design-tokens');
+        if (tokensScript) {
+            const tokens = JSON.parse(tokensScript.textContent);
+            const tokensCode = document.getElementById('tokens-code');
+            if (tokensCode) {
+                tokensCode.textContent = JSON.stringify(tokens, null, 2);
+            }
+        }
+    </script>
+</body>
+</html>

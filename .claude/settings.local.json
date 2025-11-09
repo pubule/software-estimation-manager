@@ -18,7 +18,8 @@
       "mcp__serena__check_onboarding_performed",
       "mcp__serena__find_file",
       "mcp__serena__search_for_pattern",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
