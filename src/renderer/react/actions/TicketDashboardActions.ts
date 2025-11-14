@@ -1,816 +1,238 @@
-export interface TicketData {
-  number: string;
-  opened_at: string;
-  short_description: string;
-  caller_id: string;
-  priority: 'P5' | 'P6' | 'P7' | 'P8'; // REMOVED P1-P4, only P5-P8 allowed
-  state: 'Open' | 'In Progress' | 'Resolved' | 'Closed' | 'Pending' | 'On Hold';
-  category: string;
-  assignment_group: string;
-  assigned_to: string;
-  sys_updated_on: string;
-  sys_updated_by: string;
-  u_qs_major_incident: string;
-  u_vts_major_incident: string;
-  u_vts_major_timestamp: string;
-  u_vts_major_urgency: string;
-  calendar_stc: string;
-  resolved_at: string;
-  resolved_by?: string;
-}
-
-export interface DashboardMetrics {
-  totalTickets: number;
-  averageResolutionTime: number;
-  openTickets: number;
-  closedTickets: number;
-  resolutionRate: number;
-  backlogCurrent: number;
-  backlogTickets: TicketData[];
-  topResolutionTimeTickets?: {
-    id: string;
-    subject: string;
-    resolutionHours: number;
-  }[];
-  resolutionTimeCategories?: {
-    slowestTickets: {
-      id: string;
-      subject: string;
-      resolutionHours: number;
-    }[];
-    fastestTickets: {
-      id: string;
-      subject: string;
-      resolutionHours: number;
-    }[];
-    averageTickets: {
-      id: string;
-      subject: string;
-      resolutionHours: number;
-    }[];
-  };
-}
-
-export interface OperatorMetrics {
-  operatorName: string;
-  assignedTickets: number;
-  resolvedTickets: number;
-  averageResolutionTime: number;
-  ticketsInDelay: number;
-  delayPercentage: number;
-}
-
-export interface Alert {
-  type: 'critical' | 'warning' | 'info';
-  title: string;
-  description: string;
-  count: number;
-  tickets: TicketData[];
-}
-
-export interface TimeFilter {
-  start: Date;
-  end: Date;
-  label: string;
-  type: string;
-}
-
-export class TicketDashboardActions {
-  private getStore() {
-    return (window as any).appStore;
-  }
-
-  /**
-   * Parse CSV content and import ticket data
-   */
-  importCsvData(csvContent: string): void {
-    try {
-      const tickets = this.parseCsvContent(csvContent);
-      const store = this.getStore();
-      const state = store.getState();
-
-      // Store raw ticket data
-      state.setTicketData(tickets);
-
-      // Calculate initial metrics
-      this.calculateMetrics();
-
-      // Generate alerts
-      this.generateAlerts();
-
-      state.markDirty();
-    } catch (error) {
-      console.error('Error importing CSV data:', error);
-      const store = this.getStore();
-      const state = store.getState();
-      state.setTicketDashboardError('Failed to import CSV data: ' + error.message);
-    }
-  }
-
-  /**
-   * Parse CSV content into ticket objects
-   */
-  private parseCsvContent(csvContent: string): TicketData[] {
-    const lines = csvContent.trim().split('\n');
-    const headers = this.parseCsvLine(lines[0]).map(h => h.trim().replace(/^"|"$/g, ''));
-
-    console.log('🔍 CSV Debug:');
-    console.log('- Raw headers:', this.parseCsvLine(lines[0]));
-    console.log('- Cleaned headers:', headers);
-    console.log('- Total lines:', lines.length);
-
-    const tickets = lines.slice(1).map((line, index) => {
-      const values = this.parseCsvLine(line);
-      const ticket: any = {};
-
-      headers.forEach((header, index) => {
-        const value = (values[index] || '').trim().replace(/^"|"$/g, '');
-        ticket[header] = value;
-      });
-
-      // Debug first ticket
-      if (index === 0) {
-        console.log('- First ticket sample:', {
-          priority: ticket.priority,
-          state: ticket.state,
-          opened_at: ticket.opened_at,
-          raw_keys: Object.keys(ticket)
-        });
-      }
-
-      return ticket as TicketData;
-    });
-
-    console.log('- Parsed tickets count:', tickets.length);
-    return tickets;
-  }
-
-  /**
-   * Parse a CSV line handling quoted values
-   */
-  private parseCsvLine(line: string): string[] {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-
-    result.push(current.trim());
-    return result;
-  }
-
-  /**
-   * Apply time period filter
-   */
-  applyTimeFilter(filterType: string, customStart?: Date, customEnd?: Date): void {
-    const store = this.getStore();
-    const state = store.getState();
-
-    const timeFilter = this.createTimeFilter(filterType, customStart, customEnd);
-
-    if (filterType === 'all-time') {
-      // Clear the filter to show all tickets
-      state.setTimeFilter(null);
-    } else {
-      state.setTimeFilter(timeFilter);
-    }
-
-    // Recalculate metrics with filtered data
-    this.calculateMetrics();
-    this.generateAlerts();
-
-    state.markDirty();
-  }
-
-  /**
-   * Create time filter based on type
-   */
-  private createTimeFilter(filterType: string, customStart?: Date, customEnd?: Date): TimeFilter {
-    const now = new Date();
-    let start: Date;
-    let end: Date = now;
-    let label: string;
-
-    switch (filterType) {
-      case 'all-time':
-        return null; // No filter - return all tickets
-      case 'last-7-days':
-        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        label = 'Last 7 Days';
-        break;
-      case 'last-month':
-        start = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-        label = 'Last Month';
-        break;
-      case 'last-3-months':
-        start = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-        label = 'Last 3 Months';
-        break;
-      case 'last-6-months':
-        start = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-        label = 'Last 6 Months';
-        break;
-      case 'current-year':
-        start = new Date(now.getFullYear(), 0, 1);
-        label = 'Current Year';
-        break;
-      case 'custom':
-        start = customStart || new Date(now.getFullYear(), 0, 1);
-        end = customEnd || now;
-        label = 'Custom Range';
-        break;
-      default:
-        return null; // Default to no filter (all time)
-    }
-
-    return { start, end, label, type: filterType };
-  }
-
-  /**
-   * Calculate dashboard metrics
-   */
-  calculateMetrics(): void {
-    const store = this.getStore();
-    const state = store.getState();
-    const allTickets = state.ticketData || [];
-    const tickets = this.getFilteredTickets();
-
-    // Debug logging
-    console.log('🔍 TicketDashboard Debug:');
-    console.log('- All tickets loaded:', allTickets.length);
-    console.log('- Filtered tickets:', tickets.length);
-    console.log('- Current timeFilter:', state.timeFilter);
-
-    if (tickets.length > 0) {
-      console.log('- Sample ticket states:', tickets.slice(0, 3).map(t => t.state));
-      console.log('- Sample ticket priorities:', tickets.slice(0, 3).map(t => t.priority));
-      console.log('- Sample ticket dates:', tickets.slice(0, 3).map(t => t.opened_at));
-    }
-
-    const averageResolutionTime = this.calculateAverageResolutionTime(tickets);
-
-    // Get all unresolved tickets (ignoring time filter for backlog)
-    const allUnresolvedTickets = this.getAllUnresolvedTickets();
-
-    const metrics: DashboardMetrics = {
-      totalTickets: tickets.length,
-      averageResolutionTime,
-      openTickets: tickets.filter(t => ['Open', 'In Progress', 'Pending', 'On Hold'].includes(t.state)).length,
-      // Note: "Resolved" and "Closed" are both considered completed tickets (same functional logic)
-      closedTickets: tickets.filter(t => ['Resolved', 'Closed'].includes(t.state)).length,
-      resolutionRate: this.calculateResolutionRate(tickets),
-      backlogCurrent: allUnresolvedTickets.length,
-      backlogTickets: allUnresolvedTickets,
-      topResolutionTimeTickets: this.calculateTopResolutionTimeTickets(tickets),
-      resolutionTimeCategories: this.calculateResolutionTimeCategories(tickets, averageResolutionTime)
-    };
-
-    console.log('- Calculated metrics:', metrics);
-    state.setDashboardMetrics(metrics);
-
-    // Calculate operator metrics
-    const operatorMetrics = this.calculateOperatorMetrics(tickets);
-    state.setOperatorMetrics(operatorMetrics);
-  }
-
-  /**
-   * Calculate average resolution time in hours
-   */
-  private calculateAverageResolutionTime(tickets: TicketData[]): number {
-    const resolvedTickets = tickets.filter(t => t.resolved_at && t.resolved_at.trim());
-
-    if (resolvedTickets.length === 0) return 0;
-
-    const totalHours = resolvedTickets.reduce((sum, ticket) => {
-      const opened = new Date(ticket.opened_at);
-      const resolved = new Date(ticket.resolved_at);
-      const diffMs = resolved.getTime() - opened.getTime();
-      const diffHours = diffMs / (1000 * 60 * 60);
-      return sum + diffHours;
-    }, 0);
-
-    return totalHours / resolvedTickets.length;
-  }
-
-  /**
-   * Calculate top 3 tickets with highest resolution time
-   */
-  private calculateTopResolutionTimeTickets(tickets: TicketData[]): { id: string; subject: string; resolutionHours: number; }[] {
-    return tickets
-      .filter(ticket => ticket.resolved_at && ticket.opened_at)
-      .map(ticket => {
-        const created = new Date(ticket.opened_at);
-        const resolved = new Date(ticket.resolved_at);
-        const totalHours = (resolved.getTime() - created.getTime()) / (1000 * 60 * 60);
-
-        return {
-          id: ticket.number || '',
-          subject: ticket.short_description || '',
-          resolutionHours: totalHours
-        };
-      })
-      .sort((a, b) => b.resolutionHours - a.resolutionHours)
-      .slice(0, 3);
-  }
-
-  /**
-   * Calculate resolution time categories: slowest, fastest, and average tickets
-   */
-  private calculateResolutionTimeCategories(tickets: TicketData[], averageTime: number): {
-    slowestTickets: { id: string; subject: string; resolutionHours: number; }[];
-    fastestTickets: { id: string; subject: string; resolutionHours: number; }[];
-    averageTickets: { id: string; subject: string; resolutionHours: number; }[];
-  } {
-    const resolvedTicketsWithTime = tickets
-      .filter(ticket => ticket.resolved_at && ticket.opened_at)
-      .map(ticket => {
-        const created = new Date(ticket.opened_at);
-        const resolved = new Date(ticket.resolved_at);
-        const totalHours = (resolved.getTime() - created.getTime()) / (1000 * 60 * 60);
-
-        return {
-          id: ticket.number || '',
-          subject: ticket.short_description || '',
-          resolutionHours: totalHours
-        };
-      });
-
-    if (resolvedTicketsWithTime.length === 0) {
-      return {
-        slowestTickets: [],
-        fastestTickets: [],
-        averageTickets: []
-      };
-    }
-
-    // Calculate thresholds: ±10% of average
-    const threshold = averageTime * 0.1;
-    const upperBound = averageTime + threshold;
-    const lowerBound = averageTime - threshold;
-
-    // Categorize tickets
-    const slowestTickets = resolvedTicketsWithTime
-      .filter(ticket => ticket.resolutionHours > upperBound)
-      .sort((a, b) => b.resolutionHours - a.resolutionHours)
-      .slice(0, 3);
-
-    const fastestTickets = resolvedTicketsWithTime
-      .filter(ticket => ticket.resolutionHours < lowerBound)
-      .sort((a, b) => a.resolutionHours - b.resolutionHours)
-      .slice(0, 3);
-
-    const averageTickets = resolvedTicketsWithTime
-      .filter(ticket => ticket.resolutionHours >= lowerBound && ticket.resolutionHours <= upperBound)
-      .sort((a, b) => Math.abs(a.resolutionHours - averageTime) - Math.abs(b.resolutionHours - averageTime))
-      .slice(0, 3);
-
-    return {
-      slowestTickets,
-      fastestTickets,
-      averageTickets
-    };
-  }
-
-  /**
-   * Calculate resolution rate percentage
-   */
-  private calculateResolutionRate(tickets: TicketData[]): number {
-    if (tickets.length === 0) return 0;
-
-    const resolvedCount = tickets.filter(t => ['Resolved', 'Closed'].includes(t.state)).length;
-    return (resolvedCount / tickets.length) * 100;
-  }
-
-  /**
-   * Calculate metrics per operator
-   */
-  private calculateOperatorMetrics(tickets: TicketData[]): OperatorMetrics[] {
-    // Raggruppa solo i ticket RISOLTI per resolved_by (o sys_updated_by come fallback)
-    const resolvedTickets = tickets.filter(t => ['Resolved', 'Closed'].includes(t.state));
-    
-    const operatorGroups = resolvedTickets.reduce((groups, ticket) => {
-      const operator = ticket.resolved_by || ticket.sys_updated_by || 'Unassigned';
-      if (!groups[operator]) {
-        groups[operator] = [];
-      }
-      groups[operator].push(ticket);
-      return groups;
-    }, {} as Record<string, TicketData[]>);
-
-    // Aggiungi anche gli operatori con ticket assegnati ma non risolti
-    const allTickets = tickets.reduce((groups, ticket) => {
-      const assignedOperator = ticket.assigned_to || 'Unassigned';
-      if (!groups[assignedOperator]) {
-        groups[assignedOperator] = { assigned: [], resolved: [] };
-      }
-      groups[assignedOperator].assigned.push(ticket);
-      
-      // Se il ticket è risolto, aggiungilo anche alla sezione resolved
-      if (['Resolved', 'Closed'].includes(ticket.state)) {
-        const resolverOperator = ticket.resolved_by || ticket.sys_updated_by || 'Unassigned';
-        if (!groups[resolverOperator]) {
-          groups[resolverOperator] = { assigned: [], resolved: [] };
-        }
-        groups[resolverOperator].resolved.push(ticket);
-      }
-      
-      return groups;
-    }, {} as Record<string, { assigned: TicketData[], resolved: TicketData[] }>);
-
-    return Object.entries(allTickets).map(([operatorName, operatorTickets]) => {
-      const assignedTickets = operatorTickets.assigned;
-      const resolvedTickets = operatorTickets.resolved;
-      const ticketsInDelay = this.getTicketsInDelay(assignedTickets);
-
-      return {
-        operatorName,
-        assignedTickets: assignedTickets.length,
-        resolvedTickets: resolvedTickets.length,
-        averageResolutionTime: this.calculateAverageResolutionTime(resolvedTickets),
-        ticketsInDelay: ticketsInDelay.length,
-        delayPercentage: assignedTickets.length > 0 ? (ticketsInDelay.length / assignedTickets.length) * 100 : 0
-      };
-    }).sort((a, b) => b.resolvedTickets - a.resolvedTickets);
-  }
-
-  /**
-   * Generate alerts based on ticket analysis
-   */
-  generateAlerts(): void {
-    const store = this.getStore();
-    const state = store.getState();
-    const tickets = this.getFilteredTickets();
-    const alerts: Alert[] = [];
-
-    // Critical alerts
-    const orphanedTickets = this.getOrphanedTickets(tickets);
-    if (orphanedTickets.length > 0) {
-      alerts.push({
-        type: 'critical',
-        title: 'Orphaned Tickets',
-        description: 'Tickets not assigned for more than 24 hours',
-        count: orphanedTickets.length,
-        tickets: orphanedTickets
-      });
-    }
-
-    const stagnantTickets = this.getStagnantTickets(tickets);
-    if (stagnantTickets.length > 0) {
-      alerts.push({
-        type: 'critical',
-        title: 'Stagnant Tickets',
-        description: 'Tickets in pending state for more than 7 days',
-        count: stagnantTickets.length,
-        tickets: stagnantTickets
-      });
-    }
-
-    const expiredHighPriorityTickets = this.getExpiredHighPriorityTickets(tickets);
-    if (expiredHighPriorityTickets.length > 0) {
-      alerts.push({
-        type: 'critical',
-        title: 'Expired High Priority',
-        description: 'P1/P2 tickets open for more than 2 days',
-        count: expiredHighPriorityTickets.length,
-        tickets: expiredHighPriorityTickets
-      });
-    }
-
-    // Warning alerts
-    const suspiciousClosures = this.getSuspiciousClosures(tickets);
-    if (suspiciousClosures.length > 0) {
-      alerts.push({
-        type: 'warning',
-        title: 'Suspicious Closures',
-        description: 'High priority tickets resolved in less than 15 minutes',
-        count: suspiciousClosures.length,
-        tickets: suspiciousClosures
-      });
-    }
-
-    const unworkedTickets = this.getUnworkedTickets(tickets);
-    if (unworkedTickets.length > 0) {
-      alerts.push({
-        type: 'warning',
-        title: 'Unworked Tickets',
-        description: 'No updates for more than 3 days',
-        count: unworkedTickets.length,
-        tickets: unworkedTickets
-      });
-    }
-
-    state.setDashboardAlerts(alerts);
-  }
-
-  /**
-   * Get tickets not assigned for more than 24 hours
-   */
-  private getOrphanedTickets(tickets: TicketData[]): TicketData[] {
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    return tickets.filter(ticket =>
-      (!ticket.assigned_to || ticket.assigned_to.trim() === '') &&
-      new Date(ticket.opened_at) < oneDayAgo &&
-      !['Resolved', 'Closed'].includes(ticket.state)  // FIXED: Escludi ticket risolti/chiusi
-    );
-  }
-
-  /**
-   * Get tickets in pending state for more than 7 days
-   */
-  private getStagnantTickets(tickets: TicketData[]): TicketData[] {
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return tickets.filter(ticket =>
-      ticket.state === 'Pending' &&
-      new Date(ticket.opened_at) < weekAgo
-    );
-  }
-
-  /**
-   * Get P1/P2 tickets open for more than 2 days
-   */
-  private getExpiredHighPriorityTickets(tickets: TicketData[]): TicketData[] {
-    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
-    return tickets.filter(ticket =>
-      ['P5', 'P6', 'P7', 'P8'].includes(ticket.priority) && // UPDATED: Only P5-P8 exist now
-      !['Resolved', 'Closed'].includes(ticket.state) &&
-      new Date(ticket.opened_at) < twoDaysAgo
-    );
-  }
-
-  /**
-   * Get tickets resolved suspiciously fast
-   */
-  private getSuspiciousClosures(tickets: TicketData[]): TicketData[] {
-    return tickets.filter(ticket => {
-      // Only consider P5-P8 (P1-P4 completely removed)
-      if (!['P5', 'P6', 'P7', 'P8'].includes(ticket.priority)) {
-        return false;
-      }
-      
-      if (!ticket.resolved_at) {
-        return false;
-      }
-
-      const opened = new Date(ticket.opened_at);
-      const resolved = new Date(ticket.resolved_at);
-      const diffMinutes = (resolved.getTime() - opened.getTime()) / (1000 * 60);
-
-      return diffMinutes < 15; // Resolved in less than 15 minutes
-    });
-  }
-
-  /**
-   * Get tickets without updates for more than 3 days
-   */
-  private getUnworkedTickets(tickets: TicketData[]): TicketData[] {
-    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-    return tickets.filter(ticket =>
-      !['Resolved', 'Closed'].includes(ticket.state) &&
-      new Date(ticket.sys_updated_on) < threeDaysAgo
-    );
-  }
-
-  /**
-   * Get tickets that are in delay
-   */
-  private getTicketsInDelay(tickets: TicketData[]): TicketData[] {
-    return tickets.filter(ticket => {
-      if (['Resolved', 'Closed'].includes(ticket.state)) return false;
-
-      const opened = new Date(ticket.opened_at);
-      const now = new Date();
-      const ageHours = (now.getTime() - opened.getTime()) / (1000 * 60 * 60);
-
-      // SLA thresholds - ONLY P5-P8 (P1-P4 completely removed)
-      const slaThresholds = {
-        'P5': 4,    // 4 hours (critico)
-        'P6': 8,    // 8 hours (critico)
-        'P7': 24,   // 24 hours (critico)
-        'P8': 72    // 72 hours (critico)
-      };
-
-      const threshold = slaThresholds[ticket.priority];
-      // If priority is not in our thresholds (shouldn't happen with new interface), ignore ticket
-      if (!threshold) return false;
-      
-      return ageHours > threshold;
-    });
-  }
-
-  /**
-   * Get filtered tickets based on current time filter
-   */
-  getFilteredTickets(): TicketData[] {
-    const store = this.getStore();
-    const state = store.getState();
-    const allTickets = state.ticketData || [];
-    const timeFilter = state.timeFilter;
-
-    if (!timeFilter) {
-      return allTickets;
-    }
-
-    return allTickets.filter(ticket => {
-      const ticketDate = new Date(ticket.opened_at);
-      return ticketDate >= timeFilter.start && ticketDate <= timeFilter.end;
-    });
-  }
-
-  /**
-   * Get all unresolved tickets (ignores time filter)
-   */
-  getAllUnresolvedTickets(): TicketData[] {
-    const store = this.getStore();
-    const state = store.getState();
-    const allTickets = state.ticketData || [];
-
-    return allTickets.filter(ticket =>
-      !['Resolved', 'Closed'].includes(ticket.state)
-    );
-  }
-
-  /**
-   * Get oldest open tickets by opened_at date
-   */
-  getOldestOpenTickets(count: number = 3): TicketData[] {
-    const unresolvedTickets = this.getAllUnresolvedTickets();
-
-    return unresolvedTickets
-      .sort((a, b) => new Date(a.opened_at).getTime() - new Date(b.opened_at).getTime())
-      .slice(0, count);
-  }
-
-  /**
-   * Sort tickets to prioritize oldest and least updated
-   * Primary: Last Updated (sys_updated_on) - oldest first
-   * Secondary: Opened Date (opened_at) - oldest first
-   */
-  sortTicketsByPriority(tickets: TicketData[]): TicketData[] {
-    return tickets.sort((a, b) => {
-      // Primary: Last Updated (oldest first)
-      const aUpdated = new Date(a.sys_updated_on).getTime();
-      const bUpdated = new Date(b.sys_updated_on).getTime();
-
-      if (aUpdated !== bUpdated) {
-        return aUpdated - bUpdated; // ASC (oldest first)
-      }
-
-      // Secondary: Opened Date (oldest first)
-      const aOpened = new Date(a.opened_at).getTime();
-      const bOpened = new Date(b.opened_at).getTime();
-      return aOpened - bOpened; // ASC (oldest first)
-    });
-  }
-
-  /**
-   * Apply additional filters (priority, state, operator)
-   */
-  applyAdditionalFilters(filters: {
-    priority?: string[];
-    state?: string[];
-    operator?: string[];
-  }): void {
-    const store = this.getStore();
-    const state = store.getState();
-
-    state.setAdditionalFilters(filters);
-    this.calculateMetrics();
-    this.generateAlerts();
-
-    state.markDirty();
-  }
-
-  /**
-   * Export filtered data as CSV
-   */
-  exportFilteredData(): void {
-    const tickets = this.getFilteredTickets();
-    const sortedTickets = this.sortTicketsByPriority([...tickets]);
-    const csvContent = this.generateCsvContent(sortedTickets);
-
-    // Create download
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `ticket-export-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  }
-
-  /**
-   * Generate CSV content from tickets
-   */
-  private generateCsvContent(tickets: TicketData[]): string {
-    if (tickets.length === 0) return '';
-
-    const headers = Object.keys(tickets[0]);
-    const headerRow = headers.join(',');
-
-    const dataRows = tickets.map(ticket =>
-      headers.map(header => {
-        const value = ticket[header as keyof TicketData] || '';
-        // Escape commas and quotes in CSV
-        return typeof value === 'string' && (value.includes(',') || value.includes('"'))
-          ? `"${value.replace(/"/g, '""')}"`
-          : value;
-      }).join(',')
-    );
-
-    return [headerRow, ...dataRows].join('\n');
-  }
-
-  /**
-   * Set selected operator for drill-down
-   */
-  selectOperator(operatorName: string): void {
-    const store = this.getStore();
-    const state = store.getState();
-
-    state.setSelectedOperator(operatorName);
-
-    // Calculate detailed operator metrics
-    const operatorTickets = this.getFilteredTickets().filter(
-      ticket => ticket.assigned_to === operatorName
-    );
-
-    const detailedMetrics = {
-      tickets: operatorTickets,
-      dailyActivity: this.calculateDailyActivity(operatorTickets),
-      timeline: this.generateTimeline(operatorTickets)
-    };
-
-    state.setOperatorDetails(detailedMetrics);
-    state.markDirty();
-  }
-
-  /**
-   * Calculate daily activity for an operator
-   */
-  private calculateDailyActivity(tickets: TicketData[]): Record<string, number> {
-    return tickets.reduce((activity, ticket) => {
-      const date = new Date(ticket.opened_at).toISOString().split('T')[0];
-      activity[date] = (activity[date] || 0) + 1;
-      return activity;
-    }, {} as Record<string, number>);
-  }
-
-  /**
-   * Generate timeline events for an operator
-   */
-  private generateTimeline(tickets: TicketData[]): Array<{date: string, event: string, ticket: string}> {
-    const events: Array<{date: string, event: string, ticket: string}> = [];
-
-    tickets.forEach(ticket => {
-      events.push({
-        date: ticket.opened_at,
-        event: 'Ticket Assigned',
-        ticket: ticket.number
-      });
-
-      if (ticket.resolved_at) {
-        events.push({
-          date: ticket.resolved_at,
-          event: 'Ticket Resolved',
-          ticket: ticket.number
-        });
-      }
-    });
-
-    return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }
-
-  /**
-   * Clear all dashboard data
-   */
-  clearDashboard(): void {
-    const store = this.getStore();
-    const state = store.getState();
-
-    state.setTicketData([]);
-    state.setDashboardMetrics(null);
-    state.setOperatorMetrics([]);
-    state.setDashboardAlerts([]);
-    state.setSelectedOperator(null);
-    state.setOperatorDetails(null);
-    state.setTimeFilter(null);
     state.setAdditionalFilters({});
     state.setTicketDashboardError(null);
 
     state.markDirty();
+  }
+
+  /**
+   * Create Dashboard Summary sheet with 14 KPI metrics
+   * Task Group 3 Implementation
+   * KPIs: Total Tickets, Open, Closed, Resolution Rate %, Avg Resolution Time, Current Backlog,
+   * Orphaned, Stagnant, Expired High Priority, Suspicious Closures, Unworked, Top Team Member,
+   * Slowest and Fastest Resolution Time
+   */
+  createSummarySheet(): any {
+    try {
+      const XLSX = require('xlsx');
+      const { NumberFormatting, DateFormatting, ColorConstants } = require('../utilities/ExcelUtilities');
+      const store = this.getStore();
+      const state = store.getState();
+
+      // Extract metrics from store
+      const metrics = state.dashboardMetrics || {};
+      const alerts = state.dashboardAlerts || [];
+      const operatorMetrics = state.operatorMetrics || [];
+
+      // Get filtered tickets for alert calculation
+      const filteredTickets = this.getFilteredTickets();
+
+      // Build KPI data array
+      const kpiData = [];
+
+      // 1. Total Tickets
+      kpiData.push({
+        name: 'Total Tickets',
+        value: NumberFormatting.formatInteger(metrics.totalTickets || 0),
+        status: 'green'
+      });
+
+      // 2. Open Tickets
+      const openCount = metrics.openTickets || 0;
+      kpiData.push({
+        name: 'Open Tickets',
+        value: NumberFormatting.formatInteger(openCount),
+        status: openCount > 20 ? 'yellow' : 'green'
+      });
+
+      // 3. Closed Tickets
+      kpiData.push({
+        name: 'Closed Tickets',
+        value: NumberFormatting.formatInteger(metrics.closedTickets || 0),
+        status: 'green'
+      });
+
+      // 4. Resolution Rate (%)
+      const resolutionRate = metrics.resolutionRate || 0;
+      kpiData.push({
+        name: 'Resolution Rate (%)',
+        value: NumberFormatting.formatPercentage(resolutionRate, 1),
+        status: resolutionRate < 70 ? 'red' : (resolutionRate < 85 ? 'yellow' : 'green')
+      });
+
+      // 5. Average Resolution Time (hours)
+      const avgResolutionTime = metrics.averageResolutionTime || 0;
+      kpiData.push({
+        name: 'Average Resolution Time (hours)',
+        value: NumberFormatting.formatHours(avgResolutionTime, 1),
+        status: avgResolutionTime > 48 ? 'yellow' : 'green'
+      });
+
+      // 6. Current Backlog Count
+      const backlogCount = metrics.backlogCurrent || 0;
+      kpiData.push({
+        name: 'Current Backlog Count',
+        value: NumberFormatting.formatInteger(backlogCount),
+        status: backlogCount > 50 ? 'red' : (backlogCount > 20 ? 'yellow' : 'green')
+      });
+
+      // 7. Orphaned Tickets (critical)
+      const orphanedTickets = this.getOrphanedTickets(filteredTickets);
+      const orphanedCount = orphanedTickets.length;
+      kpiData.push({
+        name: 'Orphaned Tickets (critical)',
+        value: NumberFormatting.formatInteger(orphanedCount),
+        status: orphanedCount > 0 ? 'red' : 'green'
+      });
+
+      // 8. Stagnant Tickets (critical)
+      const stagnantTickets = this.getStagnantTickets(filteredTickets);
+      const stagnantCount = stagnantTickets.length;
+      kpiData.push({
+        name: 'Stagnant Tickets (critical)',
+        value: NumberFormatting.formatInteger(stagnantCount),
+        status: stagnantCount > 0 ? 'red' : 'green'
+      });
+
+      // 9. Expired High Priority (critical)
+      const expiredTickets = this.getExpiredHighPriorityTickets(filteredTickets);
+      const expiredCount = expiredTickets.length;
+      kpiData.push({
+        name: 'Expired High Priority (critical)',
+        value: NumberFormatting.formatInteger(expiredCount),
+        status: expiredCount > 0 ? 'red' : 'green'
+      });
+
+      // 10. Suspicious Closures (warning)
+      const suspiciousClosures = this.getSuspiciousClosures(filteredTickets);
+      const suspiciousCount = suspiciousClosures.length;
+      kpiData.push({
+        name: 'Suspicious Closures (warning)',
+        value: NumberFormatting.formatInteger(suspiciousCount),
+        status: suspiciousCount > 0 ? 'yellow' : 'green'
+      });
+
+      // 11. Unworked Tickets (warning)
+      const unworkedTickets = this.getUnworkedTickets(filteredTickets);
+      const unworkedCount = unworkedTickets.length;
+      kpiData.push({
+        name: 'Unworked Tickets (warning)',
+        value: NumberFormatting.formatInteger(unworkedCount),
+        status: unworkedCount > 0 ? 'yellow' : 'green'
+      });
+
+      // 12. Top Team Member
+      let topMemberName = 'N/A';
+      let topMemberCount = 0;
+      if (operatorMetrics && operatorMetrics.length > 0) {
+        const topMember = operatorMetrics[0];
+        topMemberName = topMember.operatorName || 'N/A';
+        topMemberCount = topMember.resolvedTickets || 0;
+      }
+      kpiData.push({
+        name: 'Top Team Member',
+        value: topMemberName + ' (' + topMemberCount + ')',
+        status: 'green'
+      });
+
+      // 13. Slowest Resolution Time (hours)
+      let slowestTime = 0;
+      if (metrics.resolutionTimeCategories && metrics.resolutionTimeCategories.slowestTickets &&
+          metrics.resolutionTimeCategories.slowestTickets.length > 0) {
+        slowestTime = metrics.resolutionTimeCategories.slowestTickets[0].resolutionHours || 0;
+      }
+      kpiData.push({
+        name: 'Slowest Resolution Time (hours)',
+        value: NumberFormatting.formatHours(slowestTime, 1),
+        status: slowestTime > 72 ? 'red' : (slowestTime > 48 ? 'yellow' : 'green')
+      });
+
+      // 14. Fastest Resolution Time (hours)
+      let fastestTime = 0;
+      if (metrics.resolutionTimeCategories && metrics.resolutionTimeCategories.fastestTickets &&
+          metrics.resolutionTimeCategories.fastestTickets.length > 0) {
+        fastestTime = metrics.resolutionTimeCategories.fastestTickets[0].resolutionHours || 0;
+      }
+      kpiData.push({
+        name: 'Fastest Resolution Time (hours)',
+        value: NumberFormatting.formatHours(fastestTime, 1),
+        status: 'green'
+      });
+
+      // Create sheet data with headers
+      const sheetData = [
+        ['KPI Metric', 'Value', 'Status']
+      ];
+
+      // Add KPI rows
+      kpiData.forEach(kpi => {
+        sheetData.push([kpi.name, kpi.value, kpi.status]);
+      });
+
+      // Create XLSX sheet
+      const sheet = XLSX.utils.aoa_to_sheet(sheetData);
+
+      // Apply header formatting (row 0)
+      const headerCells = ['A1', 'B1', 'C1'];
+      headerCells.forEach(cell => {
+        if (sheet[cell]) {
+          sheet[cell].s = {
+            fill: { fgColor: { rgb: '333333' } }, // RGB 51,51,51
+            font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 },
+            alignment: { horizontal: 'center', vertical: 'center' }
+          };
+        }
+      });
+
+      // Apply row formatting and status coloring
+      kpiData.forEach((kpi, index) => {
+        const rowIndex = index + 2; // Row numbering starts at 1, header is row 1
+        const statusCell = `C${rowIndex}`;
+        const valueCells = [`A${rowIndex}`, `B${rowIndex}`];
+
+        // Format status column with background color
+        if (sheet[statusCell]) {
+          let bgColor = 'C8FFC8'; // Green (RGB 200,255,200)
+          if (kpi.status === 'red') {
+            bgColor = 'C00000'; // Red (RGB 192,0,0)
+          } else if (kpi.status === 'yellow') {
+            bgColor = 'FFC000'; // Yellow (RGB 255,192,0)
+          }
+
+          sheet[statusCell].s = {
+            fill: { fgColor: { rgb: bgColor } },
+            font: { color: { rgb: 'FFFFFF' } },
+            alignment: { horizontal: 'center', vertical: 'center' }
+          };
+        }
+
+        // Format data cells with right alignment for values
+        valueCells.forEach(cell => {
+          if (sheet[cell]) {
+            sheet[cell].s = {
+              alignment: { horizontal: cell === `B${rowIndex}` ? 'right' : 'left', vertical: 'center' },
+              fill: { fgColor: { rgb: (index % 2 === 0 ? 'FFFFFF' : 'F5F5F5') } }
+            };
+          }
+        });
+      });
+
+      // Set column widths
+      sheet['!cols'] = [
+        { wch: 35 }, // Column A (KPI Name)
+        { wch: 30 }, // Column B (Value)
+        { wch: 15 }  // Column C (Status)
+      ];
+
+      // Freeze header row
+      sheet['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+      console.log('[EXPORT] Dashboard Summary sheet created with 14 KPIs');
+      return sheet;
+
+    } catch (error) {
+      console.error('[EXPORT] Error creating summary sheet:', error);
+      return null;
+    }
   }
 }
 
