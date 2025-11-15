@@ -1985,7 +1985,19 @@ class ApplicationController extends BaseComponent {
                 // Get store data for correct calculations (same logic as app-store.js::calculatePhasesTotals)
                 const storeState = window.appStore?.getState();
                 const resourceRates = storeState?.resourceRates || { G1: 450, G2: 380, TA: 420, PM: 500 };
-                const availableSuppliers = storeState?.availableSuppliers || [];
+
+                // Get available suppliers from project config (not just store, which may not be initialized during export)
+                let availableSuppliers = storeState?.availableSuppliers || [];
+                if (availableSuppliers.length === 0 && currentProject?.config) {
+                    // Fallback: load suppliers from project configuration
+                    const projectConfig = currentProject.config;
+                    const configManager = this.managers.config;
+                    if (configManager) {
+                        const suppliers = configManager.getSuppliers(projectConfig) || [];
+                        const internalResources = configManager.getInternalResources(projectConfig) || [];
+                        availableSuppliers = [...suppliers, ...internalResources];
+                    }
+                }
 
                 // Calculate man days by resource
                 if (phase.effort) {
