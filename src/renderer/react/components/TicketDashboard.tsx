@@ -64,12 +64,17 @@ export const TicketDashboard: React.FC = () => {
   }, [ticketData.length]);
 
   const handleFileUpload = async (file: File) => {
+    console.log('[TICKET-DASHBOARD] File selected:', file.name, 'Size:', file.size);
     setIsProcessing(true);
     try {
       const csvContent = await file.text();
+      console.log('[TICKET-DASHBOARD] CSV content loaded, length:', csvContent.length);
+      console.log('[TICKET-DASHBOARD] Calling importCsvData...');
       actions.importCsvData(csvContent);
+      console.log('[TICKET-DASHBOARD] importCsvData completed');
     } catch (error) {
-      console.error('Error processing file:', error);
+      console.error('[TICKET-DASHBOARD] Error processing file:', error);
+      alert('Error loading CSV: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsProcessing(false);
     }

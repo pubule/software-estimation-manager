@@ -28,7 +28,8 @@
       "Bash(__NEW_LINE__ echo \"\")",
       "Bash(taskkill:*)",
       "mcp__serena__find_referencing_symbols",
-      "Bash(timeout 10 npm start)"
+      "Bash(timeout 10 npm start)",
+      "Bash(timeout 15 npm start)"
     ],
     "deny": [],
     "ask": []

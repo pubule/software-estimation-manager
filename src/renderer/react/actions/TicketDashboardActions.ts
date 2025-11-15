@@ -85,25 +85,39 @@ export class TicketDashboardActions {
    */
   importCsvData(csvContent: string): void {
     try {
+      console.log('[IMPORT-CSV] Starting import...');
       const tickets = this.parseCsvContent(csvContent);
+      console.log('[IMPORT-CSV] Parsed tickets:', tickets.length);
+
+      if (tickets.length === 0) {
+        console.warn('[IMPORT-CSV] No valid tickets found in CSV');
+        alert('Warning: No valid tickets found in CSV. Make sure the CSV has required columns: number, opened_at, priority, state');
+      }
+
       const store = this.getStore();
       const state = store.getState();
 
       // Store raw ticket data
+      console.log('[IMPORT-CSV] Storing ticket data in state...');
       state.setTicketData(tickets);
 
       // Calculate initial metrics
+      console.log('[IMPORT-CSV] Calculating metrics...');
       this.calculateMetrics();
 
       // Generate alerts
+      console.log('[IMPORT-CSV] Generating alerts...');
       this.generateAlerts();
 
+      console.log('[IMPORT-CSV] Marking state as dirty...');
       state.markDirty();
+
+      console.log('[IMPORT-CSV] Import completed successfully');
     } catch (error) {
-      console.error('Error importing CSV:', error);
+      console.error('[IMPORT-CSV] Error importing CSV:', error);
       const store = this.getStore();
       const state = store.getState();
-      state.setTicketDashboardError('Failed to import CSV data');
+      state.setTicketDashboardError('Failed to import CSV data: ' + (error instanceof Error ? error.message : String(error)));
     }
   }
 
