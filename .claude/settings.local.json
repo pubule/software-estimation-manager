@@ -20,10 +20,15 @@
       "mcp__serena__search_for_pattern",
       "Bash(nul)",
       "Bash(find:*)",
-      "Bash(timeout 10 npm run:*)",
+      "Bash(cd:*)",
+      "Bash(/tmp/TicketDashboardActions_full.ts)",
+      "Bash(/tmp/TicketDashboardActions_backup.ts)",
+      "Bash(echo:*)",
+      "Bash(__NEW_LINE__ echo \"=== KEY FILES VERIFICATION ===\")",
+      "Bash(__NEW_LINE__ echo \"\")",
       "Bash(taskkill:*)",
-      "Bash(timeout 5 echo:*)",
-      "mcp__serena__find_referencing_symbols"
+      "mcp__serena__find_referencing_symbols",
+      "Bash(timeout 10 npm start)"
     ],
     "deny": [],
     "ask": []

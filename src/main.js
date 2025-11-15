@@ -423,6 +423,65 @@ ipcMain.handle('window-close', () => {
 });
 
 // Handle response from renderer about whether it's safe to close
+
+// Excel Export IPC Handler - Task Group 9.2
+// Using 'save-excel-file' to avoid conflict with legacy 'save-file' handler
+ipcMain.handle('save-excel-file', async (event, { filename, data }) => {
+    try {
+        const downloadsPath = app.getPath('downloads');
+        let filePath = path.join(downloadsPath, filename);
+
+        // Check if file exists and append timestamp if collision
+        if (fs.existsSync(filePath)) {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '').slice(0, -5);
+            const ext = path.extname(filename);
+            const basename = path.basename(filename, ext);
+            filePath = path.join(downloadsPath, `${basename}_${timestamp}${ext}`);
+            console.log(`[IPC] File collision detected, saving with timestamp: ${path.basename(filePath)}`);
+        }
+
+        // Convert ArrayBuffer to Buffer if needed
+        let bufferData = data;
+        if (data instanceof ArrayBuffer) {
+            bufferData = Buffer.from(data);
+        } else if (typeof data === 'string') {
+            bufferData = Buffer.from(data, 'binary');
+        }
+
+        // Write file
+        await fs.writeFile(filePath, bufferData);
+
+        console.log(`[IPC] File saved successfully: ${filePath}`);
+        return {
+            success: true,
+            filename: path.basename(filePath),
+            path: filePath
+        };
+    } catch (error) {
+        console.error('[IPC] File save error:', error);
+
+        // Handle specific error types
+        let message = 'Failed to save file';
+
+        if (error.code === 'EACCES') {
+            message = 'Permission denied: Cannot write to Downloads folder';
+        } else if (error.code === 'ENOSPC') {
+            message = 'Disk full: Not enough space to save file';
+        } else if (error.code === 'ENOENT') {
+            message = 'Invalid Downloads folder path';
+        } else if (error.code === 'EEXIST') {
+            message = 'File already exists';
+        } else if (error instanceof Error) {
+            message = error.message;
+        }
+
+        return {
+            success: false,
+            error: message
+        };
+    }
+});
+
 ipcMain.handle('confirm-window-close', (event, canClose) => {
     if (mainWindow && canClose) {
         mainWindow.destroy();
