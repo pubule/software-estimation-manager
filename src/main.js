@@ -575,23 +575,89 @@ function getAlertColors(alertType) {
 
 ipcMain.handle('export-ticket-report', async (event, exportData) => {
   try {
-    const XLSX = require('xlsx');
+    // Load ExcelJS if not available
+    if (typeof ExcelJS === 'undefined') {
+      // ExcelJS needs to be available - load from Node.js require
+      // Since this is in main process, we can use require directly
+      try {
+        const ExcelJSModule = require('exceljs');
+        global.ExcelJS = ExcelJSModule;
+      } catch (e) {
+        console.error('[IPC] ExcelJS not available:', e.message);
+        throw new Error('ExcelJS library not available');
+      }
+    }
 
-    console.log(`[IPC] Starting ticket report export with styling`);
+    console.log(`[IPC] Starting ticket report export with ExcelJS`);
 
     // Create workbook
-    const workbook = XLSX.utils.book_new();
+    const ExcelJS = global.ExcelJS || require('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    
+    // Set workbook properties
+    workbook.creator = 'Ticket Dashboard';
+    workbook.lastModifiedBy = 'Ticket Dashboard';
+    workbook.created = new Date();
+    workbook.modified = new Date();
+
+    // Define reusable styles
+    const styles = {
+      headerRed: {
+        font: { name: 'Calibri', size: 12, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC00000' } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
+      },
+      headerYellow: {
+        font: { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF000000' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC000' } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
+      },
+      headerGray: {
+        font: { name: 'Calibri', size: 12, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
+      },
+      dataLight: {
+        font: { name: 'Calibri', size: 11 },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
+        alignment: { horizontal: 'left', vertical: 'center' },
+        border: { top: { style: 'thin', color: { argb: 'FFD3D3D3' } }, left: { style: 'thin', color: { argb: 'FFD3D3D3' } }, bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } }, right: { style: 'thin', color: { argb: 'FFD3D3D3' } } }
+      },
+      dataDark: {
+        font: { name: 'Calibri', size: 11 },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } },
+        alignment: { horizontal: 'left', vertical: 'center' },
+        border: { top: { style: 'thin', color: { argb: 'FFD3D3D3' } }, left: { style: 'thin', color: { argb: 'FFD3D3D3' } }, bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } }, right: { style: 'thin', color: { argb: 'FFD3D3D3' } } }
+      }
+    };
 
     // ============== SHEET 1: TEAM ANALYSIS ==============
     if (exportData.teamAnalysis && exportData.teamAnalysis.metrics) {
-      const teamData = [
-        ['Team Analysis - Operator Performance Metrics'],
-        [''],
-        ['Operator', 'Assigned Tickets', 'Resolved Tickets', 'Avg Resolution (hrs)', 'Tickets in Delay', 'Delay %', 'Utilization %']
-      ];
-
-      exportData.teamAnalysis.metrics.forEach(metric => {
-        teamData.push([
+      const worksheet = workbook.addWorksheet('Team Analysis', { tabColor: { argb: 'FF333333' } });
+      
+      // Add title
+      worksheet.mergeCells('A1:G1');
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = 'Team Analysis - Operator Performance Metrics';
+      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getRow(1).height = 25;
+      
+      // Add headers
+      const headers = ['Operator', 'Assigned Tickets', 'Resolved Tickets', 'Avg Resolution (hrs)', 'Tickets in Delay', 'Delay %', 'Utilization %'];
+      const headerRow = worksheet.addRow(headers);
+      headerRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } };
+      headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+      headerRow.height = 20;
+      
+      // Add data rows
+      exportData.teamAnalysis.metrics.forEach((metric, index) => {
+        const row = worksheet.addRow([
           metric.operatorName || '',
           metric.assignedTickets || 0,
           metric.resolvedTickets || 0,
@@ -600,63 +666,84 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           metric.delayPercentage ? metric.delayPercentage.toFixed(2) : 0,
           metric.utilizationPercentage ? metric.utilizationPercentage.toFixed(2) : 0
         ]);
-      });
-
-      const teamSheet = XLSX.utils.aoa_to_sheet(teamData);
-      
-      // Apply header styling (row 2, columns 0-6)
-      for (let col = 0; col <= 6; col++) {
-        applyHeaderStyle(teamSheet, XLSX.utils.encode_cell({ r: 2, c: col }), '333333', 'FFFFFF');
-      }
-      
-      // Apply data row styling with conditional coloring for Delay %
-      for (let row = 3; row < teamData.length; row++) {
-        const bgColor = (row - 3) % 2 === 0 ? 'FFFFFF' : 'F5F5F5';
         
-        for (let col = 0; col <= 6; col++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-          
-          // Special handling for Delay % column (col 5)
-          if (col === 5) {
-            const delayValue = teamData[row][5];
-            const delayColor = getConditionalColor(parseFloat(delayValue), 'delayPercentage');
-            if (!teamSheet[cellAddress]) teamSheet[cellAddress] = {};
-            teamSheet[cellAddress].s = {
-              fill: { fgColor: { rgb: hexToRgb(delayColor) } },
-              font: { color: { rgb: hexToRgb('FFFFFF') }, sz: 11 },
-              alignment: { horizontal: 'center', vertical: 'center' }
-            };
+        // Apply alternating row colors
+        const fillColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF5F5F5';
+        
+        // Delay % column gets conditional coloring
+        const delayValue = metric.delayPercentage || 0;
+        let delayFillColor = 'FFC8FFC8'; // Green
+        if (delayValue > 20) delayFillColor = 'FFC00000'; // Red
+        else if (delayValue > 10) delayFillColor = 'FFFFC000'; // Yellow
+        
+        for (let i = 1; i <= 7; i++) {
+          const cell = row.getCell(i);
+          if (i === 6) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: delayFillColor } };
+            cell.font = { name: 'Calibri', size: 11, bold: delayValue > 10 };
           } else {
-            applyCellStyle(teamSheet, cellAddress, bgColor);
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
           }
+          cell.border = { top: { style: 'thin', color: { argb: 'FFD3D3D3' } }, left: { style: 'thin', color: { argb: 'FFD3D3D3' } }, bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } }, right: { style: 'thin', color: { argb: 'FFD3D3D3' } } };
+          cell.alignment = { horizontal: i === 1 ? 'left' : 'right', vertical: 'center' };
         }
-      }
+      });
       
       // Set column widths
-      teamSheet['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 12 }, { wch: 15 }];
-      
-      XLSX.utils.book_append_sheet(workbook, teamSheet, 'Team Analysis');
+      worksheet.columns = [
+        { width: 25 },
+        { width: 15 },
+        { width: 15 },
+        { width: 18 },
+        { width: 15 },
+        { width: 12 },
+        { width: 15 }
+      ];
     }
 
-    // ============== SHEET 2: ORPHANED TICKETS ALERT ==============
+    // ============== SHEET 2: ORPHANED TICKETS ==============
     if (exportData.alerts && exportData.alerts.orphaned) {
-      const alertColors = getAlertColors('orphaned');
-      const orphanedData = [
-        ['ORPHANED TICKETS ALERT - Unassigned Tickets'],
-        [''],
-        ['Summary:'],
+      const worksheet = workbook.addWorksheet('Orphaned Tickets', { tabColor: { argb: 'FFC00000' } });
+      
+      let rowNum = 1;
+      
+      // Title
+      worksheet.mergeCells(`A${rowNum}:G${rowNum}`);
+      const titleCell = worksheet.getCell(`A${rowNum}`);
+      titleCell.value = 'ORPHANED TICKETS ALERT - Unassigned Tickets';
+      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC00000' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getRow(rowNum).height = 25;
+      rowNum += 2;
+      
+      // Summary
+      const summaryData = [
         ['Total Orphaned', exportData.alerts.orphaned.summary.total],
         ['> 7 Days', exportData.alerts.orphaned.summary.overSevenDays],
         ['> 14 Days', exportData.alerts.orphaned.summary.overFourteenDays],
-        ['> 30 Days', exportData.alerts.orphaned.summary.overThirtyDays],
-        [''],
-        ['Orphaned Tickets Detail:'],
-        ['Ticket ID', 'Title', 'Created', 'Days Open', 'Priority', 'Status', 'Last Updated']
+        ['> 30 Days', exportData.alerts.orphaned.summary.overThirtyDays]
       ];
-
-      exportData.alerts.orphaned.tickets.forEach(t => {
+      
+      summaryData.forEach(([label, value]) => {
+        const row = worksheet.addRow([label, value]);
+        row.getCell(1).font = { name: 'Calibri', size: 11, bold: true };
+        row.getCell(2).font = { name: 'Calibri', size: 11, bold: value > 0, color: { argb: value > 0 ? 'FFC00000' : 'FF000000' } };
+      });
+      
+      rowNum += summaryData.length + 1;
+      
+      // Detail headers
+      const detailHeaders = ['Ticket ID', 'Title', 'Created', 'Days Open', 'Priority', 'Status', 'Last Updated'];
+      const headerRow = worksheet.addRow(detailHeaders);
+      headerRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC00000' } };
+      headerRow.height = 20;
+      
+      // Detail rows
+      exportData.alerts.orphaned.tickets.forEach((t, index) => {
         const daysOpen = (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
-        orphanedData.push([
+        const row = worksheet.addRow([
           t.number || '',
           t.short_description || '',
           new Date(t.opened_at).toLocaleDateString(),
@@ -665,61 +752,60 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           t.state || '',
           new Date(t.sys_updated_on).toLocaleDateString()
         ]);
-      });
-
-      const orphanedSheet = XLSX.utils.aoa_to_sheet(orphanedData);
-      
-      // Apply header styling for detail section (row 8)
-      for (let col = 0; col <= 6; col++) {
-        applyHeaderStyle(orphanedSheet, XLSX.utils.encode_cell({ r: 8, c: col }), alertColors.headerBg, 'FFFFFF');
-      }
-      
-      // Apply alert data row styling
-      for (let row = 9; row < orphanedData.length; row++) {
-        const bgColor = (row - 9) % 2 === 0 ? 'FFFFFF' : alertColors.lightBg;
-        for (let col = 0; col <= 6; col++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-          
-          // Bold Days Open if > 7 days
-          let isBold = false;
-          if (col === 3 && parseFloat(orphanedData[row][3]) > 7) {
-            isBold = true;
-          }
-          
-          if (!orphanedSheet[cellAddress]) orphanedSheet[cellAddress] = {};
-          orphanedSheet[cellAddress].s = {
-            fill: { fgColor: { rgb: hexToRgb(bgColor) } },
-            font: { bold: isBold, color: { rgb: hexToRgb('000000') }, sz: 11 },
-            alignment: { horizontal: col === 3 ? 'right' : 'left', vertical: 'center' }
-          };
+        
+        const fillColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFFFE6E6';
+        for (let i = 1; i <= 7; i++) {
+          const cell = row.getCell(i);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
+          cell.border = { top: { style: 'thin', color: { argb: 'FFD3D3D3' } }, left: { style: 'thin', color: { argb: 'FFD3D3D3' } }, bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } }, right: { style: 'thin', color: { argb: 'FFD3D3D3' } } };
         }
-      }
+      });
       
-      orphanedSheet['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 15 }];
-      
-      XLSX.utils.book_append_sheet(workbook, orphanedSheet, 'Orphaned Tickets');
+      worksheet.columns = [{ width: 15 }, { width: 30 }, { width: 15 }, { width: 12 }, { width: 10 }, { width: 12 }, { width: 15 }];
     }
 
-    // ============== SHEET 3: STAGNANT TICKETS ALERT ==============
+    // ============== SHEET 3: STAGNANT TICKETS ==============
     if (exportData.alerts && exportData.alerts.stagnant) {
-      const alertColors = getAlertColors('stagnant');
-      const stagnantData = [
-        ['STAGNANT TICKETS ALERT - No Recent Activity'],
-        [''],
-        ['Summary:'],
+      const worksheet = workbook.addWorksheet('Stagnant Tickets', { tabColor: { argb: 'FFC00000' } });
+      
+      let rowNum = 1;
+      
+      // Title
+      worksheet.mergeCells(`A${rowNum}:H${rowNum}`);
+      const titleCell = worksheet.getCell(`A${rowNum}`);
+      titleCell.value = 'STAGNANT TICKETS ALERT - No Recent Activity';
+      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC00000' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getRow(rowNum).height = 25;
+      rowNum += 2;
+      
+      // Summary
+      const summaryData = [
         ['Total Stagnant', exportData.alerts.stagnant.summary.total],
         ['> 7 Days No Update', exportData.alerts.stagnant.summary.overSevenDays],
         ['> 14 Days No Update', exportData.alerts.stagnant.summary.overFourteenDays],
-        ['Max Stagnation (days)', exportData.alerts.stagnant.summary.maxStagnationDays.toFixed(1)],
-        [''],
-        ['Stagnant Tickets Detail:'],
-        ['Ticket ID', 'Title', 'Created', 'Days Stagnant', 'Days Open', 'Priority', 'Assigned To', 'Status']
+        ['Max Stagnation (days)', exportData.alerts.stagnant.summary.maxStagnationDays.toFixed(1)]
       ];
-
-      exportData.alerts.stagnant.tickets.forEach(t => {
-        const daysOpen = (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+      
+      summaryData.forEach(([label, value]) => {
+        const row = worksheet.addRow([label, value]);
+        row.getCell(1).font = { name: 'Calibri', size: 11, bold: true };
+        row.getCell(2).font = { name: 'Calibri', size: 11, bold: value > 7, color: { argb: value > 7 ? 'FFC00000' : 'FF000000' } };
+      });
+      
+      // Detail headers
+      const detailHeaders = ['Ticket ID', 'Title', 'Created', 'Days Stagnant', 'Days Open', 'Priority', 'Assigned To', 'Status'];
+      const headerRow = worksheet.addRow(detailHeaders);
+      headerRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC00000' } };
+      headerRow.height = 20;
+      
+      // Detail rows
+      exportData.alerts.stagnant.tickets.forEach((t, index) => {
         const daysSinceUpdate = (new Date().getTime() - new Date(t.sys_updated_on).getTime()) / (1000 * 60 * 60 * 24);
-        stagnantData.push([
+        const daysOpen = (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+        const row = worksheet.addRow([
           t.number || '',
           t.short_description || '',
           new Date(t.opened_at).toLocaleDateString(),
@@ -729,61 +815,67 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           t.assigned_to || '',
           t.state || ''
         ]);
-      });
-
-      const stagnantSheet = XLSX.utils.aoa_to_sheet(stagnantData);
-      
-      // Apply header styling
-      for (let col = 0; col <= 7; col++) {
-        applyHeaderStyle(stagnantSheet, XLSX.utils.encode_cell({ r: 8, c: col }), alertColors.headerBg, 'FFFFFF');
-      }
-      
-      // Apply data rows
-      for (let row = 9; row < stagnantData.length; row++) {
-        const bgColor = (row - 9) % 2 === 0 ? 'FFFFFF' : alertColors.lightBg;
-        for (let col = 0; col <= 7; col++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-          if (!stagnantSheet[cellAddress]) stagnantSheet[cellAddress] = {};
-          stagnantSheet[cellAddress].s = {
-            fill: { fgColor: { rgb: hexToRgb(bgColor) } },
-            font: { color: { rgb: hexToRgb('000000') }, sz: 11 },
-            alignment: { horizontal: 'left', vertical: 'center' }
-          };
+        
+        const fillColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFFFE6E6';
+        for (let i = 1; i <= 8; i++) {
+          const cell = row.getCell(i);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
+          cell.border = { top: { style: 'thin', color: { argb: 'FFD3D3D3' } }, left: { style: 'thin', color: { argb: 'FFD3D3D3' } }, bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } }, right: { style: 'thin', color: { argb: 'FFD3D3D3' } } };
         }
-      }
+      });
       
-      stagnantSheet['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 15 }, { wch: 12 }];
-      
-      XLSX.utils.book_append_sheet(workbook, stagnantSheet, 'Stagnant Tickets');
+      worksheet.columns = [{ width: 15 }, { width: 30 }, { width: 15 }, { width: 12 }, { width: 12 }, { width: 10 }, { width: 15 }, { width: 12 }];
     }
 
-    // ============== SHEET 4: EXPIRED HIGH PRIORITY ALERT ==============
+    // ============== SHEET 4: EXPIRED HIGH PRIORITY ==============
     if (exportData.alerts && exportData.alerts.expiredHighPriority) {
-      const alertColors = getAlertColors('expiredHighPriority');
-      const expiredData = [
-        ['EXPIRED HIGH PRIORITY ALERT - SLA Violations'],
-        [''],
-        ['Summary:'],
+      const worksheet = workbook.addWorksheet('Expired High Priority', { tabColor: { argb: 'FFC00000' } });
+      
+      let rowNum = 1;
+      
+      // Title
+      worksheet.mergeCells(`A${rowNum}:H${rowNum}`);
+      const titleCell = worksheet.getCell(`A${rowNum}`);
+      titleCell.value = 'EXPIRED HIGH PRIORITY ALERT - SLA Violations';
+      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC00000' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getRow(rowNum).height = 25;
+      rowNum += 2;
+      
+      // Summary
+      const summaryData = [
         ['Total Overdue', exportData.alerts.expiredHighPriority.summary.total],
         ['P5 Overdue', exportData.alerts.expiredHighPriority.summary.p5Overdue],
         ['P6 Overdue', exportData.alerts.expiredHighPriority.summary.p6Overdue],
         ['P7 Overdue', exportData.alerts.expiredHighPriority.summary.p7Overdue],
         ['P8 Overdue', exportData.alerts.expiredHighPriority.summary.p8Overdue],
-        ['Max Overdue (hrs)', exportData.alerts.expiredHighPriority.summary.maxOverdueHours.toFixed(1)],
-        [''],
-        ['Expired High Priority Tickets Detail:'],
-        ['Ticket ID', 'Priority', 'Title', 'Created', 'Hours Overdue', 'SLA Threshold (hrs)', 'Assigned To', 'Status']
+        ['Max Overdue (hrs)', exportData.alerts.expiredHighPriority.summary.maxOverdueHours.toFixed(1)]
       ];
-
-      exportData.alerts.expiredHighPriority.tickets.forEach(t => {
+      
+      summaryData.forEach(([label, value]) => {
+        const row = worksheet.addRow([label, value]);
+        row.getCell(1).font = { name: 'Calibri', size: 11, bold: true };
+        row.getCell(2).font = { name: 'Calibri', size: 11, bold: value > 0, color: { argb: value > 0 ? 'FFC00000' : 'FF000000' } };
+      });
+      
+      // Detail headers
+      const detailHeaders = ['Ticket ID', 'Priority', 'Title', 'Created', 'Hours Overdue', 'SLA Threshold (hrs)', 'Assigned To', 'Status'];
+      const headerRow = worksheet.addRow(detailHeaders);
+      headerRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC00000' } };
+      headerRow.height = 20;
+      
+      // Detail rows
+      exportData.alerts.expiredHighPriority.tickets.forEach((t, index) => {
         const slaThresholds = { P5: 4, P6: 8, P7: 24, P8: 72 };
         const slaHours = slaThresholds[t.priority] || 72;
         const slaMs = slaHours * 60 * 60 * 1000;
         const openedTime = new Date(t.opened_at).getTime();
         const now = new Date().getTime();
         const hoursOverdue = (now - openedTime - slaMs) / (1000 * 60 * 60);
-
-        expiredData.push([
+        
+        const row = worksheet.addRow([
           t.number || '',
           t.priority || '',
           t.short_description || '',
@@ -793,70 +885,73 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           t.assigned_to || '',
           t.state || ''
         ]);
-      });
-
-      const expiredSheet = XLSX.utils.aoa_to_sheet(expiredData);
-      
-      // Apply header styling
-      for (let col = 0; col <= 7; col++) {
-        applyHeaderStyle(expiredSheet, XLSX.utils.encode_cell({ r: 10, c: col }), alertColors.headerBg, 'FFFFFF');
-      }
-      
-      // Apply data rows with priority coloring
-      for (let row = 11; row < expiredData.length; row++) {
-        const bgColor = (row - 11) % 2 === 0 ? 'FFFFFF' : alertColors.lightBg;
         
-        for (let col = 0; col <= 7; col++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+        const fillColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFFFE6E6';
+        for (let i = 1; i <= 8; i++) {
+          const cell = row.getCell(i);
           
-          // Priority column (col 1) gets color coding
-          if (col === 1) {
-            const priorityColor = getConditionalColor(expiredData[row][1], 'priority');
-            if (!expiredSheet[cellAddress]) expiredSheet[cellAddress] = {};
-            expiredSheet[cellAddress].s = {
-              fill: { fgColor: { rgb: hexToRgb(priorityColor) } },
-              font: { bold: true, color: { rgb: hexToRgb('000000') }, sz: 11 },
-              alignment: { horizontal: 'center', vertical: 'center' }
-            };
+          // Priority coloring
+          if (i === 2) {
+            let priorityColor = 'FFFFFFFF';
+            if (t.priority === 'P5') priorityColor = 'FFFFC8C8';
+            else if (t.priority === 'P6') priorityColor = 'FFFFF0C8';
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: priorityColor } };
           } else {
-            if (!expiredSheet[cellAddress]) expiredSheet[cellAddress] = {};
-            expiredSheet[cellAddress].s = {
-              fill: { fgColor: { rgb: hexToRgb(bgColor) } },
-              font: { color: { rgb: hexToRgb('000000') }, sz: 11 },
-              alignment: { horizontal: 'left', vertical: 'center' }
-            };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
           }
+          
+          cell.border = { top: { style: 'thin', color: { argb: 'FFD3D3D3' } }, left: { style: 'thin', color: { argb: 'FFD3D3D3' } }, bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } }, right: { style: 'thin', color: { argb: 'FFD3D3D3' } } };
         }
-      }
+      });
       
-      expiredSheet['!cols'] = [{ wch: 15 }, { wch: 10 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 12 }];
-      
-      XLSX.utils.book_append_sheet(workbook, expiredSheet, 'Expired High Priority');
+      worksheet.columns = [{ width: 15 }, { width: 10 }, { width: 30 }, { width: 15 }, { width: 15 }, { width: 18 }, { width: 15 }, { width: 12 }];
     }
 
-    // ============== SHEET 5: SUSPICIOUS CLOSURES ALERT ==============
+    // ============== SHEET 5: SUSPICIOUS CLOSURES ==============
     if (exportData.alerts && exportData.alerts.suspiciousClosures) {
-      const alertColors = getAlertColors('suspiciousClosures');
-      const suspiciousData = [
-        ['SUSPICIOUS CLOSURES ALERT - Unusually Fast Resolutions'],
-        [''],
-        ['Summary:'],
+      const worksheet = workbook.addWorksheet('Suspicious Closures', { tabColor: { argb: 'FFFFC000' } });
+      
+      let rowNum = 1;
+      
+      // Title
+      worksheet.mergeCells(`A${rowNum}:G${rowNum}`);
+      const titleCell = worksheet.getCell(`A${rowNum}`);
+      titleCell.value = 'SUSPICIOUS CLOSURES ALERT - Unusually Fast Resolutions';
+      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF000000' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC000' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getRow(rowNum).height = 25;
+      rowNum += 2;
+      
+      // Summary
+      const summaryData = [
         ['Total Suspicious', exportData.alerts.suspiciousClosures.summary.total],
         ['< 5 minutes', exportData.alerts.suspiciousClosures.summary.lessThan5Min],
         ['< 15 minutes', exportData.alerts.suspiciousClosures.summary.lessThan15Min],
         ['< 30 minutes', exportData.alerts.suspiciousClosures.summary.lessThan30Min],
-        ['Avg Close Time (min)', exportData.alerts.suspiciousClosures.summary.avgCloseTimeMin.toFixed(2)],
-        [''],
-        ['Suspicious Closures Detail:'],
-        ['Ticket ID', 'Priority', 'Title', 'Created', 'Resolved', 'Close Time (min)', 'Expected SLA (hrs)']
+        ['Avg Close Time (min)', exportData.alerts.suspiciousClosures.summary.avgCloseTimeMin.toFixed(2)]
       ];
-
-      exportData.alerts.suspiciousClosures.tickets.forEach(t => {
+      
+      summaryData.forEach(([label, value]) => {
+        const row = worksheet.addRow([label, value]);
+        row.getCell(1).font = { name: 'Calibri', size: 11, bold: true };
+        row.getCell(2).font = { name: 'Calibri', size: 11 };
+      });
+      
+      // Detail headers
+      const detailHeaders = ['Ticket ID', 'Priority', 'Title', 'Created', 'Resolved', 'Close Time (min)', 'Expected SLA (hrs)'];
+      const headerRow = worksheet.addRow(detailHeaders);
+      headerRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF000000' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC000' } };
+      headerRow.height = 20;
+      
+      // Detail rows
+      exportData.alerts.suspiciousClosures.tickets.forEach((t, index) => {
+        const closeTimeMinutes = (new Date(t.resolved_at || '').getTime() - new Date(t.opened_at).getTime()) / (1000 * 60);
         const slaThresholds = { P5: 4, P6: 8, P7: 24, P8: 72 };
         const slaHours = slaThresholds[t.priority] || 72;
-        const closeTimeMinutes = (new Date(t.resolved_at || '').getTime() - new Date(t.opened_at).getTime()) / (1000 * 60);
-
-        suspiciousData.push([
+        
+        const row = worksheet.addRow([
           t.number || '',
           t.priority || '',
           t.short_description || '',
@@ -865,53 +960,59 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           closeTimeMinutes.toFixed(1),
           slaHours
         ]);
-      });
-
-      const suspiciousSheet = XLSX.utils.aoa_to_sheet(suspiciousData);
-      
-      // Apply header styling
-      for (let col = 0; col <= 6; col++) {
-        applyHeaderStyle(suspiciousSheet, XLSX.utils.encode_cell({ r: 9, c: col }), alertColors.headerBg, 'FFFFFF');
-      }
-      
-      // Apply data rows
-      for (let row = 10; row < suspiciousData.length; row++) {
-        const bgColor = (row - 10) % 2 === 0 ? 'FFFFFF' : alertColors.lightBg;
-        for (let col = 0; col <= 6; col++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-          if (!suspiciousSheet[cellAddress]) suspiciousSheet[cellAddress] = {};
-          suspiciousSheet[cellAddress].s = {
-            fill: { fgColor: { rgb: hexToRgb(bgColor) } },
-            font: { color: { rgb: hexToRgb('000000') }, sz: 11 },
-            alignment: { horizontal: 'left', vertical: 'center' }
-          };
+        
+        const fillColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFFFC8C8';
+        for (let i = 1; i <= 7; i++) {
+          const cell = row.getCell(i);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
+          cell.border = { top: { style: 'thin', color: { argb: 'FFD3D3D3' } }, left: { style: 'thin', color: { argb: 'FFD3D3D3' } }, bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } }, right: { style: 'thin', color: { argb: 'FFD3D3D3' } } };
         }
-      }
+      });
       
-      suspiciousSheet['!cols'] = [{ wch: 15 }, { wch: 10 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 18 }];
-      
-      XLSX.utils.book_append_sheet(workbook, suspiciousSheet, 'Suspicious Closures');
+      worksheet.columns = [{ width: 15 }, { width: 10 }, { width: 30 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 18 }];
     }
 
-    // ============== SHEET 6: UNWORKED TICKETS ALERT ==============
+    // ============== SHEET 6: UNWORKED TICKETS ==============
     if (exportData.alerts && exportData.alerts.unworked) {
-      const alertColors = getAlertColors('unworked');
-      const unworkedData = [
-        ['UNWORKED TICKETS ALERT - Assigned But No Activity'],
-        [''],
-        ['Summary:'],
+      const worksheet = workbook.addWorksheet('Unworked Tickets', { tabColor: { argb: 'FFFFC000' } });
+      
+      let rowNum = 1;
+      
+      // Title
+      worksheet.mergeCells(`A${rowNum}:H${rowNum}`);
+      const titleCell = worksheet.getCell(`A${rowNum}`);
+      titleCell.value = 'UNWORKED TICKETS ALERT - Assigned But No Activity';
+      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF000000' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC000' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getRow(rowNum).height = 25;
+      rowNum += 2;
+      
+      // Summary
+      const summaryData = [
         ['Total Unworked', exportData.alerts.unworked.summary.total],
         ['> 7 Days', exportData.alerts.unworked.summary.overSevenDays],
         ['> 14 Days', exportData.alerts.unworked.summary.overFourteenDays],
-        ['Max Unworked (days)', exportData.alerts.unworked.summary.maxUnworkedDays.toFixed(1)],
-        [''],
-        ['Unworked Tickets Detail:'],
-        ['Ticket ID', 'Priority', 'Title', 'Created', 'Days Unworked', 'Days Open', 'Assigned To', 'Status']
+        ['Max Unworked (days)', exportData.alerts.unworked.summary.maxUnworkedDays.toFixed(1)]
       ];
-
-      exportData.alerts.unworked.tickets.forEach(t => {
+      
+      summaryData.forEach(([label, value]) => {
+        const row = worksheet.addRow([label, value]);
+        row.getCell(1).font = { name: 'Calibri', size: 11, bold: true };
+        row.getCell(2).font = { name: 'Calibri', size: 11, bold: value > 7, color: { argb: value > 7 ? 'FFFFC000' : 'FF000000' } };
+      });
+      
+      // Detail headers
+      const detailHeaders = ['Ticket ID', 'Priority', 'Title', 'Created', 'Days Unworked', 'Days Open', 'Assigned To', 'Status'];
+      const headerRow = worksheet.addRow(detailHeaders);
+      headerRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF000000' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC000' } };
+      headerRow.height = 20;
+      
+      // Detail rows
+      exportData.alerts.unworked.tickets.forEach((t, index) => {
         const daysOpen = (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
-        unworkedData.push([
+        const row = worksheet.addRow([
           t.number || '',
           t.priority || '',
           t.short_description || '',
@@ -921,47 +1022,45 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           t.assigned_to || '',
           t.state || ''
         ]);
-      });
-
-      const unworkedSheet = XLSX.utils.aoa_to_sheet(unworkedData);
-      
-      // Apply header styling
-      for (let col = 0; col <= 7; col++) {
-        applyHeaderStyle(unworkedSheet, XLSX.utils.encode_cell({ r: 8, c: col }), alertColors.headerBg, 'FFFFFF');
-      }
-      
-      // Apply data rows
-      for (let row = 9; row < unworkedData.length; row++) {
-        const bgColor = (row - 9) % 2 === 0 ? 'FFFFFF' : alertColors.lightBg;
-        for (let col = 0; col <= 7; col++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-          if (!unworkedSheet[cellAddress]) unworkedSheet[cellAddress] = {};
-          unworkedSheet[cellAddress].s = {
-            fill: { fgColor: { rgb: hexToRgb(bgColor) } },
-            font: { color: { rgb: hexToRgb('000000') }, sz: 11 },
-            alignment: { horizontal: 'left', vertical: 'center' }
-          };
+        
+        const fillColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFFFC8C8';
+        for (let i = 1; i <= 8; i++) {
+          const cell = row.getCell(i);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
+          cell.border = { top: { style: 'thin', color: { argb: 'FFD3D3D3' } }, left: { style: 'thin', color: { argb: 'FFD3D3D3' } }, bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } }, right: { style: 'thin', color: { argb: 'FFD3D3D3' } } };
         }
-      }
+      });
       
-      unworkedSheet['!cols'] = [{ wch: 15 }, { wch: 10 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 12 }];
-      
-      XLSX.utils.book_append_sheet(workbook, unworkedSheet, 'Unworked Tickets');
+      worksheet.columns = [{ width: 15 }, { width: 10 }, { width: 30 }, { width: 15 }, { width: 12 }, { width: 12 }, { width: 15 }, { width: 12 }];
     }
 
     // ============== SHEET 7: FULL BACKLOG ==============
     if (exportData.fullBacklog) {
-      const backlogData = [
-        ['FULL BACKLOG - All Unresolved Tickets Sorted by Priority'],
-        [''],
-        ['Export Date', new Date().toLocaleDateString()],
-        ['Time Period', exportData.timeFilterLabel || 'All Time'],
-        [''],
-        ['Ticket ID', 'Title', 'Created', 'Days Open', 'Priority', 'Assigned To', 'Status', 'Last Updated', 'Days Since Update', 'Time in Delay (hrs)', 'Notes']
-      ];
-
-      exportData.fullBacklog.forEach(t => {
-        backlogData.push([
+      const worksheet = workbook.addWorksheet('Full Backlog', { tabColor: { argb: 'FF333333' } });
+      
+      // Title
+      worksheet.mergeCells('A1:K1');
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = 'FULL BACKLOG - All Unresolved Tickets Sorted by Priority';
+      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getRow(1).height = 25;
+      
+      // Metadata
+      worksheet.addRow(['Export Date', new Date().toLocaleDateString()]);
+      worksheet.addRow(['Time Period', exportData.timeFilterLabel || 'All Time']);
+      
+      // Headers
+      const headers = ['Ticket ID', 'Title', 'Created', 'Days Open', 'Priority', 'Assigned To', 'Status', 'Last Updated', 'Days Since Update', 'Time in Delay (hrs)', 'Notes'];
+      const headerRow = worksheet.addRow(headers);
+      headerRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } };
+      headerRow.height = 20;
+      
+      // Data rows
+      exportData.fullBacklog.forEach((t, index) => {
+        const row = worksheet.addRow([
           t.id || '',
           t.title || '',
           new Date(t.created).toLocaleDateString(),
@@ -974,92 +1073,86 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           t.timeInDelay > 0 ? t.timeInDelay.toFixed(1) : '',
           t.notes || ''
         ]);
-      });
-
-      const backlogSheet = XLSX.utils.aoa_to_sheet(backlogData);
-      
-      // Apply header styling (row 4)
-      for (let col = 0; col <= 10; col++) {
-        applyHeaderStyle(backlogSheet, XLSX.utils.encode_cell({ r: 4, c: col }), '333333', 'FFFFFF');
-      }
-      
-      // Apply data rows with conditional coloring
-      for (let row = 5; row < backlogData.length; row++) {
-        const bgColor = (row - 5) % 2 === 0 ? 'FFFFFF' : 'F5F5F5';
         
-        for (let col = 0; col <= 10; col++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-          
+        const bgColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF5F5F5';
+        
+        for (let i = 1; i <= 11; i++) {
+          const cell = row.getCell(i);
           let cellBgColor = bgColor;
-          let textColor = '000000';
+          let fontColor = 'FF000000';
           let isBold = false;
           
-          // Days Open column (col 3) - conditional color
-          if (col === 3) {
-            const daysOpen = parseFloat(backlogData[row][3]);
-            cellBgColor = getConditionalColor(daysOpen, 'days');
-          }
-          // Priority column (col 4) - color coding
-          else if (col === 4) {
-            cellBgColor = getConditionalColor(backlogData[row][4], 'priority');
-          }
-          // Time in Delay column (col 9) - red text if > 0
-          else if (col === 9 && parseFloat(backlogData[row][9]) > 0) {
-            textColor = 'C00000';
-            isBold = true;
-          }
-          // Days Since Update (col 8) - orange text if > 7 days
-          else if (col === 8 && parseFloat(backlogData[row][8]) > 7) {
-            textColor = 'FFA500';
+          // Days Open conditional coloring
+          if (i === 4) {
+            const daysOpen = parseFloat(t.daysOpen);
+            if (daysOpen > 30) cellBgColor = 'FFFF0000';
+            else if (daysOpen > 14) cellBgColor = 'FFFFFF00';
           }
           
-          if (!backlogSheet[cellAddress]) backlogSheet[cellAddress] = {};
-          backlogSheet[cellAddress].s = {
-            fill: { fgColor: { rgb: cellBgColor } },
-            font: { bold: isBold, color: { rgb: hexToRgb(textColor) }, sz: 11 },
-            alignment: { horizontal: 'left', vertical: 'center' }
-          };
+          // Priority coloring
+          if (i === 5) {
+            if (t.priority === 'P5') cellBgColor = 'FFFFC8C8';
+            else if (t.priority === 'P6') cellBgColor = 'FFFFF0C8';
+          }
+          
+          // Time in Delay - red text if > 0
+          if (i === 10 && t.timeInDelay > 0) {
+            fontColor = 'FFC00000';
+            isBold = true;
+          }
+          
+          // Days Since Update - orange text if > 7
+          if (i === 9 && t.daysSinceUpdate > 7) {
+            fontColor = 'FFFFA500';
+          }
+          
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cellBgColor } };
+          cell.font = { name: 'Calibri', size: 11, bold: isBold, color: { argb: fontColor } };
+          cell.border = { top: { style: 'thin', color: { argb: 'FFD3D3D3' } }, left: { style: 'thin', color: { argb: 'FFD3D3D3' } }, bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } }, right: { style: 'thin', color: { argb: 'FFD3D3D3' } } };
+          cell.alignment = { horizontal: i === 2 || i === 6 || i === 11 ? 'left' : 'center', vertical: 'center', wrapText: i === 2 || i === 11 };
         }
-      }
+      });
       
       // Set column widths
-      backlogSheet['!cols'] = [
-        { wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, 
-        { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, 
-        { wch: 15 }, { wch: 15 }, { wch: 20 }
+      worksheet.columns = [
+        { width: 12 },
+        { width: 30 },
+        { width: 15 },
+        { width: 12 },
+        { width: 10 },
+        { width: 15 },
+        { width: 12 },
+        { width: 15 },
+        { width: 15 },
+        { width: 15 },
+        { width: 20 }
       ];
       
-      // Freeze header row
-      backlogSheet['!freeze'] = { xSplit: 0, ySplit: 5 };
-      
-      // Add autofilter
-      const lastRow = backlogData.length - 1;
-      backlogSheet['!autofilter'] = { ref: `A4:K${lastRow}` };
-      
-      XLSX.utils.book_append_sheet(workbook, backlogSheet, 'Full Backlog');
+      // Freeze panes
+      worksheet.views = [{ state: 'frozen', ySplit: 5, xSplit: 0 }];
     }
 
-    // Generate filename with timestamp
+    // Save workbook to buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    // Save file
     const timestamp = new Date().toISOString().split('T')[0];
     const filename = `IT_Support_Report_${timestamp}.xlsx`;
-
-    // Get downloads path and create full file path
     const downloadsPath = app.getPath('downloads');
     let filePath = path.join(downloadsPath, filename);
 
-    // Check if file exists and append timestamp if collision
+    // Check for collision
     if (fsSync.existsSync(filePath)) {
       const timeStr = new Date().toISOString().replace(/[:.]/g, '').slice(0, -5);
       const ext = path.extname(filename);
       const basename = path.basename(filename, ext);
       filePath = path.join(downloadsPath, `${basename}_${timeStr}${ext}`);
-      console.log(`[IPC] File collision detected, saving with timestamp: ${path.basename(filePath)}`);
     }
 
-    // Write Excel file
-    XLSX.writeFile(workbook, filePath);
+    // Write file synchronously
+    fsSync.writeFileSync(filePath, buffer);
 
-    console.log(`[IPC] Excel report saved successfully with styling: ${filePath}`);
+    console.log(`[IPC] Excel report saved successfully with ExcelJS: ${filePath}`);
     return {
       success: true,
       filename: path.basename(filePath),
