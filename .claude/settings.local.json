@@ -31,7 +31,8 @@
       "Bash(timeout 10 npm start)",
       "Bash(timeout 15 npm start)",
       "mcp__serena__insert_after_symbol",
-      "mcp__serena__replace_symbol_body"
+      "mcp__serena__replace_symbol_body",
+      "mcp__serena__insert_before_symbol"
     ],
     "deny": [],
     "ask": []

@@ -40,7 +40,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Excel export file operations
     saveExcelFile: (filename, data) => ipcRenderer.invoke('save-excel-file', { filename, data }),
-    exportTicketReport: (tickets, timeFilterLabel) => ipcRenderer.invoke('export-ticket-report', { tickets, timeFilterLabel }),
+    exportTicketReport: (exportData) => ipcRenderer.invoke('export-ticket-report', exportData),
 
     // Window controls
     minimize: () => ipcRenderer.invoke('window-minimize'),

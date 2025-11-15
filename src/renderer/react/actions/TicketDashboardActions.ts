@@ -640,12 +640,169 @@ export class TicketDashboardActions {
   /**
    * Export performance report as Excel file
    */
+  /**
+   * Prepare export data for Excel sheets
+   * Returns a structured object with data for all sheets
+   */
+  private prepareExportData(): any {
+    const store = this.getStore();
+    const state = store.getState();
+    const tickets = this.getFilteredTickets();
+    const timeFilterLabel = state.timeFilter?.label || 'All Time';
+
+    // Get alert tickets
+    const orphanedTickets = this.getOrphanedTickets(tickets);
+    const stagnantTickets = this.getStagnantTickets(tickets);
+    const expiredHighPriorityTickets = this.getExpiredHighPriorityTickets(tickets);
+    const suspiciousClosures = this.getSuspiciousClosures(tickets);
+    const unworkedTickets = this.getUnworkedTickets(tickets);
+
+    // Get team metrics
+    const operatorMetrics = this.calculateOperatorMetrics(tickets);
+
+    // Get full backlog (unresolved tickets sorted by priority and days open)
+    const unresolvedTickets = tickets.filter(t => !['Resolved', 'Closed'].includes(t.state));
+    const fullBacklog = unresolvedTickets.sort((a, b) => {
+      const priorityOrder: Record<string, number> = { P5: 1, P6: 2, P7: 3, P8: 4 };
+      const priorityDiff = (priorityOrder[a.priority as string] || 99) - (priorityOrder[b.priority as string] || 99);
+      if (priorityDiff !== 0) return priorityDiff;
+      
+      const daysOpenA = (new Date().getTime() - new Date(a.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+      const daysOpenB = (new Date().getTime() - new Date(b.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+      return daysOpenB - daysOpenA;
+    });
+
+    return {
+      timeFilterLabel,
+      teamAnalysis: {
+        metrics: operatorMetrics,
+        totalTickets: tickets.length,
+        resolvedTickets: tickets.filter(t => ['Resolved', 'Closed'].includes(t.state)).length
+      },
+      alerts: {
+        orphaned: {
+          tickets: orphanedTickets,
+          summary: {
+            total: orphanedTickets.length,
+            overSevenDays: orphanedTickets.filter(t => {
+              const daysSince = (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+              return daysSince > 7;
+            }).length,
+            overFourteenDays: orphanedTickets.filter(t => {
+              const daysSince = (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+              return daysSince > 14;
+            }).length,
+            overThirtyDays: orphanedTickets.filter(t => {
+              const daysSince = (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+              return daysSince > 30;
+            }).length
+          }
+        },
+        stagnant: {
+          tickets: stagnantTickets,
+          summary: {
+            total: stagnantTickets.length,
+            overSevenDays: stagnantTickets.filter(t => {
+              const daysSinceUpdate = (new Date().getTime() - new Date(t.sys_updated_on).getTime()) / (1000 * 60 * 60 * 24);
+              return daysSinceUpdate > 7;
+            }).length,
+            overFourteenDays: stagnantTickets.filter(t => {
+              const daysSinceUpdate = (new Date().getTime() - new Date(t.sys_updated_on).getTime()) / (1000 * 60 * 60 * 24);
+              return daysSinceUpdate > 14;
+            }).length,
+            maxStagnationDays: Math.max(...stagnantTickets.map(t => {
+              const daysSinceUpdate = (new Date().getTime() - new Date(t.sys_updated_on).getTime()) / (1000 * 60 * 60 * 24);
+              return daysSinceUpdate;
+            }), 0)
+          }
+        },
+        expiredHighPriority: {
+          tickets: expiredHighPriorityTickets,
+          summary: {
+            total: expiredHighPriorityTickets.length,
+            p5Overdue: expiredHighPriorityTickets.filter(t => t.priority === 'P5').length,
+            p6Overdue: expiredHighPriorityTickets.filter(t => t.priority === 'P6').length,
+            p7Overdue: expiredHighPriorityTickets.filter(t => t.priority === 'P7').length,
+            p8Overdue: expiredHighPriorityTickets.filter(t => t.priority === 'P8').length,
+            maxOverdueHours: Math.max(...expiredHighPriorityTickets.map(t => {
+              const slaThresholds = { P5: 4, P6: 8, P7: 24, P8: 72 };
+              const slaMs = (slaThresholds[t.priority as keyof typeof slaThresholds] || 72) * 60 * 60 * 1000;
+              const openedTime = new Date(t.opened_at).getTime();
+              const now = new Date().getTime();
+              return (now - openedTime - slaMs) / (1000 * 60 * 60);
+            }), 0)
+          }
+        },
+        suspiciousClosures: {
+          tickets: suspiciousClosures,
+          summary: {
+            total: suspiciousClosures.length,
+            lessThan5Min: suspiciousClosures.filter(t => {
+              const closeTimeMinutes = (new Date(t.resolved_at || '').getTime() - new Date(t.opened_at).getTime()) / (1000 * 60);
+              return closeTimeMinutes < 5;
+            }).length,
+            lessThan15Min: suspiciousClosures.filter(t => {
+              const closeTimeMinutes = (new Date(t.resolved_at || '').getTime() - new Date(t.opened_at).getTime()) / (1000 * 60);
+              return closeTimeMinutes < 15;
+            }).length,
+            lessThan30Min: suspiciousClosures.filter(t => {
+              const closeTimeMinutes = (new Date(t.resolved_at || '').getTime() - new Date(t.opened_at).getTime()) / (1000 * 60);
+              return closeTimeMinutes < 30;
+            }).length,
+            avgCloseTimeMin: suspiciousClosures.length > 0
+              ? suspiciousClosures.reduce((sum, t) => {
+                  const closeTimeMinutes = (new Date(t.resolved_at || '').getTime() - new Date(t.opened_at).getTime()) / (1000 * 60);
+                  return sum + closeTimeMinutes;
+                }, 0) / suspiciousClosures.length
+              : 0
+          }
+        },
+        unworked: {
+          tickets: unworkedTickets,
+          summary: {
+            total: unworkedTickets.length,
+            overSevenDays: unworkedTickets.filter(t => {
+              const daysSince = (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+              return daysSince > 7;
+            }).length,
+            overFourteenDays: unworkedTickets.filter(t => {
+              const daysSince = (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+              return daysSince > 14;
+            }).length,
+            maxUnworkedDays: Math.max(...unworkedTickets.map(t => {
+              return (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+            }), 0)
+          }
+        }
+      },
+      fullBacklog: fullBacklog.map(t => ({
+        id: t.number,
+        title: t.short_description,
+        created: t.opened_at,
+        daysOpen: (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24),
+        priority: t.priority,
+        assignedTo: t.assigned_to,
+        status: t.state,
+        lastUpdated: t.sys_updated_on,
+        daysSinceUpdate: (new Date().getTime() - new Date(t.sys_updated_on).getTime()) / (1000 * 60 * 60 * 24),
+        timeInDelay: (() => {
+          const slaThresholds = { P5: 4, P6: 8, P7: 24, P8: 72 };
+          const slaMs = (slaThresholds[t.priority as keyof typeof slaThresholds] || 72) * 60 * 60 * 1000;
+          const openedTime = new Date(t.opened_at).getTime();
+          const now = new Date().getTime();
+          const timeInDelayMs = now - openedTime - slaMs;
+          return timeInDelayMs > 0 ? timeInDelayMs / (1000 * 60 * 60) : 0;
+        })(),
+        notes: ''
+      }))
+    };
+  }
+
   async exportReportToExcel(): Promise<void> {
     try {
       const store = this.getStore();
       const state = store.getState();
       const tickets = state.ticketData || [];
-      const timeFilterLabel = state.timeFilter?.label || 'All Time';
 
       if (tickets.length === 0) {
         console.warn('[EXPORT] No ticket data available for export');
@@ -655,9 +812,11 @@ export class TicketDashboardActions {
 
       console.log('[EXPORT] Starting Excel export with', tickets.length, 'tickets');
 
-      // Call main process to generate and save Excel file
-      // This avoids "require is not defined" error in renderer process
-      const result = await (window as any).electronAPI.exportTicketReport(tickets, timeFilterLabel);
+      // Prepare all export data
+      const exportData = this.prepareExportData();
+
+      // Call main process to generate and save Excel file with all sheets
+      const result = await (window as any).electronAPI.exportTicketReport(exportData);
 
       if (result.success) {
         console.log('[EXPORT] Report exported successfully:', result.path);

@@ -485,44 +485,249 @@ ipcMain.handle('save-excel-file', async (event, { filename, data }) => {
 
 // Export Ticket Report to Excel - Creates Excel file in main process
 // This avoids "require is not defined" error in renderer process
-ipcMain.handle('export-ticket-report', async (event, { tickets, timeFilterLabel }) => {
+ipcMain.handle('export-ticket-report', async (event, exportData) => {
   try {
     const XLSX = require('xlsx');
 
-    console.log(`[IPC] Starting ticket report export with ${tickets.length} tickets`);
+    console.log(`[IPC] Starting ticket report export`);
 
     // Create workbook
     const workbook = XLSX.utils.book_new();
 
-    // Create Summary sheet
-    const summaryData = [
-      ['IT Support Team Performance Dashboard'],
-      [''],
-      ['Total Tickets', tickets.length],
-      ['Export Date', new Date().toLocaleDateString()],
-      ['Time Period', timeFilterLabel || 'All Time'],
-    ];
+    // ============== SHEET 1: TEAM ANALYSIS ==============
+    if (exportData.teamAnalysis && exportData.teamAnalysis.metrics) {
+      const teamData = [
+        ['Team Analysis - Operator Performance Metrics'],
+        [''],
+        ['Operator', 'Assigned Tickets', 'Resolved Tickets', 'Avg Resolution (hrs)', 'Tickets in Delay', 'Delay %', 'Utilization %']
+      ];
 
-    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+      exportData.teamAnalysis.metrics.forEach(metric => {
+        teamData.push([
+          metric.operatorName || '',
+          metric.assignedTickets || 0,
+          metric.resolvedTickets || 0,
+          metric.averageResolutionTime ? metric.averageResolutionTime.toFixed(2) : 0,
+          metric.ticketsInDelay || 0,
+          metric.delayPercentage ? metric.delayPercentage.toFixed(2) : 0,
+          metric.utilizationPercentage ? metric.utilizationPercentage.toFixed(2) : 0
+        ]);
+      });
 
-    // Create Tickets sheet with detailed data
-    const ticketHeaders = ['Ticket ID', 'Title', 'Priority', 'Status', 'Created', 'Assigned To'];
-    const ticketData = tickets.map(t => [
-      t.number || '',
-      t.short_description || '',
-      t.priority || '',
-      t.state || '',
-      t.opened_at ? new Date(t.opened_at).toLocaleDateString() : '',
-      t.assigned_to || ''
-    ]);
+      const teamSheet = XLSX.utils.aoa_to_sheet(teamData);
+      XLSX.utils.book_append_sheet(workbook, teamSheet, 'Team Analysis');
+    }
 
-    const ticketsSheet = XLSX.utils.aoa_to_sheet([ticketHeaders, ...ticketData]);
-    XLSX.utils.book_append_sheet(workbook, ticketsSheet, 'Tickets');
+    // ============== SHEET 2: ORPHANED TICKETS ALERT ==============
+    if (exportData.alerts && exportData.alerts.orphaned) {
+      const orphanedData = [
+        ['ORPHANED TICKETS ALERT - Unassigned Tickets'],
+        [''],
+        ['Summary:'],
+        ['Total Orphaned', exportData.alerts.orphaned.summary.total],
+        ['> 7 Days', exportData.alerts.orphaned.summary.overSevenDays],
+        ['> 14 Days', exportData.alerts.orphaned.summary.overFourteenDays],
+        ['> 30 Days', exportData.alerts.orphaned.summary.overThirtyDays],
+        [''],
+        ['Orphaned Tickets Detail:'],
+        ['Ticket ID', 'Title', 'Created', 'Days Open', 'Priority', 'Status', 'Last Updated']
+      ];
+
+      exportData.alerts.orphaned.tickets.forEach(t => {
+        const daysOpen = (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+        orphanedData.push([
+          t.number || '',
+          t.short_description || '',
+          new Date(t.opened_at).toLocaleDateString(),
+          daysOpen.toFixed(1),
+          t.priority || '',
+          t.state || '',
+          new Date(t.sys_updated_on).toLocaleDateString()
+        ]);
+      });
+
+      const orphanedSheet = XLSX.utils.aoa_to_sheet(orphanedData);
+      XLSX.utils.book_append_sheet(workbook, orphanedSheet, 'Orphaned Tickets');
+    }
+
+    // ============== SHEET 3: STAGNANT TICKETS ALERT ==============
+    if (exportData.alerts && exportData.alerts.stagnant) {
+      const stagnantData = [
+        ['STAGNANT TICKETS ALERT - No Recent Activity'],
+        [''],
+        ['Summary:'],
+        ['Total Stagnant', exportData.alerts.stagnant.summary.total],
+        ['> 7 Days No Update', exportData.alerts.stagnant.summary.overSevenDays],
+        ['> 14 Days No Update', exportData.alerts.stagnant.summary.overFourteenDays],
+        ['Max Stagnation (days)', exportData.alerts.stagnant.summary.maxStagnationDays.toFixed(1)],
+        [''],
+        ['Stagnant Tickets Detail:'],
+        ['Ticket ID', 'Title', 'Created', 'Days Stagnant', 'Days Open', 'Priority', 'Assigned To', 'Status']
+      ];
+
+      exportData.alerts.stagnant.tickets.forEach(t => {
+        const daysOpen = (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+        const daysSinceUpdate = (new Date().getTime() - new Date(t.sys_updated_on).getTime()) / (1000 * 60 * 60 * 24);
+        stagnantData.push([
+          t.number || '',
+          t.short_description || '',
+          new Date(t.opened_at).toLocaleDateString(),
+          daysSinceUpdate.toFixed(1),
+          daysOpen.toFixed(1),
+          t.priority || '',
+          t.assigned_to || '',
+          t.state || ''
+        ]);
+      });
+
+      const stagnantSheet = XLSX.utils.aoa_to_sheet(stagnantData);
+      XLSX.utils.book_append_sheet(workbook, stagnantSheet, 'Stagnant Tickets');
+    }
+
+    // ============== SHEET 4: EXPIRED HIGH PRIORITY ALERT ==============
+    if (exportData.alerts && exportData.alerts.expiredHighPriority) {
+      const expiredData = [
+        ['EXPIRED HIGH PRIORITY ALERT - SLA Violations'],
+        [''],
+        ['Summary:'],
+        ['Total Overdue', exportData.alerts.expiredHighPriority.summary.total],
+        ['P5 Overdue', exportData.alerts.expiredHighPriority.summary.p5Overdue],
+        ['P6 Overdue', exportData.alerts.expiredHighPriority.summary.p6Overdue],
+        ['P7 Overdue', exportData.alerts.expiredHighPriority.summary.p7Overdue],
+        ['P8 Overdue', exportData.alerts.expiredHighPriority.summary.p8Overdue],
+        ['Max Overdue (hrs)', exportData.alerts.expiredHighPriority.summary.maxOverdueHours.toFixed(1)],
+        [''],
+        ['Expired High Priority Tickets Detail:'],
+        ['Ticket ID', 'Priority', 'Title', 'Created', 'Hours Overdue', 'SLA Threshold (hrs)', 'Assigned To', 'Status']
+      ];
+
+      exportData.alerts.expiredHighPriority.tickets.forEach(t => {
+        const slaThresholds = { P5: 4, P6: 8, P7: 24, P8: 72 };
+        const slaHours = slaThresholds[t.priority] || 72;
+        const slaMs = slaHours * 60 * 60 * 1000;
+        const openedTime = new Date(t.opened_at).getTime();
+        const now = new Date().getTime();
+        const hoursOverdue = (now - openedTime - slaMs) / (1000 * 60 * 60);
+
+        expiredData.push([
+          t.number || '',
+          t.priority || '',
+          t.short_description || '',
+          new Date(t.opened_at).toLocaleDateString(),
+          hoursOverdue.toFixed(1),
+          slaHours,
+          t.assigned_to || '',
+          t.state || ''
+        ]);
+      });
+
+      const expiredSheet = XLSX.utils.aoa_to_sheet(expiredData);
+      XLSX.utils.book_append_sheet(workbook, expiredSheet, 'Expired High Priority');
+    }
+
+    // ============== SHEET 5: SUSPICIOUS CLOSURES ALERT ==============
+    if (exportData.alerts && exportData.alerts.suspiciousClosures) {
+      const suspiciousData = [
+        ['SUSPICIOUS CLOSURES ALERT - Unusually Fast Resolutions'],
+        [''],
+        ['Summary:'],
+        ['Total Suspicious', exportData.alerts.suspiciousClosures.summary.total],
+        ['< 5 minutes', exportData.alerts.suspiciousClosures.summary.lessThan5Min],
+        ['< 15 minutes', exportData.alerts.suspiciousClosures.summary.lessThan15Min],
+        ['< 30 minutes', exportData.alerts.suspiciousClosures.summary.lessThan30Min],
+        ['Avg Close Time (min)', exportData.alerts.suspiciousClosures.summary.avgCloseTimeMin.toFixed(2)],
+        [''],
+        ['Suspicious Closures Detail:'],
+        ['Ticket ID', 'Priority', 'Title', 'Created', 'Resolved', 'Close Time (min)', 'Expected SLA (hrs)']
+      ];
+
+      exportData.alerts.suspiciousClosures.tickets.forEach(t => {
+        const slaThresholds = { P5: 4, P6: 8, P7: 24, P8: 72 };
+        const slaHours = slaThresholds[t.priority] || 72;
+        const closeTimeMinutes = (new Date(t.resolved_at || '').getTime() - new Date(t.opened_at).getTime()) / (1000 * 60);
+
+        suspiciousData.push([
+          t.number || '',
+          t.priority || '',
+          t.short_description || '',
+          new Date(t.opened_at).toLocaleDateString(),
+          new Date(t.resolved_at || '').toLocaleDateString(),
+          closeTimeMinutes.toFixed(1),
+          slaHours
+        ]);
+      });
+
+      const suspiciousSheet = XLSX.utils.aoa_to_sheet(suspiciousData);
+      XLSX.utils.book_append_sheet(workbook, suspiciousSheet, 'Suspicious Closures');
+    }
+
+    // ============== SHEET 6: UNWORKED TICKETS ALERT ==============
+    if (exportData.alerts && exportData.alerts.unworked) {
+      const unworkedData = [
+        ['UNWORKED TICKETS ALERT - Assigned But No Activity'],
+        [''],
+        ['Summary:'],
+        ['Total Unworked', exportData.alerts.unworked.summary.total],
+        ['> 7 Days', exportData.alerts.unworked.summary.overSevenDays],
+        ['> 14 Days', exportData.alerts.unworked.summary.overFourteenDays],
+        ['Max Unworked (days)', exportData.alerts.unworked.summary.maxUnworkedDays.toFixed(1)],
+        [''],
+        ['Unworked Tickets Detail:'],
+        ['Ticket ID', 'Priority', 'Title', 'Created', 'Days Unworked', 'Days Open', 'Assigned To', 'Status']
+      ];
+
+      exportData.alerts.unworked.tickets.forEach(t => {
+        const daysOpen = (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24);
+        unworkedData.push([
+          t.number || '',
+          t.priority || '',
+          t.short_description || '',
+          new Date(t.opened_at).toLocaleDateString(),
+          daysOpen.toFixed(1),
+          daysOpen.toFixed(1),
+          t.assigned_to || '',
+          t.state || ''
+        ]);
+      });
+
+      const unworkedSheet = XLSX.utils.aoa_to_sheet(unworkedData);
+      XLSX.utils.book_append_sheet(workbook, unworkedSheet, 'Unworked Tickets');
+    }
+
+    // ============== SHEET 7: FULL BACKLOG ==============
+    if (exportData.fullBacklog) {
+      const backlogData = [
+        ['FULL BACKLOG - All Unresolved Tickets Sorted by Priority'],
+        [''],
+        ['Export Date', new Date().toLocaleDateString()],
+        ['Time Period', exportData.timeFilterLabel || 'All Time'],
+        [''],
+        ['Ticket ID', 'Title', 'Created', 'Days Open', 'Priority', 'Assigned To', 'Status', 'Last Updated', 'Days Since Update', 'Time in Delay (hrs)', 'Notes']
+      ];
+
+      exportData.fullBacklog.forEach(t => {
+        backlogData.push([
+          t.id || '',
+          t.title || '',
+          new Date(t.created).toLocaleDateString(),
+          t.daysOpen.toFixed(1),
+          t.priority || '',
+          t.assignedTo || '',
+          t.status || '',
+          new Date(t.lastUpdated).toLocaleDateString(),
+          t.daysSinceUpdate.toFixed(1),
+          t.timeInDelay > 0 ? t.timeInDelay.toFixed(1) : '',
+          t.notes || ''
+        ]);
+      });
+
+      const backlogSheet = XLSX.utils.aoa_to_sheet(backlogData);
+      XLSX.utils.book_append_sheet(workbook, backlogSheet, 'Full Backlog');
+    }
 
     // Generate filename with timestamp
     const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `IT_Support_Performance_${timestamp}.xlsx`;
+    const filename = `IT_Support_Report_${timestamp}.xlsx`;
 
     // Get downloads path and create full file path
     const downloadsPath = app.getPath('downloads');
@@ -540,7 +745,7 @@ ipcMain.handle('export-ticket-report', async (event, { tickets, timeFilterLabel 
     // Write Excel file
     XLSX.writeFile(workbook, filePath);
 
-    console.log(`[IPC] Excel report saved successfully: ${filePath}`);
+    console.log(`[IPC] Excel report saved successfully with 7 sheets: ${filePath}`);
     return {
       success: true,
       filename: path.basename(filePath),
