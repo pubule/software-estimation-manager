@@ -591,8 +591,8 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
     console.log(`[IPC] Starting ticket report export with ExcelJS`);
 
     // Create workbook
-    const ExcelJS = global.ExcelJS || require('exceljs');
-    const workbook = new ExcelJS.Workbook();
+    const ExcelJSLib = global.ExcelJS || require('exceljs');
+    const workbook = new ExcelJSLib.Workbook();
     
     // Set workbook properties
     workbook.creator = 'Ticket Dashboard';
