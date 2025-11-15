@@ -482,6 +482,91 @@ ipcMain.handle('save-excel-file', async (event, { filename, data }) => {
     }
 });
 
+// Export Ticket Report to Excel - Creates Excel file in main process
+// This avoids "require is not defined" error in renderer process
+ipcMain.handle('export-ticket-report', async (event, { tickets, timeFilterLabel }) => {
+  try {
+    const XLSX = require('xlsx');
+
+    console.log(`[IPC] Starting ticket report export with ${tickets.length} tickets`);
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+
+    // Create Summary sheet
+    const summaryData = [
+      ['IT Support Team Performance Dashboard'],
+      [''],
+      ['Total Tickets', tickets.length],
+      ['Export Date', new Date().toLocaleDateString()],
+      ['Time Period', timeFilterLabel || 'All Time'],
+    ];
+
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+
+    // Create Tickets sheet with detailed data
+    const ticketHeaders = ['Ticket ID', 'Title', 'Priority', 'Status', 'Created', 'Assigned To'];
+    const ticketData = tickets.map(t => [
+      t.number || '',
+      t.short_description || '',
+      t.priority || '',
+      t.state || '',
+      t.opened_at ? new Date(t.opened_at).toLocaleDateString() : '',
+      t.assigned_to || ''
+    ]);
+
+    const ticketsSheet = XLSX.utils.aoa_to_sheet([ticketHeaders, ...ticketData]);
+    XLSX.utils.book_append_sheet(workbook, ticketsSheet, 'Tickets');
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `IT_Support_Performance_${timestamp}.xlsx`;
+
+    // Get downloads path and create full file path
+    const downloadsPath = app.getPath('downloads');
+    let filePath = path.join(downloadsPath, filename);
+
+    // Check if file exists and append timestamp if collision
+    if (fs.existsSync(filePath)) {
+      const timeStr = new Date().toISOString().replace(/[:.]/g, '').slice(0, -5);
+      const ext = path.extname(filename);
+      const basename = path.basename(filename, ext);
+      filePath = path.join(downloadsPath, `${basename}_${timeStr}${ext}`);
+      console.log(`[IPC] File collision detected, saving with timestamp: ${path.basename(filePath)}`);
+    }
+
+    // Write Excel file
+    XLSX.writeFile(workbook, filePath);
+
+    console.log(`[IPC] Excel report saved successfully: ${filePath}`);
+    return {
+      success: true,
+      filename: path.basename(filePath),
+      path: filePath
+    };
+  } catch (error) {
+    console.error('[IPC] Error during ticket report export:', error);
+
+    let message = 'Failed to export report';
+
+    if (error.code === 'EACCES') {
+      message = 'Permission denied: Cannot write to Downloads folder';
+    } else if (error.code === 'ENOSPC') {
+      message = 'Disk full: Not enough space to save file';
+    } else if (error.code === 'ENOENT') {
+      message = 'Invalid Downloads folder path';
+    } else if (error instanceof Error) {
+      message = error.message;
+    }
+
+    return {
+      success: false,
+      error: message
+    };
+  }
+});
+
 ipcMain.handle('confirm-window-close', (event, canClose) => {
     if (mainWindow && canClose) {
         mainWindow.destroy();

@@ -645,6 +645,7 @@ export class TicketDashboardActions {
       const store = this.getStore();
       const state = store.getState();
       const tickets = state.ticketData || [];
+      const timeFilterLabel = state.timeFilter?.label || 'All Time';
 
       if (tickets.length === 0) {
         console.warn('[EXPORT] No ticket data available for export');
@@ -654,53 +655,15 @@ export class TicketDashboardActions {
 
       console.log('[EXPORT] Starting Excel export with', tickets.length, 'tickets');
 
-      // Dynamic import of XLSX
-      const XLSX = require('xlsx');
-
-      // Create workbook
-      const workbook = XLSX.utils.book_new();
-
-      // Create a simple summary sheet for now
-      const summaryData = [
-        ['IT Support Team Performance Dashboard'],
-        [''],
-        ['Total Tickets', tickets.length],
-        ['Export Date', new Date().toLocaleDateString()],
-        ['Time Period', state.timeFilter?.label || 'All Time'],
-      ];
-
-      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
-
-      // Create a detailed tickets sheet
-      const ticketHeaders = ['Ticket ID', 'Title', 'Priority', 'Status', 'Created', 'Assigned To'];
-      const ticketData = tickets.map(t => [
-        t.number || '',
-        t.short_description || '',
-        t.priority || '',
-        t.state || '',
-        t.opened_at ? new Date(t.opened_at).toLocaleDateString() : '',
-        t.assigned_to || ''
-      ]);
-
-      const ticketsSheet = XLSX.utils.aoa_to_sheet([ticketHeaders, ...ticketData]);
-      XLSX.utils.book_append_sheet(workbook, ticketsSheet, 'Tickets');
-
-      // Generate filename
-      const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `IT_Support_Performance_${timestamp}.xlsx`;
-
-      // Save using Electron API
-      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
-
-      // Use electronAPI to save the file
-      const result = await (window as any).electronAPI.saveExcelFile(filename, excelBuffer);
+      // Call main process to generate and save Excel file
+      // This avoids "require is not defined" error in renderer process
+      const result = await (window as any).electronAPI.exportTicketReport(tickets, timeFilterLabel);
 
       if (result.success) {
-        console.log('[EXPORT] File saved successfully:', result.path);
-        alert(`Report exported successfully!\nFile: ${filename}\nLocation: Downloads folder`);
+        console.log('[EXPORT] Report exported successfully:', result.path);
+        alert(`Report exported successfully!\nFile: ${result.filename}\nLocation: Downloads folder`);
       } else {
-        console.error('[EXPORT] File save failed:', result.error);
+        console.error('[EXPORT] Export failed:', result.error);
         alert(`Export failed: ${result.error}`);
       }
     } catch (error) {
