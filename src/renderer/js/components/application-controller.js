@@ -1984,7 +1984,7 @@ class ApplicationController extends BaseComponent {
 
                 // Get store data for correct calculations (same logic as app-store.js::calculatePhasesTotals)
                 const storeState = window.appStore?.getState();
-                const resourceRates = storeState?.resourceRates || { G1: 450, G2: 380, TA: 420, PM: 500 };
+                let resourceRates = storeState?.resourceRates || { G1: 450, G2: 380, TA: 420, PM: 500 };
 
                 // Get available suppliers from project config (not just store, which may not be initialized during export)
                 let availableSuppliers = storeState?.availableSuppliers || [];
@@ -1998,6 +1998,18 @@ class ApplicationController extends BaseComponent {
                         availableSuppliers = [...suppliers, ...internalResources];
                     }
                 }
+
+                // Update resource rates based on selected suppliers (same logic as PhasesActions.updateResourceRatesFromSuppliers)
+                const selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
+                Object.keys(selectedSuppliers).forEach((resourceType) => {
+                    const selectedSupplierId = selectedSuppliers[resourceType];
+                    if (selectedSupplierId && availableSuppliers.length > 0) {
+                        const supplier = availableSuppliers.find(s => s.id === selectedSupplierId);
+                        if (supplier) {
+                            resourceRates[resourceType] = supplier.realRate || supplier.officialRate || resourceRates[resourceType];
+                        }
+                    }
+                });
 
                 // Calculate man days by resource
                 if (phase.effort) {
