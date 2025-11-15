@@ -491,13 +491,19 @@ ipcMain.handle('save-excel-file', async (event, { filename, data }) => {
 /**
  * Apply header style to cell
  */
+
+// Helper function to convert hex string to RGB number for XLSX
+function hexToRgb(hexString) {
+  return parseInt('0x' + hexString);
+}
+
 function applyHeaderStyle(sheet, cellAddress, bgColor = '333333', textColor = 'FFFFFF') {
   if (!sheet[cellAddress]) {
     sheet[cellAddress] = {};
   }
   sheet[cellAddress].s = {
-    fill: { fgColor: { rgb: bgColor } },
-    font: { bold: true, color: { rgb: textColor }, sz: 11 },
+    fill: { fgColor: { rgb: hexToRgb(bgColor) } },
+    font: { bold: true, color: { rgb: hexToRgb(textColor) }, sz: 11 },
     alignment: { horizontal: 'center', vertical: 'center' }
   };
 }
@@ -510,8 +516,8 @@ function applyCellStyle(sheet, cellAddress, bgColor = null, textColor = '000000'
     sheet[cellAddress] = {};
   }
   sheet[cellAddress].s = {
-    fill: bgColor ? { fgColor: { rgb: bgColor } } : undefined,
-    font: { bold: isBold, color: { rgb: textColor }, sz: 11 },
+    fill: bgColor ? { fgColor: { rgb: hexToRgb(bgColor) } } : undefined,
+    font: { bold: isBold, color: { rgb: hexToRgb(textColor) }, sz: 11 },
     alignment: { horizontal: 'left', vertical: 'center' }
   };
 }
@@ -526,8 +532,8 @@ function applyRowStyle(sheet, row, startCol, endCol, bgColor = 'FFFFFF', textCol
       sheet[cellAddress] = {};
     }
     sheet[cellAddress].s = {
-      fill: { fgColor: { rgb: bgColor } },
-      font: { color: { rgb: textColor }, sz: 11 },
+      fill: { fgColor: { rgb: hexToRgb(bgColor) } },
+      font: { color: { rgb: hexToRgb(textColor) }, sz: 11 },
       alignment: { horizontal: 'left', vertical: 'center' }
     };
   }
@@ -616,8 +622,8 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
             const delayColor = getConditionalColor(parseFloat(delayValue), 'delayPercentage');
             if (!teamSheet[cellAddress]) teamSheet[cellAddress] = {};
             teamSheet[cellAddress].s = {
-              fill: { fgColor: { rgb: delayColor } },
-              font: { color: { rgb: 'FFFFFF' }, sz: 11 },
+              fill: { fgColor: { rgb: hexToRgb(delayColor) } },
+              font: { color: { rgb: hexToRgb('FFFFFF') }, sz: 11 },
               alignment: { horizontal: 'center', vertical: 'center' }
             };
           } else {
@@ -682,8 +688,8 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           
           if (!orphanedSheet[cellAddress]) orphanedSheet[cellAddress] = {};
           orphanedSheet[cellAddress].s = {
-            fill: { fgColor: { rgb: bgColor } },
-            font: { bold: isBold, color: { rgb: '000000' }, sz: 11 },
+            fill: { fgColor: { rgb: hexToRgb(bgColor) } },
+            font: { bold: isBold, color: { rgb: hexToRgb('000000') }, sz: 11 },
             alignment: { horizontal: col === 3 ? 'right' : 'left', vertical: 'center' }
           };
         }
@@ -739,8 +745,8 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
           if (!stagnantSheet[cellAddress]) stagnantSheet[cellAddress] = {};
           stagnantSheet[cellAddress].s = {
-            fill: { fgColor: { rgb: bgColor } },
-            font: { color: { rgb: '000000' }, sz: 11 },
+            fill: { fgColor: { rgb: hexToRgb(bgColor) } },
+            font: { color: { rgb: hexToRgb('000000') }, sz: 11 },
             alignment: { horizontal: 'left', vertical: 'center' }
           };
         }
@@ -808,15 +814,15 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
             const priorityColor = getConditionalColor(expiredData[row][1], 'priority');
             if (!expiredSheet[cellAddress]) expiredSheet[cellAddress] = {};
             expiredSheet[cellAddress].s = {
-              fill: { fgColor: { rgb: priorityColor } },
-              font: { bold: true, color: { rgb: '000000' }, sz: 11 },
+              fill: { fgColor: { rgb: hexToRgb(priorityColor) } },
+              font: { bold: true, color: { rgb: hexToRgb('000000') }, sz: 11 },
               alignment: { horizontal: 'center', vertical: 'center' }
             };
           } else {
             if (!expiredSheet[cellAddress]) expiredSheet[cellAddress] = {};
             expiredSheet[cellAddress].s = {
-              fill: { fgColor: { rgb: bgColor } },
-              font: { color: { rgb: '000000' }, sz: 11 },
+              fill: { fgColor: { rgb: hexToRgb(bgColor) } },
+              font: { color: { rgb: hexToRgb('000000') }, sz: 11 },
               alignment: { horizontal: 'left', vertical: 'center' }
             };
           }
@@ -875,8 +881,8 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
           if (!suspiciousSheet[cellAddress]) suspiciousSheet[cellAddress] = {};
           suspiciousSheet[cellAddress].s = {
-            fill: { fgColor: { rgb: bgColor } },
-            font: { color: { rgb: '000000' }, sz: 11 },
+            fill: { fgColor: { rgb: hexToRgb(bgColor) } },
+            font: { color: { rgb: hexToRgb('000000') }, sz: 11 },
             alignment: { horizontal: 'left', vertical: 'center' }
           };
         }
@@ -931,8 +937,8 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
           if (!unworkedSheet[cellAddress]) unworkedSheet[cellAddress] = {};
           unworkedSheet[cellAddress].s = {
-            fill: { fgColor: { rgb: bgColor } },
-            font: { color: { rgb: '000000' }, sz: 11 },
+            fill: { fgColor: { rgb: hexToRgb(bgColor) } },
+            font: { color: { rgb: hexToRgb('000000') }, sz: 11 },
             alignment: { horizontal: 'left', vertical: 'center' }
           };
         }
@@ -1010,7 +1016,7 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           if (!backlogSheet[cellAddress]) backlogSheet[cellAddress] = {};
           backlogSheet[cellAddress].s = {
             fill: { fgColor: { rgb: cellBgColor } },
-            font: { bold: isBold, color: { rgb: textColor }, sz: 11 },
+            font: { bold: isBold, color: { rgb: hexToRgb(textColor) }, sz: 11 },
             alignment: { horizontal: 'left', vertical: 'center' }
           };
         }
