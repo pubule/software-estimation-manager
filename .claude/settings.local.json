@@ -33,7 +33,9 @@
       "mcp__serena__insert_after_symbol",
       "mcp__serena__replace_symbol_body",
       "mcp__serena__insert_before_symbol",
-      "Bash(node -c:*)"
+      "Bash(node -c:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
