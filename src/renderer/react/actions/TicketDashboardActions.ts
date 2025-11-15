@@ -451,9 +451,76 @@ export class TicketDashboardActions {
   }
 
   /**
+   * Convert time filter string to TimeFilter object
+   */
+  private getTimeFilterFromString(filterType: string): TimeFilter {
+    const now = new Date();
+    let start: Date;
+
+    switch (filterType) {
+      case 'all-time':
+        start = new Date(2000, 0, 1);
+        break;
+      case 'last-7-days':
+        start = new Date(now);
+        start.setDate(now.getDate() - 7);
+        break;
+      case 'last-month':
+        start = new Date(now);
+        start.setMonth(now.getMonth() - 1);
+        break;
+      case 'last-3-months':
+        start = new Date(now);
+        start.setMonth(now.getMonth() - 3);
+        break;
+      case 'last-6-months':
+        start = new Date(now);
+        start.setMonth(now.getMonth() - 6);
+        break;
+      case 'current-year':
+        start = new Date(now.getFullYear(), 0, 1);
+        break;
+      default:
+        return {
+          type: filterType,
+          label: filterType,
+          start: now,
+          end: new Date(now)
+        };
+    }
+
+    return {
+      type: filterType,
+      label: this.getTimeFilterLabel(filterType),
+      start,
+      end: new Date(now)
+    };
+  }
+
+  /**
+   * Get label for time filter type
+   */
+  private getTimeFilterLabel(filterType: string): string {
+    const labels: Record<string, string> = {
+      'all-time': 'All Time',
+      'last-7-days': 'Last 7 days',
+      'last-month': 'Last Month',
+      'last-3-months': 'Last 3 Months',
+      'last-6-months': 'Last 6 Months',
+      'current-year': 'Current Year'
+    };
+    return labels[filterType] || filterType;
+  }
+
+  /**
    * Apply time filter to tickets
    */
-  applyTimeFilter(timeFilter: TimeFilter): void {
+  applyTimeFilter(filterTypeOrObject: string | TimeFilter): void {
+    // Convert string to TimeFilter object if needed
+    const timeFilter = typeof filterTypeOrObject === 'string'
+      ? this.getTimeFilterFromString(filterTypeOrObject)
+      : filterTypeOrObject;
+
     const store = this.getStore();
     const state = store.getState();
 

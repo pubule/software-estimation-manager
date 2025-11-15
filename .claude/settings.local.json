@@ -29,7 +29,9 @@
       "Bash(taskkill:*)",
       "mcp__serena__find_referencing_symbols",
       "Bash(timeout 10 npm start)",
-      "Bash(timeout 15 npm start)"
+      "Bash(timeout 15 npm start)",
+      "mcp__serena__insert_after_symbol",
+      "mcp__serena__replace_symbol_body"
     ],
     "deny": [],
     "ask": []
