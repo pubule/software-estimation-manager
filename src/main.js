@@ -485,11 +485,93 @@ ipcMain.handle('save-excel-file', async (event, { filename, data }) => {
 
 // Export Ticket Report to Excel - Creates Excel file in main process
 // This avoids "require is not defined" error in renderer process
+
+// ============== EXCEL STYLING UTILITIES ==============
+
+/**
+ * Apply header style to cell
+ */
+function applyHeaderStyle(sheet, cellAddress, bgColor = '333333', textColor = 'FFFFFF') {
+  if (!sheet[cellAddress]) {
+    sheet[cellAddress] = {};
+  }
+  sheet[cellAddress].s = {
+    fill: { fgColor: { rgb: bgColor } },
+    font: { bold: true, color: { rgb: textColor }, sz: 11 },
+    alignment: { horizontal: 'center', vertical: 'center' }
+  };
+}
+
+/**
+ * Apply cell style
+ */
+function applyCellStyle(sheet, cellAddress, bgColor = null, textColor = '000000', isBold = false) {
+  if (!sheet[cellAddress]) {
+    sheet[cellAddress] = {};
+  }
+  sheet[cellAddress].s = {
+    fill: bgColor ? { fgColor: { rgb: bgColor } } : undefined,
+    font: { bold: isBold, color: { rgb: textColor }, sz: 11 },
+    alignment: { horizontal: 'left', vertical: 'center' }
+  };
+}
+
+/**
+ * Apply row style with alternating colors
+ */
+function applyRowStyle(sheet, row, startCol, endCol, bgColor = 'FFFFFF', textColor = '000000') {
+  for (let col = startCol; col <= endCol; col++) {
+    const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+    if (!sheet[cellAddress]) {
+      sheet[cellAddress] = {};
+    }
+    sheet[cellAddress].s = {
+      fill: { fgColor: { rgb: bgColor } },
+      font: { color: { rgb: textColor }, sz: 11 },
+      alignment: { horizontal: 'left', vertical: 'center' }
+    };
+  }
+}
+
+/**
+ * Apply conditional background color based on value and thresholds
+ */
+function getConditionalColor(value, type = 'days') {
+  if (type === 'days') {
+    if (value > 30) return 'FF0000';      // Bright red
+    if (value > 14) return 'FFFF00';      // Bright yellow
+    return 'FFFFFF';                       // White default
+  } else if (type === 'delayPercentage') {
+    if (value > 20) return 'C00000';      // Dark red critical
+    if (value > 10) return 'FFC000';      // Warning yellow
+    return 'C8FFC8';                       // Green OK
+  } else if (type === 'priority') {
+    if (value === 'P5') return 'FFC8C8';  // Pink
+    if (value === 'P6') return 'FFF0C8';  // Orange
+    return 'FFFFFF';
+  }
+  return 'FFFFFF';
+}
+
+/**
+ * Get alert header colors based on alert type
+ */
+function getAlertColors(alertType) {
+  const criticalAlerts = ['orphaned', 'stagnant', 'expiredHighPriority'];
+  if (criticalAlerts.includes(alertType)) {
+    return { headerBg: 'C00000', lightBg: 'FFE6E6' };  // Red
+  } else {
+    return { headerBg: 'FFC000', lightBg: 'FFFFC8' };  // Yellow
+  }
+}
+
+// ============== END STYLING UTILITIES ==============
+
 ipcMain.handle('export-ticket-report', async (event, exportData) => {
   try {
     const XLSX = require('xlsx');
 
-    console.log(`[IPC] Starting ticket report export`);
+    console.log(`[IPC] Starting ticket report export with styling`);
 
     // Create workbook
     const workbook = XLSX.utils.book_new();
@@ -515,11 +597,44 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
       });
 
       const teamSheet = XLSX.utils.aoa_to_sheet(teamData);
+      
+      // Apply header styling (row 2, columns 0-6)
+      for (let col = 0; col <= 6; col++) {
+        applyHeaderStyle(teamSheet, XLSX.utils.encode_cell({ r: 2, c: col }), '333333', 'FFFFFF');
+      }
+      
+      // Apply data row styling with conditional coloring for Delay %
+      for (let row = 3; row < teamData.length; row++) {
+        const bgColor = (row - 3) % 2 === 0 ? 'FFFFFF' : 'F5F5F5';
+        
+        for (let col = 0; col <= 6; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+          
+          // Special handling for Delay % column (col 5)
+          if (col === 5) {
+            const delayValue = teamData[row][5];
+            const delayColor = getConditionalColor(parseFloat(delayValue), 'delayPercentage');
+            if (!teamSheet[cellAddress]) teamSheet[cellAddress] = {};
+            teamSheet[cellAddress].s = {
+              fill: { fgColor: { rgb: delayColor } },
+              font: { color: { rgb: 'FFFFFF' }, sz: 11 },
+              alignment: { horizontal: 'center', vertical: 'center' }
+            };
+          } else {
+            applyCellStyle(teamSheet, cellAddress, bgColor);
+          }
+        }
+      }
+      
+      // Set column widths
+      teamSheet['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 12 }, { wch: 15 }];
+      
       XLSX.utils.book_append_sheet(workbook, teamSheet, 'Team Analysis');
     }
 
     // ============== SHEET 2: ORPHANED TICKETS ALERT ==============
     if (exportData.alerts && exportData.alerts.orphaned) {
+      const alertColors = getAlertColors('orphaned');
       const orphanedData = [
         ['ORPHANED TICKETS ALERT - Unassigned Tickets'],
         [''],
@@ -547,11 +662,41 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
       });
 
       const orphanedSheet = XLSX.utils.aoa_to_sheet(orphanedData);
+      
+      // Apply header styling for detail section (row 8)
+      for (let col = 0; col <= 6; col++) {
+        applyHeaderStyle(orphanedSheet, XLSX.utils.encode_cell({ r: 8, c: col }), alertColors.headerBg, 'FFFFFF');
+      }
+      
+      // Apply alert data row styling
+      for (let row = 9; row < orphanedData.length; row++) {
+        const bgColor = (row - 9) % 2 === 0 ? 'FFFFFF' : alertColors.lightBg;
+        for (let col = 0; col <= 6; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+          
+          // Bold Days Open if > 7 days
+          let isBold = false;
+          if (col === 3 && parseFloat(orphanedData[row][3]) > 7) {
+            isBold = true;
+          }
+          
+          if (!orphanedSheet[cellAddress]) orphanedSheet[cellAddress] = {};
+          orphanedSheet[cellAddress].s = {
+            fill: { fgColor: { rgb: bgColor } },
+            font: { bold: isBold, color: { rgb: '000000' }, sz: 11 },
+            alignment: { horizontal: col === 3 ? 'right' : 'left', vertical: 'center' }
+          };
+        }
+      }
+      
+      orphanedSheet['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 15 }];
+      
       XLSX.utils.book_append_sheet(workbook, orphanedSheet, 'Orphaned Tickets');
     }
 
     // ============== SHEET 3: STAGNANT TICKETS ALERT ==============
     if (exportData.alerts && exportData.alerts.stagnant) {
+      const alertColors = getAlertColors('stagnant');
       const stagnantData = [
         ['STAGNANT TICKETS ALERT - No Recent Activity'],
         [''],
@@ -581,11 +726,34 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
       });
 
       const stagnantSheet = XLSX.utils.aoa_to_sheet(stagnantData);
+      
+      // Apply header styling
+      for (let col = 0; col <= 7; col++) {
+        applyHeaderStyle(stagnantSheet, XLSX.utils.encode_cell({ r: 8, c: col }), alertColors.headerBg, 'FFFFFF');
+      }
+      
+      // Apply data rows
+      for (let row = 9; row < stagnantData.length; row++) {
+        const bgColor = (row - 9) % 2 === 0 ? 'FFFFFF' : alertColors.lightBg;
+        for (let col = 0; col <= 7; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+          if (!stagnantSheet[cellAddress]) stagnantSheet[cellAddress] = {};
+          stagnantSheet[cellAddress].s = {
+            fill: { fgColor: { rgb: bgColor } },
+            font: { color: { rgb: '000000' }, sz: 11 },
+            alignment: { horizontal: 'left', vertical: 'center' }
+          };
+        }
+      }
+      
+      stagnantSheet['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 15 }, { wch: 12 }];
+      
       XLSX.utils.book_append_sheet(workbook, stagnantSheet, 'Stagnant Tickets');
     }
 
     // ============== SHEET 4: EXPIRED HIGH PRIORITY ALERT ==============
     if (exportData.alerts && exportData.alerts.expiredHighPriority) {
+      const alertColors = getAlertColors('expiredHighPriority');
       const expiredData = [
         ['EXPIRED HIGH PRIORITY ALERT - SLA Violations'],
         [''],
@@ -622,11 +790,47 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
       });
 
       const expiredSheet = XLSX.utils.aoa_to_sheet(expiredData);
+      
+      // Apply header styling
+      for (let col = 0; col <= 7; col++) {
+        applyHeaderStyle(expiredSheet, XLSX.utils.encode_cell({ r: 10, c: col }), alertColors.headerBg, 'FFFFFF');
+      }
+      
+      // Apply data rows with priority coloring
+      for (let row = 11; row < expiredData.length; row++) {
+        const bgColor = (row - 11) % 2 === 0 ? 'FFFFFF' : alertColors.lightBg;
+        
+        for (let col = 0; col <= 7; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+          
+          // Priority column (col 1) gets color coding
+          if (col === 1) {
+            const priorityColor = getConditionalColor(expiredData[row][1], 'priority');
+            if (!expiredSheet[cellAddress]) expiredSheet[cellAddress] = {};
+            expiredSheet[cellAddress].s = {
+              fill: { fgColor: { rgb: priorityColor } },
+              font: { bold: true, color: { rgb: '000000' }, sz: 11 },
+              alignment: { horizontal: 'center', vertical: 'center' }
+            };
+          } else {
+            if (!expiredSheet[cellAddress]) expiredSheet[cellAddress] = {};
+            expiredSheet[cellAddress].s = {
+              fill: { fgColor: { rgb: bgColor } },
+              font: { color: { rgb: '000000' }, sz: 11 },
+              alignment: { horizontal: 'left', vertical: 'center' }
+            };
+          }
+        }
+      }
+      
+      expiredSheet['!cols'] = [{ wch: 15 }, { wch: 10 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 12 }];
+      
       XLSX.utils.book_append_sheet(workbook, expiredSheet, 'Expired High Priority');
     }
 
     // ============== SHEET 5: SUSPICIOUS CLOSURES ALERT ==============
     if (exportData.alerts && exportData.alerts.suspiciousClosures) {
+      const alertColors = getAlertColors('suspiciousClosures');
       const suspiciousData = [
         ['SUSPICIOUS CLOSURES ALERT - Unusually Fast Resolutions'],
         [''],
@@ -658,11 +862,34 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
       });
 
       const suspiciousSheet = XLSX.utils.aoa_to_sheet(suspiciousData);
+      
+      // Apply header styling
+      for (let col = 0; col <= 6; col++) {
+        applyHeaderStyle(suspiciousSheet, XLSX.utils.encode_cell({ r: 9, c: col }), alertColors.headerBg, 'FFFFFF');
+      }
+      
+      // Apply data rows
+      for (let row = 10; row < suspiciousData.length; row++) {
+        const bgColor = (row - 10) % 2 === 0 ? 'FFFFFF' : alertColors.lightBg;
+        for (let col = 0; col <= 6; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+          if (!suspiciousSheet[cellAddress]) suspiciousSheet[cellAddress] = {};
+          suspiciousSheet[cellAddress].s = {
+            fill: { fgColor: { rgb: bgColor } },
+            font: { color: { rgb: '000000' }, sz: 11 },
+            alignment: { horizontal: 'left', vertical: 'center' }
+          };
+        }
+      }
+      
+      suspiciousSheet['!cols'] = [{ wch: 15 }, { wch: 10 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 18 }];
+      
       XLSX.utils.book_append_sheet(workbook, suspiciousSheet, 'Suspicious Closures');
     }
 
     // ============== SHEET 6: UNWORKED TICKETS ALERT ==============
     if (exportData.alerts && exportData.alerts.unworked) {
+      const alertColors = getAlertColors('unworked');
       const unworkedData = [
         ['UNWORKED TICKETS ALERT - Assigned But No Activity'],
         [''],
@@ -691,6 +918,28 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
       });
 
       const unworkedSheet = XLSX.utils.aoa_to_sheet(unworkedData);
+      
+      // Apply header styling
+      for (let col = 0; col <= 7; col++) {
+        applyHeaderStyle(unworkedSheet, XLSX.utils.encode_cell({ r: 8, c: col }), alertColors.headerBg, 'FFFFFF');
+      }
+      
+      // Apply data rows
+      for (let row = 9; row < unworkedData.length; row++) {
+        const bgColor = (row - 9) % 2 === 0 ? 'FFFFFF' : alertColors.lightBg;
+        for (let col = 0; col <= 7; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+          if (!unworkedSheet[cellAddress]) unworkedSheet[cellAddress] = {};
+          unworkedSheet[cellAddress].s = {
+            fill: { fgColor: { rgb: bgColor } },
+            font: { color: { rgb: '000000' }, sz: 11 },
+            alignment: { horizontal: 'left', vertical: 'center' }
+          };
+        }
+      }
+      
+      unworkedSheet['!cols'] = [{ wch: 15 }, { wch: 10 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 12 }];
+      
       XLSX.utils.book_append_sheet(workbook, unworkedSheet, 'Unworked Tickets');
     }
 
@@ -722,6 +971,65 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
       });
 
       const backlogSheet = XLSX.utils.aoa_to_sheet(backlogData);
+      
+      // Apply header styling (row 4)
+      for (let col = 0; col <= 10; col++) {
+        applyHeaderStyle(backlogSheet, XLSX.utils.encode_cell({ r: 4, c: col }), '333333', 'FFFFFF');
+      }
+      
+      // Apply data rows with conditional coloring
+      for (let row = 5; row < backlogData.length; row++) {
+        const bgColor = (row - 5) % 2 === 0 ? 'FFFFFF' : 'F5F5F5';
+        
+        for (let col = 0; col <= 10; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+          
+          let cellBgColor = bgColor;
+          let textColor = '000000';
+          let isBold = false;
+          
+          // Days Open column (col 3) - conditional color
+          if (col === 3) {
+            const daysOpen = parseFloat(backlogData[row][3]);
+            cellBgColor = getConditionalColor(daysOpen, 'days');
+          }
+          // Priority column (col 4) - color coding
+          else if (col === 4) {
+            cellBgColor = getConditionalColor(backlogData[row][4], 'priority');
+          }
+          // Time in Delay column (col 9) - red text if > 0
+          else if (col === 9 && parseFloat(backlogData[row][9]) > 0) {
+            textColor = 'C00000';
+            isBold = true;
+          }
+          // Days Since Update (col 8) - orange text if > 7 days
+          else if (col === 8 && parseFloat(backlogData[row][8]) > 7) {
+            textColor = 'FFA500';
+          }
+          
+          if (!backlogSheet[cellAddress]) backlogSheet[cellAddress] = {};
+          backlogSheet[cellAddress].s = {
+            fill: { fgColor: { rgb: cellBgColor } },
+            font: { bold: isBold, color: { rgb: textColor }, sz: 11 },
+            alignment: { horizontal: 'left', vertical: 'center' }
+          };
+        }
+      }
+      
+      // Set column widths
+      backlogSheet['!cols'] = [
+        { wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, 
+        { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, 
+        { wch: 15 }, { wch: 15 }, { wch: 20 }
+      ];
+      
+      // Freeze header row
+      backlogSheet['!freeze'] = { xSplit: 0, ySplit: 5 };
+      
+      // Add autofilter
+      const lastRow = backlogData.length - 1;
+      backlogSheet['!autofilter'] = { ref: `A4:K${lastRow}` };
+      
       XLSX.utils.book_append_sheet(workbook, backlogSheet, 'Full Backlog');
     }
 
@@ -745,7 +1053,7 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
     // Write Excel file
     XLSX.writeFile(workbook, filePath);
 
-    console.log(`[IPC] Excel report saved successfully with 7 sheets: ${filePath}`);
+    console.log(`[IPC] Excel report saved successfully with styling: ${filePath}`);
     return {
       success: true,
       filename: path.basename(filePath),
