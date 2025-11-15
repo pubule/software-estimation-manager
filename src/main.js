@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const os = require('os');
 
 // Initialize default projects folder
@@ -528,7 +529,7 @@ ipcMain.handle('export-ticket-report', async (event, { tickets, timeFilterLabel 
     let filePath = path.join(downloadsPath, filename);
 
     // Check if file exists and append timestamp if collision
-    if (fs.existsSync(filePath)) {
+    if (fsSync.existsSync(filePath)) {
       const timeStr = new Date().toISOString().replace(/[:.]/g, '').slice(0, -5);
       const ext = path.extname(filename);
       const basename = path.basename(filename, ext);
