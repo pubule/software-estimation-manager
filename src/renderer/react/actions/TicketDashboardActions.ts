@@ -122,33 +122,107 @@ export class TicketDashboardActions {
   }
 
   /**
-   * Parse CSV content into TicketData array
+   * Parse CSV content into TicketData array with proper CSV parsing
    */
   private parseCsvContent(csvContent: string): TicketData[] {
-    const lines = csvContent.split('\n');
+    const lines = this.parseCSVLines(csvContent);
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(',').map(h => h.trim());
+    const headers = lines[0].map(h => h.trim().toLowerCase());
     const tickets: TicketData[] = [];
 
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
+    console.log('[IMPORT-CSV] CSV Headers found:', headers);
 
-      const values = line.split(',').map(v => v.trim());
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i];
+      if (values.length === 0) continue;
+
       const ticket: TicketData = {} as TicketData;
 
       headers.forEach((header, index) => {
         const value = values[index] || '';
-        (ticket as any)[header] = value;
+        // Store both lowercase and original case to handle different formats
+        (ticket as any)[header] = value.trim();
+        if (header !== header.toLowerCase()) {
+          (ticket as any)[header.toLowerCase()] = value.trim();
+        }
       });
 
-      if (ticket.number && ticket.opened_at && ticket.priority && ticket.state) {
+      // Check for required fields (case-insensitive)
+      const hasNumber = ticket.number || (ticket as any)['ticket number'] || (ticket as any)['number'];
+      const hasOpenedAt = ticket.opened_at || (ticket as any)['opened_at'] || (ticket as any)['created'] || (ticket as any)['created_at'];
+      const hasPriority = ticket.priority || (ticket as any)['priority'];
+      const hasState = ticket.state || (ticket as any)['state'] || (ticket as any)['status'];
+
+      if (hasNumber && hasOpenedAt && hasPriority && hasState) {
+        // Normalize the fields
+        ticket.number = hasNumber;
+        ticket.opened_at = hasOpenedAt;
+        ticket.priority = hasPriority;
+        ticket.state = hasState;
         tickets.push(ticket);
+      } else {
+        console.log('[IMPORT-CSV] Skipping invalid ticket:', { hasNumber, hasOpenedAt, hasPriority, hasState });
       }
     }
 
     return tickets;
+  }
+
+  /**
+   * Parse CSV content respecting quoted fields
+   */
+  private parseCSVLines(csvContent: string): string[][] {
+    const lines: string[][] = [];
+    let currentLine: string[] = [];
+    let currentField = '';
+    let insideQuotes = false;
+
+    for (let i = 0; i < csvContent.length; i++) {
+      const char = csvContent[i];
+      const nextChar = csvContent[i + 1];
+
+      if (char === '"') {
+        if (insideQuotes && nextChar === '"') {
+          // Escaped quote
+          currentField += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote state
+          insideQuotes = !insideQuotes;
+        }
+      } else if (char === ',' && !insideQuotes) {
+        // End of field
+        currentLine.push(currentField);
+        currentField = '';
+      } else if ((char === '\n' || char === '\r') && !insideQuotes) {
+        // End of line
+        if (currentField || currentLine.length > 0) {
+          currentLine.push(currentField);
+          if (currentLine.some(field => field.trim())) {
+            lines.push(currentLine);
+          }
+          currentLine = [];
+          currentField = '';
+        }
+        // Skip \r\n
+        if (char === '\r' && nextChar === '\n') {
+          i++;
+        }
+      } else {
+        currentField += char;
+      }
+    }
+
+    // Add last field and line
+    if (currentField || currentLine.length > 0) {
+      currentLine.push(currentField);
+      if (currentLine.some(field => field.trim())) {
+        lines.push(currentLine);
+      }
+    }
+
+    return lines;
   }
 
   /**
