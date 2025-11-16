@@ -191,24 +191,6 @@ export const TicketDashboard: React.FC = () => {
           <h2>📊 IT Support Team Performance Dashboard</h2>
           <p className="page-description">Analyze support ticket metrics and team performance</p>
         </div>
-        <div className="page-actions">
-          <button
-            className="btn btn-secondary"
-            onClick={() => actions.exportFilteredData()}
-            title="Export current dashboard data as CSV"
-          >
-            <i className="fas fa-file-csv"></i> Export CSV
-          </button>
-
-          <button
-            className="btn btn-primary"
-            onClick={() => actions.exportReportToExcel()}
-            title="Export performance report as Excel workbook"
-            disabled={!ticketData || ticketData.length === 0}
-          >
-            <i className="fas fa-file-excel"></i> Export Excel Report
-          </button>
-        </div>
       </div>
 
 

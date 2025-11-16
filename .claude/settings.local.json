@@ -35,7 +35,8 @@
       "mcp__serena__insert_before_symbol",
       "Bash(node -c:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "mcp__serena__list_dir"
     ],
     "deny": [],
     "ask": []
