@@ -204,11 +204,11 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
   };
 
   return (
-    <div className="modal active">
+    <div className="modal active" role="dialog" aria-labelledby="feature-modal-title" aria-modal="true">
       <div className="modal-content">
         <div className="modal-header">
-          <h3>{isEditing ? 'Edit Feature' : 'Add Feature'}</h3>
-          <button className="modal-close" onClick={onClose}>
+          <h3 id="feature-modal-title">{isEditing ? 'Edit Feature' : 'Add Feature'}</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Close modal">
             &times;
           </button>
         </div>

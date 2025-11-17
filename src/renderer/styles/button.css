@@ -62,7 +62,7 @@
 
 /* Focus state (keyboard navigation) - WCAG AA requirement */
 .btn:focus-visible {
-  outline: 2px solid var(--color-focus, #0066cc);
+  outline: 2px solid var(--color-focus, #007acc);
   outline-offset: 2px;
 }
 
@@ -114,22 +114,22 @@
    ============================================================================ */
 
 .btn-primary {
-  background-color: #0066cc;
+  background-color: #007acc;
   color: #ffffff;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #0052a3;
-  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.2);
+  background-color: #0098d4;
+  box-shadow: 0 2px 8px rgba(0, 122, 204, 0.2);
 }
 
 .btn-primary:active:not(:disabled) {
-  background-color: #003d7a;
+  background-color: #005a96;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary:disabled {
-  background-color: #0066cc;
+  background-color: #007acc;
   opacity: 0.6;
 }
 
@@ -211,19 +211,19 @@
 
 .btn-link {
   background-color: transparent;
-  color: #0066cc;
+  color: #007acc;
   text-decoration: underline;
   padding: 0;
   min-height: auto;
 }
 
 .btn-link:hover:not(:disabled) {
-  color: #0052a3;
+  color: #0098d4;
   text-decoration: underline;
 }
 
 .btn-link:active:not(:disabled) {
-  color: #003d7a;
+  color: #005a96;
 }
 
 .btn-link:disabled {
@@ -265,6 +265,42 @@
 .btn-small .btn-icon {
   width: 1.1em;
   height: 1.1em;
+}
+
+/* ============================================================================
+   TABLE ACTION BUTTONS
+   ============================================================================ */
+
+/* Expand/collapse button for table rows */
+.expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background-color: transparent;
+  border: 1px solid var(--border-primary, #3c3c3c);
+  border-radius: var(--radius-sm, 2px);
+  color: var(--text-secondary, #858585);
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.2s);
+  font-size: 0.75rem;
+}
+
+.expand-btn:hover:not(:disabled) {
+  background-color: var(--bg-hover, #2a2d2e);
+  border-color: var(--text-secondary, #858585);
+  color: var(--text-primary, #cccccc);
+}
+
+.expand-btn:focus-visible {
+  outline: 2px solid var(--color-text-accent, #007acc);
+  outline-offset: 2px;
+}
+
+.expand-btn:active:not(:disabled) {
+  background-color: var(--bg-secondary, #252526);
 }
 
 /* ============================================================================
