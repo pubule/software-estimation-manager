@@ -48,11 +48,11 @@
             --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 
-            --font-size-xs: 0.75rem;
-            --font-size-sm: 0.875rem;
-            --font-size-base: 1rem;
-            --font-size-lg: 1.125rem;
-            --font-size-xl: 1.25rem;
+            --font-size-xs: 11px;
+            --font-size-sm: 12px;
+            --font-size-base: 14px;
+            --font-size-lg: 16px;
+            --font-size-xl: 18px;
             --font-size-2xl: 1.5rem;
             --font-size-3xl: 1.875rem;
             --font-size-4xl: 2.25rem;
@@ -497,6 +497,15 @@
             max-width: none;
         }
 
+        /* Input Phases Table Variant (specialized for phases timeline table - compact width) */
+        .phases-table input,
+        .input.phases-table {
+            width: 65px;
+            padding: var(--spacing-xs);
+            text-align: center;
+            white-space: nowrap;
+        }
+
         .input:focus,
         .select:focus {
             outline: none;
@@ -686,6 +695,10 @@
         }
 
         /* Sticky Header for Horizontal Scroll Tables */
+        table.sticky-header {
+            min-width: 1400px;
+        }
+
         table.sticky-header thead {
             position: sticky;
             top: 0;
