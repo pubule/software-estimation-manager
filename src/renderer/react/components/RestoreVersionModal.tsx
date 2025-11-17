@@ -11,6 +11,7 @@ import React, { useMemo, useState } from 'react';
 import { useStore } from '../hooks/useStore';
 import { useVersionHistoryActions } from '../hooks/useVersionHistoryActions';
 import { ComparisonData } from '../actions/VersionHistoryActions';
+import Button from './Button';
 
 const RestoreVersionModal: React.FC = () => {
   // SOLO lettura dallo store - Selettori specifici per massima reattività
@@ -307,32 +308,24 @@ const RestoreVersionModal: React.FC = () => {
         </div>
         
         <div className="modal-footer">
-          <button 
-            type="button" 
-            className="btn btn-secondary" 
+          <Button
+            type="button"
+            variant="secondary"
             onClick={handleClose}
             disabled={isLoading}
           >
             Cancel
-          </button>
-          <button 
-            type="button" 
-            className="btn btn-warning" 
+          </Button>
+          <Button
+            type="button"
+            variant="warning"
             onClick={handleRestore}
-            disabled={isLoading || !isConfirmed}
+            loading={isLoading}
+            disabled={!isConfirmed}
+            icon={!isLoading ? <i className="fas fa-undo" /> : undefined}
           >
-            {isLoading ? (
-              <>
-                <i className="fas fa-spinner fa-spin"></i>
-                Restoring...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-undo"></i>
-                Restore Version
-              </>
-            )}
-          </button>
+            {isLoading ? 'Restoring...' : 'Restore Version'}
+          </Button>
         </div>
       </div>
     </div>

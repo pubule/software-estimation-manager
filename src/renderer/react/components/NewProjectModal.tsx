@@ -1,15 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
+import { useFormValidation } from '../hooks/useFormValidation';
+import { ValidationRulesLibrary } from '../utils/validationRules';
+import Button from './Button';
 
 interface FormData {
   code: string;
   name: string;
   description: string;
-}
-
-interface FormErrors {
-  code?: string;
-  name?: string;
-  description?: string;
 }
 
 interface NewProjectModalProps {
@@ -23,100 +20,74 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({
   onClose,
   onCreateProject
 }) => {
-  const [formData, setFormData] = useState<FormData>({
-    code: '',
-    name: '',
-    description: ''
-  });
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
   const codeInputRef = useRef<HTMLInputElement>(null);
+
+  // Form validation hook
+  const {
+    formData,
+    errors,
+    isSubmitting,
+    getFieldProps,
+    hasError,
+    reset,
+    handleSubmit: createHandleSubmit,
+  } = useFormValidation<FormData>({
+    initialValues: {
+      code: '',
+      name: '',
+      description: ''
+    },
+    validationRules: {
+      code: [
+        ValidationRulesLibrary.required(),
+        ValidationRulesLibrary.pattern(
+          /^[A-Z0-9_-]+$/,
+          'Project code can only contain uppercase letters, numbers, hyphens and underscores'
+        ),
+        ValidationRulesLibrary.length(
+          3,
+          20,
+          'Project code must be between 3 and 20 characters'
+        ),
+      ],
+      name: [
+        ValidationRulesLibrary.required(),
+        ValidationRulesLibrary.length(
+          3,
+          100,
+          'Project name must be between 3 and 100 characters'
+        ),
+      ],
+      description: [
+        ValidationRulesLibrary.maxLength(500, 'Description must be less than 500 characters'),
+      ],
+    },
+    onSuccess: async (values) => {
+      await onCreateProject(values);
+      // Modal will be closed by parent component after successful creation
+    },
+  });
 
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
-      setFormData({ code: '', name: '', description: '' });
-      setErrors({});
-      setIsSubmitting(false);
+      reset();
       // Focus first input after a small delay
       setTimeout(() => {
         codeInputRef.current?.focus();
       }, 100);
     }
-  }, [isOpen]);
+  }, [isOpen, reset]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    const processedValue = name === 'code' ? value.toUpperCase() : value;
-    
-    setFormData(prev => ({ ...prev, [name]: processedValue }));
-    
-    // Clear error for this field
-    if (errors[name as keyof FormErrors]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  // Validation replicating ProjectManager.js validateNewProjectData
-  const validateForm = (): { isValid: boolean; errors: FormErrors } => {
-    const newErrors: FormErrors = {};
-
-    // Validate code
-    if (!formData.code) {
-      newErrors.code = 'Project code is required';
-    } else if (!/^[A-Z0-9_-]+$/.test(formData.code)) {
-      newErrors.code = 'Project code can only contain uppercase letters, numbers, hyphens and underscores';
-    } else if (formData.code.length < 3) {
-      newErrors.code = 'Project code must be at least 3 characters long';
-    } else if (formData.code.length > 20) {
-      newErrors.code = 'Project code must be less than 20 characters';
-    }
-
-    // Validate name
-    if (!formData.name) {
-      newErrors.name = 'Project name is required';
-    } else if (formData.name.length < 3) {
-      newErrors.name = 'Project name must be at least 3 characters long';
-    } else if (formData.name.length > 100) {
-      newErrors.name = 'Project name must be less than 100 characters';
-    }
-
-    // Validate description (optional)
-    if (formData.description && formData.description.length > 500) {
-      newErrors.description = 'Description must be less than 500 characters';
-    }
-
-    return {
-      isValid: Object.keys(newErrors).length === 0,
-      errors: newErrors
+  // Handle form submission - project code should be uppercase
+  const handleSubmit = createHandleSubmit(async (values) => {
+    // Ensure code is uppercase
+    const normalizedValues = {
+      ...values,
+      code: values.code.toUpperCase(),
     };
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (isSubmitting) return;
-    
-    const validation = validateForm();
-    
-    if (!validation.isValid) {
-      setErrors(validation.errors);
-      return;
-    }
-
-    setIsSubmitting(true);
-    
-    try {
-      await onCreateProject(formData);
-      // Modal will be closed by parent component after successful creation
-    } catch (error) {
-      console.error('Failed to create project:', error);
-      // Keep modal open to allow retry
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    await onCreateProject(normalizedValues);
+  });
 
   if (!isOpen) return null;
 
@@ -125,87 +96,96 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({
       <div className="modal-content">
         <div className="modal-header">
           <h3>Create New Project</h3>
-          <button className="modal-close" onClick={onClose}>&times;</button>
+          <button
+            className="modal-close"
+            onClick={onClose}
+            aria-label="Close create project modal"
+            disabled={isSubmitting}
+          >
+            &times;
+          </button>
         </div>
-        <div className="modal-body">
-          <form id="new-project-form" onSubmit={handleSubmit}>
+
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {/* Project Code Field */}
             <div className="form-group">
               <label htmlFor="project-code">Project Code:</label>
-              <input 
-                type="text" 
-                id="project-code" 
-                name="code" 
+              <input
+                id="project-code"
+                type="text"
+                placeholder="Enter project code (e.g., PRJ_001)"
+                className={hasError('code') ? 'validation-error' : ''}
+                maxLength={20}
+                disabled={isSubmitting}
                 ref={codeInputRef}
-                className={`validation-tooltip required ${errors.code ? 'validation-error' : ''}`}
-                value={formData.code}
-                onChange={handleInputChange}
-                placeholder="e.g. PJ-001"
-                pattern="[A-Z0-9\-_]+"
-                title="Only uppercase letters, numbers, hyphens and underscores allowed"
-                data-error-message={errors.code}
-                required
+                {...getFieldProps('code')}
               />
-              <small className="form-help">Unique identifier for the project (uppercase, numbers, - and _ only)</small>
-              {errors.code && <div className="error-message">{errors.code}</div>}
+              {errors.code?.isInvalid && (
+                <div id="code-error" className="error-message" role="alert">
+                  {errors.code.message}
+                </div>
+              )}
             </div>
+
+            {/* Project Name Field */}
             <div className="form-group">
               <label htmlFor="project-name">Project Name:</label>
-              <input 
-                type="text" 
-                id="project-name" 
-                name="name" 
-                className={`validation-tooltip required ${errors.name ? 'validation-error' : ''}`}
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="e.g. Customer Portal Development"
+              <input
+                id="project-name"
+                type="text"
+                placeholder="Enter project name"
+                className={hasError('name') ? 'validation-error' : ''}
                 maxLength={100}
-                data-error-message={errors.name}
-                required
+                disabled={isSubmitting}
+                {...getFieldProps('name')}
               />
-              <small className="form-help">Descriptive name for the project</small>
-              {errors.name && <div className="error-message">{errors.name}</div>}
+              {errors.name?.isInvalid && (
+                <div id="name-error" className="error-message" role="alert">
+                  {errors.name.message}
+                </div>
+              )}
             </div>
+
+            {/* Description Field (Optional) */}
             <div className="form-group">
               <label htmlFor="project-description">Description (Optional):</label>
-              <textarea 
-                id="project-description" 
-                name="description"
-                className={errors.description ? 'validation-error' : ''}
-                value={formData.description}
-                onChange={handleInputChange}
+              <textarea
+                id="project-description"
+                className={hasError('description') ? 'validation-error' : ''}
                 placeholder="Brief description of the project..."
-                rows={3} 
+                rows={3}
                 maxLength={500}
-                data-error-message={errors.description}
+                disabled={isSubmitting}
+                {...getFieldProps('description')}
               />
-              {errors.description && <div className="error-message">{errors.description}</div>}
+              {errors.description?.isInvalid && (
+                <div id="description-error" className="error-message" role="alert">
+                  {errors.description.message}
+                </div>
+              )}
             </div>
-          </form>
-        </div>
-        <div className="modal-footer">
-          <button 
-            type="button" 
-            className="btn btn-secondary" 
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            className="btn btn-primary" 
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <i className="fas fa-spinner fa-spin"></i> Creating...
-              </>
-            ) : (
-              'Create Project'
-            )}
-          </button>
-        </div>
+          </div>
+
+          <div className="modal-footer">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={isSubmitting}
+              aria-busy={isSubmitting}
+            >
+              {isSubmitting ? 'Creating...' : 'Create Project'}
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );

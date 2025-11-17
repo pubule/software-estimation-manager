@@ -1,0 +1,425 @@
+/* =============================================================================
+   EMPTY STATE COMPONENT STYLES
+   ============================================================================= */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl, 32px);
+  text-align: center;
+  color: var(--text-muted, #9d9d9d);
+  background: transparent;
+  border-radius: var(--radius-lg, 6px);
+  min-height: 200px;
+}
+
+.empty-state-sm {
+  padding: var(--spacing-md, 16px);
+  min-height: 150px;
+}
+
+.empty-state-md {
+  padding: var(--spacing-xl, 32px);
+  min-height: 200px;
+}
+
+.empty-state-lg {
+  padding: var(--spacing-3xl, 48px);
+  min-height: 300px;
+}
+
+.empty-state-icon {
+  font-size: 3em;
+  margin-bottom: var(--spacing-md, 16px);
+  opacity: 0.5;
+  color: var(--text-muted, #9d9d9d);
+}
+
+.empty-state-title {
+  margin: 0 0 var(--spacing-sm, 8px) 0;
+  font-size: 1.25em;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  line-height: 1.4;
+}
+
+.empty-state-message {
+  margin: 0 0 var(--spacing-md, 16px) 0;
+  font-size: 0.95em;
+  color: var(--text-muted, #9d9d9d);
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.empty-state-action {
+  margin-top: var(--spacing-md, 16px);
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+  background: var(--primary, #0e639c);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md, 4px);
+  font-size: 0.95em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.empty-state-action:hover {
+  background: var(--primary-hover, #1177bb);
+}
+
+.empty-state-action:focus-visible {
+  outline: 2px solid var(--input-focus, #007acc);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+}
+
+.empty-state-action:disabled {
+  background: var(--bg-border, #3c3c3c);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* =============================================================================
+   LOADING STATE COMPONENT STYLES
+   ============================================================================= */
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl, 32px);
+  text-align: center;
+  color: var(--text-secondary, #cccccc);
+  background: transparent;
+  border-radius: var(--radius-lg, 6px);
+  min-height: 200px;
+}
+
+.loading-state-sm {
+  padding: var(--spacing-md, 16px);
+  min-height: 120px;
+}
+
+.loading-state-md {
+  padding: var(--spacing-xl, 32px);
+  min-height: 200px;
+}
+
+.loading-state-lg {
+  padding: var(--spacing-3xl, 48px);
+  min-height: 280px;
+}
+
+/* Overlay variant for full-page loading */
+.loading-state-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  min-height: 100vh;
+  padding: var(--spacing-xl, 32px);
+}
+
+.loading-state-icon {
+  font-size: 2.5em;
+  margin-bottom: var(--spacing-md, 16px);
+  color: var(--primary, #007acc);
+  animation: fa-spin 1s linear infinite;
+}
+
+.loading-state-message {
+  margin: 0;
+  font-size: 1em;
+  color: var(--text-secondary, #cccccc);
+  font-weight: 500;
+}
+
+/* =============================================================================
+   ERROR STATE COMPONENT STYLES
+   ============================================================================= */
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl, 32px);
+  text-align: center;
+  border-radius: var(--radius-lg, 6px);
+  background: rgba(241, 76, 76, 0.05);
+  border: 1px solid rgba(241, 76, 76, 0.2);
+  min-height: 200px;
+}
+
+.error-state-sm {
+  padding: var(--spacing-md, 16px);
+  min-height: 150px;
+}
+
+.error-state-md {
+  padding: var(--spacing-xl, 32px);
+  min-height: 200px;
+}
+
+.error-state-lg {
+  padding: var(--spacing-3xl, 48px);
+  min-height: 300px;
+}
+
+.error-state-icon {
+  font-size: 3em;
+  margin-bottom: var(--spacing-md, 16px);
+  color: #f14c4c;
+}
+
+.error-state-title {
+  margin: 0 0 var(--spacing-sm, 8px) 0;
+  font-size: 1.25em;
+  font-weight: 600;
+  color: #f14c4c;
+  line-height: 1.4;
+}
+
+.error-state-details {
+  margin: var(--spacing-sm, 8px) 0 var(--spacing-md, 16px) 0;
+  font-size: 0.9em;
+  color: var(--text-muted, #9d9d9d);
+  max-width: 500px;
+  line-height: 1.5;
+  font-family: 'Courier New', monospace;
+}
+
+.error-state-actions {
+  display: flex;
+  gap: var(--spacing-sm, 8px);
+  margin-top: var(--spacing-md, 16px);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.error-state-retry-btn,
+.error-state-dismiss-btn {
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+  border: none;
+  border-radius: var(--radius-md, 4px);
+  font-size: 0.95em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+}
+
+.error-state-retry-btn {
+  background: var(--primary, #0e639c);
+  color: #ffffff;
+}
+
+.error-state-retry-btn:hover {
+  background: var(--primary-hover, #1177bb);
+}
+
+.error-state-dismiss-btn {
+  background: transparent;
+  color: var(--text-secondary, #cccccc);
+  border: 1px solid var(--bg-border, #3c3c3c);
+}
+
+.error-state-dismiss-btn:hover {
+  background: var(--bg-border, #3c3c3c);
+  color: #ffffff;
+}
+
+.error-state-retry-btn:focus-visible,
+.error-state-dismiss-btn:focus-visible {
+  outline: 2px solid var(--input-focus, #007acc);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+}
+
+/* =============================================================================
+   SKELETON LOADER STYLES (Shimmer Animation)
+   ============================================================================= */
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton-line {
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary, #252526) 0%,
+    var(--bg-tertiary, #2d2d30) 20%,
+    var(--bg-secondary, #252526) 40%,
+    var(--bg-secondary, #252526) 100%
+  );
+  background-size: 1000px 100%;
+  border-radius: var(--radius-md, 4px);
+  height: 16px;
+  animation: skeleton-shimmer 2s infinite;
+}
+
+.skeleton-header {
+  height: 20px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary, #2d2d30) 0%,
+    var(--bg-elevated, #3c3c3c) 20%,
+    var(--bg-tertiary, #2d2d30) 40%,
+    var(--bg-tertiary, #2d2d30) 100%
+  );
+  background-size: 1000px 100%;
+  animation: skeleton-shimmer 2s infinite;
+}
+
+/* =============================================================================
+   TABLE SKELETON STYLES
+   ============================================================================= */
+
+.table-skeleton-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table-skeleton {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-secondary, #252526);
+  border: 1px solid var(--bg-border, #3c3c3c);
+  border-radius: var(--radius-md, 4px);
+  overflow: hidden;
+}
+
+.table-skeleton thead {
+  background: var(--bg-tertiary, #2d2d30);
+  border-bottom: 1px solid var(--bg-border, #3c3c3c);
+}
+
+.table-skeleton th {
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+  text-align: left;
+  border-right: 1px solid var(--bg-border, #3c3c3c);
+}
+
+.table-skeleton th:last-child {
+  border-right: none;
+}
+
+.table-skeleton td {
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+  border-bottom: 1px solid var(--bg-border, #3c3c3c);
+  border-right: 1px solid var(--bg-border, #3c3c3c);
+}
+
+.table-skeleton td:last-child {
+  border-right: none;
+}
+
+.table-skeleton tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* =============================================================================
+   GRID SKELETON STYLES
+   ============================================================================= */
+
+.grid-skeleton-container {
+  width: 100%;
+}
+
+.grid-item-skeleton {
+  padding: var(--spacing-md, 16px);
+  background: var(--bg-secondary, #252526);
+  border: 1px solid var(--bg-border, #3c3c3c);
+  border-radius: var(--radius-lg, 6px);
+  overflow: hidden;
+}
+
+/* =============================================================================
+   ACCESSIBILITY: HIGH CONTRAST MODE
+   ============================================================================= */
+
+@media (prefers-contrast: more) {
+  .empty-state,
+  .loading-state,
+  .error-state {
+    border: 2px solid currentColor;
+  }
+
+  .empty-state-icon,
+  .loading-state-icon,
+  .error-state-icon {
+    opacity: 1;
+  }
+}
+
+/* =============================================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  .empty-state,
+  .loading-state,
+  .error-state {
+    padding: var(--spacing-lg, 24px);
+    min-height: auto;
+  }
+
+  .empty-state-sm,
+  .loading-state-sm,
+  .error-state-sm {
+    padding: var(--spacing-md, 16px);
+  }
+
+  .empty-state-icon,
+  .loading-state-icon,
+  .error-state-icon {
+    font-size: 2.5em;
+  }
+
+  .error-state-actions {
+    flex-direction: column;
+    gap: var(--spacing-md, 16px);
+  }
+
+  .error-state-retry-btn,
+  .error-state-dismiss-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .table-skeleton th,
+  .table-skeleton td {
+    padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+    font-size: 0.9em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-state-icon {
+    animation: none;
+  }
+
+  .skeleton-line,
+  .skeleton-header {
+    animation: none;
+    background: var(--bg-secondary, #252526);
+  }
+}

@@ -441,26 +441,26 @@
 
 .role-g1 {
     background-color: rgba(76, 175, 80, 0.2);
-    color: #4caf50;
-    border: 1px solid #4caf50;
+    color: #66bb6a;
+    border: 1px solid #66bb6a;
 }
 
 .role-g2 {
     background-color: rgba(33, 150, 243, 0.2);
-    color: #2196f3;
-    border: 1px solid #2196f3;
+    color: #42a5f5;
+    border: 1px solid #42a5f5;
 }
 
 .role-ta {
     background-color: rgba(255, 152, 0, 0.2);
-    color: #ff9800;
-    border: 1px solid #ff9800;
+    color: #ffb74d;
+    border: 1px solid #ffb74d;
 }
 
 .role-pm {
     background-color: rgba(156, 39, 176, 0.2);
-    color: #9c27b0;
-    border: 1px solid #9c27b0;
+    color: #ce93d8;
+    border: 1px solid #ce93d8;
 }
 
 /* Number and Currency Formatting */

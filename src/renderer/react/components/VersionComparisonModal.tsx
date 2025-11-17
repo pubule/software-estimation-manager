@@ -11,6 +11,7 @@ import React, { useMemo } from 'react';
 import { useStore } from '../hooks/useStore';
 import { useVersionHistoryActions } from '../hooks/useVersionHistoryActions';
 import { ComparisonData, ComparisonField } from '../actions/VersionHistoryActions';
+import Button from './Button';
 
 const VersionComparisonModal: React.FC = () => {
   // SOLO lettura dallo store - Selettori specifici per massima reattività
@@ -171,14 +172,13 @@ const VersionComparisonModal: React.FC = () => {
           </div>
           
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={handleClose}>
+            <Button type="button" variant="secondary" onClick={handleClose}>
               Close Analysis
-            </button>
+            </Button>
             {navigationContext.canNavigateNext && (
-              <button type="button" className="btn btn-primary" onClick={handleNextVersion}>
-                <i className="fas fa-arrow-right"></i>
+              <Button type="button" variant="primary" onClick={handleNextVersion} icon={<i className="fas fa-arrow-right" />} iconPosition="left">
                 Next Version
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -547,13 +547,12 @@ const VersionComparisonModal: React.FC = () => {
         </div>
         
         <div className="modal-footer">
-          <button type="button" className="btn btn-secondary" onClick={handleClose}>
+          <Button type="button" variant="secondary" onClick={handleClose}>
             Close Analysis
-          </button>
-          <button type="button" className="btn btn-warning" onClick={handleRestoreFromComparison}>
-            <i className="fas fa-undo"></i>
+          </Button>
+          <Button type="button" variant="warning" onClick={handleRestoreFromComparison} icon={<i className="fas fa-undo" />} iconPosition="left">
             Restore This Version
-          </button>
+          </Button>
         </div>
       </div>
     </div>
