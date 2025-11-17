@@ -621,7 +621,8 @@
     border-radius: var(--radius-md, 4px);
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    font-size: var(--font-size-md, 16px);
+    font-family: var(--font-primary, 'Segoe UI', sans-serif);
+    font-size: var(--font-size-sm, 12px);
     min-width: 120px;
 }
 

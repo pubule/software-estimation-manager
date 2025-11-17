@@ -572,6 +572,8 @@
     background-repeat: no-repeat;
     background-position: right 8px center;
     padding-right: 28px;
+    font-family: var(--font-primary);
+    font-size: var(--font-size-sm);
 }
 
 .form-group select:hover:not(:disabled) {
@@ -1403,7 +1405,7 @@ select:read-only:focus-visible {
         border: 1px solid var(--input-border);
         border-radius: var(--radius-md);
         color: var(--text-primary);
-        font-size: var(--font-size-base);
+        font-size: var(--font-size-sm);
         padding: var(--spacing-sm);
         transition: border-color var(--transition-fast);
     }
@@ -1837,7 +1839,7 @@ select:read-only:focus-visible {
     --modal-overlay: rgba(0, 0, 0, 0.6);
 
     /* Typography */
-    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-size-sm: 12px;
     --font-size-base: 14px;
     --font-size-lg: 16px;
@@ -1874,7 +1876,7 @@ select:read-only:focus-visible {
 }
 
 body {
-    font-family: var(--font-family);
+    font-family: var(--font-primary);
     font-size: var(--font-size-base);
     color: var(--text-primary);
     background-color: var(--bg-primary);
