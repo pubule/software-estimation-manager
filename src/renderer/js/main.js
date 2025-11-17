@@ -117,8 +117,11 @@ async function initializeSidebarExportButton() {
                 }
 
                 // Istanzia e chiama l'action di export
-                const { TicketDashboardActions } = await import('../react/actions/TicketDashboardActions.js');
-                const actions = new TicketDashboardActions();
+                // TicketDashboardActions è esportato globalmente da main.tsx
+                if (!window.TicketDashboardActions) {
+                    throw new Error('TicketDashboardActions not available - ensure main.tsx has loaded');
+                }
+                const actions = new window.TicketDashboardActions();
                 await actions.exportReportToExcel();
 
             } catch (error) {

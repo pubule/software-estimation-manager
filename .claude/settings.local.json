@@ -36,7 +36,11 @@
       "Bash(node -c:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "mcp__serena__list_dir"
+      "mcp__serena__list_dir",
+      "Bash(ls \"C:\\Users\\pubul\\WebstormProjects\\software-estimates-app\"\" | grep -E \"vite)",
+      "Bash(tsconfig:*)",
+      "Bash(build)",
+      "Bash(dist \")"
     ],
     "deny": [],
     "ask": []

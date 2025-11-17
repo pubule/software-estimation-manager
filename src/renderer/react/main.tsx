@@ -56,6 +56,7 @@ import { versionHistoryActions } from './actions/VersionHistoryActions';
 import { calculationsActions } from './actions/CalculationsActions';
 import { CapacityActions } from './actions/CapacityActions';
 import { AllocationActions } from './actions/AllocationActions';
+import { TicketDashboardActions } from './actions/TicketDashboardActions';
 import '../js/actions/ReactPageWrapperActions.js';
 
 // Import the existing store
@@ -65,6 +66,7 @@ import '../js/store/app-store.js';
 // This ensures Actions are available when React components initialize
 window.CapacityActions = CapacityActions;
 window.AllocationActions = AllocationActions;
+window.TicketDashboardActions = TicketDashboardActions;
 console.log('✅ Actions exported BEFORE React components mount');
 
 // Export React components globally for use by vanilla JS
