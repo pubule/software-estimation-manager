@@ -16,6 +16,7 @@ import { useStore } from '../hooks/useStore';
 import { useProjectsList } from '../hooks/useProjectsList';
 import { useProjectPhases } from '../hooks/useProjectPhases';
 import { AllocationActions } from '../actions/AllocationActions';
+import Button from './Button';
 import type {
     AllocationFormData,
     PhaseAllocation,
@@ -1397,16 +1398,17 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                     </div>
 
                     <div className="modal-footer">
-                        <button type="button" className="btn btn-secondary" onClick={onClose}>
+                        <Button type="button" variant="secondary" onClick={onClose}>
                             Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="submit"
-                            className="btn btn-primary"
+                            variant="primary"
+                            loading={isCalculating}
                             disabled={isCalculating}
                         >
                             {isEditing ? 'Update' : 'Create'} Assignment
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </div>

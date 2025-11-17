@@ -9,6 +9,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Assumption } from '../actions/AssumptionsActions';
+import Button from './Button';
 import '../../styles/assumptions.css';
 
 interface AssumptionTableProps {
@@ -170,27 +171,27 @@ const AssumptionTable: React.FC<AssumptionTableProps> = ({
               </td>
               <td className="assumption-actions">
                 <div className="row-actions">
-                  <button
-                    className="btn btn-small btn-secondary edit-btn"
+                  <Button
+                    variant="secondary"
+                    size="small"
                     onClick={() => onEdit(assumption)}
                     title="Edit Assumption"
-                  >
-                    <i className="fas fa-edit"></i>
-                  </button>
-                  <button
-                    className="btn btn-small btn-secondary duplicate-btn"
+                    icon={<i className="fas fa-edit" />}
+                  />
+                  <Button
+                    variant="secondary"
+                    size="small"
                     onClick={() => onDuplicate(assumption.id)}
                     title="Duplicate Assumption"
-                  >
-                    <i className="fas fa-copy"></i>
-                  </button>
-                  <button
-                    className="btn btn-small btn-danger delete-btn"
+                    icon={<i className="fas fa-copy" />}
+                  />
+                  <Button
+                    variant="danger"
+                    size="small"
                     onClick={() => onDelete(assumption.id)}
                     title="Delete Assumption"
-                  >
-                    <i className="fas fa-trash"></i>
-                  </button>
+                    icon={<i className="fas fa-trash" />}
+                  />
                 </div>
               </td>
             </tr>

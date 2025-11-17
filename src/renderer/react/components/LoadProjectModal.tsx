@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Button from './Button';
 
 interface RecentProject {
   id: string;
@@ -233,13 +234,14 @@ const LoadProjectModal: React.FC<LoadProjectModalProps> = ({
                 style={{ display: 'none' }}
                 onChange={handleFileChange}
               />
-              <button 
-                className="btn btn-primary" 
+              <Button
+                variant="primary"
                 onClick={handleFileSelect}
                 disabled={isLoading}
+                icon={<i className="fas fa-folder-open" />}
               >
-                <i className="fas fa-folder-open"></i> Choose File
-              </button>
+                Choose File
+              </Button>
               
               {selectedFile && (
                 <div id="selected-file-info" className="file-info" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
@@ -264,13 +266,14 @@ const LoadProjectModal: React.FC<LoadProjectModalProps> = ({
                           {formatDate(project.lastOpened)}
                         </span>
                       </div>
-                      <button 
-                        className="btn btn-small btn-primary"
+                      <Button
+                        variant="primary"
+                        size="small"
                         onClick={() => handleLoadRecentProject(project.id)}
-                        disabled={isLoading}
+                        loading={isLoading}
                       >
                         {isLoading ? 'Loading...' : 'Load'}
-                      </button>
+                      </Button>
                     </div>
                   ))
                 )}
@@ -279,28 +282,23 @@ const LoadProjectModal: React.FC<LoadProjectModalProps> = ({
           </div>
         </div>
         <div className="modal-footer">
-          <button 
-            type="button" 
-            className="btn btn-secondary" 
+          <Button
+            type="button"
+            variant="secondary"
             onClick={onClose}
             disabled={isLoading}
           >
             Cancel
-          </button>
-          <button 
-            type="button" 
-            className="btn btn-primary" 
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
             onClick={handleLoadSelectedProject}
-            disabled={!selectedFile || isLoading}
+            disabled={!selectedFile}
+            loading={isLoading}
           >
-            {isLoading ? (
-              <>
-                <i className="fas fa-spinner fa-spin"></i> Loading...
-              </>
-            ) : (
-              'Load Project'
-            )}
-          </button>
+            Load Project
+          </Button>
         </div>
       </div>
     </div>

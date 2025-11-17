@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Feature } from '../hooks/useStore';
 import { useFeatureActions } from '../hooks/useFeatureActions';
+import Button from './Button';
 
 interface FeatureTableProps {
   features: Feature[];
@@ -120,33 +121,27 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
               </td>
               <td className="feature-actions">
                 <div className="row-actions">
-                  <button 
-                    className="btn btn-small btn-secondary edit-btn"
-                    data-action="edit"
-                    data-feature-id={feature.id}
+                  <Button
+                    variant="secondary"
+                    size="small"
                     onClick={() => onEdit(feature)}
                     title="Edit Feature"
-                  >
-                    <i className="fas fa-edit"></i>
-                  </button>
-                  <button 
-                    className="btn btn-small btn-secondary duplicate-btn"
-                    data-action="duplicate"
-                    data-feature-id={feature.id}
+                    icon={<i className="fas fa-edit" />}
+                  />
+                  <Button
+                    variant="secondary"
+                    size="small"
                     onClick={() => onDuplicate(feature)}
                     title="Duplicate Feature"
-                  >
-                    <i className="fas fa-copy"></i>
-                  </button>
-                  <button 
-                    className="btn btn-small btn-danger delete-btn"
-                    data-action="delete"
-                    data-feature-id={feature.id}
+                    icon={<i className="fas fa-copy" />}
+                  />
+                  <Button
+                    variant="danger"
+                    size="small"
                     onClick={() => onDelete(feature.id)}
                     title="Delete Feature"
-                  >
-                    <i className="fas fa-trash"></i>
-                  </button>
+                    icon={<i className="fas fa-trash" />}
+                  />
                 </div>
               </td>
             </tr>

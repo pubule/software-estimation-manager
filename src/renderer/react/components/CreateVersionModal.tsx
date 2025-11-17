@@ -10,6 +10,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../hooks/useStore';
 import { useVersionHistoryActions } from '../hooks/useVersionHistoryActions';
+import Button from './Button';
 
 const CreateVersionModal: React.FC = () => {
   // SOLO lettura dallo store - Selettori specifici per massima reattività
@@ -176,31 +177,23 @@ const CreateVersionModal: React.FC = () => {
           </div>
           
           <div className="modal-footer">
-            <button 
-              type="button" 
-              className="btn btn-secondary" 
+            <Button
+              type="button"
+              variant="secondary"
               onClick={handleClose}
               disabled={isLoading}
             >
               Cancel
-            </button>
-            <button 
-              type="submit" 
-              className="btn btn-primary" 
-              disabled={isLoading || !reason.trim()}
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={isLoading}
+              disabled={!reason.trim()}
+              icon={!isLoading ? <i className="fas fa-save" /> : undefined}
             >
-              {isLoading ? (
-                <>
-                  <i className="fas fa-spinner fa-spin"></i>
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-save"></i>
-                  Create Version
-                </>
-              )}
-            </button>
+              {isLoading ? 'Creating...' : 'Create Version'}
+            </Button>
           </div>
         </form>
       </div>

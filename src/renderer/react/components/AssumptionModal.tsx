@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../hooks/useStore';
 import { useAssumptionsActions } from '../hooks/useAssumptionsActions';
 import { AssumptionFormData } from '../actions/AssumptionsActions';
+import Button from './Button';
 
 const AssumptionModal: React.FC = () => {
   // SOLO lettura dallo store - Selettori specifici per massima reattività
@@ -227,12 +228,12 @@ const AssumptionModal: React.FC = () => {
           </div>
           
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={handleClose}>
+            <Button type="button" variant="secondary" onClick={handleClose} disabled={isSubmitting}>
               Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : submitText}
-            </button>
+            </Button>
+            <Button type="submit" variant="primary" loading={isSubmitting}>
+              {submitText}
+            </Button>
           </div>
         </form>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Feature, useStore } from '../hooks/useStore';
 import { useFeatureActions } from '../hooks/useFeatureActions';
+import Button from './Button';
 
 interface FeatureModalProps {
   feature: Feature | null;
@@ -384,12 +385,12 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
           </div>
           
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+            <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button type="submit" className="btn btn-primary">
+            </Button>
+            <Button type="submit" variant="primary">
               {isEditing ? 'Update' : 'Create'} Feature
-            </button>
+            </Button>
           </div>
         </form>
       </div>

@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import Button from './Button';
 
 interface Version {
   id: string;
@@ -133,38 +134,38 @@ const VersionHistoryTable: React.FC<VersionHistoryTableProps> = ({
               </td>
               <td className="version-actions">
                 <div className="row-actions">
-                  <button 
-                    className="btn btn-small btn-secondary compare-btn"
+                  <Button
+                    variant="secondary"
+                    size="small"
                     onClick={() => onCompare(version.id)}
                     disabled={isLoading}
-                    title={index === 0 ? "Compare with previous version" : "Compare with previous version"}
-                  >
-                    <i className="fas fa-balance-scale"></i>
-                  </button>
-                  <button 
-                    className="btn btn-small btn-warning restore-btn"
+                    title="Compare with previous version"
+                    icon={<i className="fas fa-balance-scale" />}
+                  />
+                  <Button
+                    variant="warning"
+                    size="small"
                     onClick={() => onRestore(version.id)}
                     disabled={isLoading || index === 0}
                     title={index === 0 ? "This is the current version" : "Restore this version"}
-                  >
-                    <i className="fas fa-undo"></i>
-                  </button>
-                  <button 
-                    className="btn btn-small btn-secondary export-btn"
+                    icon={<i className="fas fa-undo" />}
+                  />
+                  <Button
+                    variant="secondary"
+                    size="small"
                     onClick={() => onExport(version.id)}
                     disabled={isLoading}
                     title="Export version"
-                  >
-                    <i className="fas fa-download"></i>
-                  </button>
-                  <button 
-                    className="btn btn-small btn-danger delete-btn"
+                    icon={<i className="fas fa-download" />}
+                  />
+                  <Button
+                    variant="danger"
+                    size="small"
                     onClick={() => onDelete(version.id)}
                     disabled={isLoading || index === 0}
                     title={index === 0 ? "Cannot delete current version" : "Delete version"}
-                  >
-                    <i className="fas fa-trash"></i>
-                  </button>
+                    icon={<i className="fas fa-trash" />}
+                  />
                 </div>
               </td>
             </tr>
