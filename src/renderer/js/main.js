@@ -133,13 +133,11 @@ async function initializeSidebarExportButton() {
 
         // Subscribe to store changes to enable/disable button based on data availability
         if (window.appStore && window.appStore.subscribe) {
-            window.appStore.subscribe(
-                (state) => state.ticketData,
-                (ticketData) => {
-                    const hasData = ticketData && ticketData.length > 0;
-                    exportBtn.disabled = !hasData;
-                }
-            );
+            window.appStore.subscribe((state) => {
+                const hasData = state.ticketData && state.ticketData.length > 0;
+                exportBtn.disabled = !hasData;
+                console.log('Export button state updated:', { hasData, ticketDataLength: state.ticketData?.length });
+            });
         }
 
         console.log('Sidebar export button initialized');
