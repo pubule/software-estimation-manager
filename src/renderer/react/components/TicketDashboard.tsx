@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useStore } from '../hooks/useStore';
 import { TicketDashboardActions, TicketData, Alert, OperatorMetrics } from '../actions/TicketDashboardActions';
+import ExpandableCardButton from './ExpandableCardButton';
 import '../../styles/ticket-dashboard.css';
 
 interface TicketDashboardState {
@@ -248,18 +249,17 @@ export const TicketDashboard: React.FC = () => {
                 </div>
               </div>
               <div className={`kpi-card resolution-time-card ${expandedResolutionCard ? 'expanded' : ''}`}>
-                <button
-                  className="resolution-card-header"
+                <ExpandableCardButton
+                  expanded={expandedResolutionCard}
                   onClick={() => setExpandedResolutionCard(!expandedResolutionCard)}
-                  aria-expanded={expandedResolutionCard}
-                  aria-label="Toggle resolution time details"
+                  ariaLabel="Toggle resolution time details"
+                  cardType="kpi"
                 >
                   <div className="kpi-value">
                     {dashboardMetrics?.averageResolutionTime ? formatDuration(dashboardMetrics.averageResolutionTime) : 'No data'}
                   </div>
                   <div className="kpi-label">Avg Resolution Time</div>
-                  <span className="expand-icon" aria-hidden="true">{expandedResolutionCard ? '▼' : '▶'}</span>
-                </button>
+                </ExpandableCardButton>
 
                 {/* Expanded Content - Categories */}
                 {expandedResolutionCard && dashboardMetrics?.resolutionTimeCategories && (
@@ -310,16 +310,15 @@ export const TicketDashboard: React.FC = () => {
                 <div className="kpi-label">Resolution Rate</div>
               </div>
               <div className={`kpi-card backlog-card ${expandedBacklogCard ? 'expanded' : ''}`}>
-                <button
-                  className="backlog-card-header"
+                <ExpandableCardButton
+                  expanded={expandedBacklogCard}
                   onClick={() => setExpandedBacklogCard(!expandedBacklogCard)}
-                  aria-expanded={expandedBacklogCard}
-                  aria-label="Toggle backlog details"
+                  ariaLabel="Toggle backlog details"
+                  cardType="kpi"
                 >
                   <div className="kpi-value">{dashboardMetrics?.backlogCurrent || 0}</div>
                   <div className="kpi-label">Current Backlog</div>
-                  <span className="expand-icon" aria-hidden="true">{expandedBacklogCard ? '▼' : '▶'}</span>
-                </button>
+                </ExpandableCardButton>
 
                 {/* Expanded Content - Oldest Open Tickets */}
                 {expandedBacklogCard && dashboardMetrics?.backlogTickets && (
@@ -368,17 +367,17 @@ export const TicketDashboard: React.FC = () => {
               <div className="alerts-grid">
                 {dashboardAlerts.map((alert, index) => (
                   <div key={index} className={`alert-card alert-${alert.type} ${expandedAlerts.has(index) ? 'expanded' : ''}`}>
-                    <button
-                      className="alert-header"
+                    <ExpandableCardButton
+                      expanded={expandedAlerts.has(index)}
                       onClick={() => toggleAlertExpansion(index)}
-                      aria-expanded={expandedAlerts.has(index)}
-                      aria-label={`${alert.title}, ${alert.count} alerts`}
+                      ariaLabel={`${alert.title}, ${alert.count} alerts`}
+                      cardType="alert"
+                      iconPosition="trailing"
+                      icon={<span className="alert-icon" aria-hidden="true">{getAlertIcon(alert.type)}</span>}
                     >
-                      <span className="alert-icon" aria-hidden="true">{getAlertIcon(alert.type)}</span>
                       <strong>{alert.title}</strong>
                       <span className="alert-count">{alert.count}</span>
-                      <span className="expand-icon" aria-hidden="true">{expandedAlerts.has(index) ? '▼' : '▶'}</span>
-                    </button>
+                    </ExpandableCardButton>
                     <p>{alert.description}</p>
 
                     {/* Expanded Content */}

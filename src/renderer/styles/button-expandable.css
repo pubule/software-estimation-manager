@@ -1,0 +1,418 @@
+/**
+ * button-expandable.css
+ *
+ * Consolidated styles for expandable button patterns:
+ * - KPI card headers (resolution-card-header, backlog-card-header)
+ * - Alert card headers (alert-header)
+ * - Icon-only expand buttons (expand-btn)
+ * - Collapsible section headers
+ *
+ * Single source of truth for all expandable/collapsible UI patterns
+ * Replaces scattered classes across ticket-dashboard.css, main.css, capacity.css
+ */
+
+/* ============================================================
+   BASE EXPANDABLE CARD BUTTON STYLES
+   ============================================================ */
+
+.expandable-card-button {
+  position: relative;
+  padding: 5px;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: inherit;
+  color: inherit;
+  transition: background 0.2s ease;
+
+  /* Display alignment */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expandable-card-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.expandable-card-button:focus-visible {
+  outline: 2px solid var(--focus-color, #007fd4);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+}
+
+.expandable-card-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ============================================================
+   KPI CARD BUTTON VARIANT
+   ============================================================ */
+
+.expandable-card-button--kpi {
+  width: 100%;
+  padding: 5px;
+  position: relative;
+}
+
+.expandable-card-button--kpi .expandable-card-button__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.expandable-card-button--kpi .expandable-card-button__expand-icon {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 12px;
+  color: var(--expand-icon-color, #007acc);
+  transition: transform 0.2s ease;
+}
+
+/* ============================================================
+   ALERT CARD BUTTON VARIANT
+   ============================================================ */
+
+.expandable-card-button--alert {
+  width: 100%;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: #ffffff;
+  padding: 5px;
+}
+
+.expandable-card-button--alert .expandable-card-button__icon-leading {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.expandable-card-button--alert .expandable-card-button__content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.expandable-card-button--alert strong {
+  font-weight: 600;
+}
+
+/* ============================================================
+   ICON POSITION VARIANTS
+   ============================================================ */
+
+/* Icon on right (fixed position - KPI cards) */
+.expandable-card-button--icon-right .expandable-card-button__expand-icon {
+  position: absolute;
+  right: 15px;
+}
+
+/* Icon trailing (flex layout - Alert cards) */
+.expandable-card-button--icon-trailing .expandable-card-button__expand-icon {
+  margin-left: auto;
+  position: static;
+}
+
+/* ============================================================
+   EXPAND/COLLAPSE ICON ANIMATION
+   ============================================================ */
+
+.expandable-card-button__expand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--expand-icon-color, #007acc);
+  transition: transform 0.2s ease;
+  min-width: 1em;
+  line-height: 1;
+}
+
+/* Animation for icon rotation (used with aria-expanded state) */
+[aria-expanded="true"] .expandable-card-button__expand-icon {
+  transform: rotate(0deg); /* ▼ is already expanded */
+}
+
+[aria-expanded="false"] .expandable-card-button__expand-icon {
+  transform: rotate(0deg); /* ▶ points right */
+}
+
+/* ============================================================
+   LEGACY CLASS COMPATIBILITY (Backward Compatibility Layer)
+   ============================================================ */
+
+/**
+ * Backward compatibility for existing CSS classes
+ * Maps old specific classes to new expandable button styles
+ * Used during migration period from scattered classes to BEM structure
+ */
+
+.resolution-card-header,
+.backlog-card-header {
+  position: relative;
+  padding: 5px;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: inherit;
+  color: inherit;
+  transition: background 0.2s ease;
+  width: 100%;
+}
+
+.resolution-card-header:hover,
+.backlog-card-header:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.resolution-card-header:focus-visible,
+.backlog-card-header:focus-visible {
+  outline: 2px solid var(--focus-color, #007fd4);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  transition: background 0.2s ease;
+  width: 100%;
+  text-align: left;
+  font-size: inherit;
+}
+
+.alert-header:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.alert-header:focus-visible {
+  outline: 2px solid var(--focus-color, #007fd4);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+}
+
+/* ============================================================
+   EXPAND BUTTON (Icon-only variant)
+   ============================================================ */
+
+.expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-color, #ffffff);
+  font-size: 12px;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.expand-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.expand-btn:focus-visible {
+  outline: 2px solid var(--focus-color, #007fd4);
+  outline-offset: 1px;
+}
+
+.expand-btn i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+/* Icon rotation based on parent state */
+.feature-row.expanded .expand-btn i,
+.expanded .expand-btn i {
+  transform: rotate(90deg);
+}
+
+/* ============================================================
+   COLLAPSIBLE SECTION HEADER
+   ============================================================ */
+
+.collapsible-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  width: 100%;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.collapsible-section-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.collapsible-section-header:focus-visible {
+  outline: 2px solid var(--focus-color, #007fd4);
+  outline-offset: -2px;
+}
+
+.collapsible-section-header .chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.collapsible-section-header[aria-expanded="true"] .chevron {
+  transform: rotate(90deg);
+}
+
+/* ============================================================
+   DARK THEME & CSS VARIABLES
+   ============================================================ */
+
+:root {
+  --expand-icon-color: #007acc;
+  --focus-color: #007fd4;
+  --button-hover-bg: rgba(255, 255, 255, 0.1);
+  --button-focus-ring: rgba(0, 122, 204, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .expandable-card-button {
+    color: inherit;
+  }
+
+  .expandable-card-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .expand-btn {
+    color: #cccccc;
+  }
+
+  .expand-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* ============================================================
+   REDUCED MOTION SUPPORT
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .expandable-card-button,
+  .expandable-card-button__expand-icon,
+  .expand-btn,
+  .collapsible-section-header,
+  .collapsible-section-header .chevron {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   HIGH CONTRAST MODE
+   ============================================================ */
+
+@media (prefers-contrast: more) {
+  .expandable-card-button:focus-visible {
+    outline-width: 3px;
+  }
+
+  .expand-btn:focus-visible {
+    outline-width: 3px;
+  }
+
+  .collapsible-section-header:focus-visible {
+    outline-width: 3px;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .expandable-card-button {
+    padding: 8px;
+  }
+
+  .expandable-card-button--kpi .expandable-card-button__expand-icon {
+    top: 10px;
+    right: 10px;
+  }
+
+  .expand-btn {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+
+/* Semantic classes for common state patterns */
+.expandable-card-button.is-expanded {
+  /* For components that need explicit expanded styling */
+}
+
+.expandable-card-button.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.expandable-card-button.is-loading {
+  pointer-events: none;
+}
+
+/* ============================================================
+   ANIMATION KEYFRAMES
+   ============================================================ */
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
