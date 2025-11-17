@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import Button from './Button';
 import TimelineMonthCell from './TimelineMonthCell';
 import AvailableCapacityRow from './AvailableCapacityRow';
 import PhaseBreakdownHeader from './PhaseBreakdownHeader';
@@ -753,24 +754,24 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                     {/* Column 2: Actions - Sticky */}
                     <div className="capacity-modern-project-actions-col">
                         {/* Edit Button */}
-                        <button
+                        <Button
+                            variant="secondary"
+                            size="small"
                             onClick={(e) => handleEditAllocation(e, project)}
-                            className="btn btn-small btn-secondary edit-btn"
                             title="Edit allocation"
                             aria-label="Edit allocation"
-                        >
-                            <i className="fas fa-edit"></i>
-                        </button>
+                            icon={<i className="fas fa-edit" />}
+                        />
 
                         {/* Delete Button */}
-                        <button
+                        <Button
+                            variant="danger"
+                            size="small"
                             onClick={(e) => handleDeleteAllocation(e, project)}
-                            className="btn btn-small btn-danger delete-btn"
                             title="Delete allocation"
                             aria-label="Delete allocation"
-                        >
-                            <i className="fas fa-trash"></i>
-                        </button>
+                            icon={<i className="fas fa-trash" />}
+                        />
                     </div>
 
                     {/* Column 3: Total MDs - Sticky */}

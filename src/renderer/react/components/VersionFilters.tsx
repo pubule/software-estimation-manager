@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import Button from './Button';
 
 interface VersionFilters {
   dateRange: string;
@@ -66,13 +67,15 @@ const VersionFilters: React.FC<VersionFiltersProps> = ({
 
       {hasActiveFilters && (
         <div className="filter-actions">
-          <button 
-            className="btn btn-small btn-secondary"
+          <Button
+            variant="secondary"
+            size="small"
             onClick={onResetFilters}
             title="Clear all filters"
+            icon={<i className="fas fa-times" />}
           >
-            <i className="fas fa-times"></i> Clear Filters
-          </button>
+            Clear Filters
+          </Button>
         </div>
       )}
     </div>

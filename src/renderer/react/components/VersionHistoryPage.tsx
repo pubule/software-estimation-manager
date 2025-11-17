@@ -9,6 +9,7 @@
  */
 
 import React, { useEffect } from 'react';
+import Button from './Button';
 import { useStore } from '../hooks/useStore';
 import { useVersionHistoryActions } from '../hooks/useVersionHistoryActions';
 import VersionHistoryTable from './VersionHistoryTable';
@@ -119,14 +120,15 @@ const VersionHistoryPage: React.FC<VersionHistoryPageProps> = () => {
           </p>
         </div>
         <div className="version-actions">
-          <button 
-            className="btn btn-primary"
+          <Button
+            variant="primary"
             onClick={handleCreateVersion}
             disabled={isLoading}
             title="Create a new version of the current project state"
+            icon={<i className="fas fa-plus" />}
           >
-            <i className="fas fa-plus"></i> Create Version
-          </button>
+            Create Version
+          </Button>
         </div>
       </div>
 

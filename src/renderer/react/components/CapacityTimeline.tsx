@@ -19,6 +19,7 @@
  */
 
 import React, { useState } from 'react';
+import Button from './Button';
 import { useCapacityTimeline } from '../hooks/useCapacityTimeline';
 import TimelineHeader from './TimelineHeader';
 import ExpandableTimelineRow from './ExpandableTimelineRow';
@@ -229,9 +230,9 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
                     <i className="fas fa-exclamation-triangle" style={{ color: '#f48771' }}></i>
                     <h3 style={{ color: '#f48771' }}>Error</h3>
                     <p>{error}</p>
-                    <button onClick={refresh} className="capacity-modern-btn capacity-modern-btn-primary">
-                        <i className="fas fa-redo"></i> Retry
-                    </button>
+                    <Button variant="primary" onClick={refresh} icon={<i className="fas fa-redo" />}>
+                        Retry
+                    </Button>
                 </div>
             </div>
         );
@@ -268,12 +269,13 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
                     </p>
                 </div>
                 <div className="page-actions">
-                    <button
+                    <Button
+                        variant="primary"
                         onClick={handleAddAssignment}
-                        className="btn btn-primary"
+                        icon={<i className="fas fa-plus" />}
                     >
-                        <i className="fas fa-plus"></i> Add Assignment
-                    </button>
+                        Add Assignment
+                    </Button>
                 </div>
             </div>
 

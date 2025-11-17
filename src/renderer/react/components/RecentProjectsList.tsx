@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Button from './Button';
 import ProjectItem from './ProjectItem';
 import { projectActions, RecentProject } from '../actions/ProjectsActions';
 
@@ -44,13 +45,15 @@ const RecentProjectsList: React.FC<RecentProjectsListProps> = ({
     <div className="recent-projects-section">
       <div className="section-header">
         <h3>Recent Projects</h3>
-        <button 
-          className="btn btn-small btn-secondary" 
+        <Button
+          variant="secondary"
+          size="small"
           id="clear-recent-btn"
           onClick={onClearRecent}
+          icon={<i className="fas fa-trash" />}
         >
-          <i className="fas fa-trash"></i> Clear Recent
-        </button>
+          Clear Recent
+        </Button>
       </div>
       <div id="recent-projects-list" className="projects-list">
         {displayProjects.length === 0 ? (

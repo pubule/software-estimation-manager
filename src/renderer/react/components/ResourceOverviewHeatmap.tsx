@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
+import Button from './Button';
 import { useResourceOverviewHeatmap } from '../hooks/useResourceOverviewHeatmap';
 import type { HeatmapMember, HeatmapCell } from '../hooks/useResourceOverviewHeatmap';
 import '../../styles/capacity-heatmap.css';
@@ -105,7 +106,9 @@ export const ResourceOverviewHeatmap: React.FC<ResourceOverviewHeatmapProps> = (
             <div className="heatmap-error">
                 <div className="error-icon">⚠</div>
                 <div className="error-message">{error}</div>
-                <button onClick={refresh} className="btn btn-primary">Retry</button>
+                <Button variant="primary" onClick={refresh}>
+                    Retry
+                </Button>
             </div>
         );
     }
@@ -116,12 +119,21 @@ export const ResourceOverviewHeatmap: React.FC<ResourceOverviewHeatmapProps> = (
             <div className="heatmap-header">
                 <h2>Resource Overview - Annual Capacity Heatmap</h2>
                 <div className="heatmap-actions">
-                    <button onClick={refresh} className="btn btn-secondary" title="Refresh data">
-                        <i className="fas fa-sync-alt"></i> Refresh
-                    </button>
-                    <button className="btn btn-secondary" title="Export to CSV">
-                        <i className="fas fa-download"></i> Export
-                    </button>
+                    <Button
+                        variant="secondary"
+                        onClick={refresh}
+                        title="Refresh data"
+                        icon={<i className="fas fa-sync-alt" />}
+                    >
+                        Refresh
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        title="Export to CSV"
+                        icon={<i className="fas fa-download" />}
+                    >
+                        Export
+                    </Button>
                 </div>
             </div>
 
@@ -350,7 +362,9 @@ export const ResourceOverviewHeatmap: React.FC<ResourceOverviewHeatmapProps> = (
                         </h3>
                         <p>Utilization: {selectedCell.member.months[selectedCell.month].utilization.toFixed(1)}%</p>
                         <p className="text-muted">Drill-down details coming soon...</p>
-                        <button onClick={() => setSelectedCell(null)} className="btn btn-primary">Close</button>
+                        <Button variant="primary" onClick={() => setSelectedCell(null)}>
+                            Close
+                        </Button>
                     </div>
                 </div>
             )}

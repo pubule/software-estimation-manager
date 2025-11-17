@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useProjectActions } from '../hooks/useProjectActions';
 import { NewProjectFormData } from '../actions/ProjectsActions';
+import Button from './Button';
 import CurrentProjectCard from './CurrentProjectCard';
 import RecentProjectsList from './RecentProjectsList';
 import SavedProjectsList from './SavedProjectsList';
@@ -154,18 +155,20 @@ const ProjectManager: React.FC = () => {
       <div className="page-header">
         <h2>Project Manager</h2>
         <div className="page-actions">
-          <button 
-            className="btn btn-primary" 
+          <Button
+            variant="primary"
             onClick={handleNewProject}
+            icon={<i className="fas fa-plus" />}
           >
-            <i className="fas fa-plus"></i> New Project
-          </button>
-          <button 
-            className="btn btn-secondary" 
+            New Project
+          </Button>
+          <Button
+            variant="secondary"
             onClick={handleLoadProject}
+            icon={<i className="fas fa-folder-open" />}
           >
-            <i className="fas fa-folder-open"></i> Load Project
-          </button>
+            Load Project
+          </Button>
         </div>
       </div>
 

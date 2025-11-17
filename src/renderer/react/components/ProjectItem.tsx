@@ -1,4 +1,5 @@
 import React from 'react';
+import Button from './Button';
 import ApprovalStatusIcon from './ApprovalStatusIcon';
 
 interface BaseProject {
@@ -110,20 +111,20 @@ const ProjectItem: React.FC<ProjectItemProps> = ({
           </div>
         </div>
         <div className="project-actions">
-          <button
-            className="btn btn-icon btn-primary"
+          <Button
+            variant="primary"
+            size="small"
             onClick={() => handleAction('load')}
             title="Load Project"
-          >
-            <i className="fas fa-folder-open"></i>
-          </button>
-          <button
-            className="btn btn-icon btn-danger"
+            icon={<i className="fas fa-folder-open" />}
+          />
+          <Button
+            variant="danger"
+            size="small"
             onClick={() => handleAction('remove')}
             title="Remove from Recent"
-          >
-            <i className="fas fa-times"></i>
-          </button>
+            icon={<i className="fas fa-times" />}
+          />
         </div>
       </div>
     );
@@ -150,27 +151,27 @@ const ProjectItem: React.FC<ProjectItemProps> = ({
         </div>
       </div>
       <div className="project-actions">
-        <button
-          className="btn btn-icon btn-primary"
+        <Button
+          variant="primary"
+          size="small"
           onClick={() => handleAction('load')}
           title="Load Project"
-        >
-          <i className="fas fa-folder-open"></i>
-        </button>
-        <button
-          className="btn btn-icon btn-secondary"
+          icon={<i className="fas fa-folder-open" />}
+        />
+        <Button
+          variant="secondary"
+          size="small"
           onClick={() => handleAction('export')}
           title="Export Project"
-        >
-          <i className="fas fa-download"></i>
-        </button>
-        <button
-          className="btn btn-icon btn-danger"
+          icon={<i className="fas fa-download" />}
+        />
+        <Button
+          variant="danger"
+          size="small"
           onClick={() => handleAction('delete')}
           title="Delete Project"
-        >
-          <i className="fas fa-trash"></i>
-        </button>
+          icon={<i className="fas fa-trash" />}
+        />
       </div>
     </div>
   );

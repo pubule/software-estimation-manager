@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../hooks/useStore';
+import Button from './Button';
 import ApprovalStatusIcon from './ApprovalStatusIcon';
 
 interface CurrentProjectCardProps {
@@ -82,22 +83,26 @@ const CurrentProjectCard: React.FC<CurrentProjectCardProps> = ({
           </div>
         </div>
         <div className="project-actions">
-          <button
-            className={`btn btn-small ${isDirty ? 'btn-primary' : 'btn-secondary'}`}
+          <Button
+            variant={isDirty ? 'primary' : 'secondary'}
+            size="small"
             id="save-current-project-btn"
             disabled={saveDisabled}
             onClick={onSave}
+            icon={<i className="fas fa-save" />}
           >
-            <i className="fas fa-save"></i> Save
-          </button>
-          <button
-            className="btn btn-small btn-secondary"
+            Save
+          </Button>
+          <Button
+            variant="secondary"
+            size="small"
             id="close-current-project-btn"
             disabled={closeDisabled}
             onClick={onClose}
+            icon={<i className="fas fa-times" />}
           >
-            <i className="fas fa-times"></i> Close
-          </button>
+            Close
+          </Button>
         </div>
       </div>
     </div>

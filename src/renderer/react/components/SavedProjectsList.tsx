@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import Button from './Button';
 import ProjectItem from './ProjectItem';
 import { projectActions, SavedProject } from '../actions/ProjectsActions';
 
@@ -63,15 +64,17 @@ const SavedProjectsList: React.FC<SavedProjectsListProps> = ({
     <div className="saved-projects-section">
       <div className="section-header">
         <h3>Saved Projects</h3>
-        <button 
-          className="btn btn-small btn-secondary" 
+        <Button
+          variant="secondary"
+          size="small"
           id="refresh-projects-btn"
           onClick={handleRefresh}
           disabled={isLoading}
+          loading={isLoading}
+          icon={!isLoading ? <i className="fas fa-sync" /> : undefined}
         >
-          <i className={`fas ${isLoading ? 'fa-spinner fa-spin' : 'fa-sync'}`}></i> 
           {isLoading ? 'Loading...' : 'Refresh'}
-        </button>
+        </Button>
       </div>
       <div id="saved-projects-list" className="projects-list">
         {isLoading && savedProjects.length === 0 ? (
@@ -84,13 +87,14 @@ const SavedProjectsList: React.FC<SavedProjectsListProps> = ({
             <i className="fas fa-exclamation-triangle"></i>
             <p>Error loading projects</p>
             <small>{error}</small>
-            <button 
-              className="btn btn-small btn-primary" 
+            <Button
+              variant="primary"
+              size="small"
               onClick={handleRefresh}
               style={{ marginTop: '8px' }}
             >
               Retry
-            </button>
+            </Button>
           </div>
         ) : savedProjects.length === 0 ? (
           <div className="empty-state">

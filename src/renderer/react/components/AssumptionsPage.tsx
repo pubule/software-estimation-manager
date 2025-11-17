@@ -13,6 +13,7 @@ import { useStore } from '../hooks/useStore';
 import { useAssumptionsActions } from '../hooks/useAssumptionsActions';
 import AssumptionModal from './AssumptionModal';
 import AssumptionTable from './AssumptionTable';
+import Button from './Button';
 
 interface AssumptionsPageProps {
   // Props interface se necessarie
@@ -106,13 +107,14 @@ const AssumptionsPage: React.FC<AssumptionsPageProps> = () => {
       {/* Header Section */}
       <div className="assumptions-header">
         <h1 className="page-title">Project Assumptions</h1>
-        <button 
-          className="btn btn-primary btn-add-assumption"
+        <Button
+          variant="primary"
           onClick={handleAddClick}
           title="Add New Assumption"
+          icon={<i className="fas fa-plus" />}
         >
-          <i className="fas fa-plus"></i> Add Assumption
-        </button>
+          Add Assumption
+        </Button>
       </div>
 
       {/* Filters Section */}
