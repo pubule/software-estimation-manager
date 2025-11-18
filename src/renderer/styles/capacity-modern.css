@@ -506,7 +506,7 @@
    ===================================================== */
 .capacity-modern-available-row {
     display: grid;
-    background-color: rgba(78, 201, 176, 0.08);
+    background-color: rgba(78, 201, 176, 0.15);
     border-bottom: 1px solid var(--border-primary);
     min-width: fit-content;
 }
@@ -519,8 +519,8 @@
     gap: 4px;
     position: sticky;
     left: 0;
-    z-index: 2;
-    background-color: rgba(78, 201, 176, 0.08);
+    z-index: 3;
+    background-color: rgba(78, 201, 176, 0.15);
 }
 
 .capacity-modern-available-label {
@@ -550,8 +550,8 @@
     justify-content: center;
     position: sticky;
     left: 250px;
-    z-index: 2;
-    background-color: rgba(78, 201, 176, 0.08);
+    z-index: 3;
+    background-color: rgba(78, 201, 176, 0.15);
 }
 
 .capacity-modern-available-icon {
@@ -567,8 +567,8 @@
     justify-content: center;
     position: sticky;
     left: 350px;
-    z-index: 2;
-    background-color: rgba(78, 201, 176, 0.08);
+    z-index: 3;
+    background-color: rgba(78, 201, 176, 0.15);
 }
 
 .capacity-modern-available-value {
@@ -585,8 +585,8 @@
     justify-content: center;
     position: sticky;
     left: 450px;
-    z-index: 2;
-    background-color: rgba(78, 201, 176, 0.08);
+    z-index: 3;
+    background-color: rgba(78, 201, 176, 0.15);
 }
 
 .capacity-modern-available-allocated-value {
