@@ -50,11 +50,90 @@ export const ResourceOverviewHeatmap: React.FC<ResourceOverviewHeatmapProps> = (
     // Modal state for drill-down
     const [selectedCell, setSelectedCell] = useState<{ member: HeatmapMember; month: number } | null>(null);
 
+    // Calculate heatmap data for a specific year
+    const calculateHeatmapForYear = async (targetYear: number): Promise<any[]> => {
+        try {
+            // Wait for window globals to be available
+            let attempts = 0;
+            const maxAttempts = 50;
+
+            while ((!window.CapacityActions || !window.TeamHelpers) && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+
+            if (!window.CapacityActions || !window.TeamHelpers) {
+                console.warn('Required Actions not available');
+                return [];
+            }
+
+            const capacityActions = new (window as any).CapacityActions();
+            const teamMembers = (window as any).TeamHelpers.getAllTeamMembers() || [];
+
+            const heatmapData: HeatmapMember[] = [];
+
+            for (const member of teamMembers) {
+                const months: any[] = [];
+                const fullName = `${member.firstName} ${member.lastName}`;
+
+                for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+                    const monthString = `${targetYear}-${String(monthIndex + 1).padStart(2, '0')}`;
+
+                    try {
+                        const capacityData = capacityActions.calculateAvailableCapacity(member.id, monthString);
+                        months.push({
+                            month: monthIndex,
+                            utilization: capacityData?.utilization || 0,
+                            allocated: capacityData?.existingAllocations || 0,
+                            capacity: capacityData?.monthlyCapacity || 0,
+                            workingDays: capacityData?.baseWorkingDays || 0,
+                            vacationDays: capacityData?.vacationDays || 0
+                        });
+                    } catch (err) {
+                        months.push({
+                            month: monthIndex,
+                            utilization: 0,
+                            allocated: 0,
+                            capacity: 0,
+                            workingDays: 0,
+                            vacationDays: 0
+                        });
+                    }
+                }
+
+                const yearlyAverage = months.reduce((sum: number, m: any) => sum + m.utilization, 0) / 12;
+
+                heatmapData.push({
+                    id: member.id,
+                    fullName,
+                    role: member.role || 'No Role',
+                    vendorName: member.vendorName || 'Internal',
+                    email: member.email || '',
+                    months,
+                    yearlyAverage
+                });
+            }
+
+            return heatmapData;
+        } catch (error) {
+            console.error('Error calculating heatmap for year:', error);
+            return [];
+        }
+    };
+
     // Handle export to Excel
     const handleExport = async () => {
         try {
             const exportActions = new ResourceOverviewExportActions();
             const exportData = exportActions.prepareExportData(members, stats, year);
+
+            // Calculate heatmap for next year
+            const nextYear = year + 1;
+            const nextYearHeatmap = await calculateHeatmapForYear(nextYear);
+
+            // Add next year data for dual-year export
+            exportData.nextYear = nextYear;
+            exportData.nextYearHeatmap = nextYearHeatmap;
 
             const result = await (window as any).electronAPI.exportResourceOverview(exportData);
 

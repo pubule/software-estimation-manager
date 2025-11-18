@@ -1221,14 +1221,25 @@ ipcMain.handle('export-resource-overview', async (event, exportData) => {
       return 'FFFF6B6B';                     // Red (over-allocated)
     };
 
-    // ============== SHEET 1: ANNUAL CAPACITY HEATMAP ==============
-    if (exportData.heatmapMembers && exportData.heatmapMembers.length > 0) {
-      const worksheet = workbook.addWorksheet('Annual Heatmap', { tabColor: { argb: 'FF4ECDC4' } });
+    // Helper function to create heatmap sheet for a specific year
+    const createHeatmapSheet = (yearToExport) => {
+      // Get heatmap data for this year from exportData
+      const heatmapData = yearToExport === exportData.selectedYear
+        ? exportData.heatmapMembers
+        : exportData.nextYearHeatmap || [];
+
+      if (heatmapData.length === 0) {
+        console.warn(`[IPC] No heatmap data for year ${yearToExport}`);
+        return;
+      }
+
+      const sheetName = `Heatmap ${yearToExport}`;
+      const worksheet = workbook.addWorksheet(sheetName, { tabColor: { argb: 'FF4ECDC4' } });
 
       // Title
-      worksheet.mergeCells('A1:N1');
+      worksheet.mergeCells('A1:P1');
       const titleCell = worksheet.getCell('A1');
-      titleCell.value = `Annual Capacity Heatmap - ${exportData.selectedYear}`;
+      titleCell.value = `Annual Capacity Heatmap - ${yearToExport}`;
       titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
       titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } };
       titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -1242,7 +1253,7 @@ ipcMain.handle('export-resource-overview', async (event, exportData) => {
       headerRow.height = 20;
 
       // Data rows
-      exportData.heatmapMembers.forEach((member, idx) => {
+      heatmapData.forEach((member, idx) => {
         const row = [
           member.fullName,
           member.role,
@@ -1279,6 +1290,12 @@ ipcMain.handle('export-resource-overview', async (event, exportData) => {
 
       // Freeze panes
       worksheet.views = [{ state: 'frozen', ySplit: 2, xSplit: 3 }];
+    };
+
+    // Create heatmap sheets for both years
+    createHeatmapSheet(exportData.selectedYear);
+    if (exportData.nextYear) {
+      createHeatmapSheet(exportData.nextYear);
     }
 
     // ============== SHEET 2: CAPACITY PLANNING BY PROJECT ==============
