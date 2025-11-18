@@ -506,7 +506,7 @@
    ===================================================== */
 .capacity-modern-available-row {
     display: grid;
-    background-color: rgba(78, 201, 176, 0.15);
+    background-color: #4ec9b0;
     border-bottom: 1px solid var(--border-primary);
     min-width: fit-content;
 }
@@ -520,7 +520,7 @@
     position: sticky;
     left: 0;
     z-index: 3;
-    background-color: rgba(78, 201, 176, 0.15);
+    background-color: #4ec9b0;
 }
 
 .capacity-modern-available-label {
@@ -528,18 +528,19 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--color-success);
+    color: #000000;
 }
 
 .capacity-modern-available-member-name {
     font-size: var(--font-base);
     font-weight: 600;
-    color: var(--text-primary);
+    color: #000000;
 }
 
 .capacity-modern-available-meta {
     font-size: var(--font-xs);
-    color: var(--text-secondary);
+    color: #000000;
+    font-weight: 600;
 }
 
 .capacity-modern-available-actions {
@@ -551,11 +552,11 @@
     position: sticky;
     left: 250px;
     z-index: 3;
-    background-color: rgba(78, 201, 176, 0.15);
+    background-color: #4ec9b0;
 }
 
 .capacity-modern-available-icon {
-    color: var(--color-success);
+    color: #000000;
     font-size: 18px;
 }
 
@@ -568,13 +569,13 @@
     position: sticky;
     left: 350px;
     z-index: 3;
-    background-color: rgba(78, 201, 176, 0.15);
+    background-color: #4ec9b0;
 }
 
 .capacity-modern-available-value {
     font-size: var(--font-md);
     font-weight: 700;
-    color: var(--color-success);
+    color: #000000;
 }
 
 .capacity-modern-available-allocated {
@@ -586,13 +587,13 @@
     position: sticky;
     left: 450px;
     z-index: 3;
-    background-color: rgba(78, 201, 176, 0.15);
+    background-color: #4ec9b0;
 }
 
 .capacity-modern-available-allocated-value {
     font-size: var(--font-md);
     font-weight: 700;
-    color: var(--color-success);
+    color: #000000;
 }
 
 .capacity-modern-available-month-cell {
@@ -607,7 +608,7 @@
 .capacity-modern-available-month-value {
     font-size: var(--font-sm);
     font-weight: 600;
-    color: var(--color-success);
+    color: #000000;
 }
 
 /* =====================================================
