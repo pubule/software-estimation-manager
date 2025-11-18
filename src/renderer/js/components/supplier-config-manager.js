@@ -622,6 +622,13 @@ class SupplierConfigManager {
             errors.push('Supplier name must be at least 2 characters');
         }
 
+        // Validazione user-id
+        if (!supplierData['user-id'] || !supplierData['user-id'].trim()) {
+            errors.push('User ID is required');
+        } else if (supplierData['user-id'].length > 255) {
+            errors.push('User ID must be 255 characters or less');
+        }
+
         // Validazione role
         if (!supplierData.role || !supplierData.role.trim()) {
             errors.push('Role is required');
@@ -711,6 +718,7 @@ class SupplierConfigManager {
      */
     extractRowFormData(row) {
         const nameInput = row.querySelector('.name-input');
+        const userIdInput = row.querySelector('.user-id-input');
         const ltaInput = row.querySelector('.lta-input');
         const roleInput = row.querySelector('.role-input');
         const departmentInput = row.querySelector('.department-input');
@@ -720,6 +728,7 @@ class SupplierConfigManager {
         return {
             id: row.dataset.supplierId,
             name: nameInput.value.trim(),
+            'user-id': userIdInput.value.trim(),
             lta: ltaInput.value.trim(),
             role: roleInput.value.trim(),
             department: departmentInput.value.trim(),
@@ -965,12 +974,17 @@ class SupplierConfigManager {
                             <th class="checkbox-col">
                                 <input type="checkbox" id="select-all-suppliers">
                             </th>
-                            <th class="name-col sortable ${this.sortField === 'name' ? 'sorted' : ''}" 
+                            <th class="name-col sortable ${this.sortField === 'name' ? 'sorted' : ''}"
                                 data-field="name">
-                                Name 
+                                Name
                                 <i class="fas fa-sort${this.getSortIcon('name')}"></i>
                             </th>
-                            <th class="lta-col sortable ${this.sortField === 'lta' ? 'sorted' : ''}" 
+                            <th class="user-id-col sortable ${this.sortField === 'user-id' ? 'sorted' : ''}"
+                                data-field="user-id">
+                                User ID
+                                <i class="fas fa-sort${this.getSortIcon('user-id')}"></i>
+                            </th>
+                            <th class="lta-col sortable ${this.sortField === 'lta' ? 'sorted' : ''}"
                                 data-field="lta">
                                 LTA
                                 <i class="fas fa-sort${this.getSortIcon('lta')}"></i>
@@ -1029,7 +1043,7 @@ class SupplierConfigManager {
         return `
             <tr class="${rowClass}" data-supplier-id="${supplier.id}">
                 <td class="checkbox-cell">
-                    <input type="checkbox" class="row-checkbox" data-supplier-id="${supplier.id}" 
+                    <input type="checkbox" class="row-checkbox" data-supplier-id="${supplier.id}"
                            ${isSelected ? 'checked' : ''}>
                 </td>
                 <td class="name-cell">
@@ -1037,6 +1051,9 @@ class SupplierConfigManager {
                         <span class="supplier-name">${this.escapeHtml(supplier.name)}</span>
                         ${this.generateSupplierBadges(supplier)}
                     </div>
+                </td>
+                <td class="user-id-cell">
+                    <span class="user-id-value">${this.escapeHtml(supplier['user-id'] || '')}</span>
                 </td>
                 <td class="lta-cell">
                     <span class="lta-value">${this.escapeHtml(supplier.lta || '')}</span>
@@ -1070,11 +1087,15 @@ class SupplierConfigManager {
                     <input type="checkbox" class="row-checkbox" disabled>
                 </td>
                 <td class="name-cell">
-                    <input type="text" class="edit-input name-input" value="${this.escapeHtml(supplier.name)}" 
+                    <input type="text" class="edit-input name-input" value="${this.escapeHtml(supplier.name)}"
                            maxlength="100" required>
                 </td>
+                <td class="user-id-cell">
+                    <input type="text" class="edit-input user-id-input" value="${this.escapeHtml(supplier['user-id'] || '')}"
+                           maxlength="255" required>
+                </td>
                 <td class="lta-cell">
-                    <input type="text" class="edit-input lta-input" value="${this.escapeHtml(supplier.lta || '')}" 
+                    <input type="text" class="edit-input lta-input" value="${this.escapeHtml(supplier.lta || '')}"
                            maxlength="50" placeholder="LTA code">
                 </td>
                 <td class="role-cell">
@@ -1421,16 +1442,17 @@ class SupplierConfigManager {
 
         // Apri modal vuota per nuovo supplier
         this.showModal(this.currentScope, null, true);
-        
+
         // Popola i campi manualmente DOPO aver aperto la modal (come fa categories)
         setTimeout(() => {
             document.getElementById('supplier-name').value = `${supplier.name} (Copy)`;
+            document.getElementById('supplier-user-id').value = this.generateUserIdFromUUID();
             document.getElementById('supplier-lta').value = supplier.lta || '';
             document.getElementById('supplier-role').value = supplier.role || '';
             document.getElementById('supplier-department').value = supplier.department || '';
             document.getElementById('supplier-real-rate').value = supplier.realRate || '';
             document.getElementById('supplier-official-rate').value = supplier.officialRate || '';
-            
+
             // Update modal title
             document.getElementById('supplier-modal-title').textContent = 'Duplicate Supplier';
         }, 10);
@@ -1529,11 +1551,20 @@ class SupplierConfigManager {
      * Popola il form con i dati del supplier
      */
     populateForm(supplier) {
-        const fields = ['name', 'lta', 'role', 'department', 'realRate', 'officialRate'];
+        const fields = ['name', 'user-id', 'lta', 'role', 'department', 'realRate', 'officialRate'];
         fields.forEach(field => {
-            const element = document.getElementById(`supplier-${field.replace(/([A-Z])/g, '-$1').toLowerCase()}`);
+            let elementId = field;
+            if (field === 'user-id') {
+                elementId = 'user-id';
+            } else if (field.includes('-')) {
+                elementId = field;
+            } else {
+                elementId = field.replace(/([A-Z])/g, '-$1').toLowerCase();
+            }
+            const element = document.getElementById(`supplier-${elementId}`);
             if (element) {
-                element.value = supplier[field] || '';
+                const value = field === 'user-id' ? supplier['user-id'] : supplier[field];
+                element.value = value || '';
             }
         });
     }
@@ -1693,15 +1724,23 @@ class SupplierConfigManager {
      */
     extractFormData(form, supplierId, scope, isNewSupplier = false) {
         const nameField = document.getElementById('supplier-name');
+        const userIdField = document.getElementById('supplier-user-id');
         const ltaField = document.getElementById('supplier-lta');
         const roleField = document.getElementById('supplier-role');
         const departmentField = document.getElementById('supplier-department');
         const realRateField = document.getElementById('supplier-real-rate');
         const officialRateField = document.getElementById('supplier-official-rate');
 
+        // Generate user-id if not provided
+        let userId = userIdField?.value?.trim() || '';
+        if (!userId) {
+            userId = this.generateUserIdFromUUID();
+        }
+
         return {
             id: (isNewSupplier || !supplierId) ? this.generateId('supplier_') : supplierId,
             name: nameField?.value?.trim() || '',
+            'user-id': userId,
             lta: ltaField?.value?.trim() || '',
             role: roleField?.value?.trim() || '',
             department: departmentField?.value?.trim() || '',
@@ -1855,6 +1894,17 @@ class SupplierConfigManager {
         return prefix + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
+    /**
+     * Genera un UUID v4 casuale per user-id
+     */
+    generateUserIdFromUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
     generateScopeSelector(data) {
         return `
             <div class="suppliers-scope-selector">
@@ -1885,12 +1935,17 @@ class SupplierConfigManager {
                         <form id="supplier-form">
                             <div class="form-group">
                                 <label for="supplier-name">Supplier Name:</label>
-                                <input type="text" id="supplier-name" name="name" class="validation-tooltip required" required maxlength="100" 
+                                <input type="text" id="supplier-name" name="name" class="validation-tooltip required" required maxlength="100"
                                        placeholder="Enter supplier company name">
                             </div>
                             <div class="form-group">
+                                <label for="supplier-user-id">User ID:</label>
+                                <input type="text" id="supplier-user-id" name="user-id" maxlength="255"
+                                       placeholder="Unique identifier (auto-generated if empty)">
+                            </div>
+                            <div class="form-group">
                                 <label for="supplier-lta">LTA:</label>
-                                <input type="text" id="supplier-lta" name="lta" maxlength="50" 
+                                <input type="text" id="supplier-lta" name="lta" maxlength="50"
                                        placeholder="Enter LTA code">
                             </div>
                             <div class="form-group">

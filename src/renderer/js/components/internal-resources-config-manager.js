@@ -582,6 +582,13 @@ class InternalResourcesConfigManager {
             errors.push('Resource name must be at least 2 characters');
         }
 
+        // Validazione user-id
+        if (!resourceData['user-id'] || !resourceData['user-id'].trim()) {
+            errors.push('User ID is required');
+        } else if (resourceData['user-id'].length > 255) {
+            errors.push('User ID must be 255 characters or less');
+        }
+
         // Validazione role
         if (!resourceData.role || !resourceData.role.trim()) {
             errors.push('Role is required');
@@ -671,6 +678,7 @@ class InternalResourcesConfigManager {
      */
     extractRowFormData(row) {
         const nameInput = row.querySelector('.name-input');
+        const userIdInput = row.querySelector('.user-id-input');
         const ltaInput = row.querySelector('.lta-input');
         const roleInput = row.querySelector('.role-input');
         const departmentInput = row.querySelector('.department-input');
@@ -680,6 +688,7 @@ class InternalResourcesConfigManager {
         return {
             id: row.dataset.resourceId,
             name: nameInput.value.trim(),
+            'user-id': userIdInput.value.trim(),
             lta: ltaInput.value.trim(),
             role: roleInput.value.trim(),
             department: departmentInput.value.trim(),
@@ -925,12 +934,17 @@ class InternalResourcesConfigManager {
                             <th class="checkbox-col">
                                 <input type="checkbox" id="select-all-resources">
                             </th>
-                            <th class="name-col sortable ${this.sortField === 'name' ? 'sorted' : ''}" 
+                            <th class="name-col sortable ${this.sortField === 'name' ? 'sorted' : ''}"
                                 data-field="name">
-                                Name 
+                                Name
                                 <i class="fas fa-sort${this.getSortIcon('name')}"></i>
                             </th>
-                            <th class="lta-col sortable ${this.sortField === 'lta' ? 'sorted' : ''}" 
+                            <th class="user-id-col sortable ${this.sortField === 'user-id' ? 'sorted' : ''}"
+                                data-field="user-id">
+                                User ID
+                                <i class="fas fa-sort${this.getSortIcon('user-id')}"></i>
+                            </th>
+                            <th class="lta-col sortable ${this.sortField === 'lta' ? 'sorted' : ''}"
                                 data-field="lta">
                                 LTA
                                 <i class="fas fa-sort${this.getSortIcon('lta')}"></i>
@@ -989,7 +1003,7 @@ class InternalResourcesConfigManager {
         return `
             <tr class="${rowClass}" data-resource-id="${resource.id}">
                 <td class="checkbox-cell">
-                    <input type="checkbox" class="row-checkbox" data-resource-id="${resource.id}" 
+                    <input type="checkbox" class="row-checkbox" data-resource-id="${resource.id}"
                            ${isSelected ? 'checked' : ''}>
                 </td>
                 <td class="name-cell">
@@ -997,6 +1011,9 @@ class InternalResourcesConfigManager {
                         <span class="resource-name">${this.escapeHtml(resource.name)}</span>
                         ${this.generateResourceBadges(resource)}
                     </div>
+                </td>
+                <td class="user-id-cell">
+                    <span class="user-id-value">${this.escapeHtml(resource['user-id'] || '')}</span>
                 </td>
                 <td class="lta-cell">
                     <span class="lta-value">${this.escapeHtml(resource.lta || '')}</span>
@@ -1030,11 +1047,15 @@ class InternalResourcesConfigManager {
                     <input type="checkbox" class="row-checkbox" disabled>
                 </td>
                 <td class="name-cell">
-                    <input type="text" class="edit-input name-input" value="${this.escapeHtml(resource.name)}" 
+                    <input type="text" class="edit-input name-input" value="${this.escapeHtml(resource.name)}"
                            maxlength="100" required>
                 </td>
+                <td class="user-id-cell">
+                    <input type="text" class="edit-input user-id-input" value="${this.escapeHtml(resource['user-id'] || '')}"
+                           maxlength="255" required>
+                </td>
                 <td class="lta-cell">
-                    <input type="text" class="edit-input lta-input" value="${this.escapeHtml(resource.lta || '')}" 
+                    <input type="text" class="edit-input lta-input" value="${this.escapeHtml(resource.lta || '')}"
                            maxlength="50" placeholder="LTA code">
                 </td>
                 <td class="role-cell">
@@ -1376,16 +1397,17 @@ class InternalResourcesConfigManager {
 
         // Apri modal vuota per nuova risorsa
         this.showModal('global', null, true);
-        
+
         // Popola i campi manualmente DOPO aver aperto la modal (come fa categories)
         setTimeout(() => {
             document.getElementById('resource-name').value = `${resource.name} (Copy)`;
+            document.getElementById('resource-user-id').value = this.generateUserIdFromUUID();
             document.getElementById('resource-lta').value = resource.lta || '';
             document.getElementById('resource-role').value = resource.role || '';
             document.getElementById('resource-department').value = resource.department || '';
             document.getElementById('resource-real-rate').value = resource.realRate || '';
             document.getElementById('resource-official-rate').value = resource.officialRate || '';
-            
+
             // Update modal title
             document.getElementById('resource-modal-title').textContent = 'Duplicate Internal Resource';
         }, 10);
@@ -1484,11 +1506,20 @@ class InternalResourcesConfigManager {
      * Popola il form con i dati della risorsa
      */
     populateForm(resource) {
-        const fields = ['name', 'lta', 'role', 'department', 'realRate', 'officialRate'];
+        const fields = ['name', 'user-id', 'lta', 'role', 'department', 'realRate', 'officialRate'];
         fields.forEach(field => {
-            const element = document.getElementById(`resource-${field.replace(/([A-Z])/g, '-$1').toLowerCase()}`);
+            let elementId = field;
+            if (field === 'user-id') {
+                elementId = 'user-id';
+            } else if (field.includes('-')) {
+                elementId = field;
+            } else {
+                elementId = field.replace(/([A-Z])/g, '-$1').toLowerCase();
+            }
+            const element = document.getElementById(`resource-${elementId}`);
             if (element) {
-                element.value = resource[field] || '';
+                const value = field === 'user-id' ? resource['user-id'] : resource[field];
+                element.value = value || '';
             }
         });
     }
@@ -1642,15 +1673,23 @@ class InternalResourcesConfigManager {
      */
     extractFormData(form, resourceId, scope, isNewResource = false) {
         const nameField = document.getElementById('resource-name');
+        const userIdField = document.getElementById('resource-user-id');
         const ltaField = document.getElementById('resource-lta');
         const roleField = document.getElementById('resource-role');
         const departmentField = document.getElementById('resource-department');
         const realRateField = document.getElementById('resource-real-rate');
         const officialRateField = document.getElementById('resource-official-rate');
 
+        // Generate user-id if not provided
+        let userId = userIdField?.value?.trim() || '';
+        if (!userId) {
+            userId = this.generateUserIdFromUUID();
+        }
+
         return {
             id: (isNewResource || !resourceId) ? this.generateId('internal_') : resourceId,
             name: nameField?.value?.trim() || '',
+            'user-id': userId,
             lta: ltaField?.value?.trim() || '',
             role: roleField?.value?.trim() || '',
             department: departmentField?.value?.trim() || '',
@@ -1730,6 +1769,17 @@ class InternalResourcesConfigManager {
         return prefix + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
+    /**
+     * Genera un UUID v4 casuale per user-id
+     */
+    generateUserIdFromUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
     generateScopeSelector(data) {
         return `
             <div class="resources-scope-selector">
@@ -1760,12 +1810,17 @@ class InternalResourcesConfigManager {
                         <form id="resource-form">
                             <div class="form-group">
                                 <label for="resource-name">Resource Name:</label>
-                                <input type="text" id="resource-name" name="name" class="validation-tooltip required" required maxlength="100" 
+                                <input type="text" id="resource-name" name="name" class="validation-tooltip required" required maxlength="100"
                                        placeholder="Enter resource full name">
                             </div>
                             <div class="form-group">
+                                <label for="resource-user-id">User ID:</label>
+                                <input type="text" id="resource-user-id" name="user-id" maxlength="255"
+                                       placeholder="Unique identifier (auto-generated if empty)">
+                            </div>
+                            <div class="form-group">
                                 <label for="resource-lta">LTA:</label>
-                                <input type="text" id="resource-lta" name="lta" maxlength="50" 
+                                <input type="text" id="resource-lta" name="lta" maxlength="50"
                                        placeholder="Enter LTA code">
                             </div>
                             <div class="form-group">
