@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
+import { useStore } from './useStore';
 
 // Extend window interface for global Actions
 declare global {
@@ -65,6 +66,9 @@ interface UseResourceOverviewHeatmapReturn {
 }
 
 export const useResourceOverviewHeatmap = (initialYear: number): UseResourceOverviewHeatmapReturn => {
+    // Subscribe to resource allocations from store
+    const resourceAllocations = useStore((state: any) => state.resourceAllocations);
+
     // State
     const [year, setYear] = useState(initialYear);
     const [allMembers, setAllMembers] = useState<HeatmapMember[]>([]);
@@ -167,10 +171,15 @@ export const useResourceOverviewHeatmap = (initialYear: number): UseResourceOver
         }
     };
 
-    // Load data on mount and when year changes
+    // Load data on mount and when year or allocations change
     useEffect(() => {
         loadHeatmapData();
-    }, [year]);
+    }, [year, resourceAllocations]);
+
+    // Refresh data every time user navigates to this page (component mounts)
+    useEffect(() => {
+        loadHeatmapData();
+    }, []);
 
     // Refresh function
     const refresh = () => {
