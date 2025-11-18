@@ -76,8 +76,72 @@ export interface TimeFilter {
 }
 
 export class TicketDashboardActions {
+  private resourceMapCache: Record<string, string> | null = null;
+  private cacheProjectId: string | null = null;
+
   private getStore() {
     return (window as any).appStore;
+  }
+
+  /**
+   * Build a map of user-id to resource name for looking up operator names
+   * Combines global and project-specific internal resources
+   */
+  private buildResourceMap(): Record<string, string> {
+    const store = this.getStore();
+    const state = store.getState();
+    const projectId = state.currentProject?.id;
+
+    // Invalida cache se il progetto è cambiato
+    if (this.cacheProjectId !== projectId) {
+      this.resourceMapCache = null;
+    }
+
+    if (this.resourceMapCache) {
+      return this.resourceMapCache;
+    }
+
+    // Calcola la mappa
+    const map: Record<string, string> = {};
+
+    // Prendi risorse globali
+    const globalResources = state.globalConfig?.internalResources || [];
+
+    // Prendi risorse del progetto (override)
+    const projectResources = state.currentProject?.config?.internalResources || [];
+
+    // Merge con override del progetto
+    const allResources = [...globalResources];
+    projectResources.forEach(pr => {
+      const index = allResources.findIndex(r => r.id === pr.id);
+      if (index >= 0) {
+        allResources[index] = pr;  // Override
+      } else {
+        allResources.push(pr);     // Aggiungi nuovo
+      }
+    });
+
+    // Crea mappa user-id -> name
+    allResources.forEach(resource => {
+      if (resource['user-id']) {
+        map[resource['user-id']] = resource.name;
+      }
+    });
+
+    // Cache il risultato
+    this.resourceMapCache = map;
+    this.cacheProjectId = projectId;
+
+    return map;
+  }
+
+  /**
+   * Get resource name by user-id, with fallback to user-id or 'Unassigned'
+   */
+  private getResourceNameByUserId(userId: string): string {
+    if (!userId) return 'Unassigned';
+    const map = this.buildResourceMap();
+    return map[userId] || userId;
   }
 
   /**
@@ -533,6 +597,7 @@ export class TicketDashboardActions {
 
   /**
    * Calculate operator metrics from filtered tickets
+   * Maps user-id to resource names for display
    */
   private calculateOperatorMetrics(tickets: TicketData[]): OperatorMetrics[] {
     const operatorMap: Record<string, {
@@ -540,6 +605,7 @@ export class TicketDashboardActions {
       resolvedTickets: number;
       resolutionTimes: number[];
       ticketsInDelay: number;
+      userId: string; // Mantieni l'user-id originale per il matching
     }> = {};
 
     const slathresholds = { P5: 4, P6: 8, P7: 24, P8: 72 };
@@ -547,16 +613,20 @@ export class TicketDashboardActions {
     tickets.forEach(ticket => {
       if (!ticket.assigned_to) return;
 
-      if (!operatorMap[ticket.assigned_to]) {
-        operatorMap[ticket.assigned_to] = {
+      // Usa il nome della risorsa come chiave nella mappa, ma mantieni l'user-id
+      const operatorName = this.getResourceNameByUserId(ticket.assigned_to);
+
+      if (!operatorMap[operatorName]) {
+        operatorMap[operatorName] = {
           assignedTickets: 0,
           resolvedTickets: 0,
           resolutionTimes: [],
-          ticketsInDelay: 0
+          ticketsInDelay: 0,
+          userId: ticket.assigned_to
         };
       }
 
-      operatorMap[ticket.assigned_to].assignedTickets++;
+      operatorMap[operatorName].assignedTickets++;
 
       // Check if ticket is in delay
       const now = new Date().getTime();
@@ -565,13 +635,13 @@ export class TicketDashboardActions {
       const slaMs = slathreshold * 60 * 60 * 1000;
 
       if (now - openedTime > slaMs && !['Resolved', 'Closed'].includes(ticket.state)) {
-        operatorMap[ticket.assigned_to].ticketsInDelay++;
+        operatorMap[operatorName].ticketsInDelay++;
       }
 
       if (ticket.resolved_at && ticket.opened_at) {
-        operatorMap[ticket.assigned_to].resolvedTickets++;
+        operatorMap[operatorName].resolvedTickets++;
         const resolutionTimeHours = (new Date(ticket.resolved_at).getTime() - openedTime) / (1000 * 60 * 60);
-        operatorMap[ticket.assigned_to].resolutionTimes.push(resolutionTimeHours);
+        operatorMap[operatorName].resolutionTimes.push(resolutionTimeHours);
       }
     });
 
@@ -588,7 +658,7 @@ export class TicketDashboardActions {
             : 0;
 
         return {
-          operatorName,
+          operatorName, // Ora contiene il nome della risorsa, non l'user-id
           assignedTickets: metrics.assignedTickets,
           resolvedTickets: metrics.resolvedTickets,
           averageResolutionTime,
@@ -855,16 +925,23 @@ export class TicketDashboardActions {
 
   /**
    * Set selected operator for drill-down
+   * Handles both resource names and user-ids for backward compatibility
    */
-  selectOperator(operatorName: string): void {
+  selectOperator(operatorNameOrUserId: string): void {
     const store = this.getStore();
     const state = store.getState();
 
-    state.setSelectedOperator(operatorName);
+    state.setSelectedOperator(operatorNameOrUserId);
 
-    // Calculate detailed operator metrics
+    // Reverse mapping: converte il nome della risorsa back all'user-id per il filtro
+    const resourceMap = this.buildResourceMap();
+    const userId = Object.keys(resourceMap).find(
+      id => resourceMap[id] === operatorNameOrUserId
+    ) || operatorNameOrUserId;
+
+    // Calculate detailed operator metrics usando l'user-id per il matching
     const operatorTickets = this.getFilteredTickets().filter(
-      ticket => ticket.assigned_to === operatorName
+      ticket => ticket.assigned_to === userId
     );
 
     const detailedMetrics = {
