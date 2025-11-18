@@ -358,6 +358,10 @@ export class TicketDashboardActions {
     };
 
     state.setDashboardMetrics(metrics);
+
+    // Calculate and save operator metrics for Team Analysis tab
+    const operatorMetrics = this.calculateOperatorMetrics(filteredTickets);
+    state.setOperatorMetrics(operatorMetrics);
   }
 
   /**
