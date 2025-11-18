@@ -17,6 +17,7 @@ import React, { useState, useMemo } from 'react';
 import Button from './Button';
 import { useResourceOverviewHeatmap } from '../hooks/useResourceOverviewHeatmap';
 import type { HeatmapMember, HeatmapCell } from '../hooks/useResourceOverviewHeatmap';
+import { ResourceOverviewExportActions } from '../actions/ResourceOverviewExportActions';
 import '../../styles/capacity-heatmap.css';
 
 interface ResourceOverviewHeatmapProps {
@@ -48,6 +49,25 @@ export const ResourceOverviewHeatmap: React.FC<ResourceOverviewHeatmapProps> = (
 
     // Modal state for drill-down
     const [selectedCell, setSelectedCell] = useState<{ member: HeatmapMember; month: number } | null>(null);
+
+    // Handle export to Excel
+    const handleExport = async () => {
+        try {
+            const exportActions = new ResourceOverviewExportActions();
+            const exportData = exportActions.prepareExportData(members, stats, year);
+
+            const result = await (window as any).electronAPI.exportResourceOverview(exportData);
+
+            if (result.success) {
+                alert(`Export successful!\nFile: ${result.filename}\nLocation: Downloads folder`);
+            } else {
+                alert(`Export failed: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            alert(`Export error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    };
 
     // Month labels
     const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -131,6 +151,7 @@ export const ResourceOverviewHeatmap: React.FC<ResourceOverviewHeatmapProps> = (
                         variant="secondary"
                         title="Export to CSV"
                         icon={<i className="fas fa-download" />}
+                        onClick={handleExport}
                     >
                         Export
                     </Button>

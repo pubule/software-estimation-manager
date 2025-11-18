@@ -1180,6 +1180,213 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
   }
 });
 
+// ============================================================================
+// EXPORT: Resource Overview (Heatmap + Capacity Planning)
+// ============================================================================
+ipcMain.handle('export-resource-overview', async (event, exportData) => {
+  try {
+    console.log('[IPC] Starting resource overview export');
+
+    // Load ExcelJS
+    const ExcelJSLib = global.ExcelJS || require('exceljs');
+    const workbook = new ExcelJSLib.Workbook();
+
+    // Set workbook properties
+    workbook.creator = 'Resource Overview';
+    workbook.lastModifiedBy = 'Resource Overview';
+    workbook.created = new Date();
+    workbook.modified = new Date();
+
+    // Define styles
+    const styles = {
+      headerGray: {
+        font: { name: 'Calibri', size: 12, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
+      },
+      dataLight: {
+        font: { name: 'Calibri', size: 11 },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: { top: { style: 'thin', color: { argb: 'FFE0E0E0' } }, left: { style: 'thin', color: { argb: 'FFE0E0E0' } }, bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } }, right: { style: 'thin', color: { argb: 'FFE0E0E0' } } }
+      }
+    };
+
+    // Color function for utilization cells
+    const getUtilizationColor = (util) => {
+      if (util < 50) return 'FF4DA6FF';      // Blue (under-utilized)
+      if (util < 90) return 'FF4ECDC4';      // Teal (available)
+      if (util <= 100) return 'FFFFFF99';    // Yellow (near capacity)
+      return 'FFFF6B6B';                     // Red (over-allocated)
+    };
+
+    // ============== SHEET 1: ANNUAL CAPACITY HEATMAP ==============
+    if (exportData.heatmapMembers && exportData.heatmapMembers.length > 0) {
+      const worksheet = workbook.addWorksheet('Annual Heatmap', { tabColor: { argb: 'FF4ECDC4' } });
+
+      // Title
+      worksheet.mergeCells('A1:N1');
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = `Annual Capacity Heatmap - ${exportData.selectedYear}`;
+      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getRow(1).height = 25;
+
+      // Headers
+      const headers = ['Member', 'Role', 'Vendor', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Avg %'];
+      const headerRow = worksheet.addRow(headers);
+      headerRow.font = styles.headerGray.font;
+      headerRow.fill = styles.headerGray.fill;
+      headerRow.height = 20;
+
+      // Data rows
+      exportData.heatmapMembers.forEach((member, idx) => {
+        const row = [
+          member.fullName,
+          member.role,
+          member.vendorName,
+          ...(member.months || []).map(m => `${m.utilization.toFixed(0)}%`),
+          `${member.yearlyAverage.toFixed(0)}%`
+        ];
+
+        const dataRow = worksheet.addRow(row);
+        const fillColor = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF5F5F5';
+
+        for (let i = 1; i <= 16; i++) {
+          const cell = dataRow.getCell(i);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
+          cell.border = styles.dataLight.border;
+          cell.font = { name: 'Calibri', size: 11 };
+
+          // Color code the utilization cells (columns 4-15)
+          if (i >= 4 && i <= 15 && member.months && member.months[i - 4]) {
+            const util = member.months[i - 4].utilization;
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: getUtilizationColor(util) } };
+            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF000000' } };
+          }
+        }
+      });
+
+      // Set column widths
+      worksheet.columns = [
+        { width: 20 },  // Member
+        { width: 15 },  // Role
+        { width: 15 },  // Vendor
+        ...Array(13).fill(null).map(() => ({ width: 10 }))  // 12 months + Avg
+      ];
+
+      // Freeze panes
+      worksheet.views = [{ state: 'frozen', ySplit: 2, xSplit: 3 }];
+    }
+
+    // ============== SHEET 2: CAPACITY PLANNING BY PROJECT ==============
+    if (exportData.capacityPlanningData && exportData.capacityPlanningData.length > 0) {
+      const worksheet = workbook.addWorksheet('By Project', { tabColor: { argb: 'FF333333' } });
+
+      // Get all unique months from the data
+      const allMonths = new Set();
+      exportData.capacityPlanningData.forEach(row => {
+        Object.keys(row.monthlyAllocations || {}).forEach(m => allMonths.add(m));
+      });
+      const sortedMonths = Array.from(allMonths).sort();
+
+      // Title
+      const headerCount = 5 + sortedMonths.length; // Project, Member, Role, StartDate, EndDate + months
+      worksheet.mergeCells(`A1:${String.fromCharCode(64 + headerCount)}1`);
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = 'Capacity Planning by Project';
+      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getRow(1).height = 25;
+
+      // Headers
+      const headers = ['Project', 'Member', 'Role', 'Start Date', 'End Date', ...sortedMonths, 'Total MDs'];
+      const headerRow = worksheet.addRow(headers);
+      headerRow.font = styles.headerGray.font;
+      headerRow.fill = styles.headerGray.fill;
+      headerRow.height = 20;
+
+      // Data rows
+      exportData.capacityPlanningData.forEach((item, idx) => {
+        const monthValues = sortedMonths.map(month => item.monthlyAllocations[month] || 0);
+        const row = [
+          item.projectName,
+          item.teamMemberName,
+          item.teamMemberRole,
+          item.startDate,
+          item.endDate,
+          ...monthValues,
+          item.totalMDs
+        ];
+
+        const dataRow = worksheet.addRow(row);
+        const fillColor = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF5F5F5';
+
+        for (let i = 1; i <= row.length; i++) {
+          const cell = dataRow.getCell(i);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
+          cell.border = styles.dataLight.border;
+          cell.font = { name: 'Calibri', size: 11 };
+          cell.alignment = { horizontal: i <= 5 ? 'left' : 'center', vertical: 'center' };
+        }
+      });
+
+      // Set column widths
+      worksheet.columns = [
+        { width: 25 },  // Project
+        { width: 20 },  // Member
+        { width: 15 },  // Role
+        { width: 12 },  // Start Date
+        { width: 12 },  // End Date
+        ...sortedMonths.map(() => ({ width: 11 })),  // Months
+        { width: 10 }   // Total MDs
+      ];
+
+      // Freeze panes
+      worksheet.views = [{ state: 'frozen', ySplit: 2, xSplit: 2 }];
+    }
+
+    // Save workbook
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    // Generate filename
+    const timestamp = new Date().toISOString().split('T')[0];
+    const year = exportData.selectedYear || new Date().getFullYear();
+    const filename = `Resource_Capacity_Export_${year}_${timestamp}.xlsx`;
+    const downloadsPath = app.getPath('downloads');
+    let filePath = path.join(downloadsPath, filename);
+
+    // Handle file collision
+    if (fsSync.existsSync(filePath)) {
+      const timeStr = new Date().toISOString().replace(/[:.]/g, '').slice(0, -5);
+      const ext = path.extname(filename);
+      const basename = path.basename(filename, ext);
+      filePath = path.join(downloadsPath, `${basename}_${timeStr}${ext}`);
+    }
+
+    // Write file
+    fsSync.writeFileSync(filePath, buffer);
+
+    console.log(`[IPC] Resource overview export saved: ${filePath}`);
+    return {
+      success: true,
+      filename: path.basename(filePath),
+      path: filePath,
+      sheetsCreated: 2
+    };
+
+  } catch (error) {
+    console.error('[IPC] Error during resource overview export:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+});
+
 ipcMain.handle('confirm-window-close', (event, canClose) => {
     if (mainWindow && canClose) {
         mainWindow.destroy();
