@@ -59,9 +59,16 @@ class TeamManager {
         }
 
         try {
+            // Generate or use provided user ID
+            let userId = data['user-id'];
+            if (!userId || !userId.trim()) {
+                userId = this._generateUserIdFromUUID();
+            }
+
             // Create team member object
             const teamMember = {
                 id: this._generateId(),
+                'user-id': userId,
                 firstName: data.firstName,
                 lastName: data.lastName,
                 vendor: data.vendor,
@@ -120,6 +127,7 @@ class TeamManager {
             const existingMember = this._teamMembers[memberIndex];
             const updatedMember = {
                 ...existingMember,
+                'user-id': existingMember['user-id'],
                 firstName: data.firstName,
                 lastName: data.lastName,
                 vendor: data.vendor,
@@ -384,6 +392,19 @@ class TeamManager {
      * @private
      * @returns {string} Unique team member ID
      */
+    /**
+     * Generate UUID v4 for user ID
+     * @private
+     * @returns {string} UUID v4 string
+     */
+    _generateUserIdFromUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
     _generateId() {
         this._lastId++;
         return `tm-${String(this._lastId).padStart(3, '0')}`;
@@ -398,6 +419,13 @@ class TeamManager {
      */
     _validateTeamMemberData(data, isUpdate = false) {
         const errors = {};
+
+        // User ID validation
+        if (!data['user-id'] || !data['user-id'].trim()) {
+            errors['user-id'] = 'User ID is required';
+        } else if (data['user-id'].length > 255) {
+            errors['user-id'] = 'User ID must be 255 characters or less';
+        }
 
         // Required fields validation
         if (!data.firstName || data.firstName.trim().length === 0) {

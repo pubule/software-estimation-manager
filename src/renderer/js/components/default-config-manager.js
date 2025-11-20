@@ -229,13 +229,15 @@ class DefaultConfigManager {
                 
                 // Validate team members if present
                 if (Array.isArray(team.members)) {
-                    validatedTeam.members = team.members.filter(member => 
-                        member && 
+                    validatedTeam.members = team.members.filter(member =>
+                        member &&
                         typeof member === 'object' &&
                         typeof member.id === 'string' &&
+                        typeof member['user-id'] === 'string' &&
                         typeof member.firstName === 'string' &&
                         typeof member.lastName === 'string' &&
                         member.id.length <= 50 &&
+                        member['user-id'].length <= 255 &&
                         member.firstName.length <= 100 &&
                         member.lastName.length <= 100
                     );
