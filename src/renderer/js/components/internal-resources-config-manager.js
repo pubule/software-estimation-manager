@@ -582,13 +582,6 @@ class InternalResourcesConfigManager {
             errors.push('Resource name must be at least 2 characters');
         }
 
-        // Validazione user-id
-        if (!resourceData['user-id'] || !resourceData['user-id'].trim()) {
-            errors.push('User ID is required');
-        } else if (resourceData['user-id'].length > 255) {
-            errors.push('User ID must be 255 characters or less');
-        }
-
         // Validazione role
         if (!resourceData.role || !resourceData.role.trim()) {
             errors.push('Role is required');
@@ -939,11 +932,6 @@ class InternalResourcesConfigManager {
                                 Name
                                 <i class="fas fa-sort${this.getSortIcon('name')}"></i>
                             </th>
-                            <th class="user-id-col sortable ${this.sortField === 'user-id' ? 'sorted' : ''}"
-                                data-field="user-id">
-                                User ID
-                                <i class="fas fa-sort${this.getSortIcon('user-id')}"></i>
-                            </th>
                             <th class="lta-col sortable ${this.sortField === 'lta' ? 'sorted' : ''}"
                                 data-field="lta">
                                 LTA
@@ -1012,9 +1000,6 @@ class InternalResourcesConfigManager {
                         ${this.generateResourceBadges(resource)}
                     </div>
                 </td>
-                <td class="user-id-cell">
-                    <span class="user-id-value">${this.escapeHtml(resource['user-id'] || '')}</span>
-                </td>
                 <td class="lta-cell">
                     <span class="lta-value">${this.escapeHtml(resource.lta || '')}</span>
                 </td>
@@ -1049,10 +1034,6 @@ class InternalResourcesConfigManager {
                 <td class="name-cell">
                     <input type="text" class="edit-input name-input" value="${this.escapeHtml(resource.name)}"
                            maxlength="100" required>
-                </td>
-                <td class="user-id-cell">
-                    <input type="text" class="edit-input user-id-input" value="${this.escapeHtml(resource['user-id'] || '')}"
-                           maxlength="255" required>
                 </td>
                 <td class="lta-cell">
                     <input type="text" class="edit-input lta-input" value="${this.escapeHtml(resource.lta || '')}"
@@ -1401,7 +1382,6 @@ class InternalResourcesConfigManager {
         // Popola i campi manualmente DOPO aver aperto la modal (come fa categories)
         setTimeout(() => {
             document.getElementById('resource-name').value = `${resource.name} (Copy)`;
-            document.getElementById('resource-user-id').value = this.generateUserIdFromUUID();
             document.getElementById('resource-lta').value = resource.lta || '';
             document.getElementById('resource-role').value = resource.role || '';
             document.getElementById('resource-department').value = resource.department || '';
@@ -1673,23 +1653,15 @@ class InternalResourcesConfigManager {
      */
     extractFormData(form, resourceId, scope, isNewResource = false) {
         const nameField = document.getElementById('resource-name');
-        const userIdField = document.getElementById('resource-user-id');
         const ltaField = document.getElementById('resource-lta');
         const roleField = document.getElementById('resource-role');
         const departmentField = document.getElementById('resource-department');
         const realRateField = document.getElementById('resource-real-rate');
         const officialRateField = document.getElementById('resource-official-rate');
 
-        // Generate user-id if not provided
-        let userId = userIdField?.value?.trim() || '';
-        if (!userId) {
-            userId = this.generateUserIdFromUUID();
-        }
-
         return {
             id: (isNewResource || !resourceId) ? this.generateId('internal_') : resourceId,
             name: nameField?.value?.trim() || '',
-            'user-id': userId,
             lta: ltaField?.value?.trim() || '',
             role: roleField?.value?.trim() || '',
             department: departmentField?.value?.trim() || '',
@@ -1769,17 +1741,6 @@ class InternalResourcesConfigManager {
         return prefix + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
-    /**
-     * Genera un UUID v4 casuale per user-id
-     */
-    generateUserIdFromUUID() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-    }
-
     generateScopeSelector(data) {
         return `
             <div class="resources-scope-selector">
@@ -1812,11 +1773,6 @@ class InternalResourcesConfigManager {
                                 <label for="resource-name">Resource Name:</label>
                                 <input type="text" id="resource-name" name="name" class="validation-tooltip required" required maxlength="100"
                                        placeholder="Enter resource full name">
-                            </div>
-                            <div class="form-group">
-                                <label for="resource-user-id">User ID:</label>
-                                <input type="text" id="resource-user-id" name="user-id" maxlength="255"
-                                       placeholder="Unique identifier (auto-generated if empty)">
                             </div>
                             <div class="form-group">
                                 <label for="resource-lta">LTA:</label>

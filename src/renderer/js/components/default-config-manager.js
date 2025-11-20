@@ -167,7 +167,6 @@ class DefaultConfigManager {
                 typeof supplier.role === 'string' &&
                 supplier.id.length <= 50 &&
                 supplier.name.length <= 100 &&
-                (!supplier['user-id'] || (typeof supplier['user-id'] === 'string' && supplier['user-id'].length > 0)) &&
                 (typeof supplier.realRate === 'number' && supplier.realRate >= 0) ||
                 (typeof supplier.officialRate === 'number' && supplier.officialRate >= 0)
             );
@@ -185,7 +184,6 @@ class DefaultConfigManager {
                 typeof resource.role === 'string' &&
                 resource.id.length <= 50 &&
                 resource.name.length <= 100 &&
-                (!resource['user-id'] || (typeof resource['user-id'] === 'string' && resource['user-id'].length > 0)) &&
                 (typeof resource.realRate === 'number' && resource.realRate >= 0) ||
                 (typeof resource.officialRate === 'number' && resource.officialRate >= 0)
             );
@@ -377,7 +375,6 @@ class DefaultConfigManager {
                 {
                     "id": "example-g1-it",
                     "name": "Example Supplier G1",
-                    "user-id": "550e8400-e29b-41d4-a716-446655440000",
                     "lta": "LTA001",
                     "role": "G1",
                     "department": "IT",
@@ -388,7 +385,6 @@ class DefaultConfigManager {
                 {
                     "id": "example-g2-it",
                     "name": "Example Supplier G2",
-                    "user-id": "550e8400-e29b-41d4-a716-446655440001",
                     "lta": "LTA002",
                     "role": "G2",
                     "department": "IT",
@@ -399,7 +395,6 @@ class DefaultConfigManager {
                 {
                     "id": "example-pm-it",
                     "name": "Example Supplier PM",
-                    "user-id": "550e8400-e29b-41d4-a716-446655440002",
                     "lta": "LTA003",
                     "role": "PM",
                     "department": "IT",
@@ -412,7 +407,6 @@ class DefaultConfigManager {
                 {
                     "id": "internal-analyst-it",
                     "name": "Internal Analyst",
-                    "user-id": "550e8400-e29b-41d4-a716-446655440003",
                     "lta": "INT001",
                     "role": "G1",
                     "department": "IT",
@@ -423,7 +417,6 @@ class DefaultConfigManager {
                 {
                     "id": "internal-developer-it",
                     "name": "Internal Developer",
-                    "user-id": "550e8400-e29b-41d4-a716-446655440004",
                     "lta": "INT002",
                     "role": "G2",
                     "department": "IT",
@@ -434,7 +427,6 @@ class DefaultConfigManager {
                 {
                     "id": "internal-tech-analyst-it",
                     "name": "Internal Tech Analyst",
-                    "user-id": "550e8400-e29b-41d4-a716-446655440005",
                     "lta": "INT003",
                     "role": "TA",
                     "department": "IT",
@@ -452,7 +444,6 @@ class DefaultConfigManager {
                     "members": [
                         {
                             "id": "member-frontend-1",
-                            "user-id": "550e8400-e29b-41d4-a716-446655440010",
                             "firstName": "Mario",
                             "lastName": "Rossi",
                             "email": "mario.rossi@company.com",
@@ -463,7 +454,6 @@ class DefaultConfigManager {
                         },
                         {
                             "id": "member-frontend-2",
-                            "user-id": "550e8400-e29b-41d4-a716-446655440011",
                             "firstName": "Lucia",
                             "lastName": "Verdi",
                             "email": "lucia.verdi@company.com",
@@ -482,7 +472,6 @@ class DefaultConfigManager {
                     "members": [
                         {
                             "id": "member-backend-1",
-                            "user-id": "550e8400-e29b-41d4-a716-446655440012",
                             "firstName": "Anna",
                             "lastName": "Bianchi",
                             "email": "anna.bianchi@company.com",
