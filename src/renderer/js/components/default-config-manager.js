@@ -440,27 +440,35 @@ class DefaultConfigManager {
                     "id": "team-frontend",
                     "name": "Frontend Team",
                     "description": "Frontend development team specializing in UI/UX implementation",
+                    "status": "active",
                     "isGlobal": true,
+                    "created": "2024-01-01T00:00:00.000Z",
                     "members": [
                         {
                             "id": "member-frontend-1",
+                            "user-id": "550e8400-e29b-41d4-a716-446655440020",
                             "firstName": "Mario",
                             "lastName": "Rossi",
                             "email": "mario.rossi@company.com",
                             "role": "Senior Frontend Developer",
                             "vendorId": "internal-analyst-it",
                             "vendorType": "internal",
-                            "monthlyCapacity": 22
+                            "monthlyCapacity": 22,
+                            "status": "active",
+                            "joinDate": "2024-01-01T00:00:00.000Z"
                         },
                         {
                             "id": "member-frontend-2",
+                            "user-id": "550e8400-e29b-41d4-a716-446655440021",
                             "firstName": "Lucia",
                             "lastName": "Verdi",
                             "email": "lucia.verdi@company.com",
                             "role": "Frontend Developer",
                             "vendorId": "example-g1-it",
                             "vendorType": "supplier",
-                            "monthlyCapacity": 22
+                            "monthlyCapacity": 22,
+                            "status": "active",
+                            "joinDate": "2024-01-01T00:00:00.000Z"
                         }
                     ]
                 },
@@ -468,17 +476,45 @@ class DefaultConfigManager {
                     "id": "team-backend",
                     "name": "Backend Team",
                     "description": "Backend development team handling server-side logic and APIs",
+                    "status": "active",
                     "isGlobal": true,
+                    "created": "2024-01-01T00:00:00.000Z",
                     "members": [
                         {
                             "id": "member-backend-1",
+                            "user-id": "550e8400-e29b-41d4-a716-446655440022",
                             "firstName": "Anna",
                             "lastName": "Bianchi",
                             "email": "anna.bianchi@company.com",
                             "role": "Senior Backend Developer",
                             "vendorId": "internal-developer-it",
                             "vendorType": "internal",
-                            "monthlyCapacity": 22
+                            "monthlyCapacity": 22,
+                            "status": "active",
+                            "joinDate": "2024-01-01T00:00:00.000Z"
+                        }
+                    ]
+                },
+                {
+                    "id": "team-qa",
+                    "name": "QA Team",
+                    "description": "Quality Assurance team for testing and validation",
+                    "status": "active",
+                    "isGlobal": true,
+                    "created": "2024-01-01T00:00:00.000Z",
+                    "members": [
+                        {
+                            "id": "member-qa-1",
+                            "user-id": "550e8400-e29b-41d4-a716-446655440023",
+                            "firstName": "Giuseppe",
+                            "lastName": "Neri",
+                            "email": "giuseppe.neri@company.com",
+                            "role": "QA Engineer",
+                            "vendorId": "internal-tech-analyst-it",
+                            "vendorType": "internal",
+                            "monthlyCapacity": 22,
+                            "status": "active",
+                            "joinDate": "2024-01-01T00:00:00.000Z"
                         }
                     ]
                 }
