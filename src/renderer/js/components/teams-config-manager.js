@@ -693,6 +693,7 @@ class TeamsConfigManager {
                             <thead>
                                 <tr>
                                     <th>Name</th>
+                                    <th>User ID</th>
                                     <th>Role</th>
                                     <th>Vendor</th>
                                     <th>Capacity</th>
@@ -708,6 +709,9 @@ class TeamsConfigManager {
                                                 <div class="member-info">
                                                     <strong>${this.escapeHtml(member.firstName)} ${this.escapeHtml(member.lastName)}</strong>
                                                 </div>
+                                            </td>
+                                            <td class="member-user-id">
+                                                <span class="user-id-value" title="${this.escapeHtml(member['user-id'] || '')}">${this.escapeHtml(member['user-id'] || '')}</span>
                                             </td>
                                             <td class="member-role">${this.escapeHtml(member.role)}</td>
                                             <td class="member-vendor">
