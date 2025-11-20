@@ -452,6 +452,7 @@ class DefaultConfigManager {
                     "members": [
                         {
                             "id": "member-frontend-1",
+                            "user-id": "550e8400-e29b-41d4-a716-446655440010",
                             "firstName": "Mario",
                             "lastName": "Rossi",
                             "email": "mario.rossi@company.com",
@@ -462,6 +463,7 @@ class DefaultConfigManager {
                         },
                         {
                             "id": "member-frontend-2",
+                            "user-id": "550e8400-e29b-41d4-a716-446655440011",
                             "firstName": "Lucia",
                             "lastName": "Verdi",
                             "email": "lucia.verdi@company.com",
@@ -480,6 +482,7 @@ class DefaultConfigManager {
                     "members": [
                         {
                             "id": "member-backend-1",
+                            "user-id": "550e8400-e29b-41d4-a716-446655440012",
                             "firstName": "Anna",
                             "lastName": "Bianchi",
                             "email": "anna.bianchi@company.com",
