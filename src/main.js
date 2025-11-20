@@ -303,6 +303,36 @@ ipcMain.handle('create-default-config', async (event, configData) => {
     }
 });
 
+// Update defaults.json with current global configuration
+ipcMain.handle('update-default-config', async (event, configData) => {
+    try {
+        const projectsPath = await getProjectsPath();
+        const configDir = path.join(projectsPath, 'config');
+        const configFile = path.join(configDir, 'defaults.json');
+
+        // Create config directory if it doesn't exist
+        await fs.mkdir(configDir, { recursive: true });
+
+        // Convert globalConfig format to defaults.json format
+        const defaultsData = {
+            phaseDefinitions: configData.phaseDefinitions || [],
+            defaultSuppliers: configData.suppliers || [],
+            defaultInternalResources: configData.internalResources || [],
+            defaultTeams: configData.teams || [],
+            defaultCategories: configData.categories || []
+        };
+
+        // Write the updated configuration file
+        await fs.writeFile(configFile, JSON.stringify(defaultsData, null, 2));
+
+        console.log('Updated default configuration file:', configFile);
+        return { success: true, filePath: configFile };
+    } catch (error) {
+        console.error('Failed to update default config file:', error);
+        return { success: false, error: error.message };
+    }
+});
+
 // Load global resource allocations from capacity/allocations.json
 ipcMain.handle('load-resource-allocations', async () => {
     try {

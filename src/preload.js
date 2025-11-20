@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Configuration file operations
     createDefaultConfig: (configData) => ipcRenderer.invoke('create-default-config', configData),
+    updateDefaultConfig: (configData) => ipcRenderer.invoke('update-default-config', configData),
 
     // Resource Allocations (Global - capacity/allocations.json)
     loadResourceAllocations: () => ipcRenderer.invoke('load-resource-allocations'),

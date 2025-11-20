@@ -711,7 +711,6 @@ class SupplierConfigManager {
      */
     extractRowFormData(row) {
         const nameInput = row.querySelector('.name-input');
-        const userIdInput = row.querySelector('.user-id-input');
         const ltaInput = row.querySelector('.lta-input');
         const roleInput = row.querySelector('.role-input');
         const departmentInput = row.querySelector('.department-input');
@@ -721,7 +720,6 @@ class SupplierConfigManager {
         return {
             id: row.dataset.supplierId,
             name: nameInput.value.trim(),
-            'user-id': userIdInput.value.trim(),
             lta: ltaInput.value.trim(),
             role: roleInput.value.trim(),
             department: departmentInput.value.trim(),
@@ -1531,20 +1529,17 @@ class SupplierConfigManager {
      * Popola il form con i dati del supplier
      */
     populateForm(supplier) {
-        const fields = ['name', 'user-id', 'lta', 'role', 'department', 'realRate', 'officialRate'];
+        const fields = ['name', 'lta', 'role', 'department', 'realRate', 'officialRate'];
         fields.forEach(field => {
             let elementId = field;
-            if (field === 'user-id') {
-                elementId = 'user-id';
-            } else if (field.includes('-')) {
+            if (field.includes('-')) {
                 elementId = field;
             } else {
                 elementId = field.replace(/([A-Z])/g, '-$1').toLowerCase();
             }
             const element = document.getElementById(`supplier-${elementId}`);
             if (element) {
-                const value = field === 'user-id' ? supplier['user-id'] : supplier[field];
-                element.value = value || '';
+                element.value = supplier[field] || '';
             }
         });
     }

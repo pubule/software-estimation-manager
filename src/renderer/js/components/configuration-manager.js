@@ -73,6 +73,12 @@ class ConfigurationManager extends BaseComponent {
             settings.globalConfig = this.globalConfig;
             await this.dataManager.saveSettings(settings);
 
+            // Also update defaults.json with the current configuration
+            if (window.electronAPI && window.electronAPI.updateDefaultConfig) {
+                await window.electronAPI.updateDefaultConfig(this.globalConfig);
+                console.log('✅ Updated defaults.json with current configuration');
+            }
+
             this.cache.invalidate();
             this.emit('global-config-changed', { config: this.globalConfig });
 
@@ -97,12 +103,13 @@ class ConfigurationManager extends BaseComponent {
             const defaultSuppliers = await this.defaultConfigManager.getDefaultSuppliers();
             const defaultInternalResources = await this.defaultConfigManager.getDefaultInternalResources();
             const defaultCategories = await this.defaultConfigManager.getDefaultCategories();
+            const defaultTeams = await this.defaultConfigManager.getDefaultTeams();
             
             return {
                 suppliers: defaultSuppliers || this.createFallbackSuppliers(),
                 internalResources: defaultInternalResources || this.createFallbackInternalResources(),
                 categories: this.normalizeCategoriesWithMultiplier(defaultCategories) || this.createFallbackCategories(),
-                teams: [], // Initialize empty teams array - will be populated by TeamsConfigManager
+                teams: defaultTeams || [],
                 calculationParams: this.createDefaultCalculationParams()
             };
         } catch (error) {
@@ -111,7 +118,7 @@ class ConfigurationManager extends BaseComponent {
                 suppliers: this.createFallbackSuppliers(),
                 internalResources: this.createFallbackInternalResources(),
                 categories: this.createFallbackCategories(),
-                teams: [], // Initialize empty teams array - will be populated by TeamsConfigManager
+                teams: [],
                 calculationParams: this.createDefaultCalculationParams()
             };
         }

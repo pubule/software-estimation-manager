@@ -1024,9 +1024,9 @@ class TeamsConfigManager {
             console.log('Saving team member:', `${formData.firstName} ${formData.lastName}`, 'Edit mode:', !!this.editingTeamMember);
 
             if (this.editingTeamMember) {
-                // Update existing team member - preserve user-id
+                // Update existing team member with form data (including user-id)
                 Object.assign(this.editingTeamMember, {
-                    'user-id': this.editingTeamMember['user-id'], // Preserve existing
+                    'user-id': formData['user-id'],
                     firstName: formData.firstName,
                     lastName: formData.lastName,
                     email: formData.email,
