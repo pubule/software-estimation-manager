@@ -93,102 +93,7 @@ class TeamsConfigManager {
      * Create fallback teams with default team members
      */
     createFallbackTeams() {
-        return [
-            {
-                id: 'team-frontend',
-                name: 'Frontend Team',
-                description: 'Frontend development team specializing in UI/UX implementation',
-                status: 'active',
-                isGlobal: true,
-                created: new Date().toISOString(),
-                members: [
-                    {
-                        id: 'member-frontend-1',
-                        'user-id': 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                            const r = Math.random() * 16 | 0;
-                            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-                        }),
-                        firstName: 'Mario',
-                        lastName: 'Rossi',
-                        email: 'mario.rossi@company.com',
-                        role: 'Senior Frontend Developer',
-                        vendorId: 'internal1', // Will reference internal resource
-                        vendorType: 'internal', // 'internal' or 'supplier'
-                        monthlyCapacity: 22,
-                        status: 'active',
-                        joinDate: new Date().toISOString()
-                    },
-                    {
-                        id: 'member-frontend-2',
-                        'user-id': 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                            const r = Math.random() * 16 | 0;
-                            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-                        }),
-                        firstName: 'Lucia',
-                        lastName: 'Verdi',
-                        email: 'lucia.verdi@company.com',
-                        role: 'Frontend Developer',
-                        vendorId: 'supplier1', // Will reference external supplier
-                        vendorType: 'supplier',
-                        monthlyCapacity: 22,
-                        status: 'active',
-                        joinDate: new Date().toISOString()
-                    }
-                ]
-            },
-            {
-                id: 'team-backend',
-                name: 'Backend Team',
-                description: 'Backend development team handling server-side logic and APIs',
-                status: 'active',
-                isGlobal: true,
-                created: new Date().toISOString(),
-                members: [
-                    {
-                        id: 'member-backend-1',
-                        'user-id': 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                            const r = Math.random() * 16 | 0;
-                            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-                        }),
-                        firstName: 'Anna',
-                        lastName: 'Bianchi',
-                        email: 'anna.bianchi@company.com',
-                        role: 'Senior Backend Developer',
-                        vendorId: 'internal2',
-                        vendorType: 'internal',
-                        monthlyCapacity: 22,
-                        status: 'active',
-                        joinDate: new Date().toISOString()
-                    }
-                ]
-            },
-            {
-                id: 'team-qa',
-                name: 'QA Team',
-                description: 'Quality Assurance team for testing and validation',
-                status: 'active',
-                isGlobal: true,
-                created: new Date().toISOString(),
-                members: [
-                    {
-                        id: 'member-qa-1',
-                        'user-id': 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                            const r = Math.random() * 16 | 0;
-                            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-                        }),
-                        firstName: 'Giuseppe',
-                        lastName: 'Neri',
-                        email: 'giuseppe.neri@company.com',
-                        role: 'QA Engineer',
-                        vendorId: 'internal3',
-                        vendorType: 'internal',
-                        monthlyCapacity: 22,
-                        status: 'active',
-                        joinDate: new Date().toISOString()
-                    }
-                ]
-            }
-        ];
+        return [];
     }
 
     /**
@@ -1247,13 +1152,7 @@ class TeamsConfigManager {
      * Generate UUID v4 for user ID
      * @returns {string} UUID v4 string
      */
-    generateUserIdFromUUID() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-    }
+    
 
     generateId(prefix = 'id-') {
         return prefix + Date.now().toString(36) + Math.random().toString(36).substr(2);
