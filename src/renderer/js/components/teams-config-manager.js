@@ -104,6 +104,10 @@ class TeamsConfigManager {
                 members: [
                     {
                         id: 'member-frontend-1',
+                        'user-id': 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                            const r = Math.random() * 16 | 0;
+                            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                        }),
                         firstName: 'Mario',
                         lastName: 'Rossi',
                         email: 'mario.rossi@company.com',
@@ -115,7 +119,11 @@ class TeamsConfigManager {
                         joinDate: new Date().toISOString()
                     },
                     {
-                        id: 'member-frontend-2', 
+                        id: 'member-frontend-2',
+                        'user-id': 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                            const r = Math.random() * 16 | 0;
+                            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                        }),
                         firstName: 'Lucia',
                         lastName: 'Verdi',
                         email: 'lucia.verdi@company.com',
@@ -138,6 +146,10 @@ class TeamsConfigManager {
                 members: [
                     {
                         id: 'member-backend-1',
+                        'user-id': 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                            const r = Math.random() * 16 | 0;
+                            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                        }),
                         firstName: 'Anna',
                         lastName: 'Bianchi',
                         email: 'anna.bianchi@company.com',
@@ -152,7 +164,7 @@ class TeamsConfigManager {
             },
             {
                 id: 'team-qa',
-                name: 'QA Team', 
+                name: 'QA Team',
                 description: 'Quality Assurance team for testing and validation',
                 status: 'active',
                 isGlobal: true,
@@ -160,6 +172,10 @@ class TeamsConfigManager {
                 members: [
                     {
                         id: 'member-qa-1',
+                        'user-id': 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                            const r = Math.random() * 16 | 0;
+                            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                        }),
                         firstName: 'Giuseppe',
                         lastName: 'Neri',
                         email: 'giuseppe.neri@company.com',
@@ -428,6 +444,10 @@ class TeamsConfigManager {
                             <div class="form-group">
                                 <label for="member-email">Email</label>
                                 <input type="email" id="member-email" name="email" maxlength="100">
+                            </div>
+                            <div class="form-group">
+                                <label for="member-user-id">User ID *</label>
+                                <input type="text" id="member-user-id" name="user-id" class="validation-tooltip required" required maxlength="255" placeholder="Unique identifier (auto-generated if empty)">
                             </div>
                             <div class="form-group">
                                 <label for="member-role">Role *</label>
@@ -863,6 +883,7 @@ class TeamsConfigManager {
         document.getElementById('member-first-name').value = this.editingTeamMember.firstName || '';
         document.getElementById('member-last-name').value = this.editingTeamMember.lastName || '';
         document.getElementById('member-email').value = this.editingTeamMember.email || '';
+        document.getElementById('member-user-id').value = this.editingTeamMember['user-id'] || '';
         document.getElementById('member-role').value = this.editingTeamMember.role || '';
         document.getElementById('member-vendor-type').value = this.editingTeamMember.vendorType || '';
         document.getElementById('member-monthly-capacity').value = this.editingTeamMember.monthlyCapacity || 22;
@@ -1057,7 +1078,14 @@ class TeamsConfigManager {
         try {
             if (!this.selectedTeam) return;
 
+            // Get user-id from form or generate if empty
+            let userId = document.getElementById('member-user-id').value.trim();
+            if (!userId) {
+                userId = this.generateUserIdFromUUID();
+            }
+
             const formData = {
+                'user-id': userId,
                 firstName: document.getElementById('member-first-name').value.trim(),
                 lastName: document.getElementById('member-last-name').value.trim(),
                 email: document.getElementById('member-email').value.trim(),
@@ -1087,8 +1115,18 @@ class TeamsConfigManager {
             console.log('Saving team member:', `${formData.firstName} ${formData.lastName}`, 'Edit mode:', !!this.editingTeamMember);
 
             if (this.editingTeamMember) {
-                // Update existing team member
-                Object.assign(this.editingTeamMember, formData);
+                // Update existing team member - preserve user-id
+                Object.assign(this.editingTeamMember, {
+                    'user-id': this.editingTeamMember['user-id'], // Preserve existing
+                    firstName: formData.firstName,
+                    lastName: formData.lastName,
+                    email: formData.email,
+                    role: formData.role,
+                    vendorType: formData.vendorType,
+                    vendorId: formData.vendorId,
+                    monthlyCapacity: formData.monthlyCapacity,
+                    status: formData.status
+                });
                 console.log('Updated existing team member');
             } else {
                 // Add new team member
@@ -1201,6 +1239,18 @@ class TeamsConfigManager {
     /**
      * Generate unique ID - same pattern as Categories
      */
+    /**
+     * Generate UUID v4 for user ID
+     * @returns {string} UUID v4 string
+     */
+    generateUserIdFromUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
     generateId(prefix = 'id-') {
         return prefix + Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
