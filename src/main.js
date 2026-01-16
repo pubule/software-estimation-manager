@@ -1082,7 +1082,7 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
       worksheet.addRow(['Time Period', exportData.timeFilterLabel || 'All Time']);
       
       // Headers
-      const headers = ['Ticket ID', 'Title', 'Created', 'Days Open', 'Priority', 'Assigned To', 'Status', 'Last Updated', 'Days Since Update', 'Time in Delay (hrs)', 'Notes'];
+      const headers = ['Ticket ID', 'Title', 'Assignment Group', 'Created', 'Days Open', 'Priority', 'Assigned To', 'Status', 'Last Updated', 'Days Since Update', 'Time in Delay (hrs)', 'Notes'];
       const headerRow = worksheet.addRow(headers);
       headerRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
       headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } };
@@ -1093,6 +1093,7 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
         const row = worksheet.addRow([
           t.id || '',
           t.title || '',
+          t.assignment_group || '',
           new Date(t.created).toLocaleDateString(),
           t.daysOpen.toFixed(1),
           t.priority || '',
@@ -1139,7 +1140,7 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cellBgColor } };
           cell.font = { name: 'Calibri', size: 11, bold: isBold, color: { argb: fontColor } };
           cell.border = { top: { style: 'thin', color: { argb: 'FFD3D3D3' } }, left: { style: 'thin', color: { argb: 'FFD3D3D3' } }, bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } }, right: { style: 'thin', color: { argb: 'FFD3D3D3' } } };
-          cell.alignment = { horizontal: i === 2 || i === 6 || i === 11 ? 'left' : 'center', vertical: 'center', wrapText: i === 2 || i === 11 };
+          cell.alignment = { horizontal: i === 2 || i === 3 || i === 6 || i === 11 ? 'left' : 'center', vertical: 'center', wrapText: i === 2 || i === 11 };
         }
       });
       

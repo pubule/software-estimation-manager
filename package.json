@@ -52,7 +52,8 @@
     "vite-plugin-electron": "^0.28.4"
   },
   "dependencies": {
-    "@anthropic-ai/claude-code": "^1.0.120",
+    "@anthropic-ai/claude-code": "^1.0.128",
+    "@github/copilot": "^0.0.357",
     "@google/gemini-cli": "^0.1.18",
     "@openai/codex": "^0.42.0",
     "electron-store": "^8.1.0",

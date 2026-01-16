@@ -852,6 +852,7 @@ export class TicketDashboardActions {
       fullBacklog: fullBacklog.map(t => ({
         id: t.number,
         title: t.short_description,
+          assignment_group: t.assignment_group,
         created: t.opened_at,
         daysOpen: (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24),
         priority: t.priority,
