@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useFormValidation } from '../hooks/useFormValidation';
 import { ValidationRulesLibrary } from '../utils/validationRules';
 import Button from './Button';
@@ -20,8 +20,6 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({
   onClose,
   onCreateProject
 }) => {
-  const codeInputRef = useRef<HTMLInputElement>(null);
-
   // Form validation hook
   const {
     formData,
@@ -72,12 +70,8 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       reset();
-      // Focus first input after a small delay
-      setTimeout(() => {
-        codeInputRef.current?.focus();
-      }, 100);
     }
-  }, [isOpen, reset]);
+  }, [isOpen]);
 
   // Handle form submission - project code should be uppercase
   const handleSubmit = createHandleSubmit(async (values) => {
@@ -118,7 +112,6 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({
                 className={hasError('code') ? 'validation-error' : ''}
                 maxLength={20}
                 disabled={isSubmitting}
-                ref={codeInputRef}
                 {...getFieldProps('code')}
               />
               {errors.code?.isInvalid && (
