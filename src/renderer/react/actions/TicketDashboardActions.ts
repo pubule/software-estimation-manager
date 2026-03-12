@@ -1557,7 +1557,7 @@ export class TicketDashboardActions {
           ticket.number,
           ticket.short_description,
           DateFormatting.formatDateAsYYYYMMDD(ticket.opened_at),
-          daysOpenValue,
+          NumberFormatting.formatItalian(daysOpenValue),
           ticket.priority,
           ticket.assigned_to,
           DateFormatting.formatDateAsYYYYMMDD(ticket.sys_updated_on)
@@ -1881,8 +1881,8 @@ export class TicketDashboardActions {
             t.number,
             t.short_description,
             DateFormatting.formatDateAsYYYYMMDD(t.opened_at),
-            daysStagnant,
-            daysOpen,
+            NumberFormatting.formatItalian(daysStagnant),
+            NumberFormatting.formatItalian(daysOpen),
             t.priority,
             t.assigned_to,
             t.state
@@ -1938,8 +1938,8 @@ export class TicketDashboardActions {
             t.priority,
             t.short_description,
             DateFormatting.formatDateAsYYYYMMDD(t.opened_at),
-            daysUnworked,
-            daysOpen,
+            NumberFormatting.formatItalian(daysUnworked),
+            NumberFormatting.formatItalian(daysOpen),
             t.assigned_to,
             t.state
           ]);
@@ -2024,12 +2024,12 @@ export class TicketDashboardActions {
           ticket.number,
           ticket.short_description,
           DateFormatting.formatDateAsYYYYMMDD(ticket.opened_at),
-          daysOpen,
+          NumberFormatting.formatItalian(daysOpen),
           ticket.priority,
           ticket.assigned_to,
           ticket.state,
           DateFormatting.formatDateAsYYYYMMDD(ticket.sys_updated_on),
-          daysSinceUpdate,
+          NumberFormatting.formatItalian(daysSinceUpdate),
           NumberFormatting.formatDecimal(timeInDelay, 1),
           ''
         ]);

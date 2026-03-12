@@ -59,6 +59,25 @@ export class NumberFormatting {
     if (!Number.isFinite(value)) return '0 min';
     return Math.floor(value) + ' min';
   }
+
+  /**
+   * Format a number with Italian locale style (comma as decimal separator, no thousands separator)
+   * Used for days in Excel exports
+   * @param value - The number to format
+   * @param decimals - Number of decimal places (default: 0 for days)
+   * @returns Formatted string (e.g., "1000,00")
+   */
+  static formatItalian(value: number, decimals: number = 0): string {
+    if (!Number.isFinite(value)) return decimals > 0 ? '0,' + '0'.repeat(decimals) : '0';
+
+    const parts = value.toFixed(decimals).split('.');
+    const integerPart = parts[0];
+    const decimalPart = parts[1];
+
+    return decimalPart !== undefined
+      ? `${integerPart},${decimalPart}`
+      : integerPart;
+  }
 }
 
 /**
