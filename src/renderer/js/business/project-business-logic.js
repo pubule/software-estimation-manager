@@ -148,8 +148,23 @@ class ProjectBusinessLogic extends BaseComponent {
                 versions: []
             };
 
+            // DEBUG: Verify project data before loading
+            console.log('🔍 DEBUG: projectData before loadProjectData:', {
+                id: projectData.project.id,
+                featuresCount: projectData.features?.length,
+                coverage: projectData.coverage,
+                phases: Object.keys(projectData.phases).reduce((acc, key) => {
+                    if (key !== 'selectedSuppliers') {
+                        acc[key] = projectData.phases[key].manDays;
+                    }
+                    return acc;
+                }, {})
+            });
+
             // Load project into application
+            console.log('🔍 DEBUG: About to call loadProjectData from createNewProject');
             await this.loadProjectData(projectData, `new-project-${Date.now()}`);
+            console.log('🔍 DEBUG: loadProjectData completed in createNewProject');
             
             // Mark as dirty for auto-save
             if (this.app.store) {
@@ -202,6 +217,7 @@ class ProjectBusinessLogic extends BaseComponent {
     async loadProjectData(projectData, source = 'unknown') {
         try {
             console.log(`Loading project data from source: ${source}`);
+            console.trace(`🔍 DEBUG: loadProjectData called with source: ${source}`);
             
             // Validate project data
             this.validateProjectData(projectData);
@@ -428,6 +444,7 @@ class ProjectBusinessLogic extends BaseComponent {
             }
 
             console.log(`🔄 Loading project from file: ${filePath}`);
+            console.trace('🔍 DEBUG: loadSavedProject called from:');
             const projectData = await this.app.dataManager.loadProject(filePath);
             
             if (projectData && typeof projectData === 'object' && projectData.project) {

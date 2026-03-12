@@ -480,11 +480,14 @@ export class ProjectActions {
       // PATTERN: Clear calculations data through Store methods
       store.getState().clearCalculations(preserveOverrides);
 
-      console.log('🧹 CACHE CLEARING: Reinitializing phases state...');
-      // PATTERN: Reinitialize phases to ensure they reflect current project data
-      store.getState().initializePhases();
+      // CRITICAL FIX: Removed initializePhases() call from here because:
+      // 1. setProject() in the store already calls initializePhases() synchronously
+      // 2. Calling it here created a race condition where it would read stale project data
+      //    before setProject() had fully updated the store state
+      // 3. This was causing old phase values (like development MDs) to persist when
+      //    creating a new project after loading an existing one
 
-      console.log('✅ CACHE CLEARING: All caches cleared and phases reinitialized successfully');
+      console.log('✅ CACHE CLEARING: Calculations cache cleared successfully');
     } catch (error) {
       console.error('❌ CACHE CLEARING: Failed to clear caches:', error);
       // Don't throw - cache clearing is non-critical

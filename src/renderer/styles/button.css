@@ -62,7 +62,7 @@
 
 /* Focus state (keyboard navigation) - WCAG AA requirement */
 .btn:focus-visible {
-  outline: 2px solid var(--color-focus, #007acc);
+  outline: 2px solid var(--color-border-focus, #007fd4);
   outline-offset: 2px;
 }
 
@@ -114,22 +114,22 @@
    ============================================================================ */
 
 .btn-primary {
-  background-color: #007acc;
-  color: #ffffff;
+  background-color: var(--btn-primary-bg, #0e639c);
+  color: var(--btn-primary-color, #ffffff);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #0098d4;
+  background-color: var(--btn-primary-bg-hover, #1177bb);
   box-shadow: 0 2px 8px rgba(0, 122, 204, 0.2);
 }
 
 .btn-primary:active:not(:disabled) {
-  background-color: #005a96;
+  background-color: #0d5280;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary:disabled {
-  background-color: #007acc;
+  background-color: var(--btn-primary-bg, #0e639c);
   opacity: 0.6;
 }
 
@@ -138,22 +138,23 @@
    ============================================================================ */
 
 .btn-secondary {
-  background-color: #6c7280;
-  color: #ffffff;
+  background-color: var(--btn-secondary-bg, #3c3c3c);
+  color: var(--btn-secondary-color, #cccccc);
+  border: 1px solid var(--color-border-secondary, #464647);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #4b5563;
-  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.2);
+  background-color: var(--btn-secondary-bg-hover, #464647);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary:active:not(:disabled) {
-  background-color: #374151;
+  background-color: #505050;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary:disabled {
-  background-color: #6c7280;
+  background-color: var(--btn-secondary-bg, #3c3c3c);
   opacity: 0.6;
 }
 
@@ -162,22 +163,22 @@
    ============================================================================ */
 
 .btn-danger {
-  background-color: #dc2626;
-  color: #ffffff;
+  background-color: var(--btn-danger-bg, #f44336);
+  color: var(--btn-danger-color, #ffffff);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: #b91c1c;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+  background-color: var(--btn-danger-bg-hover, #d32f2f);
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.2);
 }
 
 .btn-danger:active:not(:disabled) {
-  background-color: #991b1b;
+  background-color: #b71c1c;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-danger:disabled {
-  background-color: #dc2626;
+  background-color: var(--btn-danger-bg, #f44336);
   opacity: 0.6;
 }
 
@@ -186,22 +187,22 @@
    ============================================================================ */
 
 .btn-warning {
-  background-color: #d97706;
-  color: #ffffff;
+  background-color: var(--color-warning, #ff9800);
+  color: #1e1e1e;
 }
 
 .btn-warning:hover:not(:disabled) {
-  background-color: #b45309;
-  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.2);
+  background-color: #f57c00;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.2);
 }
 
 .btn-warning:active:not(:disabled) {
-  background-color: #92400e;
+  background-color: #ef6c00;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-warning:disabled {
-  background-color: #d97706;
+  background-color: var(--color-warning, #ff9800);
   opacity: 0.6;
 }
 
@@ -211,14 +212,14 @@
 
 .btn-link {
   background-color: transparent;
-  color: #007acc;
+  color: var(--color-text-accent, #007acc);
   text-decoration: underline;
   padding: 0;
   min-height: auto;
 }
 
 .btn-link:hover:not(:disabled) {
-  color: #0098d4;
+  color: var(--color-border-focus, #007fd4);
   text-decoration: underline;
 }
 
@@ -227,7 +228,7 @@
 }
 
 .btn-link:disabled {
-  color: #6c7280;
+  color: var(--color-text-muted, #6a6a6a);
   opacity: 0.6;
 }
 
@@ -372,43 +373,56 @@
    ============================================================================ */
 
 @media (prefers-color-scheme: dark) {
-  /* Primary button */
+  /* Primary button - Uses VSCode Dark Theme colors */
   .btn-primary {
-    background-color: #0080ff;
+    background-color: var(--btn-primary-bg, #0e639c);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background-color: #0066cc;
+    background-color: var(--btn-primary-bg-hover, #1177bb);
   }
 
   .btn-primary:active:not(:disabled) {
-    background-color: #0052a3;
+    background-color: #0d5280;
   }
 
   /* Secondary button */
   .btn-secondary {
-    background-color: #4b5563;
+    background-color: var(--btn-secondary-bg, #3c3c3c);
   }
 
   .btn-secondary:hover:not(:disabled) {
-    background-color: #6c7280;
+    background-color: var(--btn-secondary-bg-hover, #464647);
   }
 
   .btn-secondary:active:not(:disabled) {
-    background-color: #9ca3af;
+    background-color: #505050;
+  }
+
+  /* Danger button */
+  .btn-danger {
+    background-color: var(--btn-danger-bg, #f44336);
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background-color: var(--btn-danger-bg-hover, #d32f2f);
+  }
+
+  .btn-danger:active:not(:disabled) {
+    background-color: #b71c1c;
   }
 
   /* Link button */
   .btn-link {
-    color: #80b3ff;
+    color: var(--color-text-accent, #007acc);
   }
 
   .btn-link:hover:not(:disabled) {
-    color: #99c2ff;
+    color: var(--color-border-focus, #007fd4);
   }
 
   .btn-link:active:not(:disabled) {
-    color: #0080ff;
+    color: #005a96;
   }
 }
 
@@ -419,24 +433,35 @@
 /* When using VSCode dark theme CSS variable overrides */
 .vscode-dark .btn-primary,
 [data-theme="vscode-dark"] .btn-primary {
-  background-color: var(--button-primary-bg, #0e639c);
-  color: var(--button-primary-color, #ffffff);
+  background-color: var(--btn-primary-bg, #0e639c);
+  color: var(--btn-primary-color, #ffffff);
 }
 
 .vscode-dark .btn-primary:hover:not(:disabled),
 [data-theme="vscode-dark"] .btn-primary:hover:not(:disabled) {
-  background-color: var(--button-primary-hover, #1177bb);
+  background-color: var(--btn-primary-bg-hover, #1177bb);
 }
 
 .vscode-dark .btn-secondary,
 [data-theme="vscode-dark"] .btn-secondary {
-  background-color: var(--button-secondary-bg, #3e3e42);
-  color: var(--button-secondary-color, #cccccc);
+  background-color: var(--btn-secondary-bg, #3c3c3c);
+  color: var(--btn-secondary-color, #cccccc);
 }
 
 .vscode-dark .btn-secondary:hover:not(:disabled),
 [data-theme="vscode-dark"] .btn-secondary:hover:not(:disabled) {
-  background-color: var(--button-secondary-hover, #464646);
+  background-color: var(--btn-secondary-bg-hover, #464647);
+}
+
+.vscode-dark .btn-danger,
+[data-theme="vscode-dark"] .btn-danger {
+  background-color: var(--btn-danger-bg, #f44336);
+  color: var(--btn-danger-color, #ffffff);
+}
+
+.vscode-dark .btn-danger:hover:not(:disabled),
+[data-theme="vscode-dark"] .btn-danger:hover:not(:disabled) {
+  background-color: var(--btn-danger-bg-hover, #d32f2f);
 }
 
 /* ============================================================================
@@ -490,14 +515,15 @@
   height: 28px;
 }
 
-/* Link button variant (legacy, now btn-link) */
+/* Link button variant (legacy, now btn-link) - Style Guide Aligned */
 .btn-link {
   background: none;
-  color: #0066cc;
-  text-decoration: none;
+  color: var(--color-text-accent, #007acc);
+  text-decoration: underline;
   padding: 0.25rem 0;
 }
 
 .btn-link:hover {
+  color: var(--color-border-focus, #007fd4);
   text-decoration: underline;
 }

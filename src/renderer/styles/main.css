@@ -1020,6 +1020,59 @@
     }
 }
 
+/* ============================================================================
+   TABLE VARIANTS - Style Guide Aligned
+   ============================================================================ */
+
+/* Table Compact - Used for Feature and Phases tables */
+table.compact,
+.table.compact {
+    font-size: var(--font-size-sm, 12px);
+}
+
+table.compact th,
+table.compact td,
+.table.compact th,
+.table.compact td {
+    padding: var(--spacing-sm, 0.5rem);
+    border: 1px solid var(--border-primary, #3c3c3c);
+    text-align: center;
+}
+
+table.compact th.text-left,
+table.compact td.text-left,
+.table.compact th.text-left,
+.table.compact td.text-left {
+    text-align: left;
+}
+
+/* Table Striped - Alternating row colors */
+table.striped tbody tr:nth-child(even),
+.table.striped tbody tr:nth-child(even) {
+    background-color: var(--bg-tertiary, #2d2d30);
+}
+
+table.striped tbody tr:hover,
+table.striped tbody tr:focus-within,
+.table.striped tbody tr:hover,
+.table.striped tbody tr:focus-within {
+    background-color: var(--bg-active, #094771);
+}
+
+/* Table Sticky Header - For horizontal scroll tables */
+table.sticky-header,
+.table.sticky-header {
+    min-width: 1400px;
+}
+
+table.sticky-header thead th,
+.table.sticky-header thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--bg-tertiary, #2d2d30);
+}
+
 /* Custom Title Bar Styles */
 .custom-title-bar {
     height: 32px;

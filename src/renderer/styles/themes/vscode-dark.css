@@ -971,47 +971,120 @@ select:read-only:focus-visible {
     color: var(--text-accent);
     font-size: var(--font-size-lg);
     flex-shrink: 0;
-}/* VSCode Dark Theme Variables */
+}/* ============================================================================
+   VSCode Dark Theme Variables - Design Tokens
+   ============================================================================
+   Naming Convention:
+   - --color-* : Color design tokens (style-guide aligned)
+   - --bg-*, --text-* : Legacy aliases for backward compatibility
+   - --btn-* : Button component tokens
+   - --input-* : Input component tokens
+   ============================================================================ */
+
 :root {
+    /* ========================================================================
+       COLOR DESIGN TOKENS (Style-Guide Aligned - --color-* prefix)
+       ======================================================================== */
+
     /* Background Colors */
-    --bg-primary: #1e1e1e;
-    --bg-secondary: #252526;
-    --bg-tertiary: #2d2d30;
-    --bg-quaternary: #3c3c3c;
-    --bg-hover: #2a2d2e;
-    --bg-active: #094771;
-    --bg-selected: #264f78;
+    --color-bg-primary: #1e1e1e;
+    --color-bg-secondary: #252526;
+    --color-bg-tertiary: #2d2d30;
+    --color-bg-quaternary: #3c3c3c;
+    --color-bg-hover: #2a2d2e;
+    --color-bg-active: #094771;
+    --color-bg-selected: #264f78;
 
     /* Text Colors */
-    --text-primary: #cccccc;
-    --text-secondary: #b0b0b0;
-    --text-muted: #808080;
-    --text-inverse: #ffffff;
-    --text-accent: #007acc;
+    --color-text-primary: #cccccc;
+    --color-text-secondary: #a0a0a0;
+    --color-text-muted: #6a6a6a;
+    --color-text-inverse: #ffffff;
+    --color-text-accent: #007acc;
 
-    /* Border Colors */
-    --border-primary: #3c3c3c;
-    --border-secondary: #464647;
-    --border-focus: #007fd4;
+    /* Border & Divider Colors */
+    --color-border: #3e3e42;
+    --color-border-primary: #3c3c3c;
+    --color-border-secondary: #464647;
+    --color-border-focus: #007fd4;
 
     /* Status Colors */
-    --success: #4caf50;
-    --warning: #ff9800;
-    --error: #f44336;
-    --info: #2196f3;
+    --color-success: #4caf50;
+    --color-warning: #ff9800;
+    --color-error: #f44336;
+    --color-info: #2196f3;
 
-    /* Input Colors */
-    --input-bg: #3c3c3c;
-    --input-border: #464647;
-    --input-focus: #007fd4;
+    /* ========================================================================
+       LEGACY ALIASES (Backward Compatibility)
+       ======================================================================== */
 
-    /* Button Colors */
+    /* Background Colors */
+    --bg-primary: var(--color-bg-primary);
+    --bg-secondary: var(--color-bg-secondary);
+    --bg-tertiary: var(--color-bg-tertiary);
+    --bg-quaternary: var(--color-bg-quaternary);
+    --bg-hover: var(--color-bg-hover);
+    --bg-active: var(--color-bg-active);
+    --bg-selected: var(--color-bg-selected);
+
+    /* Text Colors */
+    --text-primary: var(--color-text-primary);
+    --text-secondary: var(--color-text-secondary);
+    --text-muted: var(--color-text-muted);
+    --text-inverse: var(--color-text-inverse);
+    --text-accent: var(--color-text-accent);
+
+    /* Border Colors */
+    --border-primary: var(--color-border-primary);
+    --border-secondary: var(--color-border-secondary);
+    --border-focus: var(--color-border-focus);
+
+    /* Status Colors */
+    --success: var(--color-success);
+    --warning: var(--color-warning);
+    --error: var(--color-error);
+    --info: var(--color-info);
+
+    /* ========================================================================
+       COMPONENT TOKENS - Buttons
+       ======================================================================== */
     --btn-primary-bg: #0e639c;
-    --btn-primary-hover: #1177bb;
-    --btn-secondary-bg: #3c3c3c;
-    --btn-secondary-hover: #464647;
+    --btn-primary-bg-hover: #1177bb;
+    --btn-primary-color: #ffffff;
 
-    /* Scrollbar */
+    --btn-secondary-bg: #3c3c3c;
+    --btn-secondary-bg-hover: #464647;
+    --btn-secondary-color: #cccccc;
+
+    --btn-danger-bg: #f44336;
+    --btn-danger-bg-hover: #d32f2f;
+    --btn-danger-color: #ffffff;
+
+    /* ========================================================================
+       COMPONENT TOKENS - Inputs
+       ======================================================================== */
+    --input-bg: #3c3c3c;
+    --input-bg-readonly: #3c3c3c;
+    --input-bg-disabled: #2d2d30;
+
+    --input-border: #464647;
+    --input-border-light: #3c3c3c;
+    --input-focus: #007fd4;
+    --input-focus-shadow: rgba(0, 127, 212, 0.2);
+
+    --input-text: #cccccc;
+    --input-text-readonly: #6a6a6a;
+    --input-text-disabled: #6a6a6a;
+
+    /* ========================================================================
+       COMPONENT TOKENS - Legacy Button (for backward compatibility)
+       ======================================================================== */
+    --btn-primary-hover: var(--btn-primary-bg-hover);
+    --btn-secondary-hover: var(--btn-secondary-bg-hover);
+
+    /* ========================================================================
+       SCROLLBAR TOKENS
+       ======================================================================== */
     --scrollbar-bg: #1e1e1e;
     --scrollbar-thumb: #424242;
     --scrollbar-thumb-hover: #4f4f4f;

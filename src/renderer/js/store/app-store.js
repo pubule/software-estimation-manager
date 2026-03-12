@@ -270,22 +270,45 @@ const appStore = window.zustand.createStore((set, get) => ({
             currentSort: { field: 'id', direction: 'asc' },
             featureModalOpen: false,
             featureModalEditingItem: null,
-            duplicateSourceData: null
+            duplicateSourceData: null,
+
+            // 🧹 RESET: Navigation state (preservedStates from old project)
+            // CRITICAL FIX: Clear preserved section states to prevent old phase data
+            // from being restored when navigating to phases/features pages
+            navigationState: {
+                preservedStates: new Map(),
+                lastNavigationTime: null,
+                componentStates: new Map()
+            }
         };
 
         // Apply all resets atomically (single set() call to prevent race conditions)
         set(cleanState);
 
         console.log('✅ Store: All derived states reset atomically for clean project switch');
+        console.log('🧹 DEBUG: Preserved navigation states cleared ( Map(0) )');
 
         // Re-initialize phases from new project data (if project exists)
+        // CRITICAL FIX: Call initializePhases synchronously to prevent race conditions
+        // with clearAllCalculationsCache which was calling it before setProject completed
         if (project) {
-            // Use setTimeout(0) to defer initialization until after render cycle
-            setTimeout(() => {
-                const state = get();
-                state.initializePhases();
-                console.log('✅ Store: Phases reinitialized from new project data');
-            }, 0);
+            const state = get();
+            // DEBUG: Verify the state is correct before calling initializePhases
+            console.log('🔍 DEBUG: setProject - currentProject in state after get():', state.currentProject?.project?.id);
+            console.log('🔍 DEBUG: setProject - features count in state:', state.currentProject?.features?.length);
+            console.log('🔍 DEBUG: setProject - coverage in state:', state.currentProject?.coverage);
+
+            // Verify state matches what we set
+            if (state.currentProject !== project) {
+                console.warn('⚠️ DEBUG: State mismatch! State has different project than what was set');
+                console.warn('   Set project ID:', project?.project?.id);
+                console.warn('   State project ID:', state.currentProject?.project?.id);
+            }
+
+            // CRITICAL FIX: Pass project directly to ensure correct data is used
+            // instead of relying on get() which may return stale state due to race conditions
+            state.initializePhases(project);
+            console.log('✅ Store: Phases reinitialized from new project data');
         }
 
         // CRITICAL FALLBACK: Force navigation manager to update menu state
@@ -652,6 +675,8 @@ const appStore = window.zustand.createStore((set, get) => ({
 
     /**
      * Restore preserved section state
+     * CRITICAL FIX: Only restores if the preserved state belongs to the current project
+     * This prevents data leakage when switching between projects
      */
     restoreSectionState: (section) => {
         const currentState = get();
@@ -659,6 +684,18 @@ const appStore = window.zustand.createStore((set, get) => ({
 
         if (!preservedState) {
             console.log(`No preserved state found for section: ${section}`);
+            return false;
+        }
+
+        // CRITICAL FIX: Check if preserved state belongs to current project
+        const currentProjectId = currentState.currentProject?.project?.id;
+        const preservedProjectId = preservedState._projectId;
+
+        if (preservedProjectId && preservedProjectId !== currentProjectId) {
+            console.warn(`⚠️ SKIPPING restore for ${section}: Preserved state belongs to different project!`);
+            console.warn(`   Preserved project: ${preservedProjectId}`);
+            console.warn(`   Current project: ${currentProjectId}`);
+            console.log(`   State will be reinitialized from project data instead.`);
             return false;
         }
 
@@ -680,7 +717,7 @@ const appStore = window.zustand.createStore((set, get) => ({
             });
         }
 
-        console.log(`State restored for section: ${section}`);
+        console.log(`✅ State restored for section: ${section} (project: ${preservedProjectId})`);
         return true;
     },
 
@@ -808,10 +845,28 @@ const appStore = window.zustand.createStore((set, get) => ({
 
     /**
      * Initialize phases from project data or defaults
+     * @param {Object} projectParam - Optional project data to use instead of get().currentProject
+     *                              This fixes race conditions where get() returns stale state
      */
-    initializePhases: () => {
+    initializePhases: (projectParam = null) => {
         const currentState = get();
-        const currentProject = currentState.currentProject;
+        // CRITICAL FIX: Use passed project parameter if available, otherwise fall back to state
+        // This ensures correct project data even when get() returns stale state
+        const currentProject = projectParam || currentState.currentProject;
+
+        // DEBUG: Log project identification
+        console.log('🔧 initializePhases called for project:', currentProject?.project?.id || 'NULL', currentProject?.project?.name || '');
+        if (projectParam) {
+            console.log('🔧 initializePhases: Using PASSED project parameter (avoiding potential stale get())');
+        } else {
+            console.log('🔧 initializePhases: Using project from get() state');
+        }
+
+        // CRITICAL FIX: Always reset currentPhases first to prevent stale data
+        // This ensures no old phase data persists when switching projects
+        set({
+            currentPhases: []
+        });
 
         if (currentProject && currentProject.phases) {
             console.log('Loading existing phases data from project');
@@ -868,6 +923,32 @@ const appStore = window.zustand.createStore((set, get) => ({
                 selectedSuppliers: { G1: null, G2: null, TA: null, PM: null }
             });
         }
+
+        // CRITICAL FIX: Recalculate development phase from features + coverage after initialization
+        // This ensures the development phase manDays is always derived from current features data
+        // Use setTimeout to ensure state is fully updated before calculation
+        // CRITICAL FIX: Capture correctProject in closure to avoid stale state from get()
+        const correctProject = currentProject;
+        setTimeout(() => {
+            const state = get();
+            const project = state.currentProject;
+            // CRITICAL FIX: Verify the project from get() matches what we expect
+            if (project?.project?.id !== correctProject?.project?.id) {
+                console.warn('⚠️ setTimeout: Project mismatch detected!');
+                console.warn('   Expected:', correctProject?.project?.id);
+                console.warn('   Got from get():', project?.project?.id);
+                console.warn('   Using correct project from closure');
+            }
+            console.log('🔧 setTimeout: Auto-recalculating development phase...');
+            console.log('🔧 setTimeout: Current project:', correctProject?.project?.id || 'NULL', correctProject?.project?.name || '');
+            console.log('🔧 setTimeout: Features count:', correctProject?.features?.length || 0);
+            console.log('🔧 setTimeout: Coverage:', correctProject?.coverage || 0);
+            if (state.calculateDevelopmentPhase) {
+                // CRITICAL FIX: Pass the correct project to calculateDevelopmentPhase
+                // to ensure it uses the right data
+                state.calculateDevelopmentPhase(correctProject);
+            }
+        }, 0);
     },
 
     /**
@@ -943,12 +1024,21 @@ const appStore = window.zustand.createStore((set, get) => ({
 
     /**
      * Calculate development phase man days from features + coverage
+     * @param {Object} projectParam - Optional project data to use instead of get().currentProject
+     *                              This fixes race conditions where get() returns stale state
      */
-    calculateDevelopmentPhase: () => {
+    calculateDevelopmentPhase: (projectParam = null) => {
         const currentState = get();
-        const currentProject = currentState.currentProject;
+        // CRITICAL FIX: Use passed project parameter if available, otherwise fall back to state
+        const currentProject = projectParam || currentState.currentProject;
 
         if (!currentProject) return;
+
+        if (projectParam) {
+            console.log('🔧 calculateDevelopmentPhase: Using PASSED project parameter');
+            console.log('🔧 Features count in passed project:', currentProject.features?.length || 0);
+            console.log('🔧 Coverage in passed project:', currentProject.coverage || 0);
+        }
 
         const featuresTotal = (currentProject.features || []).reduce((sum, feature) => {
             return sum + (parseFloat(feature.manDays) || 0);
@@ -986,12 +1076,13 @@ const appStore = window.zustand.createStore((set, get) => ({
         );
 
         // Also sync to currentProject.phases for persistence in saved JSON
+        // CRITICAL FIX: Use currentProject (which may be passed param) instead of currentState.currentProject
         const updatedProject = {
-            ...currentState.currentProject,
+            ...currentProject,
             phases: {
-                ...currentState.currentProject.phases,
+                ...currentProject.phases,
                 development: {
-                    ...currentState.currentProject.phases.development,
+                    ...currentProject.phases?.development,
                     manDays: roundedDevelopmentMDs,
                     lastModified: now
                 }

@@ -738,6 +738,8 @@ class EnhancedNavigationManager extends NavigationManager {
 
         // CRITICAL: Generic state preservation when leaving ANY section
         // This ensures state is preserved when navigating away
+        // CRITICAL FIX: Only preserve state for the CURRENT project - prevents data leakage
+        const currentProjectId = state.currentProject?.project?.id;
         if (state.currentSection && state.currentSection !== sectionName) {
             // Preserve phases state when leaving phases
             if (state.currentSection === 'phases') {
@@ -745,10 +747,12 @@ class EnhancedNavigationManager extends NavigationManager {
                     currentPhases: state.currentPhases,
                     selectedSuppliers: state.selectedSuppliers,  // Critical for preserving supplier selections
                     resourceRates: state.resourceRates,
-                    phasesTotals: state.phasesTotals
+                    phasesTotals: state.phasesTotals,
+                    // CRITICAL FIX: Store project ID to prevent restoring wrong project data
+                    _projectId: currentProjectId
                 };
                 state.preserveSectionState('phases', phasesState);
-                console.log('✅ Generic navigation: Preserved phases state before leaving');
+                console.log('✅ Generic navigation: Preserved phases state before leaving for project:', currentProjectId);
             }
             // Preserve features state when leaving features
             else if (state.currentSection === 'features') {
@@ -757,10 +761,12 @@ class EnhancedNavigationManager extends NavigationManager {
                     currentSort: state.currentSort,
                     editingFeature: state.editingFeature,
                     featureModalOpen: state.featureModalOpen,
-                    featureModalEditingItem: state.featureModalEditingItem
+                    featureModalEditingItem: state.featureModalEditingItem,
+                    // CRITICAL FIX: Store project ID to prevent restoring wrong project data
+                    _projectId: currentProjectId
                 };
                 state.preserveSectionState('features', featuresState);
-                console.log('✅ Generic navigation: Preserved features state before leaving');
+                console.log('✅ Generic navigation: Preserved features state before leaving for project:', currentProjectId);
             }
         }
 
