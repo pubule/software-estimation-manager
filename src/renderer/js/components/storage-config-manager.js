@@ -570,6 +570,23 @@ class StorageConfigManager {
                     internalResources: [],
                     categories: [],
                     calculationParams: {}
+                },
+                workingPackageData: {
+                    enabled: false,
+                    gto: {
+                        enabled: false,
+                        totalAmount: 0,
+                        primaryVendorId: null,
+                        secondaryVendorId: null,
+                        secondaryPercentage: 35
+                    },
+                    gds: {
+                        enabled: false,
+                        totalAmount: 0,
+                        primaryVendorId: null,
+                        secondaryVendorId: null,
+                        secondaryPercentage: 35
+                    }
                 }
             };
 

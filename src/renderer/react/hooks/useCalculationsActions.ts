@@ -6,7 +6,7 @@
  */
 
 import { useCallback } from 'react';
-import { calculationsActions } from '../actions/CalculationsActions';
+import { calculationsActions, WorkingPackageCategoryData } from '../actions/CalculationsActions';
 
 export const useCalculationsActions = () => {
   const calculateProjectCosts = useCallback(() => {
@@ -97,6 +97,49 @@ export const useCalculationsActions = () => {
     }
   }, []);
 
+  // ======================
+  // WORKING PACKAGE METHODS
+  // ======================
+
+  const setWorkingPackageEnabled = useCallback((enabled: boolean) => {
+    try {
+      calculationsActions.setWorkingPackageEnabled(enabled);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const updateWorkingPackage = useCallback((data: Partial<{
+    enabled: boolean;
+    gto: any;
+    gds: any;
+  }>) => {
+    try {
+      calculationsActions.updateWorkingPackage(data);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const updateWorkingPackageCategory = useCallback((
+    category: 'gto' | 'gds',
+    data: Partial<WorkingPackageCategoryData>
+  ) => {
+    try {
+      calculationsActions.updateWorkingPackageCategory(category, data);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const getWorkingPackageData = useCallback(() => {
+    try {
+      return calculationsActions.getWorkingPackageData();
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
   return {
     // Core calculations
     calculateProjectCosts,
@@ -115,6 +158,12 @@ export const useCalculationsActions = () => {
 
     // Export/Share
     shareByEmail,
-    copyToClipboard
+    copyToClipboard,
+
+    // Working Package
+    setWorkingPackageEnabled,
+    updateWorkingPackage,
+    updateWorkingPackageCategory,
+    getWorkingPackageData
   };
 };

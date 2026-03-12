@@ -145,7 +145,24 @@ class ProjectBusinessLogic extends BaseComponent {
                 },
                 coverage: 0,
                 coverageIsAutoCalculated: true,
-                versions: []
+                versions: [],
+                workingPackageData: {
+                    enabled: false,
+                    gto: {
+                        enabled: false,
+                        totalAmount: 0,
+                        primaryVendorId: null,
+                        secondaryVendorId: null,
+                        secondaryPercentage: 35
+                    },
+                    gds: {
+                        enabled: false,
+                        totalAmount: 0,
+                        primaryVendorId: null,
+                        secondaryVendorId: null,
+                        secondaryPercentage: 35
+                    }
+                }
             };
 
             // DEBUG: Verify project data before loading

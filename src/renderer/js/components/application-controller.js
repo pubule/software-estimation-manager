@@ -397,7 +397,24 @@ class ApplicationController extends BaseComponent {
             features: [],
             phases: this.createDefaultPhases(),
             config: await this.managers.config.initializeProjectConfig(),
-            versions: []
+            versions: [],
+            workingPackageData: {
+                enabled: false,
+                gto: {
+                    enabled: false,
+                    totalAmount: 0,
+                    primaryVendorId: null,
+                    secondaryVendorId: null,
+                    secondaryPercentage: 35
+                },
+                gds: {
+                    enabled: false,
+                    totalAmount: 0,
+                    primaryVendorId: null,
+                    secondaryVendorId: null,
+                    secondaryPercentage: 35
+                }
+            }
         };
 
         console.log('Created new project with hierarchical configuration');

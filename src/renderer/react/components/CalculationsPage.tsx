@@ -1,7 +1,7 @@
 /**
  * CalculationsPage.tsx - Container principale per Calculations Dashboard
- * 
- * PATTERN: SOLO presentazione! 
+ *
+ * PATTERN: SOLO presentazione!
  * - SOLO lettura dallo store
  * - Actions per operazioni
  * - MAI business logic qui
@@ -22,12 +22,12 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   // Ref to track previous project for detecting project changes
   const previousProjectIdRef = React.useRef<string | undefined>();
 
-  // SOLO lettura dallo store - Selettori specifici per massima reattività
+  // SOLO lettura dallo store - Selettori specifici per massima reattivita
   const currentProject = useStore(state => state.currentProject);
   const currentPhases = useStore(state => state.currentPhases);
   const calculationsData = useStore(state => state.calculationsData);
-  
-  // Selettori specifici per ogni proprietà per forzare re-render
+
+  // Selettori specifici per ogni proprieta per forzare re-render
   const calculationsVersion = useStore(state => state.calculationsData?.version || 0);
   const vendorCosts = useStore(state => {
     const costs = state.calculationsData?.vendorCosts || [];
@@ -54,7 +54,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     console.log('🔍 ROLE_SELECTOR - Version:', version, 'Role:', role);
     return role;
   });
-  
+
   // Combine for compatibility
   const filters = useMemo(() => {
     const result = { vendor: vendorFilter, role: roleFilter, category: categoryFilter };
@@ -63,11 +63,26 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     return result;
   }, [vendorFilter, roleFilter, categoryFilter]);
   const finalMDsOverrides = useStore(state => state.calculationsData?.finalMDsOverrides || {});
-  
-  
-  
-  
-  
+
+  // Working Package State
+  const workingPackageData = useStore(state => state.currentProject?.workingPackageData);
+  const workingPackageEnabled = workingPackageData?.enabled || false;
+  const workingPackageCalculated = useStore(state => state.calculationsData?.workingPackage);
+
+  // All suppliers for vendor selection
+  const allSuppliers = useStore(state => {
+    const app = (window as any).app;
+    const configManager = app?.managers?.config;
+    if (!configManager) return [];
+
+    const currentProject = state.currentProject;
+    const projectConfig = currentProject?.configuration || currentProject?.config;
+    const suppliers = configManager.getSuppliers(projectConfig) || [];
+    const internalResources = configManager.getInternalResources(projectConfig) || [];
+
+    return [...suppliers, ...internalResources.map((r: any) => ({ ...r, type: 'internal' }))];
+  });
+
   // Actions per operazioni business (attraverso hook)
   const {
     calculateProjectCosts,
@@ -79,7 +94,10 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     resetAllFinalMDs,
     resetSingleFinalMD,
     getVendorCountsByCategory,
-    clearFinalMDsOverrides
+    clearFinalMDsOverrides,
+    setWorkingPackageEnabled,
+    updateWorkingPackage,
+    updateWorkingPackageCategory
   } = useCalculationsActions();
 
   // Calcola al mount e quando cambia progetto o phases (calcoli ogni volta come richiesto)
@@ -101,24 +119,24 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       calculateProjectCosts();
     }
   }, [currentProject, currentPhases, calculateProjectCosts, clearFinalMDsOverrides]);
-  
+
   // Handler eventi (SOLO chiamate ad Actions)
   const handleFinalMDsChange = (vendorId: string, role: string, department: string, value: number) => {
     // MAI business logic qui! Solo chiamata ad Actions
     updateFinalMDs(vendorId, role, department, value);
   };
-  
+
   const handleFilterChange = (vendorFilter: string, roleFilter: string) => {
     // MAI business logic qui! Solo chiamata ad Actions
     applyFilters(vendorFilter, roleFilter);
   };
-  
+
   const handleCopyTemplate = async () => {
     // MAI business logic qui! Solo chiamata ad Actions
     try {
       await copyToClipboard();
       setIsCopied(true);
-      
+
       // Reset after 2 seconds
       setTimeout(() => {
         setIsCopied(false);
@@ -127,7 +145,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       console.error('Failed to copy to clipboard:', error);
     }
   };
-  
+
   const handleCopyToClipboard = async () => {
     // MAI business logic qui! Solo chiamata ad Actions
     try {
@@ -137,12 +155,12 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       console.error('Copy failed:', error);
     }
   };
-  
+
   const handleResetFinalMDs = () => {
     // MAI business logic qui! Solo chiamata ad Actions
     resetAllFinalMDs();
   };
-  
+
   // Helper function to get input value from finalMDsOverrides or fallback to finalMDs (calculated value)
   const getInputValue = (cost: any) => {
     const key = `${cost.vendorId}_${cost.role}_${cost.department}`;
@@ -153,11 +171,11 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   const filteredCosts = useMemo(() => {
     console.log('🔍 FILTERED COSTS - Recalculating with filters:', filters);
     console.log('🔍 FILTERED COSTS - VendorCosts count:', vendorCosts.length);
-    
+
     const result = vendorCosts.filter(cost => {
       const vendorMatch = filters.vendor === 'all' || cost.vendorId === filters.vendor;
       const roleMatch = filters.role === 'all' || cost.role === filters.role;
-      
+
       // Category filter (GTO = G2 + TA, GDS = G1 + PM)
       let categoryMatch = true;
       if (filters.category === 'gto') {
@@ -165,44 +183,44 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       } else if (filters.category === 'gds') {
         categoryMatch = cost.role === 'G1' || cost.role === 'PM';
       }
-      
+
       const matches = vendorMatch && roleMatch && categoryMatch;
       if (!matches) {
-        console.log('🔍 FILTERED COSTS - Filtering out:', { 
-          vendor: cost.vendorName, 
-          role: cost.role, 
-          vendorMatch, 
-          roleMatch, 
+        console.log('🔍 FILTERED COSTS - Filtering out:', {
+          vendor: cost.vendorName,
+          role: cost.role,
+          vendorMatch,
+          roleMatch,
           categoryMatch,
           filterCategory: filters.category
         });
       }
-      
+
       return matches;
     });
-    
+
     console.log('🔍 FILTERED COSTS - Result count:', result.length, 'from', vendorCosts.length);
     return result;
   }, [vendorCosts, filters]);
-  
+
   // Calculate vendor counts for category filters (reactive to vendorCosts)
   const vendorCounts = useMemo(() => {
     if (!vendorCosts || vendorCosts.length === 0) {
       return { all: 0, gto: 0, gds: 0 };
     }
-    
+
     // Count unique vendors per category
     const uniqueVendors = new Set(vendorCosts.map(cost => cost.vendorId));
     const gtoVendors = new Set(vendorCosts.filter(cost => cost.role === 'G2' || cost.role === 'TA').map(cost => cost.vendorId));
     const gdsVendors = new Set(vendorCosts.filter(cost => cost.role === 'G1' || cost.role === 'PM').map(cost => cost.vendorId));
-    
+
     return {
       all: uniqueVendors.size,
       gto: gtoVendors.size,
       gds: gdsVendors.size
     };
   }, [vendorCosts]);
-  
+
   const uniqueVendors = useMemo(() => {
     const vendors = new Map<string, { id: string, name: string }>();
     vendorCosts.forEach(cost => {
@@ -212,7 +230,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     });
     return Array.from(vendors.values());
   }, [vendorCosts]);
-  
+
   const uniqueRoles = useMemo(() => {
     const roles = new Set<string>();
     vendorCosts.forEach(cost => {
@@ -220,7 +238,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     });
     return Array.from(roles);
   }, [vendorCosts]);
-  
+
   // No project state
   if (!currentProject) {
     return (
@@ -233,13 +251,262 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="calculations-page">
       {/* Page Header */}
       <div className="page-header">
         <h2>Calculations Dashboard</h2>
       </div>
+
+      {/* Calculation Mode Selector */}
+      <div className="calculation-mode-section">
+        <div className="calculation-mode-selector">
+          <label>Estimation Mode:</label>
+          <div className="mode-buttons">
+            <button
+              className={`mode-btn ${!workingPackageEnabled ? 'active' : ''}`}
+              onClick={() => setWorkingPackageEnabled(false)}
+            >
+              Feature-based
+            </button>
+            <button
+              className={`mode-btn ${workingPackageEnabled ? 'active' : ''}`}
+              onClick={() => setWorkingPackageEnabled(true)}
+            >
+              Working Package
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Working Package Form */}
+      {workingPackageEnabled && (
+        <div className="working-package-section">
+          {/* GTO Configuration */}
+          <div className="working-package-form">
+            <h4>
+              <label className="category-enable-label">
+                <input
+                  type="checkbox"
+                  checked={workingPackageData?.gto?.enabled || false}
+                  onChange={(e) => updateWorkingPackageCategory('gto', {
+                    enabled: e.target.checked
+                  })}
+                />
+                GTO Working Package
+              </label>
+            </h4>
+
+            {workingPackageData?.gto?.enabled && (
+              <>
+                <div className="form-row">
+                  <label>Total Amount:</label>
+                  <div className="input-with-suffix">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={workingPackageData?.gto?.totalAmount || 0}
+                      onChange={(e) => updateWorkingPackageCategory('gto', {
+                        totalAmount: parseFloat(e.target.value) || 0
+                      })}
+                      className="form-input"
+                    />
+                    <span className="input-suffix">€</span>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <label>Primary Vendor:</label>
+                  <select
+                    value={workingPackageData?.gto?.primaryVendorId || ''}
+                    onChange={(e) => updateWorkingPackageCategory('gto', {
+                      primaryVendorId: e.target.value || null
+                    })}
+                    className="form-select"
+                  >
+                    <option value="">Select vendor...</option>
+                    {allSuppliers.map((s: any) => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-row">
+                  <label>Secondary %:</label>
+                  <div className="input-with-suffix">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={workingPackageData?.gto?.secondaryPercentage || 0}
+                      onChange={(e) => updateWorkingPackageCategory('gto', {
+                        secondaryPercentage: parseFloat(e.target.value) || 0
+                      })}
+                      className="form-input"
+                    />
+                    <span className="input-suffix">%</span>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <label>Secondary Vendor:</label>
+                  <select
+                    value={workingPackageData?.gto?.secondaryVendorId || ''}
+                    onChange={(e) => updateWorkingPackageCategory('gto', {
+                      secondaryVendorId: e.target.value || null
+                    })}
+                    className="form-select"
+                  >
+                    <option value="">Select vendor...</option>
+                    {allSuppliers.map((s: any) => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* GDS Configuration */}
+          <div className="working-package-form">
+            <h4>
+              <label className="category-enable-label">
+                <input
+                  type="checkbox"
+                  checked={workingPackageData?.gds?.enabled || false}
+                  onChange={(e) => updateWorkingPackageCategory('gds', {
+                    enabled: e.target.checked
+                  })}
+                />
+                GDS Working Package
+              </label>
+            </h4>
+
+            {workingPackageData?.gds?.enabled && (
+              <>
+                <div className="form-row">
+                  <label>Total Amount:</label>
+                  <div className="input-with-suffix">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={workingPackageData?.gds?.totalAmount || 0}
+                      onChange={(e) => updateWorkingPackageCategory('gds', {
+                        totalAmount: parseFloat(e.target.value) || 0
+                      })}
+                      className="form-input"
+                    />
+                    <span className="input-suffix">€</span>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <label>Primary Vendor:</label>
+                  <select
+                    value={workingPackageData?.gds?.primaryVendorId || ''}
+                    onChange={(e) => updateWorkingPackageCategory('gds', {
+                      primaryVendorId: e.target.value || null
+                    })}
+                    className="form-select"
+                  >
+                    <option value="">Select vendor...</option>
+                    {allSuppliers.map((s: any) => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-row">
+                  <label>Secondary %:</label>
+                  <div className="input-with-suffix">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={workingPackageData?.gds?.secondaryPercentage || 0}
+                      onChange={(e) => updateWorkingPackageCategory('gds', {
+                        secondaryPercentage: parseFloat(e.target.value) || 0
+                      })}
+                      className="form-input"
+                    />
+                    <span className="input-suffix">%</span>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <label>Secondary Vendor:</label>
+                  <select
+                    value={workingPackageData?.gds?.secondaryVendorId || ''}
+                    onChange={(e) => updateWorkingPackageCategory('gds', {
+                      secondaryVendorId: e.target.value || null
+                    })}
+                    className="form-select"
+                  >
+                    <option value="">Select vendor...</option>
+                    {allSuppliers.map((s: any) => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Working Package Summary */}
+          {workingPackageCalculated?.calculated && (
+            <div className="working-package-summary">
+              <h4>Cost Summary</h4>
+
+              {/* GTO Summary */}
+              {(workingPackageData?.gto?.enabled || workingPackageCalculated?.calculated?.gto?.totalAmount > 0) && (
+                <div className="summary-category gto-summary">
+                  <h5>GTO</h5>
+                  <div className="summary-row primary">
+                    <span>Primary:</span>
+                    <span>{(workingPackageCalculated?.calculated?.gto?.primaryAmount || 0).toLocaleString()} €</span>
+                  </div>
+                  <div className="summary-row secondary">
+                    <span>Secondary:</span>
+                    <span>{(workingPackageCalculated?.calculated?.gto?.secondaryAmount || 0).toLocaleString()} €</span>
+                  </div>
+                  <div className="summary-row total">
+                    <span>Total GTO:</span>
+                    <span>{(workingPackageCalculated?.calculated?.gto?.totalAmount || 0).toLocaleString()} €</span>
+                  </div>
+                </div>
+              )}
+
+              {/* GDS Summary */}
+              {(workingPackageData?.gds?.enabled || workingPackageCalculated?.calculated?.gds?.totalAmount > 0) && (
+                <div className="summary-category gds-summary">
+                  <h5>GDS</h5>
+                  <div className="summary-row primary">
+                    <span>Primary:</span>
+                    <span>{(workingPackageCalculated?.calculated?.gds?.primaryAmount || 0).toLocaleString()} €</span>
+                  </div>
+                  <div className="summary-row secondary">
+                    <span>Secondary:</span>
+                    <span>{(workingPackageCalculated?.calculated?.gds?.secondaryAmount || 0).toLocaleString()} €</span>
+                  </div>
+                  <div className="summary-row total">
+                    <span>Total GDS:</span>
+                    <span>{(workingPackageCalculated?.calculated?.gds?.totalAmount || 0).toLocaleString()} €</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Project Total */}
+              <div className="summary-row grand-total">
+                <span>Project Total:</span>
+                <span>{(workingPackageCalculated?.projectTotal || 0).toLocaleString()} €</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* KPI Cards Section */}
       {kpiData && (
@@ -330,7 +597,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       <div className="vendor-cost-summary">
         <div className="vendor-cost-header">
           <h3>Vendor Cost Summary</h3>
-          <button 
+          <button
             className={`btn ${isCopied ? 'btn-success' : 'btn-primary'} btn-share`}
             onClick={handleCopyTemplate}
             title="Copy template to Clipboard"
@@ -339,24 +606,24 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
             <i className={`fas ${isCopied ? 'fa-check' : 'fa-copy'}`}></i> {isCopied ? 'Copied!' : 'Share'}
           </button>
         </div>
-        
+
         {/* Category Filter Buttons */}
         <div className="filter-buttons-group">
-          <button 
+          <button
             className={`filter-btn filter-btn-all ${categoryFilter === 'all' ? 'active' : ''}`}
             onClick={() => applyCategoryFilter('all')}
           >
             ALL
             <span className="filter-count">({vendorCounts.all})</span>
           </button>
-          <button 
+          <button
             className={`filter-btn filter-btn-gto ${categoryFilter === 'gto' ? 'active' : ''}`}
             onClick={() => applyCategoryFilter('gto')}
           >
             GTO
             <span className="filter-count">({vendorCounts.gto})</span>
           </button>
-          <button 
+          <button
             className={`filter-btn filter-btn-gds ${categoryFilter === 'gds' ? 'active' : ''}`}
             onClick={() => applyCategoryFilter('gds')}
           >
@@ -364,13 +631,13 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
             <span className="filter-count">({vendorCounts.gds})</span>
           </button>
         </div>
-        
+
         {/* Filters Section */}
         <div className="filters-section">
           <div className="filters-bar">
             <div className="filter-group">
               <label htmlFor="vendor-filter">VENDOR:</label>
-              <select 
+              <select
                 id="vendor-filter"
                 value={filters.vendor}
                 onChange={(e) => handleFilterChange(e.target.value, filters.role)}
@@ -383,10 +650,10 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                 ))}
               </select>
             </div>
-            
+
             <div className="filter-group">
               <label htmlFor="role-filter">ROLE:</label>
-              <select 
+              <select
                 id="role-filter"
                 value={filters.role}
                 onChange={(e) => handleFilterChange(filters.vendor, e.target.value)}
@@ -469,7 +736,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                   </tr>
                 ))}
               </tbody>
-              
+
               {/* Footer con totali */}
               <tfoot>
                 <tr className="totals-row">
@@ -496,7 +763,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
           <div className="empty-state">
             <i className="fas fa-chart-line"></i>
             <h3>No calculations available</h3>
-            <p>Add features or phases to generate cost calculations.</p>
+            <p>{workingPackageEnabled ? 'Configure the Working Package to generate cost calculations.' : 'Add features or phases to generate cost calculations.'}</p>
           </div>
         )}
       </div>

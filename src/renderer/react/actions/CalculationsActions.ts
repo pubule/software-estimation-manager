@@ -47,6 +47,20 @@ interface CalculationsFilters {
   category: string; // 'all' | 'gto' | 'gds'
 }
 
+export interface WorkingPackageCategoryData {
+  enabled: boolean;
+  totalAmount: number;
+  primaryVendorId: string | null;
+  secondaryVendorId: string | null;
+  secondaryPercentage: number;
+}
+
+export interface WorkingPackageData {
+  enabled: boolean;
+  gto: WorkingPackageCategoryData;
+  gds: WorkingPackageCategoryData;
+}
+
 export class CalculationsActions {
   private getStore() { 
     return (window as any).appStore; 
@@ -74,38 +88,201 @@ export class CalculationsActions {
 
       const state = store.getState();
       const currentProject = state.currentProject;
-      
-      
+
+
       if (!currentProject) {
         throw new Error('No project loaded');
       }
 
+      // NUOVO: Se modalità working package è attiva, usa calcolo diverso
+      const workingPackage = currentProject.workingPackageData;
+      if (workingPackage?.enabled) {
+        this.calculateWorkingPackageCosts(workingPackage);
+        return;
+      }
+
       // 1. Processa tutti i costi (features + phases)
       const vendorCosts = this.processAllCosts(currentProject);
-      
+
       // 2. Applica override Final MDs se esistono
       const costsWithOverrides = this.applyFinalMDsOverrides(vendorCosts);
-      
+
       // 3. Calcola KPI
       const kpiData = this.calculateKPIs(costsWithOverrides);
-      
+
       // 4. Preserve existing finalMDsOverrides from current state or project data
       const currentOverrides = state.calculationsData?.finalMDsOverrides || {};
       const projectOverrides = currentProject.finalMDsOverrides || {};
       const preservedOverrides = Object.keys(projectOverrides).length > 0 ? projectOverrides : currentOverrides;
-      
+
       // 5. Aggiorna store
       state.setCalculationsData({
         vendorCosts: costsWithOverrides,
         kpiData: kpiData,
         finalMDsOverrides: preservedOverrides
       });
-      
+
       console.log('✅ Calculations completed:', costsWithOverrides.length, 'vendor costs');
     } catch (error) {
       console.error('Failed to calculate project costs:', error);
       throw error;
     }
+  }
+
+  /**
+   * Calcola costi per modalità Working Package (top-down estimation)
+   * Supporta GTO e GDS separati con vendor primario e secondario per ciascuno
+   */
+  private calculateWorkingPackageCosts(workingPackage: WorkingPackageData): void {
+    const store = this.getStore();
+    const state = store.getState();
+
+    const vendorCosts: VendorCost[] = [];
+    const calculatedData: any = {
+      gto: { primaryAmount: 0, secondaryAmount: 0, totalAmount: 0 },
+      gds: { primaryAmount: 0, secondaryAmount: 0, totalAmount: 0 }
+    };
+
+    // Processa GTO
+    if (workingPackage.gto?.enabled && workingPackage.gto.totalAmount > 0) {
+      const gtoCosts = this.calculateCategoryCosts(workingPackage.gto, 'gto');
+      vendorCosts.push(...gtoCosts.vendorCosts);
+      calculatedData.gto = gtoCosts.calculated;
+    }
+
+    // Processa GDS
+    if (workingPackage.gds?.enabled && workingPackage.gds.totalAmount > 0) {
+      const gdsCosts = this.calculateCategoryCosts(workingPackage.gds, 'gds');
+      vendorCosts.push(...gdsCosts.vendorCosts);
+      calculatedData.gds = gdsCosts.calculated;
+    }
+
+    // Se nessuna categoria è abilitata o ha dati validi
+    if (vendorCosts.length === 0) {
+      state.setCalculationsData({
+        vendorCosts: [],
+        kpiData: this.getEmptyKPIData(),
+        workingPackage: { error: 'No valid Working Package data. Enable GTO or GDS and configure vendors.' }
+      });
+      return;
+    }
+
+    // Calcola KPI
+    const kpiData = this.calculateKPIs(vendorCosts);
+
+    // Calcola totali progetto
+    const projectTotal = calculatedData.gto.totalAmount + calculatedData.gds.totalAmount;
+
+    // Aggiorna store
+    state.setCalculationsData({
+      vendorCosts,
+      kpiData,
+      finalMDsOverrides: {},
+      workingPackage: {
+        ...workingPackage,
+        calculated: calculatedData,
+        projectTotal
+      }
+    });
+
+    console.log('✅ Working Package calculations completed:', vendorCosts.length, 'vendor costs');
+  }
+
+  /**
+   * Calcola costi per una singola categoria (GTO o GDS)
+   */
+  private calculateCategoryCosts(
+    categoryData: WorkingPackageCategoryData,
+    category: 'gto' | 'gds'
+  ): { vendorCosts: VendorCost[]; calculated: { primaryAmount: number; secondaryAmount: number; totalAmount: number } } {
+    const vendorCosts: VendorCost[] = [];
+    const {
+      totalAmount,
+      primaryVendorId,
+      secondaryVendorId,
+      secondaryPercentage
+    } = categoryData;
+
+    // Se mancano dati essenziali, ritorna vuoto
+    if (!totalAmount || !primaryVendorId) {
+      return { vendorCosts, calculated: { primaryAmount: 0, secondaryAmount: 0, totalAmount: 0 } };
+    }
+
+    // Calcoli
+    const secondaryAmount = totalAmount * (secondaryPercentage / 100);
+    const primaryAmount = totalAmount - secondaryAmount;
+
+    // Recupera dati vendor
+    const primaryVendor = this.getSupplierData(primaryVendorId);
+    const secondaryVendor = secondaryVendorId ? this.getSupplierData(secondaryVendorId) : null;
+
+    // Determina il ruolo di default in base alla categoria
+    const defaultRole = category === 'gto' ? 'G2' : 'G1';
+
+    // Crea VendorCost per vendor primario
+    const primaryCost: VendorCost = {
+      vendorId: primaryVendorId,
+      vendorName: primaryVendor?.name || `${category.toUpperCase()} Primary Vendor`,
+      role: (primaryVendor?.role as any) || defaultRole,
+      department: primaryVendor?.department || 'Development',
+      officialRate: primaryVendor?.officialRate || 0,
+      realRate: primaryVendor?.realRate || 0,
+      estimatedMDs: 0,
+      finalMDs: 0,
+      totCost: primaryAmount,
+      finalTotCost: primaryAmount,
+      isInternal: primaryVendor?.type === 'internal'
+    };
+
+    vendorCosts.push(primaryCost);
+
+    // Aggiungi vendor secondario se presente
+    if (secondaryVendor && secondaryAmount > 0) {
+      const secondaryCost: VendorCost = {
+        vendorId: secondaryVendorId!,
+        vendorName: secondaryVendor.name || `${category.toUpperCase()} Secondary Vendor`,
+        role: (secondaryVendor?.role as any) || (category === 'gto' ? 'TA' : 'PM'),
+        department: secondaryVendor.department || 'General',
+        officialRate: secondaryVendor.officialRate || 0,
+        realRate: secondaryVendor.realRate || 0,
+        estimatedMDs: 0,
+        finalMDs: 0,
+        totCost: secondaryAmount,
+        finalTotCost: secondaryAmount,
+        isInternal: secondaryVendor.type === 'internal'
+      };
+      vendorCosts.push(secondaryCost);
+    }
+
+    return {
+      vendorCosts,
+      calculated: { primaryAmount, secondaryAmount, totalAmount }
+    };
+  }
+
+  /**
+   * Restituisce KPI data vuoto
+   */
+  private getEmptyKPIData(): KPIData {
+    return {
+      gto: {
+        internal: 0,
+        external: 0,
+        total: 0,
+        internalPercentage: 0,
+        externalPercentage: 0
+      },
+      gds: {
+        internal: 0,
+        external: 0,
+        total: 0,
+        internalPercentage: 0,
+        externalPercentage: 0
+      },
+      totalProject: 0,
+      totalInternalPercentage: 0,
+      totalExternalPercentage: 0
+    };
   }
 
   /**
@@ -1020,6 +1197,133 @@ ${assumptionsList}`;
       console.log('🧹 Final MDs overrides cleared (recalculation will follow)');
     } catch (error) {
       console.error('Failed to clear Final MDs overrides:', error);
+      throw error;
+    }
+  }
+
+  // ======================
+  // WORKING PACKAGE METHODS
+  // ======================
+
+  /**
+   * Abilita/disabilita modalità Working Package
+   */
+  setWorkingPackageEnabled(enabled: boolean): void {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+      const currentProject = state.currentProject;
+
+      if (!currentProject) {
+        throw new Error('No project loaded');
+      }
+
+      const workingPackage = {
+        ...currentProject.workingPackageData,
+        enabled
+      };
+
+      state.updateProjectField('workingPackageData', workingPackage);
+
+      // Ricalcola
+      this.calculateProjectCosts();
+
+      console.log('✅ Working Package mode:', enabled ? 'enabled' : 'disabled');
+    } catch (error) {
+      console.error('Failed to set Working Package enabled:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Aggiorna dati Working Package
+   */
+  updateWorkingPackage(data: Partial<WorkingPackageData>): void {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+      const currentProject = state.currentProject;
+
+      if (!currentProject) {
+        throw new Error('No project loaded');
+      }
+
+      const workingPackage = {
+        ...currentProject.workingPackageData,
+        ...data
+      };
+
+      state.updateProjectField('workingPackageData', workingPackage);
+
+      // Ricalcola se abilitato
+      if (workingPackage.enabled) {
+        this.calculateProjectCosts();
+      }
+
+      console.log('✅ Working Package data updated:', data);
+    } catch (error) {
+      console.error('Failed to update Working Package data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Ottiene lo stato attuale del Working Package
+   */
+  getWorkingPackageData(): WorkingPackageData | null {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+      const currentProject = state.currentProject;
+
+      if (!currentProject) {
+        return null;
+      }
+
+      return currentProject.workingPackageData || null;
+    } catch (error) {
+      console.error('Failed to get Working Package data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Aggiorna dati di una singola categoria (GTO o GDS)
+   */
+  updateWorkingPackageCategory(
+    category: 'gto' | 'gds',
+    data: Partial<WorkingPackageCategoryData>
+  ): void {
+    try {
+      const store = this.getStore();
+      const state = store.getState();
+      const currentProject = state.currentProject;
+
+      if (!currentProject) {
+        throw new Error('No project loaded');
+      }
+
+      const currentWP = currentProject.workingPackageData || {};
+      const currentCategory = currentWP[category] || {};
+
+      const workingPackage = {
+        ...currentWP,
+        [category]: {
+          ...currentCategory,
+          ...data
+        }
+      };
+
+      state.updateProjectField('workingPackageData', workingPackage);
+
+      // Ricalcola se il Working Package è abilitato
+      if (currentWP.enabled) {
+        this.calculateProjectCosts();
+      }
+
+      console.log(`✅ Working Package ${category.toUpperCase()} updated:`, data);
+    } catch (error) {
+      console.error(`Failed to update Working Package ${category}:`, error);
       throw error;
     }
   }

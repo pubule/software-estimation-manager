@@ -555,6 +555,102 @@ const appStore = window.zustand.createStore((set, get) => ({
     },
 
     /**
+     * Update generic project field
+     */
+    updateProjectField: (field, value) => {
+        const currentState = get();
+        if (!currentState.currentProject) return;
+
+        const updatedProject = {
+            ...currentState.currentProject,
+            [field]: value
+        };
+
+        set({
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+
+    /**
+     * Update working package data
+     */
+    updateWorkingPackageData: (data) => {
+        const currentState = get();
+        if (!currentState.currentProject) return;
+
+        const currentWP = currentState.currentProject.workingPackageData || {
+            enabled: false,
+            gto: {
+                enabled: false,
+                totalAmount: 0,
+                primaryVendorId: null,
+                secondaryVendorId: null,
+                secondaryPercentage: 35
+            },
+            gds: {
+                enabled: false,
+                totalAmount: 0,
+                primaryVendorId: null,
+                secondaryVendorId: null,
+                secondaryPercentage: 35
+            }
+        };
+
+        const updatedProject = {
+            ...currentState.currentProject,
+            workingPackageData: {
+                ...currentWP,
+                ...data
+            }
+        };
+
+        set({
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+
+    /**
+     * Set working package enabled state
+     */
+    setWorkingPackageEnabled: (enabled) => {
+        const currentState = get();
+        if (!currentState.currentProject) return;
+
+        const currentWP = currentState.currentProject.workingPackageData || {
+            enabled: false,
+            gto: {
+                enabled: false,
+                totalAmount: 0,
+                primaryVendorId: null,
+                secondaryVendorId: null,
+                secondaryPercentage: 35
+            },
+            gds: {
+                enabled: false,
+                totalAmount: 0,
+                primaryVendorId: null,
+                secondaryVendorId: null,
+                secondaryPercentage: 35
+            }
+        };
+
+        const updatedProject = {
+            ...currentState.currentProject,
+            workingPackageData: {
+                ...currentWP,
+                enabled
+            }
+        };
+
+        set({
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+
+    /**
      * Update project metadata (project.name, project.comment, etc.)
      */
     updateProjectMetadata: (metadata) => {
@@ -1456,6 +1552,7 @@ const appStore = window.zustand.createStore((set, get) => ({
         const currentState = get();
         const preservedOverrides = currentState.calculationsData?.finalMDsOverrides || {};
         const preservedFilters = currentState.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' };
+        const preservedWorkingPackage = currentState.calculationsData?.workingPackage || {};
 
 
         set({
@@ -1466,6 +1563,8 @@ const appStore = window.zustand.createStore((set, get) => ({
                 finalMDsOverrides: data.finalMDsOverrides || preservedOverrides,
                 // PRESERVE filters unless explicitly provided in data
                 filters: data.filters || preservedFilters,
+                // PRESERVE workingPackage unless explicitly provided in data
+                workingPackage: data.workingPackage || preservedWorkingPackage,
                 version: (currentState.calculationsData?.version || 0) + 1
             }
         });
