@@ -1596,6 +1596,9 @@ class EnhancedNavigationManager extends NavigationManager {
             }
         }
 
+        // Update current section tracking
+        this.currentSection = 'ticket-dashboard';
+
         // Update global state
         if (this.store && this.store.getState) {
             this.store.getState().setSection('ticket-dashboard');
@@ -1724,6 +1727,9 @@ class EnhancedNavigationManager extends NavigationManager {
             }
         }
 
+        // Update current section tracking
+        this.currentSection = 'resource-overview';
+
         // Update global state
         if (this.store && this.store.getState) {
             this.store.getState().setSection('resource-overview');
@@ -1737,7 +1743,7 @@ class EnhancedNavigationManager extends NavigationManager {
 
         console.log('Navigated to Resource Overview page');
     }
-    
+
     // Method for Capacity Planning Timeline
     async showCapacityTimelinePage() {
         console.log('🔄 NavigationManager: showCapacityTimelinePage - Using State/Actions/Dispatcher pattern');
@@ -1839,6 +1845,9 @@ class EnhancedNavigationManager extends NavigationManager {
             }
         }
 
+        // Update current section tracking
+        this.currentSection = 'capacity-timeline';
+
         // Update global state
         if (this.store && this.store.getState) {
             this.store.getState().setSection('capacity-timeline');
@@ -1852,7 +1861,7 @@ class EnhancedNavigationManager extends NavigationManager {
 
         console.log('Navigated to Capacity Timeline page');
     }
-    
+
     toggleCapacitySection() {
         this.capacityExpanded = !this.capacityExpanded;
         this.updateCapacityExpansion();

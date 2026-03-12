@@ -453,9 +453,21 @@ class ProjectBusinessLogic extends BaseComponent {
                 throw new Error('Recent project not found');
             }
 
-            if (recentProject.filePath) {
-                console.log(`🔄 Recent project file path found, delegating to loadSavedProject...`);
-                await this.loadSavedProject(recentProject.filePath);
+            let filePath = recentProject.filePath;
+
+            // If filePath not in recent projects, try to find it in saved projects
+            if (!filePath) {
+                console.log(`🔄 File path not in recent projects, searching in saved projects...`);
+                const savedProject = this.savedProjects.find(p => p.project?.id === projectId || p.id === projectId);
+                if (savedProject?.filePath) {
+                    filePath = savedProject.filePath;
+                    console.log(`✅ Found file path in saved projects: ${filePath}`);
+                }
+            }
+
+            if (filePath) {
+                console.log(`🔄 Loading project from file path: ${filePath}`);
+                await this.loadSavedProject(filePath);
             } else {
                 throw new Error('Recent project file path not available');
             }
