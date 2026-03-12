@@ -811,32 +811,57 @@ export class CalculationsActions {
     const state = store.getState();
     const currentProject = state.currentProject;
     const { kpiData } = state.calculationsData || {};
-    
+
     if (!currentProject) {
       return 'No project loaded';
     }
-    
+
     // Try to get project name from project.project.name or project.name
     const projectName = currentProject.project?.name || currentProject.name || 'Project';
     // Use GTO total instead of totalProject
     const gtoTotal = kpiData?.gto?.total || 0;
-    
+
     // Get assumptions from project
     const assumptions = currentProject.assumptions || [];
     const assumptionsList = assumptions.length > 0
       ? assumptions.map(assumption => `- ${assumption.description}`).join('\n')
       : '- [To be defined]';
-    
+
+    // Calcola totali per vendor GTO (G2 + TA) aggregando i finalTotCost
+    const gtoRoles = ['G2', 'TA'];
+    const vendorTotals = new Map<string, { name: string; total: number }>();
+    vendorCosts
+      .filter(cost => gtoRoles.includes(cost.role))
+      .forEach(cost => {
+        const existing = vendorTotals.get(cost.vendorId);
+        if (existing) {
+          existing.total += cost.finalTotCost || 0;
+        } else {
+          vendorTotals.set(cost.vendorId, {
+            name: cost.vendorName,
+            total: cost.finalTotCost || 0
+          });
+        }
+      });
+
+    // Sezione vendor breakdown
+    let vendorBreakdown = '';
+    if (vendorTotals.size > 0) {
+      vendorBreakdown = '\n\nBreakdown by vendor:\n';
+      vendorTotals.forEach(({ name, total }) => {
+        vendorBreakdown += `- ${name}: ${total.toLocaleString()} €\n`;
+      });
+    }
+
     const emailTemplate = `Dear colleagues,
 Please find below the estimation details for the implementation of ${projectName} based on the provided requirements.
 
-The estimated budget for the technical part is ${gtoTotal.toLocaleString()} € vat incl.
-
+The estimated budget for the technical part is ${gtoTotal.toLocaleString()} € vat incl.${vendorBreakdown}
 This includes all necessary activities such as technical analysis, development, SIT, support UAT phases, deployment, and post go live support.
 
 Assumptions and out of scopes:
 ${assumptionsList}`;
-    
+
     return emailTemplate;
   }
 
