@@ -505,6 +505,28 @@ class DataManager extends BaseComponent {
         }, 'setProjectsPath');
     }
 
+    async chooseProjectsFolder() {
+        return this.withErrorBoundary(async () => {
+            if (this.persistenceStrategy.name === 'electron') {
+                const result = await window.electronAPI.chooseProjectsFolder();
+                if (result.success) {
+                    this.emit('projects-path-changed', { path: result.path });
+                }
+                return result;
+            }
+            return { success: false, error: 'Not available in localStorage mode' };
+        }, 'chooseProjectsFolder');
+    }
+
+    async openProjectsFolder() {
+        return this.withErrorBoundary(async () => {
+            if (this.persistenceStrategy.name === 'electron') {
+                return await window.electronAPI.openProjectsFolder();
+            }
+            return false;
+        }, 'openProjectsFolder');
+    }
+
     /**
      * Utility methods
      */

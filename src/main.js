@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
@@ -265,7 +265,6 @@ ipcMain.handle('save-settings', async (event, settings) => {
 ipcMain.handle('open-projects-folder', async () => {
     try {
         const projectsPath = await getProjectsPath();
-        const { shell } = require('electron');
         await shell.openPath(projectsPath);
         return { success: true };
     } catch (error) {
