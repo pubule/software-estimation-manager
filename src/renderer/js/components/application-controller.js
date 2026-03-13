@@ -163,6 +163,19 @@ class ApplicationController extends BaseComponent {
         // The store subscription will handle the UI updates
     }
 
+    /**
+     * Show a notification by delegating to NotificationManager
+     */
+    showNotification(message, type = 'info', options = {}) {
+        if (this.managers.notification) {
+            return this.managers.notification.show(message, type, options);
+        } else {
+            console.error('NotificationManager not initialized, cannot show notification:', message);
+            // Provide a basic fallback if manager is missing
+            alert(`[${type.toUpperCase()}] ${message}`);
+        }
+    }
+
     async onInit() {
         await this.initializeComponents();
         this.setupEventListeners();
@@ -304,6 +317,9 @@ class ApplicationController extends BaseComponent {
         // Modal manager
         this.managers.modal = new ModalManager();
         
+        // Notification manager (for toast messages)
+        this.managers.notification = new NotificationManager();
+        
         // Configuration UI manager
         this.managers.configurationUI = new ConfigurationUIManager(this, this.managers.config);
         
@@ -312,6 +328,7 @@ class ApplicationController extends BaseComponent {
         // Set up backward compatibility aliases for UI managers
         this.navigationManager = this.managers.navigation;
         this.modalManager = this.managers.modal;
+        this.notificationManager = this.managers.notification;
         this.configurationUIManager = this.managers.configurationUI;
         
         // Additional alias for navigation compatibility

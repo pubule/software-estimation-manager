@@ -1,31 +1,20 @@
 import React from 'react';
 
-interface Supplier {
-  id: string;
-  name: string;
-  department: string;
-  role: string;
-  realRate?: number;
-  officialRate: number;
-}
-
-interface SelectedSuppliers {
-  G1: string | null;
-  G2: string | null;
-  TA: string | null;
-  PM: string | null;
+interface ResourceDisplayStrings {
+    G1: string;
+    G2: string;
+    TA: string;
+    PM: string;
 }
 
 interface SupplierSelectorsProps {
-  selectedSuppliers: SelectedSuppliers;
-  availableSuppliers: Supplier[];
-  onSupplierChange: (resourceType: string, supplierId: string) => void;
+  resourceDisplayStrings: ResourceDisplayStrings;
+  onSpecifyRateClick: (resourceType: string) => void;
 }
 
 const SupplierSelectors: React.FC<SupplierSelectorsProps> = ({
-  selectedSuppliers,
-  availableSuppliers,
-  onSupplierChange
+  resourceDisplayStrings,
+  onSpecifyRateClick
 }) => {
   const resourceTypes = [
     { key: 'G1', label: 'G1 (Grade 1 Developer)' },
@@ -34,37 +23,26 @@ const SupplierSelectors: React.FC<SupplierSelectorsProps> = ({
     { key: 'PM', label: 'PM (Project Manager)' }
   ];
 
-  const renderSupplierDropdown = (resourceType: string, label: string) => {
-    const selectedValue = selectedSuppliers[resourceType as keyof SelectedSuppliers] || '';
-    
-    // Filter suppliers by role
-    const filteredSuppliers = availableSuppliers.filter(supplier => supplier.role === resourceType);
+  const renderResourceSelector = (resourceType: string, label: string) => {
+    const displayString = resourceDisplayStrings[resourceType as keyof ResourceDisplayStrings] || 'Not Specified';
     
     return (
       <div key={resourceType} className="supplier-selector">
-        <label htmlFor={`${resourceType.toLowerCase()}-supplier`}>
+        <label htmlFor={`${resourceType.toLowerCase()}-resource`}>
           {label}:
         </label>
-        <select
-          id={`${resourceType.toLowerCase()}-supplier`}
-          value={selectedValue}
-          onChange={(e) => onSupplierChange(resourceType, e.target.value)}
-          className="supplier-select"
-        >
-          <option value="">Select Supplier</option>
-          {filteredSuppliers.map(supplier => {
-            const rate = supplier.realRate || supplier.officialRate || 0;
-            const displayName = `${supplier.department} - ${supplier.name} (€${rate}/day)`;
-            return (
-              <option 
-                key={supplier.id} 
-                value={supplier.id}
-              >
-                {displayName}
-              </option>
-            );
-          })}
-        </select>
+        <div className="supplier-control-group">
+            <div id={`${resourceType.toLowerCase()}-resource`} className="resource-display">
+                {displayString}
+            </div>
+            <button 
+                className="btn btn-small btn-secondary btn-specify-rate"
+                onClick={() => onSpecifyRateClick(resourceType)}
+                title="Specify full rate details"
+            >
+                <i className="fas fa-edit"></i>
+            </button>
+        </div>
         {resourceType === 'G2' && (
           <small className="supplier-note">
             Note: Development phase uses feature-specific suppliers
@@ -77,7 +55,7 @@ const SupplierSelectors: React.FC<SupplierSelectorsProps> = ({
   return (
     <div className="supplier-selectors">
       {resourceTypes.map(({ key, label }) =>
-        renderSupplierDropdown(key, label)
+        renderResourceSelector(key, label)
       )}
     </div>
   );

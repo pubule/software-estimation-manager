@@ -354,17 +354,13 @@ class TeamsConfigManager {
                                 <label for="member-user-id">User ID *</label>
                                 <input type="text" id="member-user-id" name="user-id" class="validation-tooltip required" required maxlength="255" placeholder="Unique identifier (auto-generated if empty)">
                             </div>
-                            <div class="form-group">
-                                <label for="member-role">Role *</label>
-                                <input type="text" id="member-role" name="role" class="validation-tooltip required" required maxlength="100">
-                            </div>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="member-vendor-type">Vendor Type *</label>
                                     <select id="member-vendor-type" name="vendorType" class="validation-tooltip required" required>
                                         <option value="">Select Vendor Type</option>
-                                        <option value="internal">Internal Resource</option>
-                                        <option value="supplier">External Supplier</option>
+                                        <option value="Internal">Internal Vendor</option>
+                                        <option value="External">External Vendor</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -372,6 +368,34 @@ class TeamsConfigManager {
                                     <select id="member-vendor" name="vendorId" class="validation-tooltip required" required>
                                         <option value="">Select Vendor</option>
                                         <!-- Will be populated based on vendor type -->
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="member-job-cluster">Job Cluster *</label>
+                                    <select id="member-job-cluster" name="jobCluster" class="validation-tooltip required" required>
+                                        <option value="">Select Job Cluster</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="member-seniority">Seniority *</label>
+                                    <select id="member-seniority" name="seniority" class="validation-tooltip required" required>
+                                        <option value="">Select Seniority</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="member-location">Location *</label>
+                                    <select id="member-location" name="location" class="validation-tooltip required" required>
+                                        <option value="">Select Location</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="member-delivery-model">Delivery Model *</label>
+                                    <select id="member-delivery-model" name="deliveryModel" class="validation-tooltip required" required>
+                                        <option value="">Select Delivery Model</option>
                                     </select>
                                 </div>
                             </div>
@@ -618,7 +642,7 @@ class TeamsConfigManager {
                                             <td class="member-user-id">
                                                 <span class="user-id-value" title="${this.escapeHtml(member['user-id'] || '')}">${this.escapeHtml(member['user-id'] || '')}</span>
                                             </td>
-                                            <td class="member-role">${this.escapeHtml(member.role)}</td>
+                                            <td class="member-role">${this.escapeHtml(member.seniority || '')} ${this.escapeHtml(member.jobCluster || '')}</td>
                                             <td class="member-vendor">
                                                 <span class="vendor-badge vendor-${member.vendorType}">
                                                     ${vendorName}
@@ -663,17 +687,9 @@ class TeamsConfigManager {
             if (!this.configManager || !this.configManager.globalConfig) {
                 return 'Unknown Vendor';
             }
-
-            if (vendorType === 'internal') {
-                const internalResources = this.configManager.globalConfig.internalResources || [];
-                const resource = internalResources.find(r => r.id === vendorId);
-                return resource ? resource.name : 'Unknown Internal Resource';
-            } else if (vendorType === 'supplier') {
-                const suppliers = this.configManager.globalConfig.suppliers || [];
-                const supplier = suppliers.find(s => s.id === vendorId);
-                return supplier ? supplier.name : 'Unknown Supplier';
-            }
-            return 'Unknown Vendor';
+            const vendors = this.configManager.globalConfig.vendors || [];
+            const vendor = vendors.find(v => v.id === vendorId);
+            return vendor ? vendor.name : 'Unknown Vendor';
         } catch (error) {
             console.error('Failed to get vendor display name:', error);
             return 'Unknown Vendor';
@@ -776,6 +792,8 @@ class TeamsConfigManager {
         
         // Populate vendor dropdowns
         this.populateVendorDropdowns();
+        // Populate rate matrix dropdowns
+        this.populateRateDropdowns();
         
         document.getElementById('team-member-modal').classList.add('active');
     }
@@ -793,13 +811,15 @@ class TeamsConfigManager {
         document.getElementById('member-last-name').value = this.editingTeamMember.lastName || '';
         document.getElementById('member-email').value = this.editingTeamMember.email || '';
         document.getElementById('member-user-id').value = this.editingTeamMember['user-id'] || '';
-        document.getElementById('member-role').value = this.editingTeamMember.role || '';
         document.getElementById('member-vendor-type').value = this.editingTeamMember.vendorType || '';
         document.getElementById('member-monthly-capacity').value = this.editingTeamMember.monthlyCapacity || 22;
         
         // Populate vendor dropdowns and set selection
         this.populateVendorDropdowns(this.editingTeamMember.vendorType);
         document.getElementById('member-vendor').value = this.editingTeamMember.vendorId || '';
+
+        // Populate rate dropdowns and set selections
+        this.populateRateDropdowns(this.editingTeamMember);
         
         document.getElementById('team-member-modal').classList.add('active');
     }
@@ -998,9 +1018,12 @@ class TeamsConfigManager {
                 firstName: document.getElementById('member-first-name').value.trim(),
                 lastName: document.getElementById('member-last-name').value.trim(),
                 email: document.getElementById('member-email').value.trim(),
-                role: document.getElementById('member-role').value.trim(),
                 vendorType: document.getElementById('member-vendor-type').value,
                 vendorId: document.getElementById('member-vendor').value,
+                jobCluster: document.getElementById('member-job-cluster').value,
+                seniority: document.getElementById('member-seniority').value,
+                location: document.getElementById('member-location').value,
+                deliveryModel: document.getElementById('member-delivery-model').value,
                 monthlyCapacity: parseInt(document.getElementById('member-monthly-capacity').value) || 22,
                 status: 'active' // Default status since field is removed
             };
@@ -1011,13 +1034,13 @@ class TeamsConfigManager {
                 return;
             }
 
-            if (!formData.role) {
-                this.showNotification('Role is required', 'error');
+            if (!formData.vendorType || !formData.vendorId) {
+                this.showNotification('Vendor selection is required', 'error');
                 return;
             }
 
-            if (!formData.vendorType || !formData.vendorId) {
-                this.showNotification('Vendor selection is required', 'error');
+            if (!formData.jobCluster || !formData.seniority || !formData.location || !formData.deliveryModel) {
+                this.showNotification('Job Cluster, Seniority, Location, and Delivery Model are all required', 'error');
                 return;
             }
 
@@ -1030,9 +1053,12 @@ class TeamsConfigManager {
                     firstName: formData.firstName,
                     lastName: formData.lastName,
                     email: formData.email,
-                    role: formData.role,
                     vendorType: formData.vendorType,
                     vendorId: formData.vendorId,
+                    jobCluster: formData.jobCluster,
+                    seniority: formData.seniority,
+                    location: formData.location,
+                    deliveryModel: formData.deliveryModel,
                     monthlyCapacity: formData.monthlyCapacity,
                     status: formData.status
                 });
@@ -1086,25 +1112,16 @@ class TeamsConfigManager {
                     return;
                 }
 
-                if (vendorType === 'internal') {
-                    const internalResources = this.configManager.globalConfig.internalResources || [];
-                    internalResources.forEach(resource => {
-                        const option = document.createElement('option');
-                        option.value = resource.id;
-                        // Format: "RO - [G2] Developer (€352/day)"
-                        option.textContent = `${resource.department} - [${resource.role}] ${resource.name} (€${resource.realRate}/day)`;
-                        vendorSelect.appendChild(option);
-                    });
-                } else if (vendorType === 'supplier') {
-                    const suppliers = this.configManager.globalConfig.suppliers || [];
-                    suppliers.forEach(supplier => {
-                        const option = document.createElement('option');
-                        option.value = supplier.id;
-                        // Format: "IT - [G2] Reply (€323.3/day)"
-                        option.textContent = `${supplier.department} - [${supplier.role}] ${supplier.name} (€${supplier.realRate}/day)`;
-                        vendorSelect.appendChild(option);
-                    });
-                }
+                const vendors = this.configManager.globalConfig.vendors || [];
+                const filteredVendors = vendors.filter(v => v.type.toLowerCase() === vendorType.toLowerCase());
+
+                filteredVendors.forEach(vendor => {
+                    const option = document.createElement('option');
+                    option.value = vendor.id;
+                    option.textContent = `${vendor.name} (${vendor.type})`;
+                    vendorSelect.appendChild(option);
+                });
+
             } catch (error) {
                 console.error('Failed to populate vendor options:', error);
             }
@@ -1120,6 +1137,82 @@ class TeamsConfigManager {
             updateVendorOptions(selectedVendorType);
         } else if (vendorTypeSelect.value) {
             updateVendorOptions(vendorTypeSelect.value);
+        }
+    }
+
+    /**
+     * Populate rate-related dropdowns from rateMatrixConfig
+     */
+    populateRateDropdowns(memberData = null) {
+        const { rateMatrixConfig } = this.configManager.globalConfig;
+        if (!rateMatrixConfig) {
+            console.error('Rate Matrix Configuration not found!');
+            return;
+        }
+
+        const jobClusterSelect = document.getElementById('member-job-cluster');
+        const senioritySelect = document.getElementById('member-seniority');
+        const locationSelect = document.getElementById('member-location');
+        const deliveryModelSelect = document.getElementById('member-delivery-model');
+
+        // Populate Job Clusters
+        jobClusterSelect.innerHTML = '<option value="">Select Job Cluster</option>';
+        (rateMatrixConfig.jobClusters || []).forEach(cluster => {
+            const option = document.createElement('option');
+            option.value = cluster;
+            option.textContent = cluster;
+            jobClusterSelect.appendChild(option);
+        });
+
+        // Populate Seniority
+        senioritySelect.innerHTML = '<option value="">Select Seniority</option>';
+        (rateMatrixConfig.seniorities || []).forEach(seniority => {
+            const option = document.createElement('option');
+            option.value = seniority;
+            option.textContent = seniority;
+            senioritySelect.appendChild(option);
+        });
+
+        // Populate Locations
+        locationSelect.innerHTML = '<option value="">Select Location</option>';
+        (rateMatrixConfig.locations || []).forEach(location => {
+            const option = document.createElement('option');
+            option.value = location.id;
+            option.textContent = location.name;
+            locationSelect.appendChild(option);
+        });
+
+        // Handle Location change to update Delivery Models
+        const updateDeliveryModels = () => {
+            const selectedLocationId = locationSelect.value;
+            deliveryModelSelect.innerHTML = '<option value="">Select Delivery Model</option>';
+            if (selectedLocationId) {
+                const selectedLocation = (rateMatrixConfig.locations || []).find(l => l.id === selectedLocationId);
+                if (selectedLocation) {
+                    (selectedLocation.deliveryModels || []).forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model;
+                        deliveryModelSelect.appendChild(option);
+                    });
+                }
+            }
+             // If editing, set the delivery model after populating
+            if (memberData && memberData.deliveryModel) {
+                deliveryModelSelect.value = memberData.deliveryModel;
+            }
+        };
+
+        locationSelect.removeEventListener('change', updateDeliveryModels); // Prevent duplicates
+        locationSelect.addEventListener('change', updateDeliveryModels);
+
+        // If editing, set initial values
+        if (memberData) {
+            jobClusterSelect.value = memberData.jobCluster || '';
+            senioritySelect.value = memberData.seniority || '';
+            locationSelect.value = memberData.location || '';
+            // Trigger change to populate delivery models and then set the value
+            updateDeliveryModels();
         }
     }
 

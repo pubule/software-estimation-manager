@@ -42,10 +42,56 @@ class ConfigurationManager extends BaseComponent {
     async loadGlobalConfig() {
         try {
             const settings = await this.dataManager.getSettings();
-            this.globalConfig = settings.globalConfig || await this.createDefaultGlobalConfig();
-            this.cache.invalidate(); // Clear cache when global config changes
+            let config = settings.globalConfig;
+
+            if (!config) {
+                config = await this.createDefaultGlobalConfig();
+            } else {
+                // MIGRATION LOGIC - Now more robust
+                if (config.suppliers || config.internalResources) {
+                    console.log('Old config structure found. Re-running migration to de-duplicate vendors...');
+                    
+                    const vendorMap = new Map();
+
+                    (config.suppliers || []).forEach(s => {
+                        if (!vendorMap.has(s.name)) {
+                            vendorMap.set(s.name, {
+                                id: `vendor-${s.name.toLowerCase().replace(/\s+/g, '-')}`,
+                                name: s.name,
+                                type: 'Supplier',
+                                role: s.role, // Preserve role
+                                jobClusters: []
+                            });
+                        }
+                    });
+
+                    (config.internalResources || []).forEach(r => {
+                        if (!vendorMap.has(r.name)) {
+                            vendorMap.set(r.name, {
+                                id: `vendor-${r.name.toLowerCase().replace(/\s+/g, '-')}`,
+                                name: r.name,
+                                type: 'Internal',
+                                role: r.role, // Preserve role
+                                jobClusters: []
+                            });
+                        }
+                    });
+
+                    config.vendors = Array.from(vendorMap.values());
+                    
+                    delete config.suppliers;
+                    delete config.internalResources;
+
+                    if (!config.rateMatrixConfig) {
+                        config.rateMatrixConfig = this.createDefaultRateMatrixConfig();
+                    }
+                    console.log('Migration complete. Duplicates removed.');
+                }
+            }
+
+            this.globalConfig = config;
+            this.cache.invalidate();
             
-            // 🏪 Save to state store for UI components
             if (window.appStore && this.globalConfig) {
                 window.appStore.getState().setGlobalConfig(this.globalConfig);
                 console.log('✅ Global config saved to state store');
@@ -54,7 +100,6 @@ class ConfigurationManager extends BaseComponent {
             this.handleError('Failed to load global config', error);
             this.globalConfig = await this.createDefaultGlobalConfig();
             
-            // 🏪 Save fallback config to state store
             if (window.appStore && this.globalConfig) {
                 window.appStore.getState().setGlobalConfig(this.globalConfig);
                 console.log('✅ Fallback global config saved to state store');
@@ -100,14 +145,16 @@ class ConfigurationManager extends BaseComponent {
      */
     async createDefaultGlobalConfig() {
         try {
-            const defaultSuppliers = await this.defaultConfigManager.getDefaultSuppliers();
-            const defaultInternalResources = await this.defaultConfigManager.getDefaultInternalResources();
+            const defaultVendors = await this.defaultConfigManager.getDefaultVendors();
+            const rateMatrixConfig = await this.defaultConfigManager.getRateMatrixConfig();
             const defaultCategories = await this.defaultConfigManager.getDefaultCategories();
             const defaultTeams = await this.defaultConfigManager.getDefaultTeams();
+            const phaseDefinitions = await this.defaultConfigManager.getPhaseDefinitions();
             
             return {
-                suppliers: defaultSuppliers || this.createFallbackSuppliers(),
-                internalResources: defaultInternalResources || this.createFallbackInternalResources(),
+                phaseDefinitions: phaseDefinitions || [],
+                vendors: defaultVendors || [],
+                rateMatrixConfig: rateMatrixConfig || this.createDefaultRateMatrixConfig(), // fallback just in case
                 categories: this.normalizeCategoriesWithMultiplier(defaultCategories) || this.createFallbackCategories(),
                 teams: defaultTeams || [],
                 calculationParams: this.createDefaultCalculationParams()
@@ -115,8 +162,9 @@ class ConfigurationManager extends BaseComponent {
         } catch (error) {
             console.warn('Failed to load from DefaultConfigManager, using hardcoded fallbacks:', error);
             return {
-                suppliers: this.createFallbackSuppliers(),
-                internalResources: this.createFallbackInternalResources(),
+                phaseDefinitions: this.createFallbackPhaseDefinitions(),
+                vendors: this.createFallbackVendors(),
+                rateMatrixConfig: this.createDefaultRateMatrixConfig(),
                 categories: this.createFallbackCategories(),
                 teams: [],
                 calculationParams: this.createDefaultCalculationParams()
@@ -124,62 +172,48 @@ class ConfigurationManager extends BaseComponent {
         }
     }
 
-    createFallbackSuppliers() {
-        return [
-            {
-                id: 'supplier1',
-                name: 'External Supplier A',
-                realRate: 450,
-                officialRate: 500,
-                role: 'G2',
-                department: 'External',
-                status: 'active',
-                isGlobal: true
-            },
-            {
-                id: 'supplier2', 
-                name: 'External Supplier B',
-                realRate: 400,
-                officialRate: 450,
-                role: 'G2',
-                department: 'External',
-                status: 'active',
-                isGlobal: true
-            }
-        ];
+    createDefaultRateMatrixConfig() {
+        return {
+          "locations": [
+            { "id": "italy", "name": "Italy", "deliveryModels": ["onsite", "offsite"] },
+            { "id": "romania", "name": "Romania", "deliveryModels": ["onsite", "offsite"] },
+            { "id": "poland", "name": "Poland", "deliveryModels": ["onsite", "offsite"] },
+            { "id": "hungary", "name": "Hungary", "deliveryModels": ["onsite", "offsite"] },
+            { "id": "germany", "name": "Germany", "deliveryModels": ["onsite", "offsite"] },
+            { "id": "india", "name": "India", "deliveryModels": ["offshore"] }
+          ],
+          "seniorities": ["Junior", "Mid-Level", "Senior"],
+          "jobClusters": ["AI Engineer", "Architect", "Business Analyst", "Cloud Engineer", "Cyber security", "Data Analyst & Scientist", "Data Engineer"]
+        }
     }
 
-    createFallbackInternalResources() {
+    createFallbackVendors() {
         return [
             {
-                id: 'internal1',
-                name: 'Tech Analyst IT',
-                role: 'G2',
-                realRate: 350,
-                officialRate: 400,
-                department: 'IT',
-                status: 'active',
-                isGlobal: true
+                "id": "vendor-ext",
+                "name": "EXT Vendor",
+                "type": "External", // 'External' or 'Internal'
+                "jobClusters": [
+                  {
+                    "clusterId": "ai-engineer",
+                    "rates": [
+                      {
+                        "seniority": "Junior",
+                        "locations": { "italy": { "onsite": 314, "offsite": 276 }, "india": { "offshore": 155 } }
+                      },
+                      {
+                        "seniority": "Mid-Level",
+                        "locations": { "italy": { "onsite": 408, "offsite": 359 }, "india": { "offshore": 203 } }
+                      }
+                    ]
+                  }
+                ]
             },
             {
-                id: 'internal2',
-                name: 'Tech Analyst RO', 
-                role: 'G2',
-                realRate: 320,
-                officialRate: 380,
-                department: 'RO',
-                status: 'active',
-                isGlobal: true
-            },
-            {
-                id: 'internal3',
-                name: 'Developer',
-                role: 'G2',
-                realRate: 400,
-                officialRate: 450,
-                department: 'Development',
-                status: 'active',
-                isGlobal: true
+                "id": "vendor-internal-it",
+                "name": "Internal IT Team",
+                "type": "Internal",
+                 "jobClusters": []
             }
         ];
     }
@@ -255,6 +289,19 @@ class ConfigurationManager extends BaseComponent {
         ];
     }
 
+    createFallbackPhaseDefinitions() {
+        return [
+            {
+                "id": "development",
+                "name": "Development",
+                "description": "Implementation of features",
+                "type": "development",
+                "editable": true,
+                "calculated": true
+            }
+        ];
+    }
+
     /**
      * Normalize categories by adding default multiplier if missing
      */
@@ -288,13 +335,12 @@ class ConfigurationManager extends BaseComponent {
         }
 
         return {
-            suppliers: this.deepClone(this.globalConfig.suppliers),
-            internalResources: this.deepClone(this.globalConfig.internalResources),
+            vendors: this.deepClone(this.globalConfig.vendors),
+            rateMatrixConfig: this.deepClone(this.globalConfig.rateMatrixConfig),
             categories: this.deepClone(this.globalConfig.categories),
             calculationParams: this.deepClone(this.globalConfig.calculationParams),
             projectOverrides: {
-                suppliers: [],
-                internalResources: [],
+                vendors: [],
                 categories: [],
                 calculationParams: {}
             }
@@ -321,41 +367,22 @@ class ConfigurationManager extends BaseComponent {
     }
 
     /**
-     * Add supplier to project configuration
+     * Add a vendor to project configuration
      */
-    addSupplierToProject(projectConfig, supplier) {
+    addVendorToProject(projectConfig, vendor) {
         this.ensureProjectOverrides(projectConfig);
         
-        supplier.id = supplier.id || this.generateId('supplier');
-        supplier.isProjectSpecific = !supplier.isGlobal;
+        vendor.id = vendor.id || this.generateId('vendor');
+        vendor.isProjectSpecific = !vendor.isGlobal;
 
-        if (supplier.isGlobal) {
-            this.addToGlobalSuppliers(supplier);
+        if (vendor.isGlobal) {
+            this.addToGlobalVendors(vendor);
         } else {
-            this.addToProjectSuppliers(projectConfig, supplier);
+            this.addToProjectVendors(projectConfig, vendor);
         }
 
         this.cache.invalidate();
-        return supplier;
-    }
-
-    /**
-     * Add internal resource to project configuration
-     */
-    addInternalResourceToProject(projectConfig, resource) {
-        this.ensureProjectOverrides(projectConfig);
-        
-        resource.id = resource.id || this.generateId('internal');
-        resource.isProjectSpecific = !resource.isGlobal;
-
-        if (resource.isGlobal) {
-            this.addToGlobalInternalResources(resource);
-        } else {
-            this.addToProjectInternalResources(projectConfig, resource);
-        }
-
-        this.cache.invalidate();
-        return resource;
+        return vendor;
     }
 
     /**
@@ -380,22 +407,12 @@ class ConfigurationManager extends BaseComponent {
     /**
      * Helper methods for adding to global configurations
      */
-    addToGlobalSuppliers(supplier) {
-        const existingIndex = this.globalConfig.suppliers.findIndex(s => s.id === supplier.id);
+    addToGlobalVendors(vendor) {
+        const existingIndex = this.globalConfig.vendors.findIndex(v => v.id === vendor.id);
         if (existingIndex >= 0) {
-            this.globalConfig.suppliers[existingIndex] = supplier;
+            this.globalConfig.vendors[existingIndex] = vendor;
         } else {
-            this.globalConfig.suppliers.push(supplier);
-        }
-        this.saveGlobalConfig();
-    }
-
-    addToGlobalInternalResources(resource) {
-        const existingIndex = this.globalConfig.internalResources.findIndex(r => r.id === resource.id);
-        if (existingIndex >= 0) {
-            this.globalConfig.internalResources[existingIndex] = resource;
-        } else {
-            this.globalConfig.internalResources.push(resource);
+            this.globalConfig.vendors.push(vendor);
         }
         this.saveGlobalConfig();
     }
@@ -413,21 +430,12 @@ class ConfigurationManager extends BaseComponent {
     /**
      * Helper methods for adding to project configurations
      */
-    addToProjectSuppliers(projectConfig, supplier) {
-        const existingIndex = projectConfig.projectOverrides.suppliers.findIndex(s => s.id === supplier.id);
+    addToProjectVendors(projectConfig, vendor) {
+        const existingIndex = projectConfig.projectOverrides.vendors.findIndex(v => v.id === vendor.id);
         if (existingIndex >= 0) {
-            projectConfig.projectOverrides.suppliers[existingIndex] = supplier;
+            projectConfig.projectOverrides.vendors[existingIndex] = vendor;
         } else {
-            projectConfig.projectOverrides.suppliers.push(supplier);
-        }
-    }
-
-    addToProjectInternalResources(projectConfig, resource) {
-        const existingIndex = projectConfig.projectOverrides.internalResources.findIndex(r => r.id === resource.id);
-        if (existingIndex >= 0) {
-            projectConfig.projectOverrides.internalResources[existingIndex] = resource;
-        } else {
-            projectConfig.projectOverrides.internalResources.push(resource);
+            projectConfig.projectOverrides.vendors.push(vendor);
         }
     }
 
@@ -443,25 +451,13 @@ class ConfigurationManager extends BaseComponent {
     /**
      * Delete operations
      */
-    deleteSupplierFromProject(projectConfig, supplierId) {
-        const globalItem = this.globalConfig?.suppliers?.find(s => s.id === supplierId);
+    deleteVendorFromProject(projectConfig, vendorId) {
+        const globalItem = this.globalConfig?.vendors?.find(v => v.id === vendorId);
 
         if (globalItem) {
-            this.disableGlobalItemInProject(projectConfig, 'suppliers', supplierId);
+            this.disableGlobalItemInProject(projectConfig, 'vendors', vendorId);
         } else {
-            this.removeProjectSpecificItem(projectConfig, 'suppliers', supplierId);
-        }
-
-        this.cache.invalidate();
-    }
-
-    deleteInternalResourceFromProject(projectConfig, resourceId) {
-        const globalItem = this.globalConfig?.internalResources?.find(r => r.id === resourceId);
-
-        if (globalItem) {
-            this.disableGlobalItemInProject(projectConfig, 'internalResources', resourceId);
-        } else {
-            this.removeProjectSpecificItem(projectConfig, 'internalResources', resourceId);
+            this.removeProjectSpecificItem(projectConfig, 'vendors', vendorId);
         }
 
         this.cache.invalidate();
@@ -506,12 +502,8 @@ class ConfigurationManager extends BaseComponent {
     /**
      * Getter methods for merged configurations
      */
-    getSuppliers(projectConfig) {
-        return this.getProjectConfig(projectConfig).suppliers;
-    }
-
-    getInternalResources(projectConfig) {
-        return this.getProjectConfig(projectConfig).internalResources;
+    getVendors(projectConfig) {
+        return this.getProjectConfig(projectConfig).vendors;
     }
 
     getCategories(projectConfig) {
@@ -521,16 +513,55 @@ class ConfigurationManager extends BaseComponent {
     getCalculationParams(projectConfig) {
         return this.getProjectConfig(projectConfig).calculationParams;
     }
+    
+    getRate(options) {
+        const { vendorId, jobCluster, seniority, location, deliveryModel } = options;
+
+        if (!this.globalConfig || !this.globalConfig.vendors) {
+            console.warn("getRate: globalConfig or vendors not available");
+            return { realRate: 0, officialRate: 0 };
+        }
+
+        const vendor = this.globalConfig.vendors.find(v => v.id === vendorId);
+        if (!vendor) {
+            console.warn(`getRate: Vendor not found for id: ${vendorId}`);
+            return { realRate: 0, officialRate: 0 };
+        }
+
+        const jobClusterData = vendor.jobClusters?.find(jc => jc.clusterId === jobCluster);
+        if (!jobClusterData) {
+            console.warn(`getRate: Job cluster not found for id: ${jobCluster} in vendor ${vendor.name}`);
+            return { realRate: 0, officialRate: 0 };
+        }
+
+        const rate = jobClusterData.rates?.find(r => r.seniority === seniority);
+        if (!rate) {
+            console.warn(`getRate: Rate not found for seniority: ${seniority} in job cluster ${jobCluster}`);
+            return { realRate: 0, officialRate: 0 };
+        }
+
+        const locationRate = rate.locations?.[location];
+        if (!locationRate) {
+            console.warn(`getRate: Rate not found for location: ${location} for seniority ${seniority}`);
+            return { realRate: 0, officialRate: 0 };
+        }
+
+        const finalRate = locationRate[deliveryModel];
+        if (finalRate === undefined) {
+            console.warn(`getRate: Rate not found for delivery model: ${deliveryModel} at location ${location}`);
+            return { realRate: 0, officialRate: 0 };
+        }
+
+        // Assuming realRate and officialRate are the same for now. 
+        // This can be changed later if the data model is updated.
+        return { realRate: finalRate, officialRate: finalRate };
+    }
 
     /**
      * Find methods
      */
-    findSupplier(projectConfig, supplierId) {
-        return this.getSuppliers(projectConfig).find(s => s.id === supplierId);
-    }
-
-    findInternalResource(projectConfig, resourceId) {
-        return this.getInternalResources(projectConfig).find(r => r.id === resourceId);
+    findVendor(projectConfig, vendorId) {
+        return this.getVendors(projectConfig).find(v => v.id === vendorId);
     }
 
     findCategory(projectConfig, categoryId) {
@@ -540,20 +571,12 @@ class ConfigurationManager extends BaseComponent {
     /**
      * Display name methods
      */
-    getSupplierDisplayName(projectConfig, supplierId) {
-        const supplier = this.findSupplier(projectConfig, supplierId);
-        if (supplier) {
-            const rate = supplier.realRate || supplier.officialRate || 0;
-            return `${supplier.department} - ${supplier.name} (€${rate}/day)`;
+    getVendorDisplayName(projectConfig, vendorId) {
+        const vendor = this.findVendor(projectConfig, vendorId);
+        if (vendor) {
+            return `${vendor.name} (${vendor.type})`;
         }
-
-        const resource = this.findInternalResource(projectConfig, supplierId);
-        if (resource) {
-            const rate = resource.realRate || resource.officialRate || 0;
-            return `${resource.department} - ${resource.name} (€${rate}/day)`;
-        }
-
-        return `Unknown Supplier (${supplierId})`;
+        return `Unknown Vendor (${vendorId})`;
     }
 
     getCategoryDisplayName(projectConfig, categoryId) {
@@ -564,9 +587,8 @@ class ConfigurationManager extends BaseComponent {
     /**
      * Validation methods
      */
-    validateSupplier(projectConfig, supplierId) {
-        return !!this.findSupplier(projectConfig, supplierId) || 
-               !!this.findInternalResource(projectConfig, supplierId);
+    validateVendor(projectConfig, vendorId) {
+        return !!this.findVendor(projectConfig, vendorId);
     }
 
     validateCategory(projectConfig, categoryId) {
@@ -577,41 +599,39 @@ class ConfigurationManager extends BaseComponent {
      * Migration methods
      */
     migrateProjectConfig(oldConfig) {
-        if (oldConfig.projectOverrides) {
+        if (oldConfig.projectOverrides && oldConfig.vendors) {
             return oldConfig; // Already migrated
         }
 
         const newConfig = {
-            suppliers: oldConfig.suppliers || [],
-            internalResources: oldConfig.internalResources || [],
+            vendors: oldConfig.vendors || [],
+            rateMatrixConfig: oldConfig.rateMatrixConfig || this.createDefaultRateMatrixConfig(),
             categories: oldConfig.categories || [],
             calculationParams: oldConfig.calculationParams || {},
             projectOverrides: {
-                suppliers: [],
-                internalResources: [],
+                vendors: [],
                 categories: [],
                 calculationParams: {}
             }
         };
+
+        // Simple migration from old suppliers/internalResources
+        if (oldConfig.suppliers || oldConfig.internalResources) {
+            const suppliers = (oldConfig.suppliers || []).map(s => ({...s, type: 'Supplier'}));
+            const internalResources = (oldConfig.internalResources || []).map(r => ({...r, type: 'Internal'}));
+            newConfig.vendors = [...suppliers, ...internalResources];
+        }
 
         this.markProjectSpecificItems(newConfig);
         return newConfig;
     }
 
     markProjectSpecificItems(projectConfig) {
-        // Mark suppliers
-        projectConfig.suppliers.forEach(supplier => {
-            const globalSupplier = this.globalConfig?.suppliers?.find(gs => gs.id === supplier.id);
-            if (!globalSupplier || !this.deepEqual(supplier, globalSupplier)) {
-                supplier.isProjectSpecific = true;
-            }
-        });
-
-        // Mark internal resources
-        projectConfig.internalResources.forEach(resource => {
-            const globalResource = this.globalConfig?.internalResources?.find(gr => gr.id === resource.id);
-            if (!globalResource || !this.deepEqual(resource, globalResource)) {
-                resource.isProjectSpecific = true;
+        // Mark vendors
+        projectConfig.vendors.forEach(vendor => {
+            const globalVendor = this.globalConfig?.vendors?.find(gv => gv.id === vendor.id);
+            if (!globalVendor || !this.deepEqual(vendor, globalVendor)) {
+                vendor.isProjectSpecific = true;
             }
         });
 
@@ -629,14 +649,13 @@ class ConfigurationManager extends BaseComponent {
      */
     resetProjectToGlobalDefaults(projectConfig) {
         projectConfig.projectOverrides = {
-            suppliers: [],
-            internalResources: [],
+            vendors: [],
             categories: [],
             calculationParams: {}
         };
 
-        projectConfig.suppliers = this.deepClone(this.globalConfig.suppliers);
-        projectConfig.internalResources = this.deepClone(this.globalConfig.internalResources);
+        projectConfig.vendors = this.deepClone(this.globalConfig.vendors);
+        projectConfig.rateMatrixConfig = this.deepClone(this.globalConfig.rateMatrixConfig);
         projectConfig.categories = this.deepClone(this.globalConfig.categories);
         projectConfig.calculationParams = this.deepClone(this.globalConfig.calculationParams);
 
@@ -664,8 +683,7 @@ class ConfigurationManager extends BaseComponent {
         const config = this.getProjectConfig(projectConfig);
 
         return {
-            suppliers: this.getItemStats(config.suppliers),
-            internalResources: this.getItemStats(config.internalResources),
+            vendors: this.getItemStats(config.vendors),
             categories: this.getItemStats(config.categories)
         };
     }
@@ -685,8 +703,7 @@ class ConfigurationManager extends BaseComponent {
     ensureProjectOverrides(projectConfig) {
         if (!projectConfig.projectOverrides) {
             projectConfig.projectOverrides = {
-                suppliers: [],
-                internalResources: [],
+                vendors: [],
                 categories: [],
                 calculationParams: {}
             };
@@ -839,19 +856,19 @@ class ConfigurationMerger {
         }
 
         return {
-            suppliers: this.mergeConfigArray('suppliers', globalConfig, projectConfig),
-            internalResources: this.mergeConfigArray('internalResources', globalConfig, projectConfig),
+            vendors: this.mergeConfigArray('vendors', globalConfig, projectConfig),
             categories: this.mergeConfigArray('categories', globalConfig, projectConfig),
-            calculationParams: this.mergeCalculationParams(globalConfig, projectConfig)
+            calculationParams: this.mergeCalculationParams(globalConfig, projectConfig),
+            rateMatrixConfig: globalConfig?.rateMatrixConfig || {}
         };
     }
 
     createGlobalOnlyConfig(globalConfig) {
         return {
-            suppliers: globalConfig?.suppliers || [],
-            internalResources: globalConfig?.internalResources || [],
+            vendors: globalConfig?.vendors || [],
             categories: globalConfig?.categories || [],
-            calculationParams: globalConfig?.calculationParams || {}
+            calculationParams: globalConfig?.calculationParams || {},
+            rateMatrixConfig: globalConfig?.rateMatrixConfig || {}
         };
     }
 
@@ -891,7 +908,7 @@ class ConfigurationMerger {
 
         // Filter out inactive items
         return merged.filter(item => 
-            configType !== 'suppliers' || !item.status || item.status === 'active'
+            !item.status || item.status === 'active'
         );
     }
 
@@ -918,45 +935,29 @@ class ConfigurationValidators {
             throw new Error('Global configuration must be an object');
         }
 
-        const requiredProps = ['suppliers', 'internalResources', 'categories', 'calculationParams'];
+        const requiredProps = ['vendors', 'categories', 'calculationParams', 'rateMatrixConfig'];
         for (const prop of requiredProps) {
             if (!(prop in config)) {
                 throw new Error(`Missing required property: ${prop}`);
             }
         }
 
-        this.validateSuppliers(config.suppliers);
-        this.validateInternalResources(config.internalResources);
+        this.validateVendors(config.vendors);
         this.validateCategories(config.categories);
         this.validateCalculationParams(config.calculationParams);
     }
 
-    validateSuppliers(suppliers) {
-        if (!Array.isArray(suppliers)) {
-            throw new Error('Suppliers must be an array');
+    validateVendors(vendors) {
+        if (!Array.isArray(vendors)) {
+            throw new Error('Vendors must be an array');
         }
 
-        suppliers.forEach((supplier, index) => {
-            if (!supplier.id || !supplier.name) {
-                throw new Error(`Supplier at index ${index} missing required fields`);
+        vendors.forEach((vendor, index) => {
+            if (!vendor.id || !vendor.name || !vendor.type) {
+                throw new Error(`Vendor at index ${index} missing required fields (id, name, type)`);
             }
-            if (typeof supplier.officialRate !== 'number' || supplier.officialRate < 0) {
-                throw new Error(`Supplier at index ${index} has invalid rate`);
-            }
-        });
-    }
-
-    validateInternalResources(resources) {
-        if (!Array.isArray(resources)) {
-            throw new Error('Internal resources must be an array');
-        }
-
-        resources.forEach((resource, index) => {
-            if (!resource.id || !resource.name || !resource.role) {
-                throw new Error(`Internal resource at index ${index} missing required fields`);
-            }
-            if (typeof resource.officialRate !== 'number' || resource.officialRate < 0) {
-                throw new Error(`Internal resource at index ${index} has invalid rate`);
+            if (!['External', 'Internal'].includes(vendor.type)) {
+                 throw new Error(`Vendor at index ${index} has invalid type`);
             }
         });
     }

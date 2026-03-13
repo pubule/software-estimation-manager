@@ -37,11 +37,27 @@ export const usePhasesActions = () => {
     }
   }, []);
 
-  const setSelectedSupplier = useCallback(async (resourceType: string, supplierId: string) => {
+  const updateSelectedPhaseResource = useCallback(async (resourceType: string, resource: any) => {
     try {
-      await phasesActions.setSelectedSupplier(resourceType, supplierId);
+      await phasesActions.updateSelectedPhaseResource(resourceType, resource);
     } catch (error) {
       throw error;
+    }
+  }, []);
+
+  const openRateSpecModal = useCallback((role: string) => {
+    try {
+        phasesActions.openRateSpecModal(role);
+    } catch (error) {
+        throw error;
+    }
+  }, []);
+
+  const closeRateSpecModal = useCallback(() => {
+    try {
+        phasesActions.closeRateSpecModal();
+    } catch (error) {
+        throw error;
     }
   }, []);
 
@@ -150,7 +166,9 @@ export const usePhasesActions = () => {
     loadPhaseData,
     updatePhaseManDays,
     updatePhaseEffort,
-    setSelectedSupplier,
+    updateSelectedPhaseResource,
+    openRateSpecModal,
+    closeRateSpecModal,
     calculateDevelopmentPhase,
     calculateTotals,
     savePhases,

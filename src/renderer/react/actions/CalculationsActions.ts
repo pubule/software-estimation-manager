@@ -142,6 +142,7 @@ export class CalculationsActions {
       gto: { primaryAmount: 0, secondaryAmount: 0, totalAmount: 0 },
       gds: { primaryAmount: 0, secondaryAmount: 0, totalAmount: 0 }
     };
+    const tempRate = 400; // Temporary fixed rate
 
     // Processa GTO
     if (workingPackage.gto?.enabled && workingPackage.gto.totalAmount > 0) {
@@ -202,6 +203,7 @@ export class CalculationsActions {
       secondaryVendorId,
       secondaryPercentage
     } = categoryData;
+    const tempRate = 400;
 
     // Se mancano dati essenziali, ritorna vuoto
     if (!totalAmount || !primaryVendorId) {
@@ -225,8 +227,8 @@ export class CalculationsActions {
       vendorName: primaryVendor?.name || `${category.toUpperCase()} Primary Vendor`,
       role: (primaryVendor?.role as any) || defaultRole,
       department: primaryVendor?.department || 'Development',
-      officialRate: primaryVendor?.officialRate || 0,
-      realRate: primaryVendor?.realRate || 0,
+      officialRate: tempRate,
+      realRate: tempRate,
       estimatedMDs: 0,
       finalMDs: 0,
       totCost: primaryAmount,
@@ -243,8 +245,8 @@ export class CalculationsActions {
         vendorName: secondaryVendor.name || `${category.toUpperCase()} Secondary Vendor`,
         role: (secondaryVendor?.role as any) || (category === 'gto' ? 'TA' : 'PM'),
         department: secondaryVendor.department || 'General',
-        officialRate: secondaryVendor.officialRate || 0,
-        realRate: secondaryVendor.realRate || 0,
+        officialRate: tempRate,
+        realRate: tempRate,
         estimatedMDs: 0,
         finalMDs: 0,
         totCost: secondaryAmount,
@@ -287,111 +289,69 @@ export class CalculationsActions {
 
   /**
    * Processa tutti i costi (SEMPRE features per development + phases per altre fasi)
-   * 
-   * LOGICA CORRETTA (fix implementato):
-   * - SEMPRE processare features per development (vendor costs consolidati per G2)
-   * - Processare altre phases se disponibili 
-   * - Consolidare tutti i vendor costs per vendor+role+department
    */
   private processAllCosts(project: any): VendorCost[] {
     const allCosts: VendorCost[] = [];
 
-    // 1. SEMPRE processare features per development
     if (project.features && project.features.length > 0) {
       const featuresCosts = this.processFeaturesCosts(project.features);
       allCosts.push(...featuresCosts);
     }
 
-    // 1b. Aggiungere Development TA e PM usando selected suppliers
-    // Development Total MDs = features + coverage (come calcolato in calculateDevelopmentPhase)
     const featuresTotal = (project.features || []).reduce((sum: number, feature: any) => {
       return sum + (parseFloat(feature.manDays) || 0);
     }, 0);
     const coverageMDs = project.coverage || 0;
     const developmentTotal = featuresTotal + coverageMDs;
+    const tempRate = 400; // Temporary fixed rate
 
     if (developmentTotal > 0 && project.phases?.development?.effort && project.phases?.selectedSuppliers) {
-      const developmentEffort = project.phases.development.effort;
+        const developmentEffort = project.phases.development.effort;
 
-      // Development TA
-      if (developmentEffort.TA && developmentEffort.TA > 0 && project.phases.selectedSuppliers.TA) {
-        const developmentTA_MDs = Math.round((developmentTotal * developmentEffort.TA) / 100 * 10) / 10;
-        const selectedTA = project.phases.selectedSuppliers.TA;
-        const taSupplier = this.getSupplierData(selectedTA);
-
-        if (taSupplier) {
-          const totCost = Math.round(developmentTA_MDs * (taSupplier.realRate || 0));
-          const finalMDs_TA = Math.round((totCost / (taSupplier.officialRate || 1)) * 10) / 10;
-          console.log('🔍 Development TA finalMDs:', {
-            developmentTA_MDs,
-            totCost,
-            officialRate: taSupplier.officialRate,
-            calculatedFinalMDs: finalMDs_TA
-          });
-          const taCost: VendorCost = {
-            vendorId: selectedTA,
-            vendorName: taSupplier.name || selectedTA,
-            role: 'TA',
-            department: taSupplier.department || 'TA',
-            officialRate: taSupplier.officialRate || 0,
-            realRate: taSupplier.realRate || 0,
-            estimatedMDs: developmentTA_MDs,
-            finalMDs: finalMDs_TA,
-            totCost: totCost,
-            finalTotCost: Math.round(finalMDs_TA * (taSupplier.officialRate || 0)),
-            isInternal: taSupplier.type === 'internal'
-          };
-          allCosts.push(taCost);
+        if (developmentEffort.TA && developmentEffort.TA > 0 && project.phases.selectedSuppliers.TA) {
+            const developmentTA_MDs = Math.round((developmentTotal * developmentEffort.TA) / 100 * 10) / 10;
+            const selectedTA = project.phases.selectedSuppliers.TA;
+            const taSupplier = this.getSupplierData(selectedTA);
+            if (taSupplier) {
+                const totCost = Math.round(developmentTA_MDs * tempRate);
+                const finalMDs_TA = Math.round((totCost / tempRate) * 10) / 10;
+                const taCost: VendorCost = {
+                    vendorId: selectedTA, vendorName: taSupplier.name || selectedTA, role: 'TA',
+                    department: taSupplier.department || 'TA', officialRate: tempRate, realRate: tempRate,
+                    estimatedMDs: developmentTA_MDs, finalMDs: finalMDs_TA, totCost: totCost,
+                    finalTotCost: Math.round(finalMDs_TA * tempRate),
+                    isInternal: taSupplier.type === 'internal'
+                };
+                allCosts.push(taCost);
+            }
         }
-      }
 
-      // Development PM
-      if (developmentEffort.PM && developmentEffort.PM > 0 && project.phases.selectedSuppliers.PM) {
-        const developmentPM_MDs = Math.round((developmentTotal * developmentEffort.PM) / 100 * 10) / 10;
-        const selectedPM = project.phases.selectedSuppliers.PM;
-        const pmSupplier = this.getSupplierData(selectedPM);
-
-        if (pmSupplier) {
-          const totCost = Math.round(developmentPM_MDs * (pmSupplier.realRate || 0));
-          const finalMDs_PM = Math.round((totCost / (pmSupplier.officialRate || 1)) * 10) / 10;
-          console.log('🔍 Development PM finalMDs:', {
-            developmentPM_MDs,
-            totCost,
-            officialRate: pmSupplier.officialRate,
-            calculatedFinalMDs: finalMDs_PM
-          });
-          const pmCost: VendorCost = {
-            vendorId: selectedPM,
-            vendorName: pmSupplier.name || selectedPM,
-            role: 'PM',
-            department: pmSupplier.department || 'PM',
-            officialRate: pmSupplier.officialRate || 0,
-            realRate: pmSupplier.realRate || 0,
-            estimatedMDs: developmentPM_MDs,
-            finalMDs: finalMDs_PM,
-            totCost: totCost,
-            finalTotCost: Math.round(finalMDs_PM * (pmSupplier.officialRate || 0)),
-            isInternal: pmSupplier.type === 'internal'
-          };
-          allCosts.push(pmCost);
+        if (developmentEffort.PM && developmentEffort.PM > 0 && project.phases.selectedSuppliers.PM) {
+            const developmentPM_MDs = Math.round((developmentTotal * developmentEffort.PM) / 100 * 10) / 10;
+            const selectedPM = project.phases.selectedSuppliers.PM;
+            const pmSupplier = this.getSupplierData(selectedPM);
+            if (pmSupplier) {
+                const totCost = Math.round(developmentPM_MDs * tempRate);
+                const finalMDs_PM = Math.round((totCost / tempRate) * 10) / 10;
+                const pmCost: VendorCost = {
+                    vendorId: selectedPM, vendorName: pmSupplier.name || selectedPM, role: 'PM',
+                    department: pmSupplier.department || 'PM', officialRate: tempRate, realRate: tempRate,
+                    estimatedMDs: developmentPM_MDs, finalMDs: finalMDs_PM, totCost: totCost,
+                    finalTotCost: Math.round(finalMDs_PM * tempRate),
+                    isInternal: pmSupplier.type === 'internal'
+                };
+                allCosts.push(pmCost);
+            }
         }
-      }
     }
 
-    // 2. Processare altre phases (non-development) se disponibili
-    const hasValidPhases = project.phases &&
-                          Object.keys(project.phases).some(key =>
-                            key !== 'selectedSuppliers' &&
-                            key !== 'development' && // Skip development, già processato da features
-                            project.phases[key]?.manDays > 0
-                          );
+    const hasValidPhases = project.phases && Object.keys(project.phases).some(key => key !== 'selectedSuppliers' && key !== 'development' && project.phases[key]?.manDays > 0);
 
     if (hasValidPhases) {
       const phasesCosts = this.processNonDevelopmentPhases(project.phases);
       allCosts.push(...phasesCosts);
     }
 
-    // 3. Processare coverage assegnato al vendor G2 selezionato
     if (project.coverage && project.coverage > 0 && project.phases?.selectedSuppliers?.G2) {
       const coverageCost = this.processCoverageCost(project.coverage, project.phases.selectedSuppliers.G2);
       if (coverageCost) {
@@ -399,7 +359,6 @@ export class CalculationsActions {
       }
     }
 
-    // 4. Raggruppa per vendor + role + department
     const consolidatedCosts = this.consolidateVendorCosts(allCosts);
 
     return consolidatedCosts;
@@ -412,32 +371,36 @@ export class CalculationsActions {
     const costs: VendorCost[] = [];
     
     features.forEach(feature => {
-      const supplierData = this.getSupplierData(feature.supplier);
-      
-      if (!supplierData) {
-        console.warn('Supplier not found for feature:', feature.id, feature.supplier);
+      const rateInfo = this.getRateInfo({
+          vendorId: feature.supplier,
+          jobClusterId: feature.jobClusterId,
+          seniority: feature.seniority,
+          location: feature.location,
+          deliveryModel: feature.deliveryModel,
+      });
+
+      if (!rateInfo || !rateInfo.officialRate) {
+        console.warn('Rate not found for feature:', feature.id);
         return;
       }
-      const totCost = (feature.manDays || 0) * (supplierData.realRate || 0);
-      const calculatedFinalMDs = Math.round((totCost / (supplierData.officialRate || 1)) * 10) / 10;
-      console.log('🔍 Feature finalMDs:', {
-        featureId: feature.id,
-        totCost,
-        officialRate: supplierData.officialRate,
-        calculatedFinalMDs
-      });
+
+      const supplierData = this.getSupplierData(feature.supplier); // Still needed for name, etc.
+      
+      const totCost = (feature.manDays || 0) * (rateInfo.realRate || 0);
+      const calculatedFinalMDs = Math.round((totCost / (rateInfo.officialRate || 1)) * 10) / 10;
+      
       const cost: VendorCost = {
         vendorId: feature.supplier,
-        vendorName: supplierData.name,
-        role: supplierData.role,
-        department: supplierData.department || 'General',
-        officialRate: supplierData.officialRate || 0,
-        realRate: supplierData.realRate || 0,
+        vendorName: supplierData?.name || feature.supplier,
+        role: supplierData?.role || 'G2', // Fallback role
+        department: supplierData?.department || 'General',
+        officialRate: rateInfo.officialRate || 0,
+        realRate: rateInfo.realRate || 0,
         estimatedMDs: feature.manDays || 0,
         finalMDs: calculatedFinalMDs,
         totCost: totCost,
-        finalTotCost: Math.round(calculatedFinalMDs * (supplierData.officialRate || 0)),
-        isInternal: supplierData.type === 'internal'
+        finalTotCost: Math.round(calculatedFinalMDs * (rateInfo.officialRate || 0)),
+        isInternal: supplierData?.type === 'internal'
       };
       
       costs.push(cost);
@@ -450,6 +413,7 @@ export class CalculationsActions {
    */
   private processPhasesCosts(phases: any): VendorCost[] {
     const costs: VendorCost[] = [];
+    const tempRate = 400;
     
     // Extract selectedSuppliers from phases object (not from array)
     const selectedSuppliers = phases.selectedSuppliers || {};
@@ -472,28 +436,20 @@ export class CalculationsActions {
           
           // Calculate MDs for this role in this phase (round to 1 decimal)
           const phaseMDs = Math.round((phaseData.manDays * (percentage / 100)) * 10) / 10;
-          const totCost = Math.round(phaseMDs * (supplierData.realRate || 0));
-          const calculatedFinalMDs = Math.round((totCost / (supplierData.officialRate || 1)) * 10) / 10;
-          console.log('🔍 Phase finalMDs:', {
-            phaseKey,
-            role,
-            phaseMDs,
-            totCost,
-            officialRate: supplierData.officialRate,
-            calculatedFinalMDs
-          });
+          const totCost = Math.round(phaseMDs * tempRate);
+          const calculatedFinalMDs = Math.round((totCost / tempRate) * 10) / 10;
 
           const cost: VendorCost = {
             vendorId: supplierId,
             vendorName: supplierData.name || supplierId,
             role: role as 'G1' | 'G2' | 'TA' | 'PM',
             department: supplierData.department || role,
-            officialRate: supplierData.officialRate || 0,
-            realRate: supplierData.realRate || 0,
+            officialRate: tempRate,
+            realRate: tempRate,
             estimatedMDs: phaseMDs,
             finalMDs: calculatedFinalMDs,
             totCost: totCost,
-            finalTotCost: Math.round(calculatedFinalMDs * (supplierData.officialRate || 0)),
+            finalTotCost: Math.round(calculatedFinalMDs * tempRate),
             isInternal: supplierData.type === 'internal' || false
           };
           
@@ -510,6 +466,7 @@ export class CalculationsActions {
    */
   private processNonDevelopmentPhases(phases: any): VendorCost[] {
     const costs: VendorCost[] = [];
+    const tempRate = 400;
     
     // Extract selectedSuppliers from phases object
     const selectedSuppliers = phases.selectedSuppliers || {};
@@ -538,28 +495,20 @@ export class CalculationsActions {
           
           // Calculate MDs for this role in this phase (round to 1 decimal)
           const phaseMDs = Math.round((phaseData.manDays * (percentage / 100)) * 10) / 10;
-          const totCost = Math.round(phaseMDs * (supplierData.realRate || 0));
-          const calculatedFinalMDs = Math.round((totCost / (supplierData.officialRate || 1)) * 10) / 10;
-          console.log('🔍 Phase finalMDs:', {
-            phaseKey,
-            role,
-            phaseMDs,
-            totCost,
-            officialRate: supplierData.officialRate,
-            calculatedFinalMDs
-          });
+          const totCost = Math.round(phaseMDs * tempRate);
+          const calculatedFinalMDs = Math.round((totCost / tempRate) * 10) / 10;
 
           const cost: VendorCost = {
             vendorId: supplierId,
             vendorName: supplierData.name || supplierId,
             role: role as 'G1' | 'G2' | 'TA' | 'PM',
             department: supplierData.department || role,
-            officialRate: supplierData.officialRate || 0,
-            realRate: supplierData.realRate || 0,
+            officialRate: tempRate,
+            realRate: tempRate,
             estimatedMDs: phaseMDs,
             finalMDs: calculatedFinalMDs,
             totCost: totCost,
-            finalTotCost: Math.round(calculatedFinalMDs * (supplierData.officialRate || 0)),
+            finalTotCost: Math.round(calculatedFinalMDs * tempRate),
             isInternal: supplierData.type === 'internal' || false
           };
           
@@ -575,28 +524,23 @@ export class CalculationsActions {
    */
   private processCoverageCost(coverage: number, g2VendorId: string): VendorCost | null {
     const supplierData = this.getSupplierData(g2VendorId);
+    const tempRate = 400;
     
     if (!supplierData) {
       console.warn('G2 vendor not found for coverage:', g2VendorId);
       return null;
     }
     
-    const totCost = Math.round(coverage * (supplierData.realRate || 0));
-    const calculatedFinalMDs = Math.round((totCost / (supplierData.officialRate || 1)) * 10) / 10;
-    console.log('🔍 Coverage finalMDs:', {
-      g2VendorId,
-      coverage,
-      totCost,
-      officialRate: supplierData.officialRate,
-      calculatedFinalMDs
-    });
+    const totCost = Math.round(coverage * tempRate);
+    const calculatedFinalMDs = Math.round((totCost / tempRate) * 10) / 10;
+
     const coverageCost: VendorCost = {
       vendorId: g2VendorId,
       vendorName: supplierData.name || g2VendorId,
       role: 'G2' as 'G2',
       department: supplierData.department || 'Development',
-      officialRate: supplierData.officialRate || 0,
-      realRate: supplierData.realRate || 0,
+      officialRate: tempRate,
+      realRate: tempRate,
       estimatedMDs: coverage,
       finalMDs: calculatedFinalMDs,
       totCost: totCost,
@@ -620,17 +564,10 @@ export class CalculationsActions {
         const existing = consolidated.get(key)!;
         existing.estimatedMDs = Math.round((existing.estimatedMDs + cost.estimatedMDs) * 10) / 10;
         const newFinalMDs = Math.round((existing.finalMDs + cost.finalMDs) * 10) / 10;
-        console.log('🔍 Consolidating finalMDs:', {
-          key,
-          existingFinalMDs: existing.finalMDs,
-          costFinalMDs: cost.finalMDs,
-          newTotal: newFinalMDs
-        });
         existing.finalMDs = newFinalMDs;
         existing.totCost = Math.round(existing.totCost + cost.totCost);
         existing.finalTotCost = Math.round(newFinalMDs * existing.officialRate);
       } else {
-        console.log('🔍 First cost for key:', { key, finalMDs: cost.finalMDs });
         consolidated.set(key, { ...cost });
       }
     });
@@ -906,7 +843,7 @@ export class CalculationsActions {
   }
 
   /**
-   * Helper: Ottiene dati supplier
+   * Helper: Ottiene dati supplier - DEPRECATED, use getRateInfo for rates
    */
   private getSupplierData(supplierId: string): any {
     const configManager = this.getConfigManager();
@@ -915,33 +852,19 @@ export class CalculationsActions {
       return null;
     }
     
-    // Get project configuration from current project (following FeatureActions pattern)
     const store = this.getStore();
     const state = store?.getState();
     const currentProject = state?.currentProject;
-    // Support both legacy (config) and new (configuration) structure
     const projectConfig = currentProject?.configuration || currentProject?.config;
     
-    // Cerca nei suppliers (external)
-    const suppliers = configManager.getSuppliers(projectConfig) || [];
-    
-    let supplier = suppliers.find(s => s.id === supplierId);
-    
-    if (supplier) {
-      return supplier;
+    const vendors = configManager.getVendors(projectConfig) || [];
+    const vendor = vendors.find(v => v.id === supplierId);
+
+    if (vendor) {
+      return vendor;
     }
     
-    // Se non trovato, cerca negli internal resources
-    const internalResources = configManager.getInternalResources(projectConfig) || [];
-    
-    supplier = internalResources.find(r => r.id === supplierId);
-    
-    if (supplier) {
-      supplier.type = 'internal';
-      return supplier;
-    }
-    
-    console.error('Supplier not found:', supplierId);
+    console.error('Vendor not found:', supplierId);
     return null;
   }
 
@@ -1326,6 +1249,140 @@ ${assumptionsList}`;
       console.error(`Failed to update Working Package ${category}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Helper: Ottiene dati rate
+   */
+  private getRateInfo(options: { vendorId: string, jobClusterId: string, seniority: string, location: string, deliveryModel: string }): { realRate: number, officialRate: number } {
+    const configManager = this.getConfigManager();
+    if (!configManager) {
+      console.error(`ConfigManager not available for getRateInfo`);
+      return { realRate: 0, officialRate: 0 };
+    }
+    const rate = configManager.getRate(options);
+    if (typeof rate === 'number') {
+        return { realRate: rate, officialRate: rate };
+    }
+    return rate || { realRate: 0, officialRate: 0 };
+  }
+
+  /**
+   * Processa tutti i costi (SEMPRE features per development + phases per altre fasi)
+   */
+  private processAllCostsV2(project: any): VendorCost[] {
+    const allCosts: VendorCost[] = [];
+
+    if (project.features && project.features.length > 0) {
+      const featuresCosts = this.processFeaturesCostsV2(project.features);
+      allCosts.push(...featuresCosts);
+    }
+
+    const featuresTotal = (project.features || []).reduce((sum: number, feature: any) => {
+      return sum + (parseFloat(feature.manDays) || 0);
+    }, 0);
+    const coverageMDs = project.coverage || 0;
+    const developmentTotal = featuresTotal + coverageMDs;
+    const tempRate = 400; // Temporary fixed rate
+
+    if (developmentTotal > 0 && project.phases?.development?.effort && project.phases?.selectedSuppliers) {
+        const developmentEffort = project.phases.development.effort;
+
+        if (developmentEffort.TA && developmentEffort.TA > 0 && project.phases.selectedSuppliers.TA) {
+            const developmentTA_MDs = Math.round((developmentTotal * developmentEffort.TA) / 100 * 10) / 10;
+            const selectedTA = project.phases.selectedSuppliers.TA;
+            const taSupplier = this.getSupplierData(selectedTA);
+            if (taSupplier) {
+                const totCost = Math.round(developmentTA_MDs * tempRate);
+                const finalMDs_TA = Math.round((totCost / tempRate) * 10) / 10;
+                const taCost: VendorCost = {
+                    vendorId: selectedTA, vendorName: taSupplier.name || selectedTA, role: 'TA',
+                    department: taSupplier.department || 'TA', officialRate: tempRate, realRate: tempRate,
+                    estimatedMDs: developmentTA_MDs, finalMDs: finalMDs_TA, totCost: totCost,
+                    finalTotCost: Math.round(finalMDs_TA * tempRate),
+                    isInternal: taSupplier.type === 'internal'
+                };
+                allCosts.push(taCost);
+            }
+        }
+
+        if (developmentEffort.PM && developmentEffort.PM > 0 && project.phases.selectedSuppliers.PM) {
+            const developmentPM_MDs = Math.round((developmentTotal * developmentEffort.PM) / 100 * 10) / 10;
+            const selectedPM = project.phases.selectedSuppliers.PM;
+            const pmSupplier = this.getSupplierData(selectedPM);
+            if (pmSupplier) {
+                const totCost = Math.round(developmentPM_MDs * tempRate);
+                const finalMDs_PM = Math.round((totCost / tempRate) * 10) / 10;
+                const pmCost: VendorCost = {
+                    vendorId: selectedPM, vendorName: pmSupplier.name || selectedPM, role: 'PM',
+                    department: pmSupplier.department || 'PM', officialRate: tempRate, realRate: tempRate,
+                    estimatedMDs: developmentPM_MDs, finalMDs: finalMDs_PM, totCost: totCost,
+                    finalTotCost: Math.round(finalMDs_PM * tempRate),
+                    isInternal: pmSupplier.type === 'internal'
+                };
+                allCosts.push(pmCost);
+            }
+        }
+    }
+
+    const hasValidPhases = project.phases && Object.keys(project.phases).some(key => key !== 'selectedSuppliers' && key !== 'development' && project.phases[key]?.manDays > 0);
+
+    if (hasValidPhases) {
+      const phasesCosts = this.processNonDevelopmentPhases(project.phases);
+      allCosts.push(...phasesCosts);
+    }
+
+    if (project.coverage && project.coverage > 0 && project.phases?.selectedSuppliers?.G2) {
+      const coverageCost = this.processCoverageCost(project.coverage, project.phases.selectedSuppliers.G2);
+      if (coverageCost) {
+        allCosts.push(coverageCost);
+      }
+    }
+
+    const consolidatedCosts = this.consolidateVendorCosts(allCosts);
+
+    return consolidatedCosts;
+  }
+
+  private processFeaturesCostsV2(features: any[]): VendorCost[] {
+    const costs: VendorCost[] = [];
+    
+    features.forEach(feature => {
+      const rateInfo = this.getRateInfo({
+          vendorId: feature.supplier,
+          jobClusterId: feature.jobClusterId,
+          seniority: feature.seniority,
+          location: feature.location,
+          deliveryModel: feature.deliveryModel,
+      });
+
+      if (!rateInfo || !rateInfo.officialRate) {
+        console.warn('Rate not found for feature:', feature.id);
+        return;
+      }
+
+      const supplierData = this.getSupplierData(feature.supplier); // Still needed for name, etc.
+      
+      const totCost = (feature.manDays || 0) * (rateInfo.realRate || 0);
+      const calculatedFinalMDs = Math.round((totCost / (rateInfo.officialRate || 1)) * 10) / 10;
+      
+      const cost: VendorCost = {
+        vendorId: feature.supplier,
+        vendorName: supplierData?.name || feature.supplier,
+        role: supplierData?.role || 'G2', // Fallback role
+        department: supplierData?.department || 'General',
+        officialRate: rateInfo.officialRate || 0,
+        realRate: rateInfo.realRate || 0,
+        estimatedMDs: feature.manDays || 0,
+        finalMDs: calculatedFinalMDs,
+        totCost: totCost,
+        finalTotCost: Math.round(calculatedFinalMDs * (rateInfo.officialRate || 0)),
+        isInternal: supplierData?.type === 'internal'
+      };
+      
+      costs.push(cost);
+    });
+    return costs;
   }
 }
 

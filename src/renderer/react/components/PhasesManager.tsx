@@ -8,6 +8,7 @@ import DevelopmentNotice from './DevelopmentNotice';
 import ApprovalStatusSelector from './ApprovalStatusSelector';
 import SupplierSelectors from './SupplierSelectors';
 import PhasesTable from './PhasesTable';
+import RateSpecificationModal from './RateSpecificationModal';
 
 interface PhasesManagerProps {
   className?: string;
@@ -23,29 +24,35 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
   // Get phases state from store
   const {
     currentPhases,
-    selectedSuppliers,
+    selectedPhaseResources,
     resourceRates,
-    availableSuppliers,
     phasesTotals,
-    currentApprovalStatus
+    currentApprovalStatus,
+    resourceDisplayStrings
   } = useStore(state => ({
     currentPhases: state.currentPhases,
-    selectedSuppliers: state.selectedSuppliers,
+    selectedPhaseResources: state.selectedPhaseResources,
     resourceRates: state.resourceRates,
-    availableSuppliers: state.availableSuppliers,
     phasesTotals: state.phasesTotals,
-    currentApprovalStatus: state.currentProject?.project?.approvalStatus || "Pending Approval"
+    currentApprovalStatus: state.currentProject?.project?.approvalStatus || "Pending Approval",
+    resourceDisplayStrings: {
+      G1: state.getFormattedPhaseResourceDisplay('G1'),
+      G2: state.getFormattedPhaseResourceDisplay('G2'),
+      TA: state.getFormattedPhaseResourceDisplay('TA'),
+      PM: state.getFormattedPhaseResourceDisplay('PM'),
+    }
   }));
 
   const {
     loadPhaseData,
     updatePhaseManDays,
     updatePhaseEffort,
-    setSelectedSupplier,
     calculateDevelopmentPhase,
     calculateTotals,
     showSuccessNotification,
-    showErrorNotification
+    showErrorNotification,
+    updateSelectedPhaseResource,
+    openRateSpecModal
   } = usePhasesActions();
 
   // Get approval status action from custom hook
@@ -125,14 +132,18 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
     }
   };
 
-  const handleSupplierChange = async (resourceType: string, supplierId: string) => {
+  const handleResourceChange = async (resourceType: string, resource: any) => {
     try {
-      await setSelectedSupplier(resourceType, supplierId);
-      showSuccessNotification(`Updated ${resourceType} supplier`);
+      await updateSelectedPhaseResource(resourceType, resource);
+      showSuccessNotification(`Updated ${resourceType} selection`);
     } catch (error) {
-      console.error('Failed to set supplier:', error);
-      showErrorNotification('Failed to update supplier');
+      console.error('Failed to set resource:', error);
+      showErrorNotification('Failed to update resource selection');
     }
+  };
+
+  const handleSpecifyRateClick = (resourceType: string) => {
+    openRateSpecModal(resourceType);
   };
 
 
@@ -181,9 +192,8 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
             onStatusChange={updateApprovalStatus}
           />
           <SupplierSelectors
-            selectedSuppliers={selectedSuppliers}
-            availableSuppliers={availableSuppliers}
-            onSupplierChange={handleSupplierChange}
+            resourceDisplayStrings={resourceDisplayStrings}
+            onSpecifyRateClick={handleSpecifyRateClick}
           />
         </div>
 
@@ -194,6 +204,7 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
           onManDaysChange={handlePhaseManDaysChange}
           onEffortChange={handlePhaseEffortChange}
         />
+        <RateSpecificationModal />
       </div>
     </div>
   );

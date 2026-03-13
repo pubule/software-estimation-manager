@@ -104,9 +104,12 @@ const appStore = window.zustand.createStore((set, get) => ({
         }
     ],
     currentPhases: [],
-    selectedSuppliers: { G1: null, G2: null, TA: null, PM: null },
-    resourceRates: { G1: 450, G2: 380, TA: 420, PM: 500 },
-    availableSuppliers: [],
+    availableSuppliers: [], // This will be populated from globalConfig.vendors
+    selectedPhaseResources: { G1: null, G2: null, TA: null, PM: null },
+    rateSpecModal: {
+        isOpen: false,
+        role: null,
+    },
     phasesTotals: {
         manDays: 0,
         manDaysByResource: { G1: 0, G2: 0, TA: 0, PM: 0 },
@@ -230,7 +233,7 @@ const appStore = window.zustand.createStore((set, get) => ({
 
             // 🧹 RESET: Phases cache (will be reinitialized from new project)
             currentPhases: [],
-            selectedSuppliers: { G1: null, G2: null, TA: null, PM: null },
+            selectedPhaseResources: { G1: null, G2: null, TA: null, PM: null },
             resourceRates: { G1: 450, G2: 380, TA: 420, PM: 500 }, // Default rates
             phasesTotals: {
                 manDays: 0,
@@ -460,19 +463,19 @@ const appStore = window.zustand.createStore((set, get) => ({
         if (!currentState.currentProject) return;
 
 
-        // DEFENSIVE: If phases only contains selectedSuppliers, preserve existing phases
+        // DEFENSIVE: If phases only contains selectedPhaseResources, preserve existing phases
         const currentPhases = currentState.currentProject.phases || {};
-        const hasOnlySelectedSuppliers = phases &&
+        const hasOnlyselectedPhaseResources = phases &&
               Object.keys(phases).length === 1 &&
-              phases.selectedSuppliers &&
+              phases.selectedPhaseResources &&
               !phases.functionalAnalysis;
 
         let mergedPhases;
-        if (hasOnlySelectedSuppliers && Object.keys(currentPhases).length > 1) {
+        if (hasOnlyselectedPhaseResources && Object.keys(currentPhases).length > 1) {
             console.log('⚠️ WARNING: Preventing phase data loss - preserving existing phases');
             mergedPhases = {
                 ...currentPhases,
-                selectedSuppliers: phases.selectedSuppliers
+                selectedPhaseResources: phases.selectedPhaseResources
             };
         } else {
             mergedPhases = phases;
@@ -799,7 +802,7 @@ const appStore = window.zustand.createStore((set, get) => ({
         if (section === 'phases') {
             set({
                 currentPhases: preservedState.currentPhases || currentState.currentPhases,
-                selectedSuppliers: preservedState.selectedSuppliers || currentState.selectedSuppliers,
+                selectedPhaseResources: preservedState.selectedPhaseResources || currentState.selectedPhaseResources,
                 resourceRates: preservedState.resourceRates || currentState.resourceRates,
                 phasesTotals: preservedState.phasesTotals || currentState.phasesTotals
             });
@@ -918,6 +921,27 @@ const appStore = window.zustand.createStore((set, get) => ({
         set({ currentSort: { field, direction } });
     },
 
+    updateSelectedPhaseResource: (resourceType, resourceDetails) => {
+        const state = get();
+        const { selectedPhaseResources } = state;
+        const newSelectedResources = {
+            ...selectedPhaseResources,
+            [resourceType]: resourceDetails,
+        };
+
+        set({
+            selectedPhaseResources: newSelectedResources,
+        });
+    },
+
+    openRateSpecModal: (role) => {
+        set({ rateSpecModal: { isOpen: true, role } });
+    },
+
+    closeRateSpecModal: () => {
+        set({ rateSpecModal: { isOpen: false, role: null } });
+    },
+
     /**
      * Toggle sort direction for field
      */
@@ -999,9 +1023,20 @@ const appStore = window.zustand.createStore((set, get) => ({
                 console.log(`  ${phase.id}: ${phase.manDays} man days`);
             });
 
+            // MIGRATION: Handle loading old projects with selectedSuppliers
+            let resources = existingPhases.selectedPhaseResources;
+            if (existingPhases.selectedSuppliers && !resources) {
+                console.log('Migrating old selectedSuppliers to new selectedPhaseResources structure...');
+                resources = {};
+                for (const role in existingPhases.selectedSuppliers) {
+                    const vendorId = existingPhases.selectedSuppliers[role];
+                    resources[role] = vendorId ? { vendorId } : null;
+                }
+            }
+
             set({
                 currentPhases: currentPhases,
-                selectedSuppliers: existingPhases.selectedSuppliers || { G1: null, G2: null, TA: null, PM: null }
+                selectedPhaseResources: resources || { G1: null, G2: null, TA: null, PM: null }
             });
         } else {
             console.log('No existing phases data found, using defaults');
@@ -1016,7 +1051,7 @@ const appStore = window.zustand.createStore((set, get) => ({
 
             set({
                 currentPhases: defaultPhases,
-                selectedSuppliers: { G1: null, G2: null, TA: null, PM: null }
+                selectedPhaseResources: { G1: null, G2: null, TA: null, PM: null }
             });
         }
 
@@ -1083,36 +1118,7 @@ const appStore = window.zustand.createStore((set, get) => ({
     },
 
     /**
-     * Set selected supplier for resource type
-     */
-    setSelectedSupplier: (resourceType, supplierId) => {
-        const currentState = get();
-        const updatedSuppliers = {
-            ...currentState.selectedSuppliers,
-            [resourceType]: supplierId
-        };
-
-        // Update resource rate from supplier
-        if (supplierId && currentState.availableSuppliers.length > 0) {
-            const supplier = currentState.availableSuppliers.find(s => s.id === supplierId);
-            if (supplier) {
-                const updatedRates = {
-                    ...currentState.resourceRates,
-                    [resourceType]: supplier.realRate || supplier.officialRate || currentState.resourceRates[resourceType]
-                };
-                set({
-                    selectedSuppliers: updatedSuppliers,
-                    resourceRates: updatedRates
-                });
-                return;
-            }
-        }
-
-        set({ selectedSuppliers: updatedSuppliers });
-    },
-
-    /**
-     * Load available suppliers from configuration
+     * Load vendors from configuration
      */
     loadAvailableSuppliers: (suppliers) => {
         set({ availableSuppliers: suppliers || [] });
@@ -1196,7 +1202,7 @@ const appStore = window.zustand.createStore((set, get) => ({
      */
     calculatePhasesTotals: () => {
         const currentState = get();
-        const { currentPhases, resourceRates, currentProject } = currentState;
+        const { currentPhases, currentProject } = currentState;
 
         let totals = {
             manDays: 0,
@@ -1213,43 +1219,15 @@ const appStore = window.zustand.createStore((set, get) => ({
                 PM: (phase.manDays * effort.PM) / 100
             };
 
-            // Special calculation for Development G2 cost
-            let costByResource;
-            if (phase.id === 'development' && currentProject?.features) {
-                const g2EffortPercent = effort.G2 / 100;
-                let g2Cost = 0;
-
-                // Sum feature-specific G2 costs (using each feature's supplier rate)
-                currentProject.features.forEach(feature => {
-                    const featureManDays = parseFloat(feature.manDays) || 0;
-                    const featureSupplier = currentState.availableSuppliers.find(s => s.id === feature.supplier);
-                    const featureRate = featureSupplier ? (featureSupplier.realRate || featureSupplier.officialRate || 0) : 0;
-                    g2Cost += featureManDays * featureRate * g2EffortPercent;
-                });
-
-                // Add coverage cost using selected G2 supplier rate
-                const coverage = currentProject.coverage || 0;
-                if (coverage > 0) {
-                    const selectedSuppliers = currentProject.phases?.selectedSuppliers || currentState.selectedSuppliers;
-                    const g2Supplier = currentState.availableSuppliers.find(s => s.id === selectedSuppliers?.G2);
-                    const g2Rate = g2Supplier ? (g2Supplier.realRate || g2Supplier.officialRate || 0) : resourceRates.G2;
-                    g2Cost += coverage * g2Rate * g2EffortPercent;
-                }
-
-                costByResource = {
-                    G1: Math.round(manDaysByResource.G1 * resourceRates.G1),
-                    G2: Math.round(g2Cost),
-                    TA: Math.round(manDaysByResource.TA * resourceRates.TA),
-                    PM: Math.round(manDaysByResource.PM * resourceRates.PM)
-                };
-            } else {
-                costByResource = {
-                    G1: Math.round(manDaysByResource.G1 * resourceRates.G1),
-                    G2: Math.round(manDaysByResource.G2 * resourceRates.G2),
-                    TA: Math.round(manDaysByResource.TA * resourceRates.TA),
-                    PM: Math.round(manDaysByResource.PM * resourceRates.PM)
-                };
-            }
+            // Utilize the dynamic cost calculation from PhasesActions for accurate totals
+            // window.phasesActions is globally available as it's exported in PhasesActions.ts
+            const dynamicCosts = window.phasesActions.calculateCostByResourceForPhase(phase);
+            const costByResource = {
+                G1: dynamicCosts.G1,
+                G2: dynamicCosts.G2,
+                TA: dynamicCosts.TA,
+                PM: dynamicCosts.PM
+            };
 
             totals.manDays += phase.manDays;
             totals.manDaysByResource.G1 += manDaysByResource.G1;
@@ -1504,6 +1482,35 @@ const appStore = window.zustand.createStore((set, get) => ({
         const state = get();
         if (!state.lastSavedTime) return 'Never';
         return state.lastSavedTime.toLocaleString();
+    },
+
+    getFormattedPhaseResourceDisplay: (role) => {
+        const state = get();
+        const { selectedPhaseResources, globalConfig } = state;
+        
+        if (!globalConfig || !selectedPhaseResources) {
+            return 'Not Specified';
+        }
+
+        const resource = selectedPhaseResources[role];
+
+        if (!resource || !resource.vendorId) {
+            return 'Not Specified';
+        }
+
+        const vendor = globalConfig.vendors.find((v) => v.id === resource.vendorId);
+        if (!vendor) return 'Invalid Vendor';
+
+        if (resource.jobCluster && resource.seniority && resource.location && resource.deliveryModel) {
+            const configManager = window.app.configManager;
+            const rateDetails = configManager.getRate(resource);
+            const rate = rateDetails.realRate || 0;
+            
+            const parts = [vendor.name, resource.jobCluster, resource.seniority];
+            return `${parts.join(' - ')} (€${rate}/day)`;
+        }
+
+        return `${vendor.name} (Incomplete Selection)`;
     },
 
     // UI computed values

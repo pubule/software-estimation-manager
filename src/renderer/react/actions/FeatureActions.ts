@@ -543,51 +543,41 @@ export class FeatureActions {
    * @param supplierId The supplier ID
    * @returns Formatted supplier display name
    */
-  getSupplierDisplayName(supplierId: string): string {
+  getFormattedFeatureResourceDisplay(feature: any): string {
     try {
-      if (!supplierId) return '';
+      if (!feature || !feature.supplier) return '';
       
       const configManager = this.getConfigManager();
       if (!configManager) {
-        return supplierId;
+        return feature.supplier;
       }
       
       const store = this.getStore();
       const state = store?.getState();
       const currentProject = state?.currentProject;
-      // Support both legacy (config) and new (configuration) structure
       const projectConfig = currentProject?.configuration || currentProject?.config;
       
-      // Check external suppliers first (use global config when project config is undefined)
-      const suppliers = configManager.getSuppliers(projectConfig) || [];
-      let supplier = suppliers.find(s => s.id === supplierId);
+      const vendors = configManager.getVendors(projectConfig) || [];
+      const vendor = vendors.find(v => v.id === feature.supplier);
       
-      if (supplier) {
-        const rate = supplier.officialRate || supplier.realRate || 0;
-        return `${supplier.location || 'EXT'} - ${supplier.name} (€${rate}/day)`;
+      if (vendor) {
+        const rateDetails = configManager.getRate({
+          vendorId: feature.supplier,
+          jobCluster: feature.jobCluster,
+          seniority: feature.seniority,
+          location: feature.location,
+          deliveryModel: feature.deliveryModel,
+        });
+        const rate = rateDetails.realRate || 0;
+        
+        const parts = [vendor.name, feature.jobCluster, feature.seniority].filter(Boolean);
+        return `${parts.join(' - ')} (€${rate}/day)`;
       }
       
-      // Check internal resources (use global config when project config is undefined)
-      const internalResources = configManager.getInternalResources(projectConfig) || [];
-      
-      // Try exact match first
-      supplier = internalResources.find(r => r.id === supplierId);
-      
-      // If not found, try fuzzy matching for common ID variations
-      if (!supplier) {
-        // Map common ID variations (developer avg-g2-it → developer-g2-avg)
-        const normalizedId = supplierId.replace(/\s+/g, '-').replace('avg-g2-it', 'g2-avg');
-        supplier = internalResources.find(r => r.id === normalizedId);
-      }
-      
-      if (supplier) {
-        const rate = supplier.officialRate || supplier.realRate || 0;
-        return `IT - ${supplier.name} (€${rate}/day)`;
-      }
-      return supplierId;
+      return feature.supplier;
     } catch (error) {
-      console.error('Failed to get supplier display name:', error);
-      return supplierId;
+      console.error('Failed to get formatted feature resource display:', error);
+      return feature.supplier;
     }
   }
 
@@ -666,21 +656,14 @@ export class FeatureActions {
         return { categories: [], featureTypes: [], suppliers: [] };
       }
 
-      // Get current project configuration from store
       const store = this.getStore();
       const state = store?.getState();
       const currentProject = state?.currentProject;
-      // Support both legacy (config) and new (configuration) structure
       const projectConfig = currentProject?.configuration || currentProject?.config;
       
-
-      // Get configuration data using the proper ConfigurationManager methods with projectConfig
       const categories = configManager.getCategories(projectConfig);
-      const suppliers = configManager.getSuppliers(projectConfig);
-      const internalResources = configManager.getInternalResources(projectConfig);
+      const vendors = configManager.getVendors(projectConfig);
       
-      
-      // Feature types - extract all feature types from all categories
       const allFeatureTypes: string[] = [];
       if (categories && Array.isArray(categories)) {
         categories.forEach(category => {
@@ -694,49 +677,9 @@ export class FeatureActions {
         });
       }
       
-
-      // Combine suppliers and internal resources, filter for G2 role only
-      const filteredSuppliers = suppliers?.filter(sup => sup.role === 'G2') || [];
-      const filteredInternalResources = internalResources?.filter(res => res.role === 'G2') || [];
-      
-
-      const combinedSuppliers = [
-        ...filteredSuppliers,
-        ...filteredInternalResources.map(res => ({ ...res, type: 'internal' })) // Mark internal resources
-      ];
-      
-
-      // If no suppliers found, provide fallback data for debugging
-      if (combinedSuppliers.length === 0) {
-        const fallbackSuppliers = [
-          {
-            id: 'fallback-1',
-            name: 'Debug Supplier',
-            role: 'G2',
-            status: 'active',
-            department: 'Debug',
-            realRate: 400,
-            officialRate: 450,
-            type: 'external'
-          },
-          {
-            id: 'fallback-2', 
-            name: 'Debug Internal',
-            role: 'G2',
-            status: 'active',
-            department: 'Debug',
-            realRate: 350,
-            officialRate: 400,
-            type: 'internal'
-          }
-        ];
-        
-        return {
-          categories: categories || [],
-          featureTypes: allFeatureTypes,
-          suppliers: fallbackSuppliers
-        };
-      }
+      // The concept of a G2-only supplier for features might need rethinking.
+      // For now, we return all vendors.
+      const combinedSuppliers = vendors || [];
       
       return {
         categories: categories || [],

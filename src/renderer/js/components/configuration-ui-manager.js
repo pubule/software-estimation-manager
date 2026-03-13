@@ -28,8 +28,7 @@ class ConfigurationUIManager {
                     <div class="tabs-nav">
                         <button class="tab-button active" data-tab="storage">Storage</button>
                         <button class="tab-button" data-tab="global">Global Config</button>
-                        <button class="tab-button" data-tab="suppliers">Suppliers</button>
-                        <button class="tab-button" data-tab="resources">Internal Resources</button>
+                        <button class="tab-button" data-tab="vendors-rates">Vendors & Rates</button>
                         <button class="tab-button" data-tab="teams">Teams</button>
                         <button class="tab-button" data-tab="categories">Categories</button>
                         <button class="tab-button" data-tab="parameters">Parameters</button>
@@ -50,8 +49,7 @@ class ConfigurationUIManager {
         const tabs = [
             { id: 'storage', title: 'Projects Storage Configuration', description: '' },
             { id: 'global', title: 'Global Default Configuration', description: 'These settings apply to all new projects by default. Projects can override these settings individually.' },
-            { id: 'suppliers', title: 'Suppliers Configuration', description: 'Manage external suppliers and their rates. These will be available for all new projects by default.' },
-            { id: 'resources', title: 'Internal Resources Configuration', description: 'Manage internal team resources like developers, analysts, and project managers.' },
+            { id: 'vendors-rates', title: 'Vendors & Rates Configuration', description: 'Manage all external suppliers and internal resources, and configure their rate matrix based on location, seniority, and job cluster.' },
             { id: 'teams', title: 'Teams & Team Members Configuration', description: 'Manage teams and their members. Each team member must be associated with a vendor (supplier or internal resource).' },
             { id: 'categories', title: 'Feature Categories Configuration', description: 'Manage feature categories and their complexity multipliers.' },
             { id: 'parameters', title: 'Calculation Parameters', description: 'Configure global calculation parameters like working days, currency, and margins.' }
@@ -119,11 +117,8 @@ class ConfigurationUIManager {
                 case 'global':
                     await this.loadGlobalConfig(contentDiv);
                     break;
-                case 'suppliers':
-                    await this.loadSuppliersConfig(contentDiv);
-                    break;
-                case 'resources':
-                    await this.loadResourcesConfig(contentDiv);
+                case 'vendors-rates':
+                    await this.loadRateMatrixConfig(contentDiv);
                     break;
                 case 'teams':
                     await this.loadTeamsConfig(contentDiv);
@@ -144,15 +139,15 @@ class ConfigurationUIManager {
     }
 
     /**
-     * Carica configurazione supplier
+     * Carica configurazione matrice tariffe
      */
-    async loadSuppliersConfig(contentDiv) {
-        if (!this.subManagers.has('suppliers')) {
-            this.subManagers.set('suppliers', new SupplierConfigManager(this.configManager, this.app));
+    async loadRateMatrixConfig(contentDiv) {
+        if (!this.subManagers.has('rateMatrix')) {
+            this.subManagers.set('rateMatrix', new RateMatrixConfigManager(this.configManager, this.app));
         }
 
-        const supplierManager = this.subManagers.get('suppliers');
-        await supplierManager.loadSuppliersConfig();
+        const rateManager = this.subManagers.get('rateMatrix');
+        await rateManager.render();
     }
 
     /**

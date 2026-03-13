@@ -592,8 +592,8 @@ console.log('✅ Zustand store implementation ready for React components');
 <script src="js/components/auto-distribution.js"></script>
 
 <!-- React libraries (AFTER zustand and dependencies are ready) -->
-<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="js/lib/react.development.js"></script>
+<script src="js/lib/react-dom.development.js"></script>
 
 <!-- React Verification and Component Loading -->
 <script>
@@ -663,10 +663,7 @@ console.log('✅ Zustand store implementation ready for React components');
 <script src="js/components/storage-config-manager.js"></script>
 
 <!-- Configuration system (depends on data-manager) -->
-<script src="js/components/supplier-config-manager.js"></script>
-
-<!-- Configuration system (depends on data-manager) -->
-<script src="js/components/internal-resources-config-manager.js"></script>
+<script src="js/components/rate-matrix-config-manager.js"></script>
 
 <!-- Default Configuration Manager (loads from external config files) -->
 <script src="js/components/default-config-manager.js"></script>

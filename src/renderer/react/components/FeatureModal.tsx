@@ -12,9 +12,10 @@ interface FeatureModalProps {
 const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose }) => {
   const isEditing = feature !== null;
   
-  const { currentProject, duplicateSourceData } = useStore(state => ({
+  const { currentProject, duplicateSourceData, rateMatrixConfig } = useStore(state => ({
     currentProject: state.currentProject,
-    duplicateSourceData: state.duplicateSourceData
+    duplicateSourceData: state.duplicateSourceData,
+    rateMatrixConfig: state.globalConfig?.rateMatrixConfig
   }));
 
   const { 
@@ -30,7 +31,11 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
     description: '',
     category: '',
     featureType: '',
-    supplier: '',
+    supplier: '', // This will now be vendorId
+    jobCluster: '',
+    seniority: '',
+    location: '',
+    deliveryModel: '',
     realManDays: 0,
     expertise: 100,
     riskMargin: 10,
@@ -44,12 +49,13 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
   // Available options from actions
   const [filterOptions, setFilterOptions] = useState<{
     categories: any[];
-    suppliers: any[];
+    suppliers: any[]; // This will become vendors
   }>({
     categories: [],
     suppliers: []
   });
   const [availableFeatureTypes, setAvailableFeatureTypes] = useState<any[]>([]);
+  const [availableDeliveryModels, setAvailableDeliveryModels] = useState<string[]>([]);
 
   // Initialize form when feature or duplicate data changes
   useEffect(() => {
@@ -75,6 +81,10 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
         category: '',
         featureType: '',
         supplier: '',
+        jobCluster: '',
+        seniority: '',
+        location: '',
+        deliveryModel: '',
         realManDays: 0,
         expertise: 100,
         riskMargin: 10,
@@ -91,7 +101,7 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
         const options = await getFilterOptions();
         setFilterOptions({
           categories: options.categories,
-          suppliers: options.suppliers
+          suppliers: options.suppliers // This will be vendors
         });
       } catch (error) {
         console.error('Failed to load filter options:', error);
@@ -99,6 +109,22 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
     };
     loadOptions();
   }, [getFilterOptions]);
+
+  // Update delivery models when location changes
+  useEffect(() => {
+    if (formData.location && rateMatrixConfig?.locations) {
+      const selectedLocation = rateMatrixConfig.locations.find(l => l.id === formData.location);
+      const models = selectedLocation ? selectedLocation.deliveryModels : [];
+      setAvailableDeliveryModels(models);
+
+      // Reset delivery model if it's not valid for the new location
+      if (formData.deliveryModel && !models.includes(formData.deliveryModel)) {
+        setFormData(prev => ({ ...prev, deliveryModel: '' }));
+      }
+    } else {
+      setAvailableDeliveryModels([]);
+    }
+  }, [formData.location, rateMatrixConfig]);
 
   // Update feature types when category changes
   useEffect(() => {
@@ -179,7 +205,7 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
     }
     
     if (!formData.supplier) {
-      newErrors.supplier = 'Supplier is required';
+      newErrors.supplier = 'Supplier/Vendor is required';
     }
     
     if (!formData.realManDays || formData.realManDays <= 0) {
@@ -284,9 +310,9 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
               <small className="form-help">Choose a feature type to auto-populate estimated man days</small>
             </div>
 
-            {/* Supplier Field */}
+            {/* Supplier/Vendor Field */}
             <div className="form-group">
-              <label htmlFor="feature-supplier">Supplier:</label>
+              <label htmlFor="feature-supplier">Supplier/Vendor:</label>
               <select
                 id="feature-supplier"
                 value={formData.supplier || ''}
@@ -294,21 +320,53 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
                 className={errors.supplier ? 'error' : ''}
                 required
               >
-                <option value="">Select Supplier</option>
-                {filterOptions.suppliers.map(supplier => {
-                  const rate = supplier.realRate || supplier.officialRate || 0;
-                  const isInternal = supplier.type === 'internal';
-                  const internalSuffix = isInternal ? ' - Internal' : '';
-                  const displayName = `${supplier.department} - ${supplier.name} (€${rate}/day)${internalSuffix}`;
-                  
+                <option value="">Select Vendor</option>
+                {filterOptions.suppliers.map(vendor => {
+                  const displayName = `${vendor.name} (${vendor.type})`;
                   return (
-                    <option key={supplier.id} value={supplier.id}>
+                    <option key={vendor.id} value={vendor.id}>
                       {displayName}
                     </option>
                   );
                 })}
               </select>
               {errors.supplier && <span className="error-message">{errors.supplier}</span>}
+            </div>
+
+            {/* Job Cluster Field */}
+            <div className="form-group">
+                <label htmlFor="feature-job-cluster">Job Cluster:</label>
+                <select id="feature-job-cluster" value={formData.jobCluster || ''} onChange={(e) => handleInputChange('jobCluster', e.target.value)}>
+                    <option value="">Select Job Cluster</option>
+                    {rateMatrixConfig?.jobClusters?.map(cluster => <option key={cluster} value={cluster}>{cluster}</option>)}
+                </select>
+            </div>
+
+            {/* Seniority Field */}
+            <div className="form-group">
+                <label htmlFor="feature-seniority">Seniority:</label>
+                <select id="feature-seniority" value={formData.seniority || ''} onChange={(e) => handleInputChange('seniority', e.target.value)}>
+                    <option value="">Select Seniority</option>
+                    {rateMatrixConfig?.seniorities?.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+            </div>
+            
+            {/* Location Field */}
+            <div className="form-group">
+                <label htmlFor="feature-location">Location:</label>
+                <select id="feature-location" value={formData.location || ''} onChange={(e) => handleInputChange('location', e.target.value)}>
+                    <option value="">Select Location</option>
+                    {rateMatrixConfig?.locations?.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+            </div>
+            
+            {/* Delivery Model Field */}
+            <div className="form-group">
+                <label htmlFor="feature-delivery-model">Delivery Model:</label>
+                <select id="feature-delivery-model" value={formData.deliveryModel || ''} onChange={(e) => handleInputChange('deliveryModel', e.target.value)} disabled={!formData.location}>
+                    <option value="">Select Model</option>
+                    {availableDeliveryModels.map(model => <option key={model} value={model}>{model}</option>)}
+                </select>
             </div>
 
             {/* Real Man Days Field */}

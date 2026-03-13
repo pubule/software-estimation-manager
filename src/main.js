@@ -312,17 +312,8 @@ ipcMain.handle('update-default-config', async (event, configData) => {
         // Create config directory if it doesn't exist
         await fs.mkdir(configDir, { recursive: true });
 
-        // Convert globalConfig format to defaults.json format
-        const defaultsData = {
-            phaseDefinitions: configData.phaseDefinitions || [],
-            defaultSuppliers: configData.suppliers || [],
-            defaultInternalResources: configData.internalResources || [],
-            defaultTeams: configData.teams || [],
-            defaultCategories: configData.categories || []
-        };
-
         // Write the updated configuration file
-        await fs.writeFile(configFile, JSON.stringify(defaultsData, null, 2));
+        await fs.writeFile(configFile, JSON.stringify(configData, null, 2));
 
         console.log('Updated default configuration file:', configFile);
         return { success: true, filePath: configFile };

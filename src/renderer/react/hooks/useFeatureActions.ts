@@ -144,9 +144,9 @@ export const useFeatureActions = () => {
     }
   }, []);
 
-  const getSupplierDisplayName = useCallback((supplierId: string) => {
+  const getFormattedFeatureResourceDisplay = useCallback((feature: any) => {
     try {
-      return featureActions.getSupplierDisplayName(supplierId);
+      return featureActions.getFormattedFeatureResourceDisplay(feature);
     } catch (error) {
       throw error;
     }
@@ -199,7 +199,7 @@ export const useFeatureActions = () => {
     // Display helpers
     getCategoryNameById,
     getFeatureTypeNameById,
-    getSupplierDisplayName,
+    getFormattedFeatureResourceDisplay,
     
     // Notifications
     showSuccessNotification,
