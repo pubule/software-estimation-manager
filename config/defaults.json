@@ -1,0 +1,438 @@
+{
+  "phaseDefinitions": [
+    {
+      "id": "functionalAnalysis",
+      "name": "Functional Analysis",
+      "description": "Business requirements analysis and functional specification",
+      "type": "analysis",
+      "defaultEffort": {
+        "G1": 100,
+        "G2": 0,
+        "TA": 20,
+        "PM": 50
+      },
+      "editable": true
+    },
+    {
+      "id": "technicalAnalysis",
+      "name": "Technical Analysis",
+      "description": "Technical design and architecture specification",
+      "type": "analysis",
+      "defaultEffort": {
+        "G1": 0,
+        "G2": 100,
+        "TA": 60,
+        "PM": 20
+      },
+      "editable": true
+    },
+    {
+      "id": "development",
+      "name": "Development",
+      "description": "Implementation of features (calculated from features list)",
+      "type": "development",
+      "defaultEffort": {
+        "G1": 0,
+        "G2": 100,
+        "TA": 40,
+        "PM": 20
+      },
+      "editable": true,
+      "calculated": true
+    },
+    {
+      "id": "integrationTests",
+      "name": "Integration Tests",
+      "description": "System integration and integration testing",
+      "type": "testing",
+      "defaultEffort": {
+        "G1": 100,
+        "G2": 50,
+        "TA": 50,
+        "PM": 75
+      },
+      "editable": true
+    },
+    {
+      "id": "uatTests",
+      "name": "UAT Tests",
+      "description": "User acceptance testing support and execution",
+      "type": "testing",
+      "defaultEffort": {
+        "G1": 50,
+        "G2": 50,
+        "TA": 40,
+        "PM": 75
+      },
+      "editable": true
+    },
+    {
+      "id": "consolidation",
+      "name": "Consolidation",
+      "description": "Final testing, bug fixing, and deployment preparation",
+      "type": "testing",
+      "defaultEffort": {
+        "G1": 30,
+        "G2": 30,
+        "TA": 30,
+        "PM": 20
+      },
+      "editable": true
+    },
+    {
+      "id": "vapt",
+      "name": "VAPT",
+      "description": "Vulnerability Assessment and Penetration Testing",
+      "type": "testing",
+      "defaultEffort": {
+        "G1": 30,
+        "G2": 30,
+        "TA": 30,
+        "PM": 20
+      },
+      "editable": true
+    },
+    {
+      "id": "postGoLive",
+      "name": "Post Go-Live Support",
+      "description": "Production support and monitoring after deployment",
+      "type": "support",
+      "defaultEffort": {
+        "G1": 0,
+        "G2": 100,
+        "TA": 50,
+        "PM": 100
+      },
+      "editable": true
+    }
+  ],
+  "vendors": [
+    {
+      "id": "vendor-reply",
+      "name": "Vendor 1",
+      "type": "External",
+      "jobClusters": [
+        {
+          "clusterId": "AI Engineer",
+          "rates": [
+            {
+              "seniority": "Junior",
+              "locations": {
+                "italy": {
+                  "onsite": 500,
+                  "offsite": 400
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "role": "G2"
+    }
+  ],
+  "rateMatrixConfig": {
+    "locations": [
+      {
+        "id": "italy",
+        "name": "Italy",
+        "deliveryModels": [
+          "onsite",
+          "offsite"
+        ]
+      },
+      {
+        "id": "romania",
+        "name": "Romania",
+        "deliveryModels": [
+          "onsite",
+          "offsite"
+        ]
+      },
+      {
+        "id": "poland",
+        "name": "Poland",
+        "deliveryModels": [
+          "onsite",
+          "offsite"
+        ]
+      },
+      {
+        "id": "hungary",
+        "name": "Hungary",
+        "deliveryModels": [
+          "onsite",
+          "offsite"
+        ]
+      },
+      {
+        "id": "germany",
+        "name": "Germany",
+        "deliveryModels": [
+          "onsite",
+          "offsite"
+        ]
+      },
+      {
+        "id": "india",
+        "name": "India",
+        "deliveryModels": [
+          "offshore"
+        ]
+      }
+    ],
+    "seniorities": [
+      "Junior",
+      "Mid-Level",
+      "Senior"
+    ],
+    "jobClusters": [
+      "AI Engineer",
+      "Architect",
+      "Business Analyst",
+      "Cloud Engineer",
+      "Cyber security",
+      "Data Analyst & Scientist",
+      "Data Engineer",
+      "Enginner",
+      "Fullstack Enginner",
+      "Infra Service Management",
+      "Infra Enginner",
+      "Delivery Manager",
+      "Product Specialist",
+      "Technical Analyst",
+      "UX/UI Designer"
+    ]
+  },
+  "categories": [
+    {
+      "id": "db-activities",
+      "name": "DATABASE ACTIVITIES",
+      "description": "Database operations and data management",
+      "status": "active",
+      "isGlobal": true,
+      "featureTypes": [
+        {
+          "id": "db-create-table",
+          "name": "Create new DB table",
+          "description": "Create new database table with schema",
+          "averageMDs": 1.5
+        },
+        {
+          "id": "db-modify-table",
+          "name": "Modify existing table (add column)",
+          "description": "Modify existing table structure",
+          "averageMDs": 1
+        },
+        {
+          "id": "db-create-view",
+          "name": "Create view/stored procedure",
+          "description": "Create database views or stored procedures",
+          "averageMDs": 3
+        },
+        {
+          "id": "db-dao-crud",
+          "name": "DAO/CRUD operations",
+          "description": "Data Access Object and CRUD implementations",
+          "averageMDs": 3
+        }
+      ],
+      "multiplier": 1
+    },
+    {
+      "id": "backend-api-activities",
+      "name": "BACKEND/API ACTIVITIES",
+      "description": "Backend services and API development",
+      "status": "active",
+      "isGlobal": true,
+      "featureTypes": [
+        {
+          "id": "backend-rest-service",
+          "name": "Create new REST web service",
+          "description": "Develop new REST API endpoints",
+          "averageMDs": 3
+        },
+        {
+          "id": "adjust-rest-service",
+          "name": "Adjust REST web service",
+          "description": "Develop adjustments to REST API endpoints",
+          "averageMDs": 2
+        },
+        {
+          "id": "backend-soap-client",
+          "name": "Create new SOAP client",
+          "description": "Implement SOAP client integration",
+          "averageMDs": 5
+        },
+        {
+          "id": "backend-business-logic",
+          "name": "Business logic implementation",
+          "description": "Core business logic development",
+          "averageMDs": 4
+        },
+        {
+          "id": "backend-client-adjustment",
+          "name": "Client adjustment",
+          "description": "Client-specific customizations",
+          "averageMDs": 3
+        },
+        {
+          "id": "backend-rest-client",
+          "name": "Create new REST client",
+          "description": "Implement REST client integration",
+          "averageMDs": 5
+        }
+      ],
+      "multiplier": 1
+    },
+    {
+      "id": "frontend-activities",
+      "name": "FRONTEND ACTIVITIES",
+      "description": "Frontend development and UI components",
+      "status": "active",
+      "isGlobal": true,
+      "featureTypes": [
+        {
+          "id": "frontend-new-page",
+          "name": "Develop new page/component",
+          "description": "Create new frontend pages or components",
+          "averageMDs": 3
+        },
+        {
+          "id": "frontend-modify-page",
+          "name": "Modify existing page",
+          "description": "Update existing frontend pages",
+          "averageMDs": 7
+        },
+        {
+          "id": "frontend-form-management",
+          "name": "Form/input field management",
+          "description": "Form handling and input validation",
+          "averageMDs": 3
+        }
+      ],
+      "multiplier": 1
+    },
+    {
+      "id": "integration-config",
+      "name": "INTEGRATION & CONFIGURATION",
+      "description": "System integration and configuration",
+      "status": "active",
+      "isGlobal": true,
+      "featureTypes": [
+        {
+          "id": "integration-external",
+          "name": "External system integration",
+          "description": "Integration with external systems",
+          "averageMDs": 4
+        },
+        {
+          "id": "integration-config-setup",
+          "name": "Configuration/properties setup",
+          "description": "System configuration and properties management",
+          "averageMDs": 7
+        },
+        {
+          "id": "integration-common-component",
+          "name": "Integration with common component",
+          "description": "Integration with common component",
+          "averageMDs": 10
+        }
+      ],
+      "multiplier": 1
+    },
+    {
+      "id": "batch-activities",
+      "name": "BATCH IMPLEMENTATION & CONFIGURATION",
+      "description": "Batch implementation and configuration",
+      "status": "active",
+      "isGlobal": true,
+      "featureTypes": [
+        {
+          "id": "batch-creation",
+          "name": "Create new batch",
+          "description": "Develop a new batch",
+          "averageMDs": 5
+        },
+        {
+          "id": "adjust-batch",
+          "name": "Adjust batch",
+          "description": "Develop adjustments to a batch",
+          "averageMDs": 5
+        },
+        {
+          "id": "batch-config-setup",
+          "name": "Batch configuration/properties setup",
+          "description": "Batch configuration and properties management",
+          "averageMDs": 5
+        }
+      ],
+      "multiplier": 1
+    },
+    {
+      "id": "environment-setup",
+      "name": "ENVIRONMENT SETUP",
+      "description": "Environment setup and configuration",
+      "status": "active",
+      "isGlobal": true,
+      "featureTypes": [
+        {
+          "id": "asset-setup",
+          "name": "Setup of asset",
+          "description": "Creation of new asset (AAM code for Project creation and infra resource association)",
+          "averageMDs": 30
+        },
+        {
+          "id": "deploy-setup",
+          "name": "Deployment setup",
+          "description": "Prepare environments for new application deployment",
+          "averageMDs": 50
+        },
+        {
+          "id": "cloud-setup",
+          "name": "Cloud environment setup",
+          "description": "Cloud environment setup",
+          "averageMDs": 30
+        },
+        {
+          "id": "application-setup",
+          "name": "Create product application",
+          "description": "Create new application, pipeline build, Quality Gate and container build",
+          "averageMDs": 50
+        },
+        {
+          "id": "basic-backend-utilities",
+          "name": "Implement basic utilities for backend",
+          "description": "Implement basic utilities for backend",
+          "averageMDs": 50
+        },
+        {
+          "id": "basic-frontend-utilities",
+          "name": "Implement basic utilities for frontend",
+          "description": "Implement basic utilities for frontend",
+          "averageMDs": 50
+        },
+        {
+          "id": "user-analytics",
+          "name": "Implement user analytics",
+          "description": "Implement user analytics",
+          "averageMDs": 30
+        },
+        {
+          "id": "access-rights-setup",
+          "name": "Access rights setup",
+          "description": "Implement and configure access rights",
+          "averageMDs": 50
+        }
+      ],
+      "multiplier": 1
+    }
+  ],
+  "teams": [],
+  "calculationParams": {
+    "workingDaysPerMonth": 22,
+    "workingHoursPerDay": 8,
+    "currencySymbol": "€",
+    "riskMargin": 0.15,
+    "overheadPercentage": 0.1
+  }
+}
