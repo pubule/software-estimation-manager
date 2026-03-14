@@ -1018,27 +1018,39 @@ export class CalculationsActions {
 
     // Calcola totali per vendor GTO (G2 + TA) aggregando i finalTotCost
     const gtoRoles = ['G2', 'TA'];
-    const vendorTotals = new Map<string, { name: string; total: number }>();
+    const vendorTotals = new Map<string, { name: string; total: number; g2Total: number; taTotal: number }>();
     vendorCosts
       .filter(cost => gtoRoles.includes(cost.role))
       .forEach(cost => {
         const existing = vendorTotals.get(cost.vendorId);
         if (existing) {
           existing.total += cost.finalTotCost || 0;
+          if (cost.role === 'G2') existing.g2Total += cost.finalTotCost || 0;
+          if (cost.role === 'TA') existing.taTotal += cost.finalTotCost || 0;
         } else {
           vendorTotals.set(cost.vendorId, {
             name: cost.vendorName,
-            total: cost.finalTotCost || 0
+            total: cost.finalTotCost || 0,
+            g2Total: cost.role === 'G2' ? cost.finalTotCost || 0 : 0,
+            taTotal: cost.role === 'TA' ? cost.finalTotCost || 0 : 0
           });
         }
       });
 
-    // Sezione vendor breakdown
+    // Sezione vendor breakdown con dettaglio G2 e TA
     let vendorBreakdown = '';
     if (vendorTotals.size > 0) {
       vendorBreakdown = '\n\nBreakdown by vendor:\n';
-      vendorTotals.forEach(({ name, total }) => {
-        vendorBreakdown += `- ${name}: ${total.toLocaleString()} €\n`;
+      vendorTotals.forEach(({ name, total, g2Total, taTotal }) => {
+        vendorBreakdown += `- ${name}: ${total.toLocaleString()} €`;
+        if (g2Total > 0 && taTotal > 0) {
+          vendorBreakdown += ` (G2: ${g2Total.toLocaleString()} € + TA: ${taTotal.toLocaleString()} €)`;
+        } else if (g2Total > 0) {
+          vendorBreakdown += ` (G2)`;
+        } else if (taTotal > 0) {
+          vendorBreakdown += ` (TA)`;
+        }
+        vendorBreakdown += '\n';
       });
     }
 
