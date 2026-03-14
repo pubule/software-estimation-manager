@@ -529,7 +529,7 @@ export class ProjectActions {
   }
 
   /**
-   * Auto-repair project data if needed (fix incomplete phases, etc.)
+   * Auto-repair project data if needed (fix incomplete phases, missing feature role/rate, etc.)
    */
   private async repairProjectDataIfNeeded(): Promise<void> {
     try {
@@ -562,9 +562,84 @@ export class ProjectActions {
       } else {
         console.log('✅ Project phases are complete, no repair needed');
       }
+
+      // Repair features: add role and rate if missing
+      await this.repairFeaturesIfNeeded();
+
     } catch (error) {
       console.error('❌ AUTO-REPAIR: Failed to repair project data:', error);
       // Don't throw - auto-repair is optional
+    }
+  }
+
+  /**
+   * Repair features by adding role and rate if missing
+   */
+  private async repairFeaturesIfNeeded(): Promise<void> {
+    try {
+      const store = this.getStore();
+      const currentProject = store.getState().currentProject;
+
+      if (!currentProject?.features || currentProject.features.length === 0) {
+        return;
+      }
+
+      const configManager = this.getConfigManager();
+      if (!configManager) {
+        console.warn('🔧 FEATURE-REPAIR: ConfigManager not available');
+        return;
+      }
+
+      const vendors = configManager.getVendors() || [];
+      let repairedCount = 0;
+
+      const updatedFeatures = currentProject.features.map((feature: any) => {
+        // Skip if feature already has role and rate
+        if (feature.role && feature.rate) {
+          return feature;
+        }
+
+        const vendor = vendors.find((v: any) => v.id === feature.supplier);
+        if (!vendor) {
+          return feature;
+        }
+
+        // Calculate rate
+        const rateDetails = configManager.getRate({
+          vendorId: feature.supplier,
+          jobCluster: feature.jobCluster,
+          seniority: feature.seniority,
+          location: feature.location,
+          deliveryModel: feature.deliveryModel,
+        });
+        const rate = rateDetails?.officialRate || rateDetails?.realRate || 0;
+
+        // Get role from vendor
+        const role = vendor.role || '';
+
+        if (rate > 0 || role) {
+          repairedCount++;
+          console.log(`🔧 FEATURE-REPAIR: Adding role="${role}" rate=${rate} to feature ${feature.id}`);
+
+          return {
+            ...feature,
+            role,
+            rate
+          };
+        }
+
+        return feature;
+      });
+
+      if (repairedCount > 0) {
+        // Update features in store
+        store.getState().updateProjectFeatures(updatedFeatures);
+        console.log(`✅ FEATURE-REPAIR: Repaired ${repairedCount} features with role and rate`);
+      } else {
+        console.log('✅ FEATURE-REPAIR: All features have role and rate');
+      }
+    } catch (error) {
+      console.error('❌ FEATURE-REPAIR: Failed to repair features:', error);
     }
   }
 

@@ -17,9 +17,9 @@ export const useCalculationsActions = () => {
     }
   }, []);
 
-  const updateFinalMDs = useCallback((vendorId: string, role: string, department: string, value: number) => {
+  const updateFinalMDs = useCallback((vendorId: string, role: string, value: number) => {
     try {
-      calculationsActions.updateFinalMDs(vendorId, role, department, value);
+      calculationsActions.updateFinalMDs(vendorId, role, value);
     } catch (error) {
       throw error;
     }
@@ -41,9 +41,9 @@ export const useCalculationsActions = () => {
     }
   }, []);
 
-  const resetSingleFinalMD = useCallback((vendorId: string, role: string, department: string) => {
+  const resetSingleFinalMD = useCallback((vendorId: string, role: string) => {
     try {
-      calculationsActions.resetSingleFinalMD(vendorId, role, department);
+      calculationsActions.resetSingleFinalMD(vendorId, role);
     } catch (error) {
       throw error;
     }

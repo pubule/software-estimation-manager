@@ -77,10 +77,9 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
 
     const currentProject = state.currentProject;
     const projectConfig = currentProject?.configuration || currentProject?.config;
-    const suppliers = configManager.getSuppliers(projectConfig) || [];
-    const internalResources = configManager.getInternalResources(projectConfig) || [];
+    const vendors = configManager.getVendors() || [];
 
-    return [...suppliers, ...internalResources.map((r: any) => ({ ...r, type: 'internal' }))];
+    return vendors.map((v: any) => ({ ...v, type: v.type || 'external' }));
   });
 
   // Actions per operazioni business (attraverso hook)
@@ -121,9 +120,9 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   }, [currentProject, currentPhases, calculateProjectCosts, clearFinalMDsOverrides]);
 
   // Handler eventi (SOLO chiamate ad Actions)
-  const handleFinalMDsChange = (vendorId: string, role: string, department: string, value: number) => {
+  const handleFinalMDsChange = (vendorId: string, role: string, value: number) => {
     // MAI business logic qui! Solo chiamata ad Actions
-    updateFinalMDs(vendorId, role, department, value);
+    updateFinalMDs(vendorId, role, value);
   };
 
   const handleFilterChange = (vendorFilter: string, roleFilter: string) => {
@@ -163,7 +162,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
 
   // Helper function to get input value from finalMDsOverrides or fallback to finalMDs (calculated value)
   const getInputValue = (cost: any) => {
-    const key = `${cost.vendorId}_${cost.role}_${cost.department}`;
+    const key = `${cost.vendorId}_${cost.role}`; // Senza department
     return finalMDsOverrides[key] ?? cost.finalMDs;
   };
 
@@ -679,7 +678,6 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                 <tr>
                   <th>Vendor</th>
                   <th>Role</th>
-                  <th>Department</th>
                   <th>Total MDs</th>
                   <th>Official Tot MDs</th>
                   <th>Final Tot MDs</th>
@@ -691,7 +689,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
               </thead>
               <tbody>
                 {filteredCosts.map((cost, index) => (
-                  <tr key={`${cost.vendorId}_${cost.role}_${cost.department}`}>
+                  <tr key={`${cost.vendorId}_${cost.role}`}>
                     <td className="vendor-name">
                       {cost.vendorName}
                       {cost.isInternal && <span className="internal-badge"> (Internal)</span>}
@@ -701,7 +699,6 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                         {cost.role}
                       </span>
                     </td>
-                    <td className="vendor-department">{cost.department}</td>
                     <td className="total-mds">{cost.estimatedMDs}</td>
                     <td className="official-tot-mds">{cost.finalMDs}</td>
                     <td className="final-tot-mds">
@@ -710,16 +707,16 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                         value={getInputValue(cost)}
                         onChange={(e) => {
                           const value = parseFloat(e.target.value) || 0;
-                          handleFinalMDsChange(cost.vendorId, cost.role, cost.department, value);
+                          handleFinalMDsChange(cost.vendorId, cost.role, value);
                         }}
                         className="final-mds-input"
                         min="0"
                         step="0.1"
-                        key={`${cost.vendorId}_${cost.role}_${cost.department}`}
+                        key={`${cost.vendorId}_${cost.role}`}
                       />
                       <button
                         className="reset-mds-btn"
-                        onClick={() => resetSingleFinalMD(cost.vendorId, cost.role, cost.department)}
+                        onClick={() => resetSingleFinalMD(cost.vendorId, cost.role)}
                         title="Reset to Official value"
                       >
                         ↻
@@ -740,7 +737,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
               {/* Footer con totali */}
               <tfoot>
                 <tr className="totals-row">
-                  <td colSpan={8}><strong>TOTALS</strong></td>
+                  <td colSpan={7}><strong>TOTALS</strong></td>
                   <td className="total-cost">
                     <strong>€{filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0).toLocaleString()}</strong>
                   </td>

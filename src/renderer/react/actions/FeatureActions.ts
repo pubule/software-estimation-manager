@@ -41,6 +41,38 @@ export class FeatureActions {
   }
 
   /**
+   * Get vendor role and rate for a feature
+   */
+  private getVendorRoleAndRate(featureData: FeatureFormData): { role: string; rate: number } {
+    const configManager = this.getConfigManager();
+    if (!configManager) {
+      return { role: '', rate: 0 };
+    }
+
+    const vendors = configManager.getVendors() || [];
+    const vendor = vendors.find(v => v.id === featureData.supplier);
+
+    if (!vendor) {
+      return { role: '', rate: 0 };
+    }
+
+    // Get role from vendor configuration
+    const role = vendor.role || '';
+
+    // Calculate rate using the same logic as display
+    const rateDetails = configManager.getRate({
+      vendorId: featureData.supplier,
+      jobCluster: featureData.jobCluster,
+      seniority: featureData.seniority,
+      location: featureData.location,
+      deliveryModel: featureData.deliveryModel,
+    });
+    const rate = rateDetails?.officialRate || rateDetails?.realRate || 0;
+
+    return { role, rate };
+  }
+
+  /**
    * Add a new feature to the current project
    */
   addFeature(featureData: FeatureFormData): void {
@@ -55,9 +87,14 @@ export class FeatureActions {
         throw new Error('No project loaded');
       }
 
+      // Get vendor role and rate
+      const { role, rate } = this.getVendorRoleAndRate(featureData);
+
       const now = new Date().toISOString();
       const newFeature = {
         ...featureData,
+        role,        // Vendor role (G1, G2, TA, PM)
+        rate,        // Calculated rate value
         created: now,
         modified: now
       };
@@ -99,8 +136,13 @@ export class FeatureActions {
         throw new Error('No project or features available');
       }
 
+      // Get vendor role and rate
+      const { role, rate } = this.getVendorRoleAndRate(featureData);
+
       const updatedFeature = {
         ...featureData,
+        role,        // Vendor role (G1, G2, TA, PM)
+        rate,        // Calculated rate value
         modified: new Date().toISOString()
       };
 

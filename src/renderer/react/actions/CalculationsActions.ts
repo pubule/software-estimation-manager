@@ -352,8 +352,10 @@ export class CalculationsActions {
       allCosts.push(...phasesCosts);
     }
 
-    if (project.coverage && project.coverage > 0 && project.phases?.selectedSuppliers?.G2) {
-      const coverageCost = this.processCoverageCost(project.coverage, project.phases.selectedSuppliers.G2);
+    // Get G2 resource from either selectedPhaseResources (new) or selectedSuppliers (old)
+    const g2Resource = project.phases?.selectedPhaseResources?.G2 || project.phases?.selectedSuppliers?.G2;
+    if (project.coverage && project.coverage > 0 && g2Resource) {
+      const coverageCost = this.processCoverageCost(project.coverage, g2Resource);
       if (coverageCost) {
         allCosts.push(coverageCost);
       }
@@ -369,40 +371,57 @@ export class CalculationsActions {
    */
   private processFeaturesCosts(features: any[]): VendorCost[] {
     const costs: VendorCost[] = [];
-    
-    features.forEach(feature => {
-      const rateInfo = this.getRateInfo({
-          vendorId: feature.supplier,
-          jobClusterId: feature.jobCluster,
-          seniority: feature.seniority,
-          location: feature.location,
-          deliveryModel: feature.deliveryModel,
-      });
 
-      if (!rateInfo || !rateInfo.officialRate) {
-        console.warn('Rate not found for feature:', feature.id);
-        return;
+    features.forEach(feature => {
+      // Use saved role and rate from feature if available
+      let role = feature.role;
+      let officialRate = feature.rate;
+      let realRate = feature.rate;
+
+      // Fallback: calculate rate if not saved in feature
+      if (!officialRate) {
+        const rateInfo = this.getRateInfo({
+            vendorId: feature.supplier,
+            jobClusterId: feature.jobCluster,
+            seniority: feature.seniority,
+            location: feature.location,
+            deliveryModel: feature.deliveryModel,
+        });
+
+        if (!rateInfo || !rateInfo.officialRate) {
+          console.warn('Rate not found for feature:', feature.id);
+          return;
+        }
+        officialRate = rateInfo.officialRate;
+        realRate = rateInfo.realRate;
+      }
+
+      // Fallback: get role from supplier data if not saved in feature
+      if (!role) {
+        const supplierData = this.getSupplierData(feature.supplier);
+        role = supplierData?.role || 'G2';
       }
 
       const supplierData = this.getSupplierData(feature.supplier); // Still needed for name, etc.
-      
-      const totCost = (feature.manDays || 0) * (rateInfo.realRate || 0);
-      const calculatedFinalMDs = Math.round((totCost / (rateInfo.officialRate || 1)) * 10) / 10;
-      
+
+      const totCost = (feature.manDays || 0) * (realRate || 0);
+      // Usa manDays direttamente come finalMDs per coerenza
+      const finalMDs = feature.manDays || 0;
+
       const cost: VendorCost = {
         vendorId: feature.supplier,
         vendorName: supplierData?.name || feature.supplier,
-        role: supplierData?.role || 'G2', // Fallback role
-        department: supplierData?.department || 'General',
-        officialRate: rateInfo.officialRate || 0,
-        realRate: rateInfo.realRate || 0,
+        role: role,
+        department: '', // Department rimosso - non significativo per G2 con location diverse
+        officialRate: officialRate || 0,
+        realRate: realRate || 0,
         estimatedMDs: feature.manDays || 0,
-        finalMDs: calculatedFinalMDs,
+        finalMDs: finalMDs,
         totCost: totCost,
-        finalTotCost: Math.round(calculatedFinalMDs * (rateInfo.officialRate || 0)),
+        finalTotCost: Math.round(finalMDs * (officialRate || 0)),
         isInternal: supplierData?.type === 'internal'
       };
-      
+
       costs.push(cost);
     });
     return costs;
@@ -437,7 +456,8 @@ export class CalculationsActions {
           // Calculate MDs for this role in this phase (round to 1 decimal)
           const phaseMDs = Math.round((phaseData.manDays * (percentage / 100)) * 10) / 10;
           const totCost = Math.round(phaseMDs * tempRate);
-          const calculatedFinalMDs = Math.round((totCost / tempRate) * 10) / 10;
+          // Usa phaseMDs direttamente come finalMDs per coerenza
+          const finalMDs = phaseMDs;
 
           const cost: VendorCost = {
             vendorId: supplierId,
@@ -447,9 +467,9 @@ export class CalculationsActions {
             officialRate: tempRate,
             realRate: tempRate,
             estimatedMDs: phaseMDs,
-            finalMDs: calculatedFinalMDs,
+            finalMDs: finalMDs,
             totCost: totCost,
-            finalTotCost: Math.round(calculatedFinalMDs * tempRate),
+            finalTotCost: Math.round(finalMDs * tempRate),
             isInternal: supplierData.type === 'internal' || false
           };
           
@@ -466,52 +486,69 @@ export class CalculationsActions {
    */
   private processNonDevelopmentPhases(phases: any): VendorCost[] {
     const costs: VendorCost[] = [];
-    const tempRate = 400;
-    
-    // Extract selectedSuppliers from phases object
-    const selectedSuppliers = phases.selectedSuppliers || {};
-    
-    // Process each phase except 'development' and 'selectedSuppliers'
+
+    // Support both old structure (selectedSuppliers) and new structure (selectedPhaseResources)
+    const selectedPhaseResources = phases.selectedPhaseResources || phases.selectedSuppliers || {};
+
+    // Process each phase including development (for non-G2 roles)
     Object.entries(phases).forEach(([phaseKey, phaseData]: [string, any]) => {
-      // Skip selectedSuppliers entry and development phase (handled by features)
-      if (phaseKey === 'selectedSuppliers' || phaseKey === 'development') {
+      // Skip metadata entries only
+      if (phaseKey === 'selectedSuppliers' || phaseKey === 'selectedPhaseResources') {
         return;
       }
-      
+
       if (phaseData.manDays && phaseData.manDays > 0 && phaseData.effort) {
         // Process each role in the phase effort distribution
         Object.entries(phaseData.effort).forEach(([role, percentage]: [string, any]) => {
-          if (!percentage || percentage === 0) return;
-          
-          const supplierId = selectedSuppliers[role];
-          if (!supplierId) {
+          // For development phase, skip G2 role (handled by features)
+          if (phaseKey === 'development' && role === 'G2') {
             return;
           }
-          
+          if (!percentage || percentage === 0) return;
+
+          // Get resource configuration for this role
+          const resourceConfig = selectedPhaseResources[role];
+          if (!resourceConfig) {
+            console.warn(`No resource config found for role ${role} in phase ${phaseKey}`);
+            return;
+          }
+
+          // Support both old format (string vendorId) and new format (object with vendorId)
+          const supplierId = typeof resourceConfig === 'string' ? resourceConfig : resourceConfig.vendorId;
+          if (!supplierId) {
+            console.warn(`No supplierId found for role ${role} in phase ${phaseKey}`);
+            return;
+          }
+
           const supplierData = this.getSupplierData(supplierId);
           if (!supplierData) {
+            console.warn(`Supplier data not found for ${supplierId}`);
             return;
           }
-          
+
+          // Get rate from resource config or calculate it
+          const rate = this.getPhaseResourceRate(resourceConfig, supplierData);
+
           // Calculate MDs for this role in this phase (round to 1 decimal)
           const phaseMDs = Math.round((phaseData.manDays * (percentage / 100)) * 10) / 10;
-          const totCost = Math.round(phaseMDs * tempRate);
-          const calculatedFinalMDs = Math.round((totCost / tempRate) * 10) / 10;
+          const totCost = Math.round(phaseMDs * rate);
+          // Usa phaseMDs direttamente come finalMDs per coerenza con phases table
+          const finalMDs = phaseMDs;
 
           const cost: VendorCost = {
             vendorId: supplierId,
             vendorName: supplierData.name || supplierId,
             role: role as 'G1' | 'G2' | 'TA' | 'PM',
-            department: supplierData.department || role,
-            officialRate: tempRate,
-            realRate: tempRate,
+            department: '', // Department rimosso - non significativo per G2 con location diverse
+            officialRate: rate,
+            realRate: rate,
             estimatedMDs: phaseMDs,
-            finalMDs: calculatedFinalMDs,
+            finalMDs: finalMDs,
             totCost: totCost,
-            finalTotCost: Math.round(calculatedFinalMDs * tempRate),
+            finalTotCost: Math.round(finalMDs * rate),
             isInternal: supplierData.type === 'internal' || false
           };
-          
+
           costs.push(cost);
         });
       }
@@ -520,58 +557,115 @@ export class CalculationsActions {
   }
 
   /**
+   * Get rate for a phase resource configuration
+   */
+  private getPhaseResourceRate(resourceConfig: any, supplierData: any): number {
+    // If resourceConfig is a number (old format), use it directly
+    if (typeof resourceConfig === 'number') {
+      return resourceConfig;
+    }
+
+    // If resourceConfig is a string (old format vendorId), use default rate
+    if (typeof resourceConfig === 'string') {
+      return 400;
+    }
+
+    // New format: object with jobCluster, seniority, location, deliveryModel
+    if (resourceConfig.jobCluster && resourceConfig.seniority) {
+      const configManager = this.getConfigManager();
+      if (configManager) {
+        const rateDetails = configManager.getRate({
+          vendorId: resourceConfig.vendorId,
+          jobCluster: resourceConfig.jobCluster,
+          seniority: resourceConfig.seniority,
+          location: resourceConfig.location || 'italy',
+          deliveryModel: resourceConfig.deliveryModel || 'onsite',
+        });
+        if (rateDetails && (rateDetails.officialRate || rateDetails.realRate)) {
+          return rateDetails.officialRate || rateDetails.realRate || 400;
+        }
+      }
+    }
+
+    // Fallback to default rate
+    return 400;
+  }
+
+  /**
    * Processa costi dal coverage - assegnato al vendor G2 selezionato
    */
-  private processCoverageCost(coverage: number, g2VendorId: string): VendorCost | null {
-    const supplierData = this.getSupplierData(g2VendorId);
-    const tempRate = 400;
-    
-    if (!supplierData) {
-      console.warn('G2 vendor not found for coverage:', g2VendorId);
+  private processCoverageCost(coverage: number, g2Resource: any): VendorCost | null {
+    // Support both old format (string vendorId) and new format (object with vendorId)
+    const g2VendorId = typeof g2Resource === 'string' ? g2Resource : g2Resource?.vendorId;
+
+    if (!g2VendorId) {
+      console.warn('G2 vendor not found for coverage');
       return null;
     }
-    
-    const totCost = Math.round(coverage * tempRate);
-    const calculatedFinalMDs = Math.round((totCost / tempRate) * 10) / 10;
+
+    const supplierData = this.getSupplierData(g2VendorId);
+    if (!supplierData) {
+      console.warn('G2 vendor data not found for coverage:', g2VendorId);
+      return null;
+    }
+
+    // Get rate from resource config or calculate it
+    const rate = this.getPhaseResourceRate(g2Resource, supplierData);
+
+    const totCost = Math.round(coverage * rate);
+    // Usa coverage direttamente come finalMDs per coerenza
+    const finalMDs = coverage;
 
     const coverageCost: VendorCost = {
       vendorId: g2VendorId,
       vendorName: supplierData.name || g2VendorId,
       role: 'G2' as 'G2',
-      department: supplierData.department || 'Development',
-      officialRate: tempRate,
-      realRate: tempRate,
+      department: '', // Department rimosso - non significativo per G2 con location diverse
+      officialRate: rate,
+      realRate: rate,
       estimatedMDs: coverage,
-      finalMDs: calculatedFinalMDs,
+      finalMDs: finalMDs,
       totCost: totCost,
-      finalTotCost: totCost,
+      finalTotCost: Math.round(finalMDs * rate),
       isInternal: supplierData.type === 'internal' || false
     };
-    
+
     return coverageCost;
   }
 
   /**
-   * Consolida costi per vendor + role + department
+   * Consolida costi per vendor + role (ignora department per raggruppare tutte le location)
    */
   private consolidateVendorCosts(costs: VendorCost[]): VendorCost[] {
     const consolidated = new Map<string, VendorCost>();
-    
+
     costs.forEach(cost => {
-      const key = `${cost.vendorId}_${cost.role}_${cost.department}`;
-      
+      // Chiave: vendorId + role (senza department per consolidare cross-location)
+      const key = `${cost.vendorId}_${cost.role}`;
+
       if (consolidated.has(key)) {
         const existing = consolidated.get(key)!;
-        existing.estimatedMDs = Math.round((existing.estimatedMDs + cost.estimatedMDs) * 10) / 10;
-        const newFinalMDs = Math.round((existing.finalMDs + cost.finalMDs) * 10) / 10;
-        existing.finalMDs = newFinalMDs;
-        existing.totCost = Math.round(existing.totCost + cost.totCost);
-        existing.finalTotCost = Math.round(newFinalMDs * existing.officialRate);
+        // Somma senza arrotondare per mantenere precisione
+        existing.estimatedMDs += cost.estimatedMDs;
+        existing.finalMDs += cost.finalMDs;
+        existing.totCost += cost.totCost;
+        // Arrotonda solo alla fine per visualizzazione
+        existing.finalTotCost = Math.round(existing.finalMDs * existing.officialRate);
+        // Aggiorna department con la location del costo corrente (l'ultima vince)
+        existing.department = cost.department;
       } else {
         consolidated.set(key, { ...cost });
       }
     });
-    
+
+    // Arrotonda i valori finali per visualizzazione
+    consolidated.forEach(cost => {
+      cost.estimatedMDs = Math.round(cost.estimatedMDs * 10) / 10;
+      cost.finalMDs = Math.round(cost.finalMDs * 10) / 10;
+      cost.totCost = Math.round(cost.totCost);
+      cost.finalTotCost = Math.round(cost.finalTotCost);
+    });
+
     return Array.from(consolidated.values());
   }
 
@@ -645,42 +739,42 @@ export class CalculationsActions {
    * Applica override manuali Final MDs (con override custom)
    */
   private applyFinalMDsOverridesWithCustom(vendorCosts: VendorCost[], overrides: Record<string, number>): VendorCost[] {
-    
+
     const result = vendorCosts.map(cost => {
-      const key = `${cost.vendorId}_${cost.role}_${cost.department}`;
+      const key = `${cost.vendorId}_${cost.role}`; // Senza department
       const override = overrides[key];
-      
+
       if (override !== undefined) {
         return {
           ...cost,
           finalTotCost: override * cost.officialRate
         };
       }
-      
+
       return cost;
     });
-    
-    
+
+
     return result;
   }
 
   /**
    * EDITING: Update Final MDs per vendor - ATOMIC UPDATE
    */
-  updateFinalMDs(vendorId: string, role: string, department: string, newValue: number): void {
+  updateFinalMDs(vendorId: string, role: string, newValue: number): void {
     try {
-      
+
       const store = this.getStore();
       const state = store.getState();
       const currentProject = state.currentProject;
-      
+
       if (!currentProject) {
         throw new Error('No project loaded');
       }
 
       // Get current overrides and add new one
       const currentOverrides = state.calculationsData?.finalMDsOverrides || {};
-      const key = `${vendorId}_${role}_${department}`;
+      const key = `${vendorId}_${role}`;
       const updatedOverrides = {
         ...currentOverrides,
         [key]: newValue
@@ -1007,17 +1101,17 @@ ${assumptionsList}`;
   /**
    * Reset singolo Final MD al valore stimato
    */
-  resetSingleFinalMD(vendorId: string, role: string, department: string): void {
+  resetSingleFinalMD(vendorId: string, role: string): void {
     try {
       const store = this.getStore();
       const state = store.getState();
       const currentProject = state.currentProject;
-      
+
       if (!currentProject) {
         throw new Error('No project loaded');
       }
 
-      const key = `${vendorId}_${role}_${department}`;
+      const key = `${vendorId}_${role}`;
       
       // Rimuovi override specifico
       const currentOverrides = state.calculationsData?.finalMDsOverrides || {};
@@ -1327,8 +1421,10 @@ ${assumptionsList}`;
       allCosts.push(...phasesCosts);
     }
 
-    if (project.coverage && project.coverage > 0 && project.phases?.selectedSuppliers?.G2) {
-      const coverageCost = this.processCoverageCost(project.coverage, project.phases.selectedSuppliers.G2);
+    // Get G2 resource from either selectedPhaseResources (new) or selectedSuppliers (old)
+    const g2Resource = project.phases?.selectedPhaseResources?.G2 || project.phases?.selectedSuppliers?.G2;
+    if (project.coverage && project.coverage > 0 && g2Resource) {
+      const coverageCost = this.processCoverageCost(project.coverage, g2Resource);
       if (coverageCost) {
         allCosts.push(coverageCost);
       }
@@ -1341,40 +1437,57 @@ ${assumptionsList}`;
 
   private processFeaturesCostsV2(features: any[]): VendorCost[] {
     const costs: VendorCost[] = [];
-    
-    features.forEach(feature => {
-      const rateInfo = this.getRateInfo({
-          vendorId: feature.supplier,
-          jobClusterId: feature.jobCluster,
-          seniority: feature.seniority,
-          location: feature.location,
-          deliveryModel: feature.deliveryModel,
-      });
 
-      if (!rateInfo || !rateInfo.officialRate) {
-        console.warn('Rate not found for feature:', feature.id);
-        return;
+    features.forEach(feature => {
+      // Use saved role and rate from feature if available
+      let role = feature.role;
+      let officialRate = feature.rate;
+      let realRate = feature.rate;
+
+      // Fallback: calculate rate if not saved in feature
+      if (!officialRate) {
+        const rateInfo = this.getRateInfo({
+            vendorId: feature.supplier,
+            jobClusterId: feature.jobCluster,
+            seniority: feature.seniority,
+            location: feature.location,
+            deliveryModel: feature.deliveryModel,
+        });
+
+        if (!rateInfo || !rateInfo.officialRate) {
+          console.warn('Rate not found for feature:', feature.id);
+          return;
+        }
+        officialRate = rateInfo.officialRate;
+        realRate = rateInfo.realRate;
+      }
+
+      // Fallback: get role from supplier data if not saved in feature
+      if (!role) {
+        const supplierData = this.getSupplierData(feature.supplier);
+        role = supplierData?.role || 'G2';
       }
 
       const supplierData = this.getSupplierData(feature.supplier); // Still needed for name, etc.
-      
-      const totCost = (feature.manDays || 0) * (rateInfo.realRate || 0);
-      const calculatedFinalMDs = Math.round((totCost / (rateInfo.officialRate || 1)) * 10) / 10;
-      
+
+      const totCost = (feature.manDays || 0) * (realRate || 0);
+      // Usa manDays direttamente come finalMDs per coerenza
+      const finalMDs = feature.manDays || 0;
+
       const cost: VendorCost = {
         vendorId: feature.supplier,
         vendorName: supplierData?.name || feature.supplier,
-        role: supplierData?.role || 'G2', // Fallback role
-        department: supplierData?.department || 'General',
-        officialRate: rateInfo.officialRate || 0,
-        realRate: rateInfo.realRate || 0,
+        role: role,
+        department: '', // Department rimosso - non significativo per G2 con location diverse
+        officialRate: officialRate || 0,
+        realRate: realRate || 0,
         estimatedMDs: feature.manDays || 0,
-        finalMDs: calculatedFinalMDs,
+        finalMDs: finalMDs,
         totCost: totCost,
-        finalTotCost: Math.round(calculatedFinalMDs * (rateInfo.officialRate || 0)),
+        finalTotCost: Math.round(finalMDs * (officialRate || 0)),
         isInternal: supplierData?.type === 'internal'
       };
-      
+
       costs.push(cost);
     });
     return costs;
