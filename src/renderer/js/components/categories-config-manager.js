@@ -53,34 +53,31 @@ class CategoriesConfigManager {
 
     /**
      * Ensure default categories exist in global configuration
+     * NOTE: Categories are now ALWAYS loaded from defaults.json by ConfigurationManager
+     * This method only logs the current state without modifying globalConfig
      */
     ensureDefaultCategories(forceReset = false) {
         console.log('ensureDefaultCategories called, forceReset:', forceReset);
         console.log('configManager:', !!this.configManager);
         console.log('globalConfig:', !!this.configManager?.globalConfig);
-        
+
         if (!this.configManager || !this.configManager.globalConfig) {
             console.log('ConfigManager or globalConfig not available');
             return;
         }
-        
+
         const existingCategories = this.configManager.globalConfig.categories;
-        console.log('Existing categories:', existingCategories?.length || 0);
-        
-        if (!existingCategories || existingCategories.length === 0 || forceReset) {
-            console.log('Initializing default categories:', this.defaultCategories.length);
-            console.log('Force reset:', forceReset);
-            this.configManager.globalConfig.categories = [...this.defaultCategories];
-            this.configManager.saveGlobalConfig();
-            console.log('Default categories initialized successfully');
-        } else {
-            console.log('Categories already exist, skipping initialization');
-            // Log the existing categories to see their structure
-            console.log('Existing categories structure:', JSON.stringify(existingCategories.map(cat => ({
+        console.log('Existing categories loaded from defaults.json:', existingCategories?.length || 0);
+
+        // Log the existing categories to see their structure
+        if (existingCategories && existingCategories.length > 0) {
+            console.log('Categories loaded from defaults.json:', JSON.stringify(existingCategories.map(cat => ({
                 id: cat.id,
                 name: cat.name,
                 featureTypesCount: cat.featureTypes?.length || 0
             })), null, 2));
+        } else {
+            console.warn('No categories found in globalConfig - defaults.json may be empty or not loaded');
         }
     }
 

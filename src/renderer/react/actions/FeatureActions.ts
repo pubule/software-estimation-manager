@@ -436,10 +436,8 @@ export class FeatureActions {
       const state = store?.getState();
       const currentProject = state?.currentProject;
       // Support both legacy (config) and new (configuration) structure
-      const projectConfig = currentProject?.configuration || currentProject?.config;
-      
-      const categories = configManager.getCategories(projectConfig);
-      
+      const categories = configManager.getCategories();
+
       const category = categories.find(c => 
         c.id === categoryId
       );
@@ -473,10 +471,8 @@ export class FeatureActions {
       const state = store?.getState();
       const currentProject = state?.currentProject;
       // Support both legacy (config) and new (configuration) structure
-      const projectConfig = currentProject?.configuration || currentProject?.config;
-      
-      const categories = configManager.getCategories(projectConfig);
-      
+      const categories = configManager.getCategories();
+
       const category = categories.find(c => 
         c.id === categoryId
       );
@@ -502,13 +498,7 @@ export class FeatureActions {
         return categoryId;
       }
       
-      const store = this.getStore();
-      const state = store?.getState();
-      const currentProject = state?.currentProject;
-      // Support both legacy (config) and new (configuration) structure
-      const projectConfig = currentProject?.configuration || currentProject?.config;
-      
-      const categories = configManager.getCategories(projectConfig);
+      const categories = configManager.getCategories();
       const category = categories?.find(c => c.id === categoryId);
       
       return category?.name || categoryId;
@@ -552,12 +542,7 @@ export class FeatureActions {
         return feature.supplier;
       }
       
-      const store = this.getStore();
-      const state = store?.getState();
-      const currentProject = state?.currentProject;
-      const projectConfig = currentProject?.configuration || currentProject?.config;
-      
-      const vendors = configManager.getVendors(projectConfig) || [];
+      const vendors = configManager.getVendors() || [];
       const vendor = vendors.find(v => v.id === feature.supplier);
       
       if (vendor) {
@@ -651,19 +636,23 @@ export class FeatureActions {
   }> {
     try {
       const configManager = this.getConfigManager();
-      
+
       if (!configManager) {
+        console.warn('[FeatureActions] getFilterOptions: configManager not available');
         return { categories: [], featureTypes: [], suppliers: [] };
       }
 
-      const store = this.getStore();
-      const state = store?.getState();
-      const currentProject = state?.currentProject;
-      const projectConfig = currentProject?.configuration || currentProject?.config;
-      
-      const categories = configManager.getCategories(projectConfig);
-      const vendors = configManager.getVendors(projectConfig);
-      
+      // Get data directly from globalConfig (defaults.json) - no project merge
+      const categories = configManager.getCategories();
+      const vendors = configManager.getVendors();
+
+      console.log('[FeatureActions] getFilterOptions: loaded', {
+        categoriesCount: categories?.length || 0,
+        vendorsCount: vendors?.length || 0,
+        categories: categories?.map((c: any) => ({ id: c.id, name: c.name })),
+        vendors: vendors?.map((v: any) => ({ id: v.id, name: v.name, type: v.type }))
+      });
+
       const allFeatureTypes: string[] = [];
       if (categories && Array.isArray(categories)) {
         categories.forEach(category => {
@@ -676,11 +665,11 @@ export class FeatureActions {
           }
         });
       }
-      
+
       // The concept of a G2-only supplier for features might need rethinking.
       // For now, we return all vendors.
       const combinedSuppliers = vendors || [];
-      
+
       return {
         categories: categories || [],
         featureTypes: allFeatureTypes,

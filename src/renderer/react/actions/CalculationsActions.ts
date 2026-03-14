@@ -373,7 +373,7 @@ export class CalculationsActions {
     features.forEach(feature => {
       const rateInfo = this.getRateInfo({
           vendorId: feature.supplier,
-          jobClusterId: feature.jobClusterId,
+          jobClusterId: feature.jobCluster,
           seniority: feature.seniority,
           location: feature.location,
           deliveryModel: feature.deliveryModel,
@@ -852,12 +852,7 @@ export class CalculationsActions {
       return null;
     }
     
-    const store = this.getStore();
-    const state = store?.getState();
-    const currentProject = state?.currentProject;
-    const projectConfig = currentProject?.configuration || currentProject?.config;
-    
-    const vendors = configManager.getVendors(projectConfig) || [];
+    const vendors = configManager.getVendors() || [];
     const vendor = vendors.find(v => v.id === supplierId);
 
     if (vendor) {
@@ -1350,7 +1345,7 @@ ${assumptionsList}`;
     features.forEach(feature => {
       const rateInfo = this.getRateInfo({
           vendorId: feature.supplier,
-          jobClusterId: feature.jobClusterId,
+          jobClusterId: feature.jobCluster,
           seniority: feature.seniority,
           location: feature.location,
           deliveryModel: feature.deliveryModel,

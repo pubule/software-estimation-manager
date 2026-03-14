@@ -41,57 +41,31 @@ class ConfigurationManager extends BaseComponent {
      */
     async loadGlobalConfig() {
         try {
+            // Always load fresh defaults from defaults.json first
+            console.log('[ConfigManager] Loading fresh defaults from defaults.json...');
+            const defaultConfig = await this.createDefaultGlobalConfig();
+            console.log('[ConfigManager] Defaults loaded:', {
+                vendorsCount: defaultConfig.vendors?.length || 0,
+                categoriesCount: defaultConfig.categories?.length || 0
+            });
+
             const settings = await this.dataManager.getSettings();
-            let config = settings.globalConfig;
+            let storedConfig = settings.globalConfig;
 
-            if (!config) {
-                config = await this.createDefaultGlobalConfig();
+            let config;
+            if (!storedConfig) {
+                // No stored config, use defaults
+                config = defaultConfig;
+                console.log('[ConfigManager] No stored config found, using defaults.json');
             } else {
-                // MIGRATION LOGIC - Now more robust
-                if (config.suppliers || config.internalResources) {
-                    console.log('Old config structure found. Re-running migration to de-duplicate vendors...');
-                    
-                    const vendorMap = new Map();
-
-                    (config.suppliers || []).forEach(s => {
-                        if (!vendorMap.has(s.name)) {
-                            vendorMap.set(s.name, {
-                                id: `vendor-${s.name.toLowerCase().replace(/\s+/g, '-')}`,
-                                name: s.name,
-                                type: 'Supplier',
-                                role: s.role, // Preserve role
-                                jobClusters: []
-                            });
-                        }
-                    });
-
-                    (config.internalResources || []).forEach(r => {
-                        if (!vendorMap.has(r.name)) {
-                            vendorMap.set(r.name, {
-                                id: `vendor-${r.name.toLowerCase().replace(/\s+/g, '-')}`,
-                                name: r.name,
-                                type: 'Internal',
-                                role: r.role, // Preserve role
-                                jobClusters: []
-                            });
-                        }
-                    });
-
-                    config.vendors = Array.from(vendorMap.values());
-                    
-                    delete config.suppliers;
-                    delete config.internalResources;
-
-                    if (!config.rateMatrixConfig) {
-                        config.rateMatrixConfig = this.createDefaultRateMatrixConfig();
-                    }
-                    console.log('Migration complete. Duplicates removed.');
-                }
+                // Merge stored config with defaults - defaults provide the base, stored config provides overrides/additions
+                console.log('[ConfigManager] Merging stored config with defaults.json...');
+                config = this.mergeWithDefaults(storedConfig, defaultConfig);
             }
 
             this.globalConfig = config;
             this.cache.invalidate();
-            
+
             if (window.appStore && this.globalConfig) {
                 window.appStore.getState().setGlobalConfig(this.globalConfig);
                 console.log('✅ Global config saved to state store');
@@ -99,12 +73,145 @@ class ConfigurationManager extends BaseComponent {
         } catch (error) {
             this.handleError('Failed to load global config', error);
             this.globalConfig = await this.createDefaultGlobalConfig();
-            
+
             if (window.appStore && this.globalConfig) {
                 window.appStore.getState().setGlobalConfig(this.globalConfig);
                 console.log('✅ Fallback global config saved to state store');
             }
         }
+    }
+
+    /**
+     * Merge stored config with defaults - ensures we always have complete data from defaults.json
+     * while preserving any user customizations from stored config
+     */
+    mergeWithDefaults(storedConfig, defaultConfig) {
+        // Start with defaults as the base
+        const merged = this.deepClone(defaultConfig);
+
+        // Handle migration from old structure
+        if (storedConfig.suppliers || storedConfig.internalResources) {
+            console.log('[ConfigManager] Old config structure found. Migrating vendors...');
+            const vendorMap = new Map();
+
+            (storedConfig.suppliers || []).forEach(s => {
+                if (!vendorMap.has(s.name)) {
+                    vendorMap.set(s.name, {
+                        id: `vendor-${s.name.toLowerCase().replace(/\s+/g, '-')}`,
+                        name: s.name,
+                        type: 'External',
+                        role: s.role,
+                        jobClusters: []
+                    });
+                }
+            });
+
+            (storedConfig.internalResources || []).forEach(r => {
+                if (!vendorMap.has(r.name)) {
+                    vendorMap.set(r.name, {
+                        id: `vendor-${r.name.toLowerCase().replace(/\s+/g, '-')}`,
+                        name: r.name,
+                        type: 'Internal',
+                        role: r.role,
+                        jobClusters: []
+                    });
+                }
+            });
+
+            // Add migrated vendors to the merged config (avoiding duplicates)
+            const migratedVendors = Array.from(vendorMap.values());
+            migratedVendors.forEach(mv => {
+                const exists = merged.vendors.find(v => v.id === mv.id || v.name === mv.name);
+                if (!exists) {
+                    merged.vendors.push(mv);
+                }
+            });
+
+            console.log(`[ConfigManager] Migrated ${migratedVendors.length} vendors from old structure`);
+        }
+
+        // Merge vendors: defaults as base + stored vendors that don't exist in defaults
+        if (storedConfig.vendors && Array.isArray(storedConfig.vendors)) {
+            storedConfig.vendors.forEach(storedVendor => {
+                const exists = merged.vendors.find(v => v.id === storedVendor.id || v.name === storedVendor.name);
+                if (!exists) {
+                    // Add project-specific vendor that was added to stored config
+                    merged.vendors.push({ ...storedVendor, isProjectSpecific: true });
+                } else {
+                    // Merge job clusters if the vendor exists
+                    if (storedVendor.jobClusters && storedVendor.jobClusters.length > 0) {
+                        const existingVendor = merged.vendors.find(v => v.id === storedVendor.id || v.name === storedVendor.name);
+                        if (existingVendor) {
+                            // Merge job clusters
+                            storedVendor.jobClusters.forEach(jc => {
+                                const existingJc = existingVendor.jobClusters?.find(ejc => ejc.clusterId === jc.clusterId);
+                                if (!existingJc) {
+                                    existingVendor.jobClusters = existingVendor.jobClusters || [];
+                                    existingVendor.jobClusters.push(jc);
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+        }
+
+        // Merge categories: defaults as base + stored categories that don't exist in defaults
+        if (storedConfig.categories && Array.isArray(storedConfig.categories)) {
+            storedConfig.categories.forEach(storedCategory => {
+                const exists = merged.categories.find(c => c.id === storedCategory.id || c.name === storedCategory.name);
+                if (!exists) {
+                    // Add custom category that was added to stored config
+                    merged.categories.push({ ...storedCategory, isProjectSpecific: true });
+                }
+            });
+        }
+
+        // Preserve calculation params from stored config (user preferences)
+        if (storedConfig.calculationParams) {
+            merged.calculationParams = {
+                ...merged.calculationParams,
+                ...storedConfig.calculationParams
+            };
+        }
+
+        // Preserve rateMatrixConfig from stored config if it has more data
+        if (storedConfig.rateMatrixConfig) {
+            // Merge locations
+            if (storedConfig.rateMatrixConfig.locations) {
+                const existingLocationIds = new Set(merged.rateMatrixConfig.locations.map(l => l.id));
+                storedConfig.rateMatrixConfig.locations.forEach(loc => {
+                    if (!existingLocationIds.has(loc.id)) {
+                        merged.rateMatrixConfig.locations.push(loc);
+                    }
+                });
+            }
+            // Merge seniorities
+            if (storedConfig.rateMatrixConfig.seniorities) {
+                const existingSeniorities = new Set(merged.rateMatrixConfig.seniorities);
+                storedConfig.rateMatrixConfig.seniorities.forEach(sen => {
+                    if (!existingSeniorities.has(sen)) {
+                        merged.rateMatrixConfig.seniorities.push(sen);
+                    }
+                });
+            }
+            // Merge job clusters
+            if (storedConfig.rateMatrixConfig.jobClusters) {
+                const existingClusters = new Set(merged.rateMatrixConfig.jobClusters);
+                storedConfig.rateMatrixConfig.jobClusters.forEach(jc => {
+                    if (!existingClusters.has(jc)) {
+                        merged.rateMatrixConfig.jobClusters.push(jc);
+                    }
+                });
+            }
+        }
+
+        console.log('[ConfigManager] Merge complete:', {
+            vendorsCount: merged.vendors?.length || 0,
+            categoriesCount: merged.categories?.length || 0
+        });
+
+        return merged;
     }
 
     /**
@@ -142,34 +249,33 @@ class ConfigurationManager extends BaseComponent {
 
     /**
      * Create default global configuration using DefaultConfigManager
+     * ALWAYS loads from defaults.json - no fallbacks allowed
      */
     async createDefaultGlobalConfig() {
-        try {
-            const defaultVendors = await this.defaultConfigManager.getDefaultVendors();
-            const rateMatrixConfig = await this.defaultConfigManager.getRateMatrixConfig();
-            const defaultCategories = await this.defaultConfigManager.getDefaultCategories();
-            const defaultTeams = await this.defaultConfigManager.getDefaultTeams();
-            const phaseDefinitions = await this.defaultConfigManager.getPhaseDefinitions();
-            
-            return {
-                phaseDefinitions: phaseDefinitions || [],
-                vendors: defaultVendors || [],
-                rateMatrixConfig: rateMatrixConfig || this.createDefaultRateMatrixConfig(), // fallback just in case
-                categories: this.normalizeCategoriesWithMultiplier(defaultCategories) || this.createFallbackCategories(),
-                teams: defaultTeams || [],
-                calculationParams: this.createDefaultCalculationParams()
-            };
-        } catch (error) {
-            console.warn('Failed to load from DefaultConfigManager, using hardcoded fallbacks:', error);
-            return {
-                phaseDefinitions: this.createFallbackPhaseDefinitions(),
-                vendors: this.createFallbackVendors(),
-                rateMatrixConfig: this.createDefaultRateMatrixConfig(),
-                categories: this.createFallbackCategories(),
-                teams: [],
-                calculationParams: this.createDefaultCalculationParams()
-            };
-        }
+        console.log('[ConfigManager] Loading default config from defaults.json...');
+        const defaultVendors = await this.defaultConfigManager.getDefaultVendors();
+        const rateMatrixConfig = await this.defaultConfigManager.getRateMatrixConfig();
+        const defaultCategories = await this.defaultConfigManager.getDefaultCategories();
+        const defaultTeams = await this.defaultConfigManager.getDefaultTeams();
+        const phaseDefinitions = await this.defaultConfigManager.getPhaseDefinitions();
+
+        console.log('[ConfigManager] Loaded from defaults.json:', {
+            vendorsCount: defaultVendors?.length || 0,
+            categoriesCount: defaultCategories?.length || 0,
+            vendors: defaultVendors?.map(v => ({ id: v.id, name: v.name })),
+            categories: defaultCategories?.map(c => ({ id: c.id, name: c.name }))
+        });
+
+        const normalizedCategories = this.normalizeCategoriesWithMultiplier(defaultCategories);
+
+        return {
+            phaseDefinitions: phaseDefinitions || [],
+            vendors: defaultVendors || [],
+            rateMatrixConfig: rateMatrixConfig,
+            categories: normalizedCategories || [],
+            teams: defaultTeams || [],
+            calculationParams: this.createDefaultCalculationParams()
+        };
     }
 
     createDefaultRateMatrixConfig() {
@@ -185,121 +291,6 @@ class ConfigurationManager extends BaseComponent {
           "seniorities": ["Junior", "Mid-Level", "Senior"],
           "jobClusters": ["AI Engineer", "Architect", "Business Analyst", "Cloud Engineer", "Cyber security", "Data Analyst & Scientist", "Data Engineer"]
         }
-    }
-
-    createFallbackVendors() {
-        return [
-            {
-                "id": "vendor-ext",
-                "name": "EXT Vendor",
-                "type": "External", // 'External' or 'Internal'
-                "jobClusters": [
-                  {
-                    "clusterId": "ai-engineer",
-                    "rates": [
-                      {
-                        "seniority": "Junior",
-                        "locations": { "italy": { "onsite": 314, "offsite": 276 }, "india": { "offshore": 155 } }
-                      },
-                      {
-                        "seniority": "Mid-Level",
-                        "locations": { "italy": { "onsite": 408, "offsite": 359 }, "india": { "offshore": 203 } }
-                      }
-                    ]
-                  }
-                ]
-            },
-            {
-                "id": "vendor-internal-it",
-                "name": "Internal IT Team",
-                "type": "Internal",
-                 "jobClusters": []
-            }
-        ];
-    }
-
-    createFallbackCategories() {
-        return [
-            {
-                id: 'security',
-                name: 'Security',
-                description: 'Security-related features',
-                multiplier: 1.2,
-                status: 'active',
-                isGlobal: true,
-                featureTypes: [
-                    {
-                        id: 'authentication',
-                        name: 'Authentication',
-                        description: 'User authentication features',
-                        averageMDs: 5
-                    },
-                    {
-                        id: 'authorization',
-                        name: 'Authorization',
-                        description: 'User authorization and permissions',
-                        averageMDs: 3
-                    }
-                ]
-            },
-            {
-                id: 'ui',
-                name: 'User Interface',
-                description: 'UI/UX features',
-                multiplier: 1.0,
-                status: 'active',
-                isGlobal: true,
-                featureTypes: [
-                    {
-                        id: 'form',
-                        name: 'Form',
-                        description: 'Data input forms',
-                        averageMDs: 2
-                    },
-                    {
-                        id: 'dashboard',
-                        name: 'Dashboard',
-                        description: 'Data visualization dashboards',
-                        averageMDs: 8
-                    }
-                ]
-            },
-            {
-                id: 'backend',
-                name: 'Backend',
-                description: 'Backend logic and APIs',
-                multiplier: 1.1,
-                status: 'active',
-                isGlobal: true,
-                featureTypes: [
-                    {
-                        id: 'api',
-                        name: 'API Endpoint',
-                        description: 'REST API endpoints',
-                        averageMDs: 3
-                    },
-                    {
-                        id: 'business_logic',
-                        name: 'Business Logic',
-                        description: 'Core business logic implementation',
-                        averageMDs: 5
-                    }
-                ]
-            }
-        ];
-    }
-
-    createFallbackPhaseDefinitions() {
-        return [
-            {
-                "id": "development",
-                "name": "Development",
-                "description": "Implementation of features",
-                "type": "development",
-                "editable": true,
-                "calculated": true
-            }
-        ];
     }
 
     /**
@@ -500,18 +491,19 @@ class ConfigurationManager extends BaseComponent {
     }
 
     /**
-     * Getter methods for merged configurations
+     * Getter methods - ALWAYS return from globalConfig (defaults.json)
+     * Project-specific overrides are no longer used
      */
-    getVendors(projectConfig) {
-        return this.getProjectConfig(projectConfig).vendors;
+    getVendors() {
+        return this.globalConfig?.vendors || [];
     }
 
-    getCategories(projectConfig) {
-        return this.getProjectConfig(projectConfig).categories;
+    getCategories() {
+        return this.globalConfig?.categories || [];
     }
 
-    getCalculationParams(projectConfig) {
-        return this.getProjectConfig(projectConfig).calculationParams;
+    getCalculationParams() {
+        return this.globalConfig?.calculationParams || {};
     }
     
     getRate(options) {
@@ -877,14 +869,21 @@ class ConfigurationMerger {
         const projectOverrides = projectConfig.projectOverrides?.[configType] || [];
         const projectItems = projectConfig[configType] || [];
 
-        // Start with global items
+        console.log(`[ConfigMerger] mergeConfigArray(${configType}): globalItems=${globalItems.length}, projectItems=${projectItems.length}, projectOverrides=${projectOverrides.length}`);
+        console.log(`[ConfigMerger] globalConfig exists: ${!!globalConfig}, globalConfig.${configType} exists: ${!!globalConfig?.[configType]}`);
+
+        // Start with global items (always use latest from defaults.json)
         const merged = [...globalItems];
 
-        // Add project-specific items
+        // Add project-specific items (items that don't exist in global)
         projectItems.forEach(item => {
-            if (!item.isGlobal && !merged.find(existing => existing.id === item.id)) {
+            const existsInGlobal = merged.find(existing => existing.id === item.id);
+            if (!existsInGlobal && !item.isGlobal) {
+                // Item doesn't exist in global and is marked as project-specific
                 merged.push({ ...item, isProjectSpecific: true });
             }
+            // Note: If item exists in global, we use the global version (already in merged)
+            // This ensures defaults.json updates are reflected in the project
         });
 
         // Apply project overrides
@@ -907,9 +906,14 @@ class ConfigurationMerger {
         });
 
         // Filter out inactive items
-        return merged.filter(item => 
+        const filtered = merged.filter(item =>
             !item.status || item.status === 'active'
         );
+
+        console.log(`[ConfigMerger] mergeConfigArray(${configType}): merged=${merged.length}, after filter=${filtered.length}`);
+        console.log(`[ConfigMerger] filtered items:`, filtered.map(i => ({ id: i.id, name: i.name, status: i.status })));
+
+        return filtered;
     }
 
     mergeCalculationParams(globalConfig, projectConfig) {

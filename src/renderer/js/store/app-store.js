@@ -1281,15 +1281,29 @@ const appStore = window.zustand.createStore((set, get) => ({
     // ======================
 
     /**
-     * Add notification
+     * Add notification with optional deduplication
      */
     addNotification: (notification) => {
         const currentState = get();
+
+        console.log(`[Store] addNotification called: "${notification.message}" (${notification.type}), current count: ${currentState.notifications.length}`);
+
+        // Check for duplicates (same message and type)
+        const isDuplicate = currentState.notifications.some(
+            n => n.message === notification.message && n.type === notification.type
+        );
+
+        if (isDuplicate) {
+            console.log('[Store] ⚠️ Duplicate notification suppressed:', notification.message);
+            return; // Don't add duplicate
+        }
+
         const newNotifications = [...currentState.notifications, {
             id: Date.now() + Math.random(),
             timestamp: new Date(),
             ...notification
         }];
+        console.log(`[Store] Adding notification, new count: ${newNotifications.length}`);
         set({ notifications: newNotifications });
     },
 

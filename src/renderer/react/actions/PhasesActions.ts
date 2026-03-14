@@ -154,10 +154,10 @@ export class PhasesActions {
         currentProject.features.forEach((feature: any) => {
           const featureManDays = parseFloat(feature.manDays) || 0;
           let featureRate = 0;
-            if (feature.supplier && feature.jobClusterId && feature.seniority && feature.location && feature.deliveryModel) {
+            if (feature.supplier && feature.jobCluster && feature.seniority && feature.location && feature.deliveryModel) {
             const featureRateDetails = configManager.getRate({
               vendorId: feature.supplier,
-              jobCluster: feature.jobClusterId,
+              jobCluster: feature.jobCluster,
               seniority: feature.seniority,
               location: feature.location,
               deliveryModel: feature.deliveryModel,
@@ -192,7 +192,10 @@ export class PhasesActions {
     try {
       const store = this.getStore();
       const configManager = this.getConfigManager();
-      if (!store || !configManager) return { G1: 0, G2: 0, TA: 0, PM: 0 };
+      if (!store || !configManager) {
+        console.warn(`[PhasesActions] calculateCostByResourceForPhase(${phase.id}): store or configManager not available`, { store: !!store, configManager: !!configManager });
+        return { G1: 0, G2: 0, TA: 0, PM: 0 };
+      }
 
       const state = store.getState();
       const { selectedPhaseResources } = state;
@@ -207,7 +210,7 @@ export class PhasesActions {
           resourceRates[role] = 0;
         }
       }
-      
+
       const manDaysByResource = this.calculateManDaysByResource(phase.manDays, phase.effort);
 
       if (phase.id === 'development') {
@@ -219,7 +222,7 @@ export class PhasesActions {
             PM: Math.round(manDaysByResource.PM * resourceRates.PM)
         };
       }
-      
+
       return {
         G1: Math.round(manDaysByResource.G1 * resourceRates.G1),
         G2: Math.round(manDaysByResource.G2 * resourceRates.G2),

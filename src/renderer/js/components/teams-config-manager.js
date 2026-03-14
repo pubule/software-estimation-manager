@@ -54,6 +54,8 @@ class TeamsConfigManager {
 
     /**
      * Ensure default teams exist
+     * NOTE: Teams are now ALWAYS loaded from defaults.json by ConfigurationManager
+     * This method only logs the current state without modifying globalConfig
      */
     async ensureDefaultTeams() {
         try {
@@ -61,27 +63,18 @@ class TeamsConfigManager {
                 console.log('ConfigManager or globalConfig not available');
                 return;
             }
-            
+
             const globalConfig = this.configManager.globalConfig;
-            
+
+            console.log('Teams loaded from defaults.json:', globalConfig.teams?.length || 0);
+
             if (!globalConfig.teams || globalConfig.teams.length === 0) {
-                console.log('No teams found, loading default teams from configuration');
-                // Load default teams from configuration file
-                await this.loadDefaults();
-                if (this.defaultTeams.length > 0) {
-                    globalConfig.teams = JSON.parse(JSON.stringify(this.defaultTeams)); // Deep copy
-                } else {
-                    // Fallback to hardcoded teams if no default teams available
-                    globalConfig.teams = this.createFallbackTeams();
-                }
-                this.configManager.saveGlobalConfig();
-                console.log('Default teams initialized successfully');
+                console.warn('No teams found in globalConfig - defaults.json may be empty or not loaded');
             } else {
-                console.log('Teams already exist, skipping initialization');
-                // 🏪 Ensure existing teams are in state store even if skipping initialization
+                // 🏪 Ensure existing teams are in state store
                 if (window.appStore && globalConfig) {
                     window.appStore.getState().setGlobalConfig(globalConfig);
-                    console.log('✅ Existing teams config synchronized with state store');
+                    console.log('✅ Teams config synchronized with state store');
                 }
             }
         } catch (error) {
@@ -92,10 +85,6 @@ class TeamsConfigManager {
     /**
      * Create fallback teams with default team members
      */
-    createFallbackTeams() {
-        return [];
-    }
-
     /**
      * Set up event listeners for the teams page - same pattern as Categories
      */
@@ -892,13 +881,14 @@ class TeamsConfigManager {
         
         try {
             if (this.currentScope === 'global') {
-                // Load default teams from configuration file
+                // ALWAYS reload from defaults.json - never use fallback
                 await this.loadDefaults();
                 if (this.defaultTeams.length > 0) {
                     this.configManager.globalConfig.teams = JSON.parse(JSON.stringify(this.defaultTeams)); // Deep copy
                 } else {
-                    // Fallback to hardcoded teams if no default teams available
-                    this.configManager.globalConfig.teams = this.createFallbackTeams();
+                    // If no teams in defaults.json, use empty array (no fallback)
+                    this.configManager.globalConfig.teams = [];
+                    console.warn('No teams found in defaults.json - using empty array');
                 }
             } else {
                 // Reset project teams

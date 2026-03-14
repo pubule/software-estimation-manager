@@ -109,10 +109,10 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
     }
   }, [currentProject?.features, currentProject?.coverage, calculateDevelopmentPhase]);
 
-  // Recalculate totals when phases or rates change
+  // Recalculate totals when phases, rates, or selected resources change
   useEffect(() => {
     calculateTotals();
-  }, [currentPhases, resourceRates, calculateTotals]);
+  }, [currentPhases, resourceRates, selectedPhaseResources, calculateTotals]);
 
   const handlePhaseManDaysChange = async (phaseId: string, manDays: number) => {
     try {

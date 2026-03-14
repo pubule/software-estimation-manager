@@ -11,9 +11,11 @@ class NotificationManager {
         
         // Local maps for DOM elements and timers (not suitable for global state)
         this.notificationElements = new Map(); // DOM elements and timers by ID
+        this.recentNotifications = new Map(); // message+type -> timestamp for deduplication
         this.container = null;
-        this.defaultDuration = 5000; // 5 seconds (was 500, probably a typo)
+        this.defaultDuration = 3000; // 3 seconds (reduced from 5s for better UX)
         this.maxNotifications = 5;
+        this.defaultThrottleMs = 1000; // Throttle duplicate notifications within 1 second
 
         this.init();
         this.setupStoreSubscription();
@@ -45,14 +47,48 @@ class NotificationManager {
      * Sync local DOM elements with global state notifications
      */
     syncWithGlobalState(currentNotifications, previousNotifications) {
+        const prevCount = (previousNotifications || []).length;
+        const currCount = currentNotifications.length;
+
+        console.log(`[NotificationManager] syncWithGlobalState called: ${prevCount} → ${currCount} notifications`);
+
+        // Check for duplicate IDs in current notifications
+        const ids = currentNotifications.map(n => n.id);
+        const uniqueIds = new Set(ids);
+        if (ids.length !== uniqueIds.size) {
+            console.warn(`[NotificationManager] ⚠️ DUPLICATE IDs IN STORE: ${ids.length} notifications, ${uniqueIds.size} unique IDs`);
+            // Log the duplicate IDs
+            const idCounts = {};
+            ids.forEach(id => { idCounts[id] = (idCounts[id] || 0) + 1; });
+            const duplicates = Object.entries(idCounts).filter(([id, count]) => count > 1);
+            console.warn(`[NotificationManager] Duplicate ID details:`, duplicates);
+        }
+
         // Find notifications that were added
-        const currentIds = new Set(currentNotifications.map(n => n.id));
+        const currentIds = new Set(ids);
         const previousIds = new Set((previousNotifications || []).map(n => n.id));
 
         // Add new notifications to DOM
         for (const notification of currentNotifications) {
-            if (!previousIds.has(notification.id) && !this.notificationElements.has(notification.id)) {
+            const isNew = !previousIds.has(notification.id);
+            const notInDom = !this.notificationElements.has(notification.id);
+
+            console.log(`[NotificationManager] Checking notification: "${notification.message.substring(0, 30)}..." id=${notification.id}, isNew=${isNew}, notInDom=${notInDom}`);
+
+            if (isNew && notInDom) {
+                // 🆕 EXTRA CHECK: Skip if a notification with same message+type already exists in DOM
+                const isDuplicateInDom = this.isNotificationInDom(notification.message, notification.type);
+                if (isDuplicateInDom) {
+                    console.log(`[NotificationManager] syncWithGlobalState: Skipping duplicate in DOM: "${notification.message}" (${notification.type})`);
+                    // Remove from global state to keep it clean
+                    if (this.store && this.store.getState) {
+                        this.store.getState().removeNotification(notification.id);
+                    }
+                    continue;
+                }
                 this.renderNotification(notification);
+            } else {
+                console.log(`[NotificationManager] Skipping notification (isNew=${isNew}, notInDom=${notInDom})`);
             }
         }
 
@@ -65,11 +101,39 @@ class NotificationManager {
     }
 
     /**
+     * Check if a notification with same message and type already exists in DOM
+     * @param {string} message - Notification message
+     * @param {string} type - Notification type
+     * @returns {boolean} True if exists
+     */
+    isNotificationInDom(message, type) {
+        for (const [id, elementInfo] of this.notificationElements) {
+            if (elementInfo.config &&
+                elementInfo.config.message === message &&
+                elementInfo.config.type === type) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Render a notification from global state to DOM
      */
     renderNotification(notificationConfig) {
+        console.log(`[NotificationManager] renderNotification START: "${notificationConfig.message}" (id: ${notificationConfig.id})`);
+
+        // 🆕 EXTRA CHECK: Verify element doesn't already exist in DOM
+        const existingById = this.container.querySelector(`[data-id="${notificationConfig.id}"]`);
+        if (existingById) {
+            console.warn(`[NotificationManager] ⚠️ Element with id ${notificationConfig.id} already exists in DOM! Skipping render.`);
+            return;
+        }
+
         // Create notification element
         const notificationEl = this.createNotificationElement(notificationConfig);
+
+        console.log(`[NotificationManager] renderNotification: Appending element to container`);
 
         // Add to container
         this.container.appendChild(notificationEl);
@@ -80,6 +144,8 @@ class NotificationManager {
             config: notificationConfig,
             timer: null
         });
+
+        console.log(`[NotificationManager] renderNotification COMPLETE: "${notificationConfig.message}" (total in DOM: ${this.notificationElements.size})`);
 
         // Auto-remove after duration (if not persistent)
         if (!notificationConfig.persistent && notificationConfig.duration > 0) {
@@ -192,12 +258,62 @@ class NotificationManager {
     }
 
     /**
+     * Check if a notification is a duplicate (same message+type within throttle window)
+     * Also checks if a notification with same content is already being processed
+     * @param {string} message - Notification message
+     * @param {string} type - Notification type
+     * @param {number} throttleMs - Throttle window in milliseconds
+     * @returns {boolean} True if duplicate
+     */
+    checkDuplicate(message, type, throttleMs = this.defaultThrottleMs) {
+        const key = `${type}:${message}`;
+        const now = Date.now();
+        const lastShown = this.recentNotifications.get(key);
+
+        if (lastShown && (now - lastShown) < throttleMs) {
+            return true; // Duplicate within throttle window
+        }
+
+        // Also check if notification is currently being rendered in DOM
+        for (const [id, elementInfo] of this.notificationElements) {
+            if (elementInfo.config &&
+                elementInfo.config.message === message &&
+                elementInfo.config.type === type) {
+                console.log(`[NotificationManager] Duplicate found in DOM: "${message}" (${type})`);
+                return true;
+            }
+        }
+
+        this.recentNotifications.set(key, now);
+
+        // Cleanup old entries (older than 2x throttle window)
+        this.recentNotifications.forEach((timestamp, k) => {
+            if ((now - timestamp) > throttleMs * 2) {
+                this.recentNotifications.delete(k);
+            }
+        });
+
+        return false;
+    }
+
+    /**
      * Show a notification instance method
      * @param {string} message - Notification message
      * @param {string} type - Notification type
      * @param {Object} options - Additional options
      */
     show(message, type = 'info', options = {}) {
+        console.log(`[NotificationManager] show() CALLED: "${message}" (${type})`);
+
+        // Check for duplicates (enabled by default)
+        if (options.deduplicate !== false) {
+            const throttleMs = options.throttleMs !== undefined ? options.throttleMs : this.defaultThrottleMs;
+            if (this.checkDuplicate(message, type, throttleMs)) {
+                console.log(`[NotificationManager] Duplicate notification suppressed by checkDuplicate: "${message}" (${type})`);
+                return null; // Don't show duplicate
+            }
+        }
+
         const config = {
             id: options.id || Helpers.generateId('notification-'),
             title: options.title || this.getDefaultTitle(type),
@@ -218,28 +334,35 @@ class NotificationManager {
             if (!this.notificationElements) {
                 this.notificationElements = new Map();
             }
-            
+
+            // 🆕 EXTRA CHECK: Skip if a notification with same message+type already exists in DOM
+            const isDuplicateInDom = this.isNotificationInDom(config.message, config.type);
+            if (isDuplicateInDom) {
+                console.log(`[NotificationManager] DOM fallback: Skipping duplicate: "${config.message}" (${config.type})`);
+                return null;
+            }
+
             // Remove oldest if at limit
             if (this.notificationElements.size >= this.maxNotifications) {
                 const oldestId = this.notificationElements.keys().next().value;
                 this.remove(oldestId);
             }
-            
+
             this.notificationElements.set(config.id, { element: null, config: config, timer: null });
             const element = this.createNotificationElement(config);
             this.container.appendChild(element);
-            
+
             // Auto-dismiss if not persistent
             if (config.duration > 0) {
                 setTimeout(() => this.remove(config.id), config.duration);
             }
-            
+
             return config.id;
         }
 
         // Use global state if available
         const currentNotifications = this.store.getState().notifications;
-        
+
         // Remove oldest notification if we're at the limit
         if (currentNotifications.length >= this.maxNotifications) {
             const oldestNotification = currentNotifications[0];
@@ -248,6 +371,8 @@ class NotificationManager {
 
         // Add to global state (will trigger sync to DOM via subscription)
         this.store.getState().addNotification(config);
+
+        console.log(`[NotificationManager] Notification shown: "${config.message}" (${config.type})`);
 
         return config.id;
     }
