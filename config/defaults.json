@@ -108,7 +108,7 @@
   ],
   "vendors": [
     {
-      "id": "vendor-reply",
+      "id": "vendor-1",
       "name": "Vendor 1",
       "type": "External",
       "jobClusters": [
@@ -125,9 +125,38 @@
               }
             }
           ]
+        },
+        {
+          "clusterId": "Fullstack Enginner",
+          "rates": [
+            {
+              "seniority": "Mid-Level",
+              "locations": {
+                "italy": {
+                  "onsite": 400,
+                  "offsite": 500
+                }
+              }
+            }
+          ],
+          "role": "G2"
+        },
+        {
+          "clusterId": "Business Analyst",
+          "rates": [
+            {
+              "seniority": "Mid-Level",
+              "locations": {
+                "italy": {
+                  "onsite": 300,
+                  "offsite": 200
+                }
+              }
+            }
+          ],
+          "role": "G1"
         }
-      ],
-      "role": "G2"
+      ]
     }
   ],
   "rateMatrixConfig": {
