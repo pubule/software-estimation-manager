@@ -855,7 +855,13 @@ export class CalculationsActions {
         kpiData: kpiData,
         finalMDsOverrides: updatedOverrides
       });
-      
+
+      // 5. Save overrides to project for persistence
+      state.updateProject({
+        ...currentProject,
+        finalMDsOverrides: updatedOverrides
+      });
+
     } catch (error) {
       console.error('Failed to update Final MDs:', error);
       throw error;
