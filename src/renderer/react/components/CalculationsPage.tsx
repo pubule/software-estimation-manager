@@ -82,6 +82,37 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     return vendors.map((v: any) => ({ ...v, type: v.type || 'external' }));
   });
 
+  // Expand vendors by job cluster roles and filter for Working Package categories
+  const expandedSuppliers = useMemo(() => {
+    const expanded: any[] = [];
+    allSuppliers.forEach((vendor: any) => {
+      if (vendor.jobClusters && vendor.jobClusters.length > 0) {
+        vendor.jobClusters.forEach((jc: any) => {
+          if (jc.role) {
+            expanded.push({
+              ...vendor,
+              jobClusterId: jc.clusterId,
+              role: jc.role,
+              displayName: `${vendor.name} - ${jc.clusterId} (${jc.role})`
+            });
+          }
+        });
+      } else {
+        // Vendor without job clusters - include as-is (backward compatibility)
+        expanded.push(vendor);
+      }
+    });
+    return expanded;
+  }, [allSuppliers]);
+
+  const gtoSuppliers = useMemo(() => {
+    return expandedSuppliers.filter((s: any) => s.role === 'G2' || s.role === 'TA');
+  }, [expandedSuppliers]);
+
+  const gdsSuppliers = useMemo(() => {
+    return expandedSuppliers.filter((s: any) => s.role === 'G1' || s.role === 'PM');
+  }, [expandedSuppliers]);
+
   // Actions per operazioni business (attraverso hook)
   const {
     calculateProjectCosts,
@@ -326,8 +357,8 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                     className="form-select"
                   >
                     <option value="">Select vendor...</option>
-                    {allSuppliers.map((s: any) => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                    {gtoSuppliers.map((s: any) => (
+                      <option key={`${s.id}_${s.jobClusterId || 'default'}`} value={s.id}>{s.displayName || `${s.name} (${s.role})`}</option>
                     ))}
                   </select>
                 </div>
@@ -359,8 +390,8 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                     className="form-select"
                   >
                     <option value="">Select vendor...</option>
-                    {allSuppliers.map((s: any) => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                    {gtoSuppliers.map((s: any) => (
+                      <option key={`${s.id}_${s.jobClusterId || 'default'}`} value={s.id}>{s.displayName || `${s.name} (${s.role})`}</option>
                     ))}
                   </select>
                 </div>
@@ -412,8 +443,8 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                     className="form-select"
                   >
                     <option value="">Select vendor...</option>
-                    {allSuppliers.map((s: any) => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                    {gdsSuppliers.map((s: any) => (
+                      <option key={`${s.id}_${s.jobClusterId || 'default'}`} value={s.id}>{s.displayName || `${s.name} (${s.role})`}</option>
                     ))}
                   </select>
                 </div>
@@ -445,8 +476,8 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                     className="form-select"
                   >
                     <option value="">Select vendor...</option>
-                    {allSuppliers.map((s: any) => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                    {gdsSuppliers.map((s: any) => (
+                      <option key={`${s.id}_${s.jobClusterId || 'default'}`} value={s.id}>{s.displayName || `${s.name} (${s.role})`}</option>
                     ))}
                   </select>
                 </div>

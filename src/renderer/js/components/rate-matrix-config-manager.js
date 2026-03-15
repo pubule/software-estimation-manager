@@ -82,16 +82,6 @@ class RateMatrixConfigManager {
                                     <option value="Internal">Internal</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label for="new-vendor-role">Role</label>
-                                <select id="new-vendor-role">
-                                    <option value="">None</option>
-                                    <option value="G1">G1</option>
-                                    <option value="G2">G2</option>
-                                    <option value="TA">TA</option>
-                                    <option value="PM">PM</option>
-                                </select>
-                            </div>
                         </form>
                     </div>
                     <div class="modal-footer">
@@ -173,6 +163,8 @@ class RateMatrixConfigManager {
         };
         
         const selectedCluster = this.jobClusterFilter || jobClusters[0];
+        const selectedJobCluster = vendor.jobClusters?.find(jc => jc.clusterId === selectedCluster);
+        const selectedClusterRole = selectedJobCluster?.role || '';
 
         return `
             <div class="panel-header">
@@ -198,13 +190,13 @@ class RateMatrixConfigManager {
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="vendor-role-edit">Role</label>
-                    <select id="vendor-role-edit" title="Vendor Role">
-                        <option value="">None</option>
-                        <option value="G1" ${vendor.role === 'G1' ? 'selected' : ''}>G1</option>
-                        <option value="G2" ${vendor.role === 'G2' ? 'selected' : ''}>G2</option>
-                        <option value="TA" ${vendor.role === 'TA' ? 'selected' : ''}>TA</option>
-                        <option value="PM" ${vendor.role === 'PM' ? 'selected' : ''}>PM</option>
+                    <label for="job-cluster-role">Role for <strong>${selectedCluster}</strong></label>
+                    <select id="job-cluster-role" class="job-cluster-role-select" data-cluster-id="${selectedCluster}">
+                        <option value="" ${selectedClusterRole === '' ? 'selected' : ''}>None</option>
+                        <option value="G1" ${selectedClusterRole === 'G1' ? 'selected' : ''}>G1</option>
+                        <option value="G2" ${selectedClusterRole === 'G2' ? 'selected' : ''}>G2</option>
+                        <option value="TA" ${selectedClusterRole === 'TA' ? 'selected' : ''}>TA</option>
+                        <option value="PM" ${selectedClusterRole === 'PM' ? 'selected' : ''}>PM</option>
                     </select>
                 </div>
             </div>
@@ -335,7 +327,6 @@ class RateMatrixConfigManager {
     async saveNewVendor() {
         const name = document.getElementById('new-vendor-name').value;
         const type = document.getElementById('new-vendor-type').value;
-        const role = document.getElementById('new-vendor-role').value;
 
         if (!name || !type) {
             this.app.showNotification('Vendor name and type are required.', 'error');
@@ -346,7 +337,6 @@ class RateMatrixConfigManager {
             id: `vendor-${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
             name,
             type,
-            role: role || null,
             jobClusters: []
         };
 
@@ -366,12 +356,6 @@ class RateMatrixConfigManager {
             return;
         }
 
-        // Update the vendor's role
-        const roleSelect = document.getElementById('vendor-role-edit');
-        if (roleSelect) {
-            vendor.role = roleSelect.value;
-        }
-
         // Update the vendor's type
         const typeSelect = document.getElementById('vendor-type-edit');
         if (typeSelect) {
@@ -380,6 +364,18 @@ class RateMatrixConfigManager {
         
         if (!vendor.jobClusters) {
             vendor.jobClusters = [];
+        }
+
+        // Save job cluster role for the selected cluster only
+        const roleSelect = document.getElementById('job-cluster-role');
+        if (roleSelect) {
+            const clusterId = roleSelect.dataset.clusterId;
+            let jobCluster = vendor.jobClusters.find(jc => jc.clusterId === clusterId);
+            if (!jobCluster) {
+                jobCluster = { clusterId: clusterId, rates: [] };
+                vendor.jobClusters.push(jobCluster);
+            }
+            jobCluster.role = roleSelect.value || null;
         }
 
         const inputs = document.querySelectorAll('#rate-matrix-detail .rate-input');

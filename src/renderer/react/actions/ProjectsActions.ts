@@ -32,6 +32,16 @@ export interface NewProjectFormData {
   description: string;
 }
 
+// Helper function to get vendor role from job clusters
+function getVendorRole(vendor: any): string {
+  if (!vendor?.jobClusters || vendor.jobClusters.length === 0) {
+    return 'G2'; // Default fallback
+  }
+  // Cerca il primo job cluster con un ruolo definito
+  const firstClusterWithRole = vendor.jobClusters.find((jc: any) => jc.role);
+  return firstClusterWithRole?.role || 'G2';
+}
+
 export class ProjectActions {
   private getApp() {
     return (window as any).app;
@@ -614,8 +624,8 @@ export class ProjectActions {
         });
         const rate = rateDetails?.officialRate || rateDetails?.realRate || 0;
 
-        // Get role from vendor
-        const role = vendor.role || '';
+        // Get role from vendor (now stored at job cluster level)
+        const role = getVendorRole(vendor);
 
         if (rate > 0 || role) {
           repairedCount++;

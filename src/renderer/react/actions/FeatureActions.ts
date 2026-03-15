@@ -21,6 +21,16 @@ export interface FeatureFilters {
   supplier: string;
 }
 
+// Helper function to get vendor role from job clusters
+function getVendorRole(vendor: any): string {
+  if (!vendor?.jobClusters || vendor.jobClusters.length === 0) {
+    return 'G2'; // Default fallback
+  }
+  // Cerca il primo job cluster con un ruolo definito
+  const firstClusterWithRole = vendor.jobClusters.find((jc: any) => jc.role);
+  return firstClusterWithRole?.role || 'G2';
+}
+
 export class FeatureActions {
   private getApp() {
     return (window as any).app;
@@ -56,8 +66,8 @@ export class FeatureActions {
       return { role: '', rate: 0 };
     }
 
-    // Get role from vendor configuration
-    const role = vendor.role || '';
+    // Get role from vendor configuration (now stored at job cluster level)
+    const role = getVendorRole(vendor);
 
     // Calculate rate using the same logic as display
     const rateDetails = configManager.getRate({

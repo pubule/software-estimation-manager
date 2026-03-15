@@ -225,7 +225,7 @@ export class CalculationsActions {
     const primaryCost: VendorCost = {
       vendorId: primaryVendorId,
       vendorName: primaryVendor?.name || `${category.toUpperCase()} Primary Vendor`,
-      role: (primaryVendor?.role as any) || defaultRole,
+      role: defaultRole,
       department: primaryVendor?.department || 'Development',
       officialRate: tempRate,
       realRate: tempRate,
@@ -243,7 +243,7 @@ export class CalculationsActions {
       const secondaryCost: VendorCost = {
         vendorId: secondaryVendorId!,
         vendorName: secondaryVendor.name || `${category.toUpperCase()} Secondary Vendor`,
-        role: (secondaryVendor?.role as any) || (category === 'gto' ? 'TA' : 'PM'),
+        role: category === 'gto' ? 'TA' : 'PM',
         department: secondaryVendor.department || 'General',
         officialRate: tempRate,
         realRate: tempRate,
@@ -421,7 +421,7 @@ export class CalculationsActions {
       // Fallback: get role from supplier data if not saved in feature
       if (!role) {
         const supplierData = this.getSupplierData(feature.supplier);
-        role = supplierData?.role || 'G2';
+        role = this.getVendorRole(supplierData);
       }
 
       const supplierData = this.getSupplierData(feature.supplier); // Still needed for name, etc.
@@ -1023,6 +1023,19 @@ export class CalculationsActions {
   }
 
   /**
+   * Helper: Ottiene il ruolo di un vendor dal primo job cluster
+   * Nota: il ruolo è ora memorizzato a livello job cluster, non a livello vendor
+   */
+  private getVendorRole(vendor: any): string {
+    if (!vendor?.jobClusters || vendor.jobClusters.length === 0) {
+      return 'G2'; // Default fallback
+    }
+    // Cerca il primo job cluster con un ruolo definito
+    const firstClusterWithRole = vendor.jobClusters.find((jc: any) => jc.role);
+    return firstClusterWithRole?.role || 'G2';
+  }
+
+  /**
    * Helper: Ottiene dati team member
    */
   private getTeamMemberData(memberId: string): any {
@@ -1544,7 +1557,7 @@ ${assumptionsList}`;
       // Fallback: get role from supplier data if not saved in feature
       if (!role) {
         const supplierData = this.getSupplierData(feature.supplier);
-        role = supplierData?.role || 'G2';
+        role = this.getVendorRole(supplierData);
       }
 
       const supplierData = this.getSupplierData(feature.supplier); // Still needed for name, etc.

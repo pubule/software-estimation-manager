@@ -130,6 +130,27 @@ class ConfigurationManager extends BaseComponent {
             console.log(`[ConfigManager] Migrated ${migratedVendors.length} vendors from old structure`);
         }
 
+        // Migrate vendor role from vendor level to job cluster level
+        if (merged.vendors && Array.isArray(merged.vendors)) {
+            let migratedRoleCount = 0;
+            merged.vendors.forEach(vendor => {
+                if (vendor.role && vendor.jobClusters && Array.isArray(vendor.jobClusters)) {
+                    // Vendor has role at vendor level - migrate to job clusters
+                    vendor.jobClusters.forEach(jc => {
+                        if (!jc.role) {
+                            jc.role = vendor.role;
+                            migratedRoleCount++;
+                        }
+                    });
+                    // Remove role from vendor level
+                    delete vendor.role;
+                }
+            });
+            if (migratedRoleCount > 0) {
+                console.log(`[ConfigManager] Migrated ${migratedRoleCount} vendor roles from vendor level to job cluster level`);
+            }
+        }
+
         // Merge vendors: defaults as base + stored vendors that don't exist in defaults
         if (storedConfig.vendors && Array.isArray(storedConfig.vendors)) {
             storedConfig.vendors.forEach(storedVendor => {
