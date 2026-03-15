@@ -29,12 +29,31 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
 
   // Selettori specifici per ogni proprieta per forzare re-render
   const calculationsVersion = useStore(state => state.calculationsData?.version || 0);
+
+  // MODE-AWARE SELECTORS: Read from correct data section based on mode
+  const workingPackageData = useStore(state => state.currentProject?.workingPackageData);
+  const workingPackageEnabled = workingPackageData?.enabled || false;
+
   const vendorCosts = useStore(state => {
-    const costs = state.calculationsData?.vendorCosts || [];
-    console.log('🔍 VENDOR_COSTS SELECTOR - Count:', costs.length);
+    const isWP = state.currentProject?.workingPackageData?.enabled;
+    let costs;
+    if (isWP) {
+      costs = state.calculationsData?.workingPackage?.vendorCosts || [];
+    } else {
+      costs = state.calculationsData?.featureBased?.vendorCosts || [];
+    }
+    console.log('🔍 VENDOR_COSTS SELECTOR - Mode:', isWP ? 'WP' : 'FB', 'Count:', costs.length);
     return costs;
   });
-  const kpiData = useStore(state => state.calculationsData?.kpiData);
+
+  const kpiData = useStore(state => {
+    const isWP = state.currentProject?.workingPackageData?.enabled;
+    if (isWP) {
+      return state.calculationsData?.workingPackage?.kpiData;
+    } else {
+      return state.calculationsData?.featureBased?.kpiData;
+    }
+  });
   // Force selectors to refresh using calculationsVersion
   const categoryFilter = useStore(state => {
     const version = state.calculationsData?.version || 0;
@@ -64,9 +83,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   }, [vendorFilter, roleFilter, categoryFilter]);
   const finalMDsOverrides = useStore(state => state.calculationsData?.finalMDsOverrides || {});
 
-  // Working Package State
-  const workingPackageData = useStore(state => state.currentProject?.workingPackageData);
-  const workingPackageEnabled = workingPackageData?.enabled || false;
+  // Working Package calculated data (from separate store section)
   const workingPackageCalculated = useStore(state => state.calculationsData?.workingPackage);
 
   // All suppliers for vendor selection
@@ -136,10 +153,15 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       // Check if project changed (by ID)
       const projectIdChanged = currentProject.id !== previousProjectIdRef.current;
 
-      if (projectIdChanged) {
+      // Only clear overrides when switching projects (not on initial load)
+      // previousProjectIdRef.current === undefined means this is the initial load
+      if (projectIdChanged && previousProjectIdRef.current !== undefined) {
         console.log('📦 Project changed - clearing overrides and recalculating');
-        // Reset all overrides on project change
+        // Reset all overrides on project change (but not on initial load)
         clearFinalMDsOverrides();
+      }
+
+      if (projectIdChanged) {
         previousProjectIdRef.current = currentProject.id;
       }
 
@@ -704,59 +726,89 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       <div className="calculations-table-section">
         {filteredCosts && filteredCosts.length > 0 ? (
           <div className="table-container">
-            <table className="data-table calculations-table">
+            <table className={`data-table calculations-table ${workingPackageEnabled ? 'wp-mode' : 'fb-mode'}`}>
               <thead>
                 <tr>
                   <th>Vendor</th>
-                  <th>Role</th>
-                  <th>Total MDs</th>
-                  <th>Final Tot MDs</th>
-                  <th>Real Rate</th>
+                  {workingPackageEnabled ? (
+                    <>
+                      <th>Category</th>
+                      <th>Allocation</th>
+                      <th>Percentage</th>
+                    </>
+                  ) : (
+                    <>
+                      <th>Role</th>
+                      <th>Total MDs</th>
+                      <th>Final Tot MDs</th>
+                      <th>Real Rate</th>
+                    </>
+                  )}
                   <th>Total Cost</th>
-                  <th>Final Tot Cost</th>
+                  {!workingPackageEnabled && <th>Final Tot Cost</th>}
                 </tr>
               </thead>
               <tbody>
-                {filteredCosts.map((cost, index) => (
+                {filteredCosts.map((cost) => (
                   <tr key={`${cost.vendorId}_${cost.role}`}>
                     <td className="vendor-name">
                       {cost.vendorName}
                       {cost.isInternal && <span className="internal-badge"> (Internal)</span>}
                     </td>
-                    <td className="vendor-role">
-                      <span className={`role-badge role-${cost.role.toLowerCase()}`}>
-                        {cost.role}
-                      </span>
-                    </td>
-                    <td className="total-mds">{cost.estimatedMDs}</td>
-                    <td className="final-tot-mds">
-                      <input
-                        type="number"
-                        value={getInputValue(cost)}
-                        onChange={(e) => {
-                          const value = parseFloat(e.target.value) || 0;
-                          handleFinalMDsChange(cost.vendorId, cost.role, value);
-                        }}
-                        className="final-mds-input"
-                        min="0"
-                        step="0.1"
-                        key={`${cost.vendorId}_${cost.role}`}
-                      />
-                      <button
-                        className="reset-mds-btn"
-                        onClick={() => resetSingleFinalMD(cost.vendorId, cost.role)}
-                        title="Reset to Official value"
-                      >
-                        ↻
-                      </button>
-                    </td>
-                    <td className="real-rate">€{cost.realRate.toLocaleString()}</td>
+                    {workingPackageEnabled ? (
+                      <>
+                        {/* Working Package Mode: Category, Allocation, Percentage */}
+                        <td className="wp-category">
+                          <span className={`category-badge category-${cost.role === 'G2' || cost.role === 'TA' ? 'gto' : 'gds'}`}>
+                            {cost.role === 'G2' || cost.role === 'TA' ? 'GTO' : 'GDS'}
+                          </span>
+                        </td>
+                        <td className="wp-allocation">
+                          <span className="allocation-text">-</span>
+                        </td>
+                        <td className="wp-percentage">-</td>
+                      </>
+                    ) : (
+                      <>
+                        {/* Feature-based Mode: Role, MDs, Rate */}
+                        <td className="vendor-role">
+                          <span className={`role-badge role-${cost.role.toLowerCase()}`}>
+                            {cost.role}
+                          </span>
+                        </td>
+                        <td className="total-mds">{cost.estimatedMDs}</td>
+                        <td className="final-tot-mds">
+                          <input
+                            type="number"
+                            value={getInputValue(cost)}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value) || 0;
+                              handleFinalMDsChange(cost.vendorId, cost.role, value);
+                            }}
+                            className="final-mds-input"
+                            min="0"
+                            step="0.1"
+                            key={`${cost.vendorId}_${cost.role}`}
+                          />
+                          <button
+                            className="reset-mds-btn"
+                            onClick={() => resetSingleFinalMD(cost.vendorId, cost.role)}
+                            title="Reset to Official value"
+                          >
+                            ↻
+                          </button>
+                        </td>
+                        <td className="real-rate">€{cost.realRate.toLocaleString()}</td>
+                      </>
+                    )}
                     <td className="total-cost">€{cost.totCost.toLocaleString()}</td>
-                    <td className={`final-tot-cost ${
-                      cost.finalTotCost >= cost.totCost ? 'final-cost-higher' : 'final-cost-lower'
-                    }`}>
-                      <strong>€{cost.finalTotCost.toLocaleString()}</strong>
-                    </td>
+                    {!workingPackageEnabled && (
+                      <td className={`final-tot-cost ${
+                        cost.finalTotCost >= cost.totCost ? 'final-cost-higher' : 'final-cost-lower'
+                      }`}>
+                        <strong>€{cost.finalTotCost.toLocaleString()}</strong>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -764,24 +816,46 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
               {/* Footer con totali */}
               <tfoot>
                 <tr className="totals-row">
-                  <td colSpan={5}><strong>TOTALS</strong></td>
-                  <td className="total-cost">
-                    <strong>€{filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0).toLocaleString()}</strong>
-                  </td>
-                  {(() => {
-                    const totalCost = filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0);
-                    const totalFinalCost = filteredCosts.reduce((sum, cost) => sum + cost.finalTotCost, 0);
-                    return (
-                      <td className={`total-final-cost ${
-                        totalFinalCost >= totalCost ? 'final-cost-higher' : 'final-cost-lower'
-                      }`}>
-                        <strong>€{totalFinalCost.toLocaleString()}</strong>
+                  {workingPackageEnabled ? (
+                    <>
+                      <td colSpan={4}><strong>TOTALS</strong></td>
+                      <td className="total-cost">
+                        <strong>€{filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0).toLocaleString()}</strong>
                       </td>
-                    );
-                  })()}
+                    </>
+                  ) : (
+                    <>
+                      <td colSpan={5}><strong>TOTALS</strong></td>
+                      <td className="total-cost">
+                        <strong>€{filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0).toLocaleString()}</strong>
+                      </td>
+                      {(() => {
+                        const totalCost = filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0);
+                        const totalFinalCost = filteredCosts.reduce((sum, cost) => sum + cost.finalTotCost, 0);
+                        return (
+                          <td className={`total-final-cost ${
+                            totalFinalCost >= totalCost ? 'final-cost-higher' : 'final-cost-lower'
+                          }`}>
+                            <strong>€{totalFinalCost.toLocaleString()}</strong>
+                          </td>
+                        );
+                      })()}
+                    </>
+                  )}
                 </tr>
               </tfoot>
             </table>
+
+            {/* Working Package Note */}
+            {workingPackageEnabled && (
+              <div className="wp-mode-note">
+                <i className="fas fa-info-circle"></i>
+                <span>
+                  Working Package mode: Costs are calculated from total amounts, not from MDs × Rate.
+                  MDs and Rate columns are not applicable in this mode.
+                </span>
+              </div>
+            )}
           </div>
         ) : (
           <div className="empty-state">

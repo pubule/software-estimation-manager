@@ -1571,24 +1571,48 @@ const appStore = window.zustand.createStore((set, get) => ({
      */
     setCalculationsData: (data) => {
         const currentState = get();
-        const preservedOverrides = currentState.calculationsData?.finalMDsOverrides || {};
         const preservedFilters = currentState.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' };
-        const preservedWorkingPackage = currentState.calculationsData?.workingPackage || {};
 
+        // Determine mode from project data
+        const isWorkingPackageMode = currentState.currentProject?.workingPackageData?.enabled;
 
-        set({
-            calculationsData: {
-                ...(currentState.calculationsData || {}),
-                ...data,
-                // Use overrides from data if provided, otherwise preserve current ones
-                finalMDsOverrides: data.finalMDsOverrides || preservedOverrides,
-                // PRESERVE filters unless explicitly provided in data
-                filters: data.filters || preservedFilters,
-                // PRESERVE workingPackage unless explicitly provided in data
-                workingPackage: data.workingPackage || preservedWorkingPackage,
-                version: (currentState.calculationsData?.version || 0) + 1
-            }
-        });
+        // SEPARATE STORAGE: Store data in mode-specific sections
+        if (isWorkingPackageMode) {
+            // WORKING PACKAGE MODE: Store in workingPackage section
+            set({
+                calculationsData: {
+                    ...(currentState.calculationsData || {}),
+                    // Store WP data separately
+                    workingPackage: {
+                        vendorCosts: data.vendorCosts,
+                        kpiData: data.kpiData,
+                        calculated: data.workingPackage?.calculated,
+                        projectTotal: data.workingPackage?.projectTotal
+                    },
+                    // WP mode doesn't use overrides
+                    finalMDsOverrides: {},
+                    filters: data.filters ?? preservedFilters,
+                    version: (currentState.calculationsData?.version || 0) + 1
+                }
+            });
+        } else {
+            // FEATURE-BASED MODE: Store in featureBased section
+            const preservedOverrides = currentState.calculationsData?.finalMDsOverrides || {};
+            set({
+                calculationsData: {
+                    ...(currentState.calculationsData || {}),
+                    // Store FB data separately
+                    featureBased: {
+                        vendorCosts: data.vendorCosts,
+                        kpiData: data.kpiData
+                    },
+                    // Preserve overrides for FB mode
+                    finalMDsOverrides: data.finalMDsOverrides ?? preservedOverrides,
+                    filters: data.filters ?? preservedFilters,
+                    version: (currentState.calculationsData?.version || 0) + 1
+                }
+            });
+        }
 
     },
 

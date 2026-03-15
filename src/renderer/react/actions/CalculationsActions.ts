@@ -5,9 +5,16 @@
  * - TUTTA la business logic QUI (calcoli, processamento, validazioni)
  * - Aggiorna SOLO attraverso store methods
  * - Components chiamano SOLO questi metodi
+ * 
+ * ARCHITETTURA: Segregazione logica tramite Calculator Pattern
+ * - FeatureBasedCalculator: Per modalità basata su feature/fasi
+ * - WorkingPackageCalculator: Per modalità Working Package
+ * - CalculatorFactory: Selezione dinamica del calculator appropriato
  */
 
-interface VendorCost {
+import { CalculatorFactory, type CalculationResult } from './calculators';
+
+export interface VendorCost {
   vendorId: string;
   vendorName: string;
   role: 'G1' | 'G2' | 'TA' | 'PM';
@@ -21,7 +28,7 @@ interface VendorCost {
   isInternal: boolean;
 }
 
-interface KPIData {
+export interface KPIData {
   gto: {
     internal: number;
     external: number;
@@ -41,7 +48,7 @@ interface KPIData {
   totalExternalPercentage: number;
 }
 
-interface CalculationsFilters {
+export interface CalculationsFilters {
   vendor: string;
   role: string;
   category: string; // 'all' | 'gto' | 'gds'
@@ -75,9 +82,12 @@ export class CalculationsActions {
     return (window as any).app;
   }
 
+
   /**
    * CORE BUSINESS LOGIC: Calcola tutti i costi del progetto
-   * Processamento completo features + phases → vendor costs
+   * 
+   * ARCHITETTURA: Utilizza CalculatorFactory per selezionare il calculator
+   * appropriato in base alla modalita (Feature-based vs Working Package)
    */
   calculateProjectCosts(): void {
     try {
@@ -89,44 +99,79 @@ export class CalculationsActions {
       const state = store.getState();
       const currentProject = state.currentProject;
 
-
       if (!currentProject) {
         throw new Error('No project loaded');
       }
 
-      // NUOVO: Se modalità working package è attiva, usa calcolo diverso
-      const workingPackage = currentProject.workingPackageData;
-      if (workingPackage?.enabled) {
-        this.calculateWorkingPackageCosts(workingPackage);
-        return;
-      }
+      console.log('🧮 CalculationsActions: Calculating project costs...');
 
-      // 1. Processa tutti i costi (features + phases)
-      const vendorCosts = this.processAllCosts(currentProject);
-
-      // 2. Applica override Final MDs se esistono
-      const costsWithOverrides = this.applyFinalMDsOverrides(vendorCosts);
-
-      // 3. Calcola KPI
-      const kpiData = this.calculateKPIs(costsWithOverrides);
-
-      // 4. Preserve existing finalMDsOverrides from current state or project data
-      const currentOverrides = state.calculationsData?.finalMDsOverrides || {};
-      const projectOverrides = currentProject.finalMDsOverrides || {};
-      const preservedOverrides = Object.keys(projectOverrides).length > 0 ? projectOverrides : currentOverrides;
-
-      // 5. Aggiorna store
-      state.setCalculationsData({
-        vendorCosts: costsWithOverrides,
-        kpiData: kpiData,
-        finalMDsOverrides: preservedOverrides
+      // 🏭 FACTORY PATTERN: Seleziona e esegue il calculator appropriato
+      const factory = new CalculatorFactory({
+        store,
+        configManager: this.getConfigManager()
       });
 
-      console.log('✅ Calculations completed:', costsWithOverrides.length, 'vendor costs');
+      const calculator = factory.createCalculator();
+
+      // Pass existing overrides to calculator (only used by FeatureBasedCalculator)
+      // Read from project first (persistent), fallback to store (temporary)
+      const existingOverrides = currentProject.finalMDsOverrides || state.calculationsData?.finalMDsOverrides || {};
+      const result = (calculator as any).calculate(existingOverrides);
+
+      // Aggiorna store con i risultati
+      this.updateStoreWithResults(result);
+
     } catch (error) {
-      console.error('Failed to calculate project costs:', error);
+      console.error('❌ CalculationsActions: Error calculating project costs:', error);
       throw error;
     }
+  }
+
+  /**
+   * Aggiorna lo store con i risultati del calculator
+   * Uses separate storage sections for each mode (featureBased vs workingPackage)
+   */
+  private updateStoreWithResults(result: CalculationResult): void {
+    const store = this.getStore();
+    const state = store.getState();
+
+    // Preserva filtri esistenti
+    const existingFilters = state.calculationsData?.filters;
+    const existingOverrides = state.calculationsData?.finalMDsOverrides || {};
+
+    // SEPARATE STORAGE: Prepare data for mode-specific section
+    let calculationsData: any;
+
+    if (result.mode === 'working-package') {
+      const wpResult = result as any;
+      calculationsData = {
+        vendorCosts: result.vendorCosts,
+        kpiData: result.kpiData,
+        // WP mode has no overrides
+        finalMDsOverrides: {},
+        workingPackage: {
+          calculated: wpResult.calculated,
+          projectTotal: wpResult.summary.projectTotal
+        },
+        filters: existingFilters || { vendor: 'all', role: 'all', category: 'all' }
+      };
+    } else {
+      // Feature-based: apply overrides
+      this.applyFinalMDsOverridesWithCustom(result.vendorCosts, existingOverrides);
+      calculationsData = {
+        vendorCosts: result.vendorCosts,
+        kpiData: result.kpiData,
+        finalMDsOverrides: existingOverrides,
+        // FB mode has no workingPackage data
+        workingPackage: null,
+        filters: existingFilters || { vendor: 'all', role: 'all', category: 'all' }
+      };
+    }
+
+    state.setCalculationsData(calculationsData);
+
+    console.log(`✅ CalculationsActions: ${result.mode} calculation completed with`,
+      result.vendorCosts.length, 'vendor costs');
   }
 
   /**
@@ -796,6 +841,7 @@ export class CalculationsActions {
 
   /**
    * Applica override manuali Final MDs (con override custom)
+   * Calcola finalTotCost = finalMDs * realRate
    */
   private applyFinalMDsOverridesWithCustom(vendorCosts: VendorCost[], overrides: Record<string, number>): VendorCost[] {
 
@@ -804,9 +850,11 @@ export class CalculationsActions {
       const override = overrides[key];
 
       if (override !== undefined) {
+        // Apply override: finalMDs = override value, finalTotCost = finalMDs * realRate
         return {
           ...cost,
-          finalTotCost: override * cost.realRate
+          finalMDs: override,
+          finalTotCost: Math.round(override * cost.realRate)
         };
       }
 
@@ -820,7 +868,7 @@ export class CalculationsActions {
   /**
    * EDITING: Update Final MDs per vendor - ATOMIC UPDATE
    */
-  updateFinalMDs(vendorId: string, role: string, newValue: number): void {
+  async updateFinalMDs(vendorId: string, role: string, newValue: number): Promise<void> {
     try {
 
       const store = this.getStore();
@@ -838,22 +886,18 @@ export class CalculationsActions {
         ...currentOverrides,
         [key]: newValue
       };
-      
-      
-      // 1. Process all costs (same as calculateProjectCosts)
-      const vendorCosts = this.processAllCosts(currentProject);
-      
-      // 2. Apply ALL overrides (including the new one)
-      const costsWithOverrides = this.applyFinalMDsOverridesWithCustom(vendorCosts, updatedOverrides);
-      
-      // 3. Calculate KPIs
-      const kpiData = this.calculateKPIs(costsWithOverrides);
-      
-      // 4. SINGLE store update with everything
+
+      // Use FeatureBasedCalculator with the updated overrides
+      const { FeatureBasedCalculator } = await import('./calculators');
+      const calculator = new FeatureBasedCalculator(store, this.getConfigManager());
+      const result = calculator.calculate(updatedOverrides);
+
+      // SINGLE store update with everything (feature-based mode)
       state.setCalculationsData({
-        vendorCosts: costsWithOverrides,
-        kpiData: kpiData,
-        finalMDsOverrides: updatedOverrides
+        vendorCosts: result.vendorCosts,
+        kpiData: result.kpiData,
+        finalMDsOverrides: updatedOverrides,
+        workingPackage: null // Explicitly null to trigger feature-based storage
       });
 
       // 5. Save overrides to project for persistence
