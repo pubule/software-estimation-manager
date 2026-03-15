@@ -288,82 +288,103 @@ export class CalculationsActions {
   }
 
   /**
-   * Processa tutti i costi (SEMPRE features per development + phases per altre fasi)
+   * Processa tutti i costi usando le stesse funzioni di Phases per coerenza assoluta.
+   * Accumula MDs e costi per ruolo da tutte le fasi, poi assegna ai vendor configurati.
    */
   private processAllCosts(project: any): VendorCost[] {
-    const allCosts: VendorCost[] = [];
-
-    if (project.features && project.features.length > 0) {
-      const featuresCosts = this.processFeaturesCosts(project.features);
-      allCosts.push(...featuresCosts);
+    const phasesActions = (window as any).phasesActions;
+    if (!phasesActions) {
+      console.error('[Calculations] phasesActions not available');
+      return [];
     }
 
-    const featuresTotal = (project.features || []).reduce((sum: number, feature: any) => {
-      return sum + (parseFloat(feature.manDays) || 0);
-    }, 0);
-    const coverageMDs = project.coverage || 0;
-    const developmentTotal = featuresTotal + coverageMDs;
-    const tempRate = 400; // Temporary fixed rate
+    const selectedPhaseResources = project.phases?.selectedPhaseResources || project.phases?.selectedSuppliers || {};
 
-    if (developmentTotal > 0 && project.phases?.development?.effort && project.phases?.selectedSuppliers) {
-        const developmentEffort = project.phases.development.effort;
+    // Accumulatori per ruolo: sommiamo MDs e costi da tutte le fasi
+    const roleTotals: Record<string, { mds: number; cost: number; vendorId: string; rate: number }> = {
+      G1: { mds: 0, cost: 0, vendorId: '', rate: 0 },
+      G2: { mds: 0, cost: 0, vendorId: '', rate: 0 },
+      TA: { mds: 0, cost: 0, vendorId: '', rate: 0 },
+      PM: { mds: 0, cost: 0, vendorId: '', rate: 0 }
+    };
 
-        if (developmentEffort.TA && developmentEffort.TA > 0 && project.phases.selectedSuppliers.TA) {
-            const developmentTA_MDs = Math.round((developmentTotal * developmentEffort.TA) / 100 * 10) / 10;
-            const selectedTA = project.phases.selectedSuppliers.TA;
-            const taSupplier = this.getSupplierData(selectedTA);
-            if (taSupplier) {
-                const totCost = Math.round(developmentTA_MDs * tempRate);
-                const finalMDs_TA = Math.round((totCost / tempRate) * 10) / 10;
-                const taCost: VendorCost = {
-                    vendorId: selectedTA, vendorName: taSupplier.name || selectedTA, role: 'TA',
-                    department: taSupplier.department || 'TA', officialRate: tempRate, realRate: tempRate,
-                    estimatedMDs: developmentTA_MDs, finalMDs: finalMDs_TA, totCost: totCost,
-                    finalTotCost: Math.round(finalMDs_TA * tempRate),
-                    isInternal: taSupplier.type === 'internal'
-                };
-                allCosts.push(taCost);
-            }
+    // Ottieni vendor configurati e i loro rate per ogni ruolo
+    ['G1', 'G2', 'TA', 'PM'].forEach(role => {
+      const resourceConfig = selectedPhaseResources[role];
+      if (resourceConfig) {
+        const vendorId = typeof resourceConfig === 'string' ? resourceConfig : resourceConfig.vendorId;
+        roleTotals[role].vendorId = vendorId;
+        // Ottieni il rate usando la stessa logica di Phases
+        const supplierData = this.getSupplierData(vendorId);
+        if (supplierData && resourceConfig.jobCluster) {
+          const configManager = this.getConfigManager();
+          if (configManager) {
+            const rateDetails = configManager.getRate({
+              vendorId,
+              jobCluster: resourceConfig.jobCluster,
+              seniority: resourceConfig.seniority,
+              location: resourceConfig.location || 'italy',
+              deliveryModel: resourceConfig.deliveryModel || 'onsite'
+            });
+            roleTotals[role].rate = rateDetails?.realRate || 0;
+          }
         }
-
-        if (developmentEffort.PM && developmentEffort.PM > 0 && project.phases.selectedSuppliers.PM) {
-            const developmentPM_MDs = Math.round((developmentTotal * developmentEffort.PM) / 100 * 10) / 10;
-            const selectedPM = project.phases.selectedSuppliers.PM;
-            const pmSupplier = this.getSupplierData(selectedPM);
-            if (pmSupplier) {
-                const totCost = Math.round(developmentPM_MDs * tempRate);
-                const finalMDs_PM = Math.round((totCost / tempRate) * 10) / 10;
-                const pmCost: VendorCost = {
-                    vendorId: selectedPM, vendorName: pmSupplier.name || selectedPM, role: 'PM',
-                    department: pmSupplier.department || 'PM', officialRate: tempRate, realRate: tempRate,
-                    estimatedMDs: developmentPM_MDs, finalMDs: finalMDs_PM, totCost: totCost,
-                    finalTotCost: Math.round(finalMDs_PM * tempRate),
-                    isInternal: pmSupplier.type === 'internal'
-                };
-                allCosts.push(pmCost);
-            }
-        }
-    }
-
-    const hasValidPhases = project.phases && Object.keys(project.phases).some(key => key !== 'selectedSuppliers' && key !== 'development' && project.phases[key]?.manDays > 0);
-
-    if (hasValidPhases) {
-      const phasesCosts = this.processNonDevelopmentPhases(project.phases);
-      allCosts.push(...phasesCosts);
-    }
-
-    // Get G2 resource from either selectedPhaseResources (new) or selectedSuppliers (old)
-    const g2Resource = project.phases?.selectedPhaseResources?.G2 || project.phases?.selectedSuppliers?.G2;
-    if (project.coverage && project.coverage > 0 && g2Resource) {
-      const coverageCost = this.processCoverageCost(project.coverage, g2Resource);
-      if (coverageCost) {
-        allCosts.push(coverageCost);
       }
-    }
+    });
 
-    const consolidatedCosts = this.consolidateVendorCosts(allCosts);
+    // Per ogni fase, accumula MDs e costi usando le funzioni di Phases
+    Object.entries(project.phases || {}).forEach(([phaseKey, phaseData]: [string, any]) => {
+      if (phaseKey === 'selectedSuppliers' || phaseKey === 'selectedPhaseResources') return;
+      if (!phaseData.manDays || phaseData.manDays <= 0 || !phaseData.effort) return;
 
-    return consolidatedCosts;
+      const phase = {
+        id: phaseKey,
+        name: phaseKey,
+        manDays: phaseData.manDays,
+        effort: phaseData.effort
+      };
+
+      // Usa le stesse funzioni esatte di Phases
+      const manDaysByResource = phasesActions.calculateManDaysByResource(phase.manDays, phase.effort);
+      const costByResource = phasesActions.calculateCostByResourceForPhase(phase);
+
+      // Accumula per ogni ruolo
+      ['G1', 'G2', 'TA', 'PM'].forEach(role => {
+        const mds = manDaysByResource[role] || 0;
+        const cost = costByResource[role] || 0;
+        roleTotals[role].mds += mds;
+        roleTotals[role].cost += cost;
+      });
+    });
+
+    // Crea VendorCost dai totali accumulati per vendor+ruolo
+    const allCosts: VendorCost[] = [];
+    ['G1', 'G2', 'TA', 'PM'].forEach(role => {
+      const total = roleTotals[role];
+      if (total.mds > 0 && total.vendorId) {
+        const supplierData = this.getSupplierData(total.vendorId);
+        if (supplierData) {
+          // Usa il rate salvato o calcola dal costo/mds
+          const effectiveRate = total.rate || (total.mds > 0 ? Math.round(total.cost / total.mds) : 0);
+
+          allCosts.push({
+            vendorId: total.vendorId,
+            vendorName: supplierData.name || total.vendorId,
+            role: role as 'G1' | 'G2' | 'TA' | 'PM',
+            department: '',
+            officialRate: effectiveRate,
+            realRate: effectiveRate,
+            estimatedMDs: Math.round(total.mds * 10) / 10,
+            finalMDs: Math.round(total.mds * 10) / 10,
+            totCost: Math.round(total.cost),
+            finalTotCost: Math.round(total.cost),
+            isInternal: supplierData.type === 'internal' || false
+          });
+        }
+      }
+    });
+
+    return allCosts;
   }
 
   /**
@@ -418,7 +439,7 @@ export class CalculationsActions {
         estimatedMDs: feature.manDays || 0,
         finalMDs: finalMDs,
         totCost: totCost,
-        finalTotCost: Math.round(finalMDs * (officialRate || 0)),
+        finalTotCost: Math.round(finalMDs * (realRate || 0)),
         isInternal: supplierData?.type === 'internal'
       };
 
@@ -452,9 +473,9 @@ export class CalculationsActions {
           
           const supplierData = this.getSupplierData(supplierId);
           if (!supplierData) return;
-          
-          // Calculate MDs for this role in this phase (round to 1 decimal)
-          const phaseMDs = Math.round((phaseData.manDays * (percentage / 100)) * 10) / 10;
+
+          // Calculate MDs for this role in this phase - no intermediate rounding to match Phases/Excel
+          const phaseMDs = phaseData.manDays * (percentage / 100);
           const totCost = Math.round(phaseMDs * tempRate);
           // Usa phaseMDs direttamente come finalMDs per coerenza
           const finalMDs = phaseMDs;
@@ -490,6 +511,13 @@ export class CalculationsActions {
     // Support both old structure (selectedSuppliers) and new structure (selectedPhaseResources)
     const selectedPhaseResources = phases.selectedPhaseResources || phases.selectedSuppliers || {};
 
+    // Use PhasesActions to calculate costs - same source of truth as Phases page
+    const phasesActions = (window as any).phasesActions;
+    if (!phasesActions) {
+      console.error('[Calculations] phasesActions not available on window');
+      return [];
+    }
+
     // Process each phase including development (for non-G2 roles)
     Object.entries(phases).forEach(([phaseKey, phaseData]: [string, any]) => {
       // Skip metadata entries only
@@ -498,7 +526,19 @@ export class CalculationsActions {
       }
 
       if (phaseData.manDays && phaseData.manDays > 0 && phaseData.effort) {
-        // Process each role in the phase effort distribution
+        // Create phase object compatible with PhasesActions
+        const phase: any = {
+          id: phaseKey,
+          name: phaseKey,
+          manDays: phaseData.manDays,
+          effort: phaseData.effort
+        };
+
+        // Use PhasesActions to calculate manDays and costs - same as Phases page
+        const manDaysByResource = phasesActions.calculateManDaysByResource(phase.manDays, phase.effort);
+        const costByResource = phasesActions.calculateCostByResourceForPhase(phase);
+
+        // Process each role
         Object.entries(phaseData.effort).forEach(([role, percentage]: [string, any]) => {
           // For development phase, skip G2 role (handled by features)
           if (phaseKey === 'development' && role === 'G2') {
@@ -526,26 +566,24 @@ export class CalculationsActions {
             return;
           }
 
-          // Get rate from resource config or calculate it
-          const rate = this.getPhaseResourceRate(resourceConfig, supplierData);
+          // Get rate from resource config
+          const rate = this.getPhaseResourceRate(resourceConfig, supplierData, role, phaseKey);
 
-          // Calculate MDs for this role in this phase (round to 1 decimal)
-          const phaseMDs = Math.round((phaseData.manDays * (percentage / 100)) * 10) / 10;
-          const totCost = Math.round(phaseMDs * rate);
-          // Usa phaseMDs direttamente come finalMDs per coerenza con phases table
-          const finalMDs = phaseMDs;
+          // Use values from PhasesActions (source of truth)
+          const roleMDs = manDaysByResource[role as keyof typeof manDaysByResource] || 0;
+          const roleCost = costByResource[role as keyof typeof costByResource] || 0;
 
           const cost: VendorCost = {
             vendorId: supplierId,
             vendorName: supplierData.name || supplierId,
             role: role as 'G1' | 'G2' | 'TA' | 'PM',
-            department: '', // Department rimosso - non significativo per G2 con location diverse
+            department: '',
             officialRate: rate,
             realRate: rate,
-            estimatedMDs: phaseMDs,
-            finalMDs: finalMDs,
-            totCost: totCost,
-            finalTotCost: Math.round(finalMDs * rate),
+            estimatedMDs: roleMDs,
+            finalMDs: roleMDs,
+            totCost: roleCost,
+            finalTotCost: roleCost,
             isInternal: supplierData.type === 'internal' || false
           };
 
@@ -553,21 +591,32 @@ export class CalculationsActions {
         });
       }
     });
+
     return costs;
   }
 
   /**
    * Get rate for a phase resource configuration
    */
-  private getPhaseResourceRate(resourceConfig: any, supplierData: any): number {
+  private getPhaseResourceRate(resourceConfig: any, supplierData: any, role?: string, phaseKey?: string): number {
+    const context = role && phaseKey ? `[${phaseKey}/${role}]` : '';
+
     // If resourceConfig is a number (old format), use it directly
     if (typeof resourceConfig === 'number') {
+      console.warn(`[Calculations] ${context} Using numeric rate - this is deprecated`);
       return resourceConfig;
     }
 
-    // If resourceConfig is a string (old format vendorId), use default rate
+    // If resourceConfig is a string (old format vendorId), ERROR - rate cannot be determined
     if (typeof resourceConfig === 'string') {
-      return 400;
+      console.error(`[Calculations] CRITICAL ${context} Resource config is string "${resourceConfig}" - rate cannot be determined. Please reconfigure phase resources.`);
+      return 0;
+    }
+
+    // If resourceConfig is null or undefined, ERROR
+    if (!resourceConfig) {
+      console.error(`[Calculations] CRITICAL ${context} Resource config is null/undefined - rate cannot be determined. Please configure phase resources.`);
+      return 0;
     }
 
     // New format: object with jobCluster, seniority, location, deliveryModel
@@ -581,20 +630,26 @@ export class CalculationsActions {
           location: resourceConfig.location || 'italy',
           deliveryModel: resourceConfig.deliveryModel || 'onsite',
         });
-        if (rateDetails && (rateDetails.officialRate || rateDetails.realRate)) {
-          return rateDetails.officialRate || rateDetails.realRate || 400;
+        if (rateDetails && rateDetails.realRate) {
+          return rateDetails.realRate;
         }
+        console.error(`[Calculations] CRITICAL ${context} Rate not found in configManager for:`, resourceConfig);
+        return 0;
       }
+      console.error(`[Calculations] CRITICAL ${context} ConfigManager not available`);
+      return 0;
     }
 
-    // Fallback to default rate
-    return 400;
+    // Missing required fields
+    console.error(`[Calculations] CRITICAL ${context} Resource config missing required fields (jobCluster, seniority):`, resourceConfig);
+    return 0;
   }
 
   /**
    * Processa costi dal coverage - assegnato al vendor G2 selezionato
+   * Applica l'effort percentage G2 (come fa Phases)
    */
-  private processCoverageCost(coverage: number, g2Resource: any): VendorCost | null {
+  private processCoverageCost(coverage: number, g2Resource: any, g2EffortPercent: number = 100): VendorCost | null {
     // Support both old format (string vendorId) and new format (object with vendorId)
     const g2VendorId = typeof g2Resource === 'string' ? g2Resource : g2Resource?.vendorId;
 
@@ -610,11 +665,14 @@ export class CalculationsActions {
     }
 
     // Get rate from resource config or calculate it
-    const rate = this.getPhaseResourceRate(g2Resource, supplierData);
+    const rate = this.getPhaseResourceRate(g2Resource, supplierData, 'G2', 'coverage');
 
-    const totCost = Math.round(coverage * rate);
-    // Usa coverage direttamente come finalMDs per coerenza
-    const finalMDs = coverage;
+    // Applica effort percentage come fa Phases
+    const effectiveCoverage = coverage * (g2EffortPercent / 100);
+
+    const totCost = Math.round(effectiveCoverage * rate);
+    // Usa effectiveCoverage come finalMDs per coerenza
+    const finalMDs = effectiveCoverage;
 
     const coverageCost: VendorCost = {
       vendorId: g2VendorId,
@@ -623,7 +681,7 @@ export class CalculationsActions {
       department: '', // Department rimosso - non significativo per G2 con location diverse
       officialRate: rate,
       realRate: rate,
-      estimatedMDs: coverage,
+      estimatedMDs: effectiveCoverage,
       finalMDs: finalMDs,
       totCost: totCost,
       finalTotCost: Math.round(finalMDs * rate),
@@ -649,8 +707,8 @@ export class CalculationsActions {
         existing.estimatedMDs += cost.estimatedMDs;
         existing.finalMDs += cost.finalMDs;
         existing.totCost += cost.totCost;
-        // Arrotonda solo alla fine per visualizzazione
-        existing.finalTotCost = Math.round(existing.finalMDs * existing.officialRate);
+        // Somma i finalTotCost invece di ricalcolare per preservare costi con rate diversi
+        existing.finalTotCost += cost.finalTotCost;
         // Aggiorna department con la location del costo corrente (l'ultima vince)
         existing.department = cost.department;
       } else {
@@ -747,7 +805,7 @@ export class CalculationsActions {
       if (override !== undefined) {
         return {
           ...cost,
-          finalTotCost: override * cost.officialRate
+          finalTotCost: override * cost.realRate
         };
       }
 
@@ -1146,7 +1204,7 @@ ${assumptionsList}`;
         finalMDsOverrides: newOverrides
       });
       
-      console.log('Single Final MD reset:', { vendorId, role, department });
+      console.log('Single Final MD reset:', { vendorId, role });
     } catch (error) {
       console.error('Failed to reset single Final MD:', error);
       throw error;
@@ -1436,7 +1494,9 @@ ${assumptionsList}`;
     // Get G2 resource from either selectedPhaseResources (new) or selectedSuppliers (old)
     const g2Resource = project.phases?.selectedPhaseResources?.G2 || project.phases?.selectedSuppliers?.G2;
     if (project.coverage && project.coverage > 0 && g2Resource) {
-      const coverageCost = this.processCoverageCost(project.coverage, g2Resource);
+      // Get G2 effort percentage from development phase (default to 100 if not found)
+      const g2EffortPercent = project.phases?.development?.effort?.G2 || 100;
+      const coverageCost = this.processCoverageCost(project.coverage, g2Resource, g2EffortPercent);
       if (coverageCost) {
         allCosts.push(coverageCost);
       }
@@ -1496,13 +1556,55 @@ ${assumptionsList}`;
         estimatedMDs: feature.manDays || 0,
         finalMDs: finalMDs,
         totCost: totCost,
-        finalTotCost: Math.round(finalMDs * (officialRate || 0)),
+        finalTotCost: Math.round(finalMDs * (realRate || 0)),
         isInternal: supplierData?.type === 'internal'
       };
 
       costs.push(cost);
     });
     return costs;
+  }
+
+  /**
+   * Track if we've already shown rate error toast to avoid spam
+   */
+  private hasShownRateErrorToast = false;
+
+  /**
+   * Show error notification toast for missing rates
+   */
+  private showRateErrorNotification(missingRoles: string[]): void {
+    if (this.hasShownRateErrorToast) return;
+
+    try {
+      const store = this.getStore();
+      if (!store) {
+        console.warn('Store not available for notification');
+        return;
+      }
+
+      const state = store.getState();
+      if (state.addNotification) {
+        const notificationConfig = {
+          id: `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          title: 'Error',
+          message: `Rate not configured for: ${missingRoles.join(', ')}. Please configure phase resources.`,
+          type: 'error',
+          duration: 5000,
+          persistent: false,
+          actions: [],
+          onClick: null,
+          onClose: null,
+          timestamp: new Date()
+        };
+        state.addNotification(notificationConfig);
+        this.hasShownRateErrorToast = true;
+        // Reset after 5 seconds to allow future notifications
+        setTimeout(() => { this.hasShownRateErrorToast = false; }, 5000);
+      }
+    } catch (error) {
+      console.error('Failed to show error notification:', error);
+    }
   }
 }
 

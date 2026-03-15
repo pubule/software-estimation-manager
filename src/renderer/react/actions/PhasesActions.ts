@@ -153,17 +153,8 @@ export class PhasesActions {
         const g2EffortPercent = developmentPhase.effort.G2 / 100;
         currentProject.features.forEach((feature: any) => {
           const featureManDays = parseFloat(feature.manDays) || 0;
-          let featureRate = 0;
-            if (feature.supplier && feature.jobCluster && feature.seniority && feature.location && feature.deliveryModel) {
-            const featureRateDetails = configManager.getRate({
-              vendorId: feature.supplier,
-              jobCluster: feature.jobCluster,
-              seniority: feature.seniority,
-              location: feature.location,
-              deliveryModel: feature.deliveryModel,
-            });
-            featureRate = featureRateDetails.realRate || 0;
-            }
+          // Use feature.rate directly (saved when feature was created) with fallback to resourceRates.G2
+          const featureRate = parseFloat(feature.rate) || resourceRates.G2;
           g2Cost += featureManDays * featureRate * g2EffortPercent;
         });
 
@@ -201,14 +192,32 @@ export class PhasesActions {
       const { selectedPhaseResources } = state;
       const resourceRates: ResourceRates = { G1: 0, G2: 0, TA: 0, PM: 0 };
 
+      const missingRates: string[] = [];
+
+      console.log(`[Phases] calculateCostByResourceForPhase called for phase: ${phase.id}`);
+      console.log(`[Phases] selectedPhaseResources:`, selectedPhaseResources);
+
       for (const role of Object.keys(selectedPhaseResources) as Array<keyof SelectedPhaseResources>) {
         const resource = selectedPhaseResources[role];
         if (resource && resource.vendorId && resource.jobCluster && resource.seniority && resource.location && resource.deliveryModel) {
           const rateDetails = configManager.getRate(resource);
           resourceRates[role] = rateDetails.realRate || 0;
+          console.log(`[Phases] Rate for ${role}: ${resourceRates[role]} (from configManager)`);
+          if (resourceRates[role] === 0) {
+            console.error(`[Phases] CRITICAL: Rate is 0 for ${role} in phase "${phase.id}". Resource config:`, resource);
+            missingRates.push(role);
+          }
         } else {
           resourceRates[role] = 0;
+          console.error(`[Phases] CRITICAL: Missing resource configuration for ${role} in phase "${phase.id}". Resource:`, resource);
+          missingRates.push(role);
         }
+      }
+
+      // Show toast if any rates are missing
+      if (missingRates.length > 0) {
+        const errorMsg = `Rate not configured for: ${missingRates.join(', ')}. Click "Specify full rate details" to configure.`;
+        this.showErrorNotification(errorMsg);
       }
 
       const manDaysByResource = this.calculateManDaysByResource(phase.manDays, phase.effort);
@@ -339,6 +348,42 @@ export class PhasesActions {
       console.error('Failed to get development notice text:', error);
       return 'Development Phase: calculated from features + coverage';
     }
+  }
+
+  /**
+   * Show error notification toast
+   */
+  showErrorNotification(message: string): void {
+    try {
+      const store = this.getStore();
+      if (!store) {
+        console.warn('Store not available for notification');
+        return;
+      }
+
+      const state = store.getState();
+      if (state.addNotification) {
+        const notificationConfig = this.createNotificationConfig(message, 'error');
+        state.addNotification(notificationConfig);
+      }
+    } catch (error) {
+      console.error('Failed to show error notification:', error);
+    }
+  }
+
+  private createNotificationConfig(message: string, type: string): any {
+    return {
+      id: `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title: type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Info',
+      message: message,
+      type: type,
+      duration: 5000,
+      persistent: false,
+      actions: [],
+      onClick: null,
+      onClose: null,
+      timestamp: new Date()
+    };
   }
 }
 

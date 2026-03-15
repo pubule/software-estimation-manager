@@ -1613,9 +1613,10 @@ class ApplicationController extends BaseComponent {
 
         const lookupSupplierName = (supplierId) => {
             if (!supplierId) return '';
+            // Use getVendors() instead of getSuppliers()
             const allSuppliers = [
-                ...(this.managers.config?.getSuppliers(projectConfig) || []),
-                ...(this.managers.config?.getInternalResources(projectConfig) || [])
+                ...(this.managers.config?.getVendors() || []),
+                ...(this.managers.config?.getInternalResources ? this.managers.config.getInternalResources() : [])
             ];
             const supplier = allSuppliers.find(s => s.id === supplierId);
             return supplier?.name || supplierId;
@@ -2016,32 +2017,44 @@ class ApplicationController extends BaseComponent {
                 const manDaysByResource = { G1: 0, G2: 0, TA: 0, PM: 0 };
                 const costByResource = { G1: 0, G2: 0, TA: 0, PM: 0 };
 
-                // Get store data for correct calculations (same logic as app-store.js::calculatePhasesTotals)
-                const storeState = window.appStore?.getState();
-                let resourceRates = storeState?.resourceRates || { G1: 450, G2: 380, TA: 420, PM: 500 };
+                // Get resource rates from selectedPhaseResources (new format) with correct rate calculation
+                const selectedPhaseResources = currentProject.phases?.selectedPhaseResources || currentProject.phases?.selectedSuppliers || {};
+                const configManager = this.managers.config;
+                const vendors = configManager?.getVendors() || [];
 
-                // Get available suppliers from project config (not just store, which may not be initialized during export)
-                let availableSuppliers = storeState?.availableSuppliers || [];
-                if (availableSuppliers.length === 0 && currentProject?.config) {
-                    // Fallback: load suppliers from project configuration
-                    const projectConfig = currentProject.config;
-                    const configManager = this.managers.config;
-                    if (configManager) {
-                        const suppliers = configManager.getSuppliers(projectConfig) || [];
-                        const internalResources = configManager.getInternalResources(projectConfig) || [];
-                        availableSuppliers = [...suppliers, ...internalResources];
+                // Helper to get rate from resource config (same logic as CalculationsActions.getPhaseResourceRate)
+                const getResourceRate = (resourceConfig) => {
+                    if (!resourceConfig) return 0;
+                    // Support old format (string vendorId)
+                    if (typeof resourceConfig === 'string') {
+                        const vendor = vendors.find(v => v.id === resourceConfig);
+                        return vendor?.role === 'G1' ? 300 : 400; // Fallback default
                     }
-                }
-
-                // Update resource rates based on selected suppliers (same logic as PhasesActions.updateResourceRatesFromSuppliers)
-                const selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
-                Object.keys(selectedSuppliers).forEach((resourceType) => {
-                    const selectedSupplierId = selectedSuppliers[resourceType];
-                    if (selectedSupplierId && availableSuppliers.length > 0) {
-                        const supplier = availableSuppliers.find(s => s.id === selectedSupplierId);
-                        if (supplier) {
-                            resourceRates[resourceType] = supplier.realRate || supplier.officialRate || resourceRates[resourceType];
+                    // New format: object with jobCluster, seniority, location, deliveryModel
+                    if (resourceConfig.vendorId && resourceConfig.jobCluster) {
+                        const vendor = vendors.find(v => v.id === resourceConfig.vendorId);
+                        if (vendor && vendor.jobClusters) {
+                            const jobCluster = vendor.jobClusters.find(jc => jc.clusterId === resourceConfig.jobCluster);
+                            if (jobCluster && jobCluster.rates) {
+                                const rate = jobCluster.rates.find(r => r.seniority === resourceConfig.seniority);
+                                if (rate && rate.locations && rate.locations[resourceConfig.location]) {
+                                    return rate.locations[resourceConfig.location][resourceConfig.deliveryModel] || 0;
+                                }
+                            }
                         }
+                    }
+                    return 0;
+                };
+
+                // Calculate rates for each resource type
+                let resourceRates = { G1: 0, G2: 0, TA: 0, PM: 0 };
+                Object.keys(selectedPhaseResources).forEach((resourceType) => {
+                    if (['G1', 'G2', 'TA', 'PM'].includes(resourceType)) {
+                        const rate = getResourceRate(selectedPhaseResources[resourceType]);
+                        if (rate === 0) {
+                            console.error(`[ExcelExport] CRITICAL: Rate is 0 for ${resourceType} in phase "${phase.name}". Check selectedPhaseResources configuration.`);
+                        }
+                        resourceRates[resourceType] = rate;
                     }
                 });
 
@@ -2050,61 +2063,36 @@ class ApplicationController extends BaseComponent {
                     Object.entries(phase.effort).forEach(([role, percentage]) => {
                         if (percentage && percentage > 0) {
                             const roleMDs = (phase.manDays * (percentage / 100));
-                            manDaysByResource[role] = Math.round(roleMDs * 10) / 10;
+                            manDaysByResource[role] = roleMDs;
                         }
                     });
                 }
 
-                // Calculate costs using the same logic as app-store.js::calculatePhasesTotals()
-                // Special calculation for Development phase (uses feature-specific supplier rates)
+                // Calculate costs using resourceRates from selectedPhaseResources
+                // Special calculation for Development phase (uses feature-specific rates if available)
                 if (phase.key === 'development' && currentProject?.features) {
                     const g2EffortPercent = (phase.effort?.G2 || 0) / 100;
                     let g2Cost = 0;
 
-                    // Calculate G2 cost using feature-specific supplier rates
+                    // Calculate G2 cost using feature-specific rates (feature.rate)
                     currentProject.features.forEach(feature => {
                         const featureManDays = parseFloat(feature.manDays) || 0;
-                        const featureSupplier = availableSuppliers.find(s => s.id === feature.supplier);
-                        const featureRate = featureSupplier ? (featureSupplier.realRate || featureSupplier.officialRate || 0) : 0;
+                        const featureRate = parseFloat(feature.rate) || resourceRates.G2;
                         g2Cost += featureManDays * featureRate * g2EffortPercent;
                     });
-
-                    // Get selected suppliers for TA, PM, and coverage
-                    const selectedSuppliers = currentProject.phases?.selectedSuppliers || {};
 
                     // Add coverage cost if present
                     const coverageMDs = currentProject.coverage || 0;
                     if (coverageMDs > 0) {
-                        if (selectedSuppliers.G2) {
-                            const g2Supplier = availableSuppliers.find(s => s.id === selectedSuppliers.G2);
-                            const g2Rate = g2Supplier ? (g2Supplier.realRate || g2Supplier.officialRate || 0) : resourceRates.G2;
-                            g2Cost += coverageMDs * g2Rate * g2EffortPercent;
-                        }
+                        g2Cost += coverageMDs * resourceRates.G2 * g2EffortPercent;
                     }
 
                     costByResource.G1 = Math.round(manDaysByResource.G1 * resourceRates.G1);
                     costByResource.G2 = Math.round(g2Cost);
 
-                    // Use selected supplier rates for TA and PM instead of hardcoded resourceRates
-                    let taCost = 0;
-                    if (manDaysByResource.TA > 0 && selectedSuppliers.TA) {
-                        const taSupplier = availableSuppliers.find(s => s.id === selectedSuppliers.TA);
-                        const taRate = taSupplier ? (taSupplier.realRate || taSupplier.officialRate || 0) : resourceRates.TA;
-                        taCost = Math.round(manDaysByResource.TA * taRate);
-                    } else {
-                        taCost = Math.round(manDaysByResource.TA * resourceRates.TA);
-                    }
-                    costByResource.TA = taCost;
-
-                    let pmCost = 0;
-                    if (manDaysByResource.PM > 0 && selectedSuppliers.PM) {
-                        const pmSupplier = availableSuppliers.find(s => s.id === selectedSuppliers.PM);
-                        const pmRate = pmSupplier ? (pmSupplier.realRate || pmSupplier.officialRate || 0) : resourceRates.PM;
-                        pmCost = Math.round(manDaysByResource.PM * pmRate);
-                    } else {
-                        pmCost = Math.round(manDaysByResource.PM * resourceRates.PM);
-                    }
-                    costByResource.PM = pmCost;
+                    // Use resourceRates from selectedPhaseResources for TA and PM
+                    costByResource.TA = Math.round(manDaysByResource.TA * resourceRates.TA);
+                    costByResource.PM = Math.round(manDaysByResource.PM * resourceRates.PM);
                 } else {
                     // Normal calculation for other phases (uses standard resource rates)
                     costByResource.G1 = Math.round(manDaysByResource.G1 * resourceRates.G1);
