@@ -1379,11 +1379,11 @@ class ApplicationController extends BaseComponent {
         // Vendor costs data
         if (vendorCosts.length > 0) {
             vendorCosts.forEach((cost, index) => {
-                // Get override value if present
-                const overrideKey = `${cost.vendorId}_${cost.role}_${cost.department}`;
+                // Get override value if present (key matches CalculationsActions: vendorId_role)
+                const overrideKey = `${cost.vendorId}_${cost.role}`;
                 const overrideFinalMDs = finalMDsOverrides[overrideKey];
                 const displayFinalMDs = overrideFinalMDs !== undefined ? overrideFinalMDs : (cost.finalMDs || cost.estimatedMDs || 0);
-                const finalCost = displayFinalMDs * (cost.officialRate || 0);
+                const finalCost = displayFinalMDs * (cost.realRate || 0);
 
                 // Alternate row colors
                 const rowStyle = index % 2 === 0 ?
@@ -1420,16 +1420,16 @@ class ApplicationController extends BaseComponent {
             const totalManDays = vendorCosts.reduce((sum, c) => sum + (c.estimatedMDs || 0), 0);
             const totalCost = vendorCosts.reduce((sum, c) => sum + (c.totCost || 0), 0);
             const totalFinalMDs = vendorCosts.reduce((sum, c) => {
-                const overrideKey = `${c.vendorId}_${c.role}_${c.department}`;
+                const overrideKey = `${c.vendorId}_${c.role}`;
                 const overrideFinalMDs = finalMDsOverrides[overrideKey];
                 const displayFinalMDs = overrideFinalMDs !== undefined ? overrideFinalMDs : (c.finalMDs || c.estimatedMDs || 0);
                 return sum + displayFinalMDs;
             }, 0);
             const totalFinalCost = vendorCosts.reduce((sum, c) => {
-                const overrideKey = `${c.vendorId}_${c.role}_${c.department}`;
+                const overrideKey = `${c.vendorId}_${c.role}`;
                 const overrideFinalMDs = finalMDsOverrides[overrideKey];
                 const displayFinalMDs = overrideFinalMDs !== undefined ? overrideFinalMDs : (c.finalMDs || c.estimatedMDs || 0);
-                const finalCost = displayFinalMDs * (c.officialRate || 0);
+                const finalCost = displayFinalMDs * (c.realRate || 0);
                 return sum + finalCost;
             }, 0);
             
