@@ -1064,12 +1064,12 @@ class ApplicationController extends BaseComponent {
     /**
      * Create Excel sheet for calculations data
      */
-    createCalculationsSheet() {
+    async createCalculationsSheet() {
         // Get calculations data from new React system (migrated from legacy CalculationsManager)
         // Use calculationsActions to calculate and get data from store
         if (window.calculationsActions && window.appStore) {
             try {
-                window.calculationsActions.calculateProjectCosts();
+                await window.calculationsActions.calculateProjectCosts();
             } catch (error) {
                 console.error('Failed to calculate project costs for export:', error);
             }
@@ -1079,20 +1079,44 @@ class ApplicationController extends BaseComponent {
         const store = window.appStore;
         const state = store?.getState();
         const calculationsData = state?.calculationsData || {};
-        const vendorCosts = calculationsData.vendorCosts || [];
-        const kpiData = calculationsData.kpiData || {};
         
+        console.log('📊 EXCEL EXPORT - calculationsData:', calculationsData);
+        console.log('📊 EXCEL EXPORT - featureBased:', calculationsData.featureBased);
+        console.log('📊 EXCEL EXPORT - workingPackage:', calculationsData.workingPackage);
+
+        // MODE-AWARE: Read from correct data section based on estimation mode
+        const isWorkingPackageMode = state.currentProject?.workingPackageData?.enabled || false;
+        let vendorCosts, kpiData, modeLabel;
+
+        if (isWorkingPackageMode) {
+            // Working Package mode
+            vendorCosts = calculationsData.workingPackage?.vendorCosts || [];
+            kpiData = calculationsData.workingPackage?.kpiData || {};
+            modeLabel = 'WORKING PACKAGE';
+        } else {
+            // Feature-based mode
+            vendorCosts = calculationsData.featureBased?.vendorCosts || [];
+            kpiData = calculationsData.featureBased?.kpiData || calculationsData.kpiData || {};
+            modeLabel = 'FEATURE-BASED';
+        }
+
         // Create basic header
         const data = [
             ['PROJECT CALCULATIONS', '', '', '', '', '', '', ''],
-            ['Project Name', this.currentProject?.project?.name || '', '', '', '', '', '', ''],
+            ['Project Name', state.currentProject?.project?.name || '', '', '', '', '', '', ''],
             ['Export Date', new Date().toLocaleDateString(), '', '', '', '', '', ''],
             ['', '', '', '', '', '', '', ''], // Empty row
-            
-            // Features Summary
-            ['FEATURES SUMMARY', '', '', '', '', '', '', ''],
-            ['Total Features', this.currentProject?.features?.length || 0, '', '', '', '', '', ''],
-            ['Total Man Days', this.currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0)?.toFixed(1) || '0.0', '', '', '', '', '', ''],
+            ['Estimation Mode', modeLabel, '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''], // Empty row
+            isWorkingPackageMode ? ['WORKING PACKAGE SUMMARY', '', '', '', '', '', '', ''] : ['FEATURES SUMMARY', '', '', '', '', '', '', ''],
+            ...(isWorkingPackageMode ? [
+                ['GTO Total', `€ ${(state.currentProject?.workingPackageData?.gto?.totalAmount || 0).toLocaleString()}`, '', '', '', '', '', ''],
+                ['GDS Total', `€ ${(state.currentProject?.workingPackageData?.gds?.totalAmount || 0).toLocaleString()}`, '', '', '', '', '', ''],
+                ['Project Total', `€ ${((state.currentProject?.workingPackageData?.gto?.totalAmount || 0) + (state.currentProject?.workingPackageData?.gds?.totalAmount || 0)).toLocaleString()}`, '', '', '', '', '', '']
+            ] : [
+                ['Total Features', state.currentProject?.features?.length || 0, '', '', '', '', '', ''],
+                ['Total Man Days', state.currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0)?.toFixed(1) || '0.0', '', '', '', '', '', '']
+            ]),
             ['', '', '', '', '', '', '', ''], // Empty row
         ];
 
@@ -1102,26 +1126,26 @@ class ApplicationController extends BaseComponent {
         
         if (vendorCosts.length > 0) {
             vendorCosts.forEach(cost => {
-                const finalCost = cost.finalMDs ? (cost.finalMDs * cost.officialRate) : cost.cost;
+                const finalCost = cost.finalTotCost || (cost.finalMDs * cost.realRate) || 0;
                 data.push([
-                    cost.vendor || '',
+                    cost.vendorName || cost.vendor || '',
                     cost.role || '',
                     cost.department || '',
-                    cost.manDays?.toFixed(1) || '0.0',
-                    cost.officialRate?.toFixed(0) || '0',
-                    cost.cost?.toFixed(0) || '0',
-                    cost.finalMDs?.toFixed(1) || cost.manDays?.toFixed(1) || '0.0',
-                    finalCost?.toFixed(0) || '0'
+                    (cost.estimatedMDs || cost.manDays || 0).toFixed(1),
+                    (cost.realRate || cost.officialRate || 0).toFixed(0),
+                    (cost.totCost || cost.cost || 0).toFixed(0),
+                    (cost.finalMDs || cost.estimatedMDs || 0).toFixed(1),
+                    finalCost.toFixed(0)
                 ]);
             });
             
             // Add totals row
-            const totalManDays = vendorCosts.reduce((sum, c) => sum + (c.manDays || 0), 0);
-            const totalCost = vendorCosts.reduce((sum, c) => sum + (c.cost || 0), 0);
-            const totalFinalMDs = vendorCosts.reduce((sum, c) => sum + (c.finalMDs || c.manDays || 0), 0);
+            const totalManDays = vendorCosts.reduce((sum, c) => sum + (c.estimatedMDs || c.manDays || 0), 0);
+            const totalCost = vendorCosts.reduce((sum, c) => sum + (c.totCost || c.cost || 0), 0);
+            const totalFinalMDs = vendorCosts.reduce((sum, c) => sum + (c.finalMDs || c.estimatedMDs || c.manDays || 0), 0);
             const totalFinalCost = vendorCosts.reduce((sum, c) => {
-                const finalCost = c.finalMDs ? (c.finalMDs * c.officialRate) : c.cost;
-                return sum + (finalCost || 0);
+                const finalCost = c.finalTotCost || (c.finalMDs * c.realRate) || 0;
+                return sum + finalCost;
             }, 0);
             
             data.push(['TOTAL', '', '', 
@@ -1174,7 +1198,7 @@ class ApplicationController extends BaseComponent {
                 };
             }
             vendorSummary[cost.vendorName].manDays += cost.finalMDs || cost.estimatedMDs || 0;
-            const finalCost = cost.finalMDs ? (cost.finalMDs * cost.officialRate) : cost.totCost;
+            const finalCost = cost.finalTotCost || (cost.finalMDs * cost.realRate) || 0;
             vendorSummary[cost.vendorName].cost += finalCost || 0;
         });
         
@@ -1229,7 +1253,7 @@ class ApplicationController extends BaseComponent {
         // Use calculationsActions to calculate and get data from store
         if (window.calculationsActions && window.appStore) {
             try {
-                window.calculationsActions.calculateProjectCosts();
+                await window.calculationsActions.calculateProjectCosts();
             } catch (error) {
                 console.error('Failed to calculate project costs for export:', error);
             }
@@ -1239,8 +1263,25 @@ class ApplicationController extends BaseComponent {
         const store = window.appStore;
         const state = store?.getState();
         const calculationsData = state?.calculationsData || {};
-        const vendorCosts = calculationsData.vendorCosts || [];
-        const kpiData = calculationsData.kpiData || {};
+
+        // MODE-AWARE: Read from correct data section based on estimation mode
+        const isWorkingPackageMode = state.currentProject?.workingPackageData?.enabled || false;
+        let vendorCosts, kpiData, modeLabel;
+
+        if (isWorkingPackageMode) {
+            // Working Package mode
+            vendorCosts = calculationsData.workingPackage?.vendorCosts || [];
+            kpiData = calculationsData.workingPackage?.kpiData || {};
+            modeLabel = 'WORKING PACKAGE';
+        } else {
+            // Feature-based mode
+            vendorCosts = calculationsData.featureBased?.vendorCosts || [];
+            kpiData = calculationsData.featureBased?.kpiData || calculationsData.kpiData || {};
+            modeLabel = 'FEATURE-BASED';
+        }
+
+        console.log('📊 EXCEL JS EXPORT - Mode:', modeLabel, 'Vendor costs count:', vendorCosts.length);
+
         const finalMDsOverrides = calculationsData.finalMDsOverrides || {};
         
         // Define styles
@@ -1331,34 +1372,64 @@ class ApplicationController extends BaseComponent {
 
         row++; // Empty row
 
-        // Features Summary Section
-        worksheet.mergeCells(`A${row}:H${row}`);
-        const featuresHeaderCell = worksheet.getCell(`A${row}`);
-        featuresHeaderCell.value = 'FEATURES SUMMARY';
-        featuresHeaderCell.style = styles.sectionHeader;
-        row++;
+        // Mode-specific Summary Section
+        if (isWorkingPackageMode) {
+            // Working Package Summary
+            worksheet.mergeCells(`A${row}:H${row}`);
+            const wpHeaderCell = worksheet.getCell(`A${row}`);
+            wpHeaderCell.value = 'WORKING PACKAGE SUMMARY';
+            wpHeaderCell.style = styles.sectionHeader;
+            row++;
 
-        // Get current project from store to ensure fresh data
-        const currentProject = StateSelectors.getCurrentProject();
+            const wpData = state.currentProject?.workingPackageData || {};
+            const gtoTotal = wpData.gto?.totalAmount || 0;
+            const gdsTotal = wpData.gds?.totalAmount || 0;
 
-        worksheet.getCell(`A${row}`).value = 'Total Features:';
-        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
-        worksheet.getCell(`B${row}`).value = currentProject?.features?.length || 0;
-        row++;
+            worksheet.getCell(`A${row}`).value = 'GTO Total:';
+            worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+            worksheet.getCell(`B${row}`).value = gtoTotal;
+            worksheet.getCell(`B${row}`).style = styles.currencyCell;
+            row++;
 
-        worksheet.getCell(`A${row}`).value = 'Total Man Days:';
-        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
-        const totalMD = currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0) || 0;
-        worksheet.getCell(`B${row}`).value = totalMD;
-        worksheet.getCell(`B${row}`).style = styles.numberCell;
-        row++;
+            worksheet.getCell(`A${row}`).value = 'GDS Total:';
+            worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+            worksheet.getCell(`B${row}`).value = gdsTotal;
+            worksheet.getCell(`B${row}`).style = styles.currencyCell;
+            row++;
 
-        worksheet.getCell(`A${row}`).value = 'Coverage:';
-        worksheet.getCell(`A${row}`).style = { font: { bold: true } };
-        worksheet.getCell(`B${row}`).value = currentProject?.coverage || 0;
-        worksheet.getCell(`B${row}`).style = styles.numberCell;
-        row++;
-        row++; // Empty row
+            worksheet.getCell(`A${row}`).value = 'Project Total:';
+            worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+            worksheet.getCell(`B${row}`).value = gtoTotal + gdsTotal;
+            worksheet.getCell(`B${row}`).style = styles.currencyCell;
+            row++;
+            row++; // Empty row
+        } else {
+            // Feature-based Summary
+            worksheet.mergeCells(`A${row}:H${row}`);
+            const featuresHeaderCell = worksheet.getCell(`A${row}`);
+            featuresHeaderCell.value = 'FEATURES SUMMARY';
+            featuresHeaderCell.style = styles.sectionHeader;
+            row++;
+
+            worksheet.getCell(`A${row}`).value = 'Total Features:';
+            worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+            worksheet.getCell(`B${row}`).value = state.currentProject?.features?.length || 0;
+            row++;
+
+            worksheet.getCell(`A${row}`).value = 'Total Man Days:';
+            worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+            const totalMD = state.currentProject?.features?.reduce((sum, f) => sum + (f.manDays || 0), 0) || 0;
+            worksheet.getCell(`B${row}`).value = totalMD;
+            worksheet.getCell(`B${row}`).style = styles.numberCell;
+            row++;
+
+            worksheet.getCell(`A${row}`).value = 'Coverage:';
+            worksheet.getCell(`A${row}`).style = { font: { bold: true } };
+            worksheet.getCell(`B${row}`).value = state.currentProject?.coverage || 0;
+            worksheet.getCell(`B${row}`).style = styles.numberCell;
+            row++;
+            row++; // Empty row
+        }
 
         // Vendor Costs Breakdown Section
         worksheet.mergeCells(`A${row}:H${row}`);
