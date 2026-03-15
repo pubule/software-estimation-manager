@@ -366,6 +366,7 @@ export class CalculationsActions {
         if (supplierData) {
           // Usa il rate salvato o calcola dal costo/mds
           const effectiveRate = total.rate || (total.mds > 0 ? Math.round(total.cost / total.mds) : 0);
+          const finalMDs = Math.round(total.mds * 10) / 10;
 
           allCosts.push({
             vendorId: total.vendorId,
@@ -374,10 +375,10 @@ export class CalculationsActions {
             department: '',
             officialRate: effectiveRate,
             realRate: effectiveRate,
-            estimatedMDs: Math.round(total.mds * 10) / 10,
-            finalMDs: Math.round(total.mds * 10) / 10,
+            estimatedMDs: finalMDs,
+            finalMDs: finalMDs,
             totCost: Math.round(total.cost),
-            finalTotCost: Math.round(total.cost),
+            finalTotCost: Math.round(finalMDs * effectiveRate),
             isInternal: supplierData.type === 'internal' || false
           });
         }
