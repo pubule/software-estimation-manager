@@ -112,10 +112,20 @@ export class WorkingPackageCalculator implements ICalculator {
     // Determina ruolo di default per la categoria
     const defaultRole = category === 'GTO' ? 'G2' : 'G1';
 
+    // Ottieni i jobCluster selezionati da workingPackageResources
+    const store = this.store.getState();
+    const workingPackageResources = store.workingPackageResources;
+    const categoryResources = workingPackageResources[category];
+    const primaryJobCluster = categoryResources?.primaryResource?.jobCluster;
+    const secondaryJobCluster = categoryResources?.secondaryResource?.jobCluster;
+
     // Crea entry primary
     if (categoryData.primaryVendorId) {
       const primaryVendor = this.getVendorData(categoryData.primaryVendorId);
       if (primaryVendor) {
+        // Usa il jobCluster selezionato per cercare il role nel vendor
+        const primaryRole = this.getRoleForJobCluster(primaryVendor, primaryJobCluster) || defaultRole;
+
         entries.push({
           vendorId: categoryData.primaryVendorId,
           vendorName: primaryVendor.name,
@@ -124,7 +134,7 @@ export class WorkingPackageCalculator implements ICalculator {
           percentage: 100 - (categoryData.secondaryPercentage || 0),
           amount: split.primaryAmount,
           isInternal: primaryVendor.type?.toLowerCase() === 'internal',
-          role: this.getVendorRole(categoryData.primaryVendorId) || defaultRole
+          role: primaryRole
         });
       }
     }
@@ -133,6 +143,9 @@ export class WorkingPackageCalculator implements ICalculator {
     if (categoryData.secondaryVendorId && categoryData.secondaryPercentage > 0) {
       const secondaryVendor = this.getVendorData(categoryData.secondaryVendorId);
       if (secondaryVendor) {
+        // Usa il jobCluster selezionato per cercare il role nel vendor
+        const secondaryRole = this.getRoleForJobCluster(secondaryVendor, secondaryJobCluster) || defaultRole;
+
         entries.push({
           vendorId: categoryData.secondaryVendorId,
           vendorName: secondaryVendor.name,
@@ -141,7 +154,7 @@ export class WorkingPackageCalculator implements ICalculator {
           percentage: categoryData.secondaryPercentage,
           amount: split.secondaryAmount,
           isInternal: secondaryVendor.type?.toLowerCase() === 'internal',
-          role: this.getVendorRole(categoryData.secondaryVendorId) || defaultRole
+          role: secondaryRole
         });
       }
     }
@@ -361,7 +374,21 @@ export class WorkingPackageCalculator implements ICalculator {
   }
 
   /**
-   * Recupera ruolo del vendor dal job cluster
+   * Recupera ruolo del vendor dal job cluster specificato
+   * Cerca nel vendor.jobClusters il matching per clusterId
+   */
+  private getRoleForJobCluster(vendor: any, jobCluster?: string): 'G1' | 'G2' | 'TA' | 'PM' | null {
+    if (!vendor?.jobClusters || vendor.jobClusters.length === 0 || !jobCluster) return null;
+
+    const matching = vendor.jobClusters.find((jc: any) => jc.clusterId === jobCluster);
+    if (matching?.role && ['G1', 'G2', 'TA', 'PM'].includes(matching.role)) {
+      return matching.role as 'G1' | 'G2' | 'TA' | 'PM';
+    }
+    return null;
+  }
+
+  /**
+   * Recupera ruolo del vendor dal job cluster (legacy - usa solo il primo)
    */
   private getVendorRole(vendorId: string): 'G1' | 'G2' | 'TA' | 'PM' | null {
     const vendor = this.getVendorData(vendorId);
