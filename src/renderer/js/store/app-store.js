@@ -106,9 +106,15 @@ const appStore = window.zustand.createStore((set, get) => ({
     currentPhases: [],
     availableSuppliers: [], // This will be populated from globalConfig.vendors
     selectedPhaseResources: { G1: null, G2: null, TA: null, PM: null },
+    // Working Package resource selections (parallel to selectedPhaseResources for phases)
+    workingPackageResources: {
+        gto: { primaryResource: null, secondaryResource: null },
+        gds: { primaryResource: null, secondaryResource: null }
+    },
     rateSpecModal: {
         isOpen: false,
         role: null,
+        mode: null, // null | 'phase' | 'wp'
     },
     phasesTotals: {
         manDays: 0,
@@ -246,6 +252,11 @@ const appStore = window.zustand.createStore((set, get) => ({
             // 🧹 RESET: Phases cache (will be reinitialized from new project)
             currentPhases: [],
             selectedPhaseResources: { G1: null, G2: null, TA: null, PM: null },
+            // 🧹 RESET: Working Package resources (will be populated from project data)
+            workingPackageResources: {
+                gto: { primaryResource: null, secondaryResource: null },
+                gds: { primaryResource: null, secondaryResource: null }
+            },
             resourceRates: { G1: 450, G2: 380, TA: 420, PM: 500 }, // Default rates
             phasesTotals: {
                 manDays: 0,
@@ -957,12 +968,36 @@ const appStore = window.zustand.createStore((set, get) => ({
         });
     },
 
-    openRateSpecModal: (role) => {
-        set({ rateSpecModal: { isOpen: true, role } });
+    /**
+     * Update Working Package resource selection (vendor + rate details)
+     * @param {string} category - 'gto' or 'gds'
+     * @param {string} resourceType - 'primaryResource' or 'secondaryResource'
+     * @param {object} resourceDetails - Full resource config (vendorId, jobCluster, seniority, location, deliveryModel)
+     */
+    updateWorkingPackageResource: (category, resourceType, resourceDetails) => {
+        const state = get();
+        const { workingPackageResources } = state;
+        const currentCategory = workingPackageResources[category] || {};
+
+        const newWorkingPackageResources = {
+            ...workingPackageResources,
+            [category]: {
+                ...currentCategory,
+                [resourceType]: resourceDetails
+            }
+        };
+
+        set({
+            workingPackageResources: newWorkingPackageResources,
+        });
+    },
+
+    openRateSpecModal: (role, mode = 'phase') => {
+        set({ rateSpecModal: { isOpen: true, role, mode } });
     },
 
     closeRateSpecModal: () => {
-        set({ rateSpecModal: { isOpen: false, role: null } });
+        set({ rateSpecModal: { isOpen: false, role: null, mode: null } });
     },
 
     /**

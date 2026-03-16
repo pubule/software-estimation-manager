@@ -140,6 +140,46 @@ export const useCalculationsActions = () => {
     }
   }, []);
 
+  const updateWorkingPackageResource = useCallback((
+    category: 'gto' | 'gds',
+    resourceType: 'primaryResource' | 'secondaryResource',
+    resource: any
+  ) => {
+    try {
+      calculationsActions.updateWorkingPackageResource(category, resourceType, resource);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const openRateSpecModalForWP = useCallback((role: string) => {
+    try {
+      calculationsActions.openRateSpecModalForWP(role);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const closeRateSpecModal = useCallback(() => {
+    try {
+      calculationsActions.closeRateSpecModal();
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
+  const updateWorkingPackageVendorAndResource = useCallback((
+    category: 'gto' | 'gds',
+    resourceType: 'primaryResource' | 'secondaryResource',
+    resource: any
+  ) => {
+    try {
+      calculationsActions.updateWorkingPackageVendorAndResource(category, resourceType, resource);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
+
   return {
     // Core calculations
     calculateProjectCosts,
@@ -164,6 +204,10 @@ export const useCalculationsActions = () => {
     setWorkingPackageEnabled,
     updateWorkingPackage,
     updateWorkingPackageCategory,
-    getWorkingPackageData
+    getWorkingPackageData,
+    updateWorkingPackageResource,
+    updateWorkingPackageVendorAndResource,
+    openRateSpecModalForWP,
+    closeRateSpecModal
   };
 };

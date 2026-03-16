@@ -10,17 +10,24 @@
 import React, { useEffect, useMemo } from 'react';
 import { useStore } from '../hooks/useStore';
 import { useCalculationsActions } from '../hooks/useCalculationsActions';
+import RateSpecificationModal from './RateSpecificationModal';
 
 interface CalculationsPageProps {
   // Props interface (se necessario)
 }
 
+// Working Package Resource interface
+interface WorkingPackageResource {
+  vendorId: string;
+  jobCluster: string;
+  seniority: string;
+  location: string;
+  deliveryModel: string;
+}
+
 const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   // State for copy feedback
   const [isCopied, setIsCopied] = React.useState(false);
-
-  // Ref to track previous project for detecting project changes
-  const previousProjectIdRef = React.useRef<string | undefined>();
 
   // SOLO lettura dallo store - Selettori specifici per massima reattivita
   const currentProject = useStore(state => state.currentProject);
@@ -94,6 +101,9 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   // Working Package calculated data (from separate store section)
   const workingPackageCalculated = useStore(state => state.calculationsData?.workingPackage);
 
+  // Working Package resource selections (for full rate details)
+  const workingPackageResources = useStore(state => state.workingPackageResources);
+
   // All suppliers for vendor selection
   const allSuppliers = useStore(state => {
     const app = (window as any).app;
@@ -152,33 +162,96 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     clearFinalMDsOverrides,
     setWorkingPackageEnabled,
     updateWorkingPackage,
-    updateWorkingPackageCategory
+    updateWorkingPackageCategory,
+    updateWorkingPackageResource,
+    openRateSpecModalForWP,
+    closeRateSpecModal
   } = useCalculationsActions();
 
-  // Calcola al mount e quando cambia progetto o phases (calcoli ogni volta come richiesto)
-  useEffect(() => {
-    if (currentProject) {
-      // Check if project changed (by ID)
-      const projectIdChanged = currentProject.id !== previousProjectIdRef.current;
+  // Helper function to get formatted resource display string
+  const getResourceDisplay = (resource: WorkingPackageResource | null, vendorName: string, vendorCosts: any[]): string => {
+    if (!resource) return 'Not specified';
+    const { jobCluster, seniority, location, deliveryModel } = resource;
+    // Get rate from vendorCosts using vendorId only
+    // The rate is per vendor, not per role position
+    const rate = vendorCosts.find((c: any) => c.vendorId === resource.vendorId);
+    const rateDisplay = rate ? `€${rate.realRate.toLocaleString()}/day` : 'Rate not found';
+    return `${vendorName} - ${jobCluster} - ${seniority} (${location}/${deliveryModel}) - ${rateDisplay}`;
+  };
 
-      // Only clear overrides when switching projects (not on initial load)
-      // previousProjectIdRef.current === undefined means this is the initial load
-      if (projectIdChanged && previousProjectIdRef.current !== undefined) {
-        console.log('📦 Project changed - clearing overrides and recalculating');
-        // Reset all overrides on project change (but not on initial load)
-        clearFinalMDsOverrides();
-      }
+  // Helper function to get resource details from workingPackageResources
+  const getWPResource = (category: 'gto' | 'gds', type: 'primaryResource' | 'secondaryResource') => {
+    return workingPackageResources[category]?.[type as keyof typeof workingPackageResources[category]];
+  };
 
-      if (projectIdChanged) {
-        previousProjectIdRef.current = currentProject.id;
-      }
+  // Helper function to get vendor info by id
+  const getVendorById = (vendorId: string | null) => {
+    if (!vendorId) return null;
+    return allSuppliers.find((v: any) => v.id === vendorId);
+  };
 
-      // ALWAYS recalculate when project or phases change
-      // This ensures Development phase changes are reflected in calculations
-      console.log('🔄 Recalculating project costs (project or phases changed)');
-      calculateProjectCosts();
+  // Helper function to get resource display for WP category/role
+  const getWPResourceDisplay = (category: 'gto' | 'gds', type: 'primaryResource' | 'secondaryResource', vendorCosts: any[]) => {
+    const resource = getWPResource(category, type);
+    const vendorId = type === 'primaryResource'
+      ? workingPackageData?.[category]?.primaryVendorId
+      : workingPackageData?.[category]?.secondaryVendorId;
+    const vendor = getVendorById(vendorId);
+    const vendorName = vendor?.name || 'Unknown Vendor';
+
+    return getResourceDisplay(resource, vendorName, vendorCosts);
+  };
+
+  // Helper function to open rate spec modal for WP
+  const handleOpenRateSpecWP = (category: 'gto' | 'gds', type: 'primaryResource' | 'secondaryResource') => {
+    // Map category + type to role
+    // GTO primary -> G2, GTO secondary -> TA
+    // GDS primary -> G1, GDS secondary -> PM
+    const roleMap: Record<string, string> = {
+      'gto-primaryResource': 'G2',
+      'gto-secondaryResource': 'TA',
+      'gds-primaryResource': 'G1',
+      'gds-secondaryResource': 'PM'
+    };
+    const roleKey = `${category}-${type}`;
+    const role = roleMap[roleKey];
+    if (role) {
+      openRateSpecModalForWP(role);
     }
-  }, [currentProject, currentPhases, calculateProjectCosts, clearFinalMDsOverrides]);
+  };
+
+  // Render supplier control group for WP mode
+  const renderSupplierControlGroup = (
+    category: 'gto' | 'gds',
+    type: 'primaryResource' | 'secondaryResource',
+    label: string
+  ) => {
+    const resource = getWPResource(category, type);
+    const vendorId = type === 'primaryResource'
+      ? workingPackageData?.[category]?.primaryVendorId
+      : workingPackageData?.[category]?.secondaryVendorId;
+    const vendor = getVendorById(vendorId);
+    const vendorName = vendor?.name || 'Unknown Vendor';
+
+    const displayText = getResourceDisplay(resource, vendorName, vendorCosts);
+
+    return (
+      <div className="form-row">
+        <label>{label}:</label>
+        <div className="supplier-control-group">
+          <div className="resource-display">{displayText}</div>
+          <button
+            type="button"
+            className="btn btn-small btn-secondary btn-specify-rate"
+            title="Specify full rate details"
+            onClick={() => handleOpenRateSpecWP(category, type)}
+          >
+            <i className="fas fa-edit"></i>
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   // Handler eventi (SOLO chiamate ad Actions)
   const handleFinalMDsChange = (vendorId: string, role: string, value: number) => {
@@ -299,18 +372,33 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     return Array.from(roles);
   }, [vendorCosts]);
 
-  // No project state
-  if (!currentProject) {
-    return (
-      <div className="calculations-page">
-        <div className="empty-state">
-          <i className="fas fa-calculator"></i>
-          <h3>No Project Loaded</h3>
-          <p>Please load or create a project to view calculations.</p>
-        </div>
-      </div>
-    );
-  }
+  // Ref to track previous project for detecting project changes
+  const previousProjectIdRef = React.useRef<string | undefined>();
+
+  // Calcola al mount e quando cambia progetto o phases (calcoli ogni volta come richiesto)
+  useEffect(() => {
+    if (currentProject) {
+      // Check if project changed (by ID)
+      const projectIdChanged = currentProject.id !== previousProjectIdRef.current;
+
+      // Only clear overrides when switching projects (not on initial load)
+      // previousProjectIdRef.current === undefined means this is the initial load
+      if (projectIdChanged && previousProjectIdRef.current !== undefined) {
+        console.log('📦 Project changed - clearing overrides and recalculating');
+        // Reset all overrides on project change (but not on initial load)
+        clearFinalMDsOverrides();
+      }
+
+      if (projectIdChanged) {
+        previousProjectIdRef.current = currentProject.id;
+      }
+
+      // ALWAYS recalculate when project or phases change
+      // This ensures Development phase changes are reflected in calculations
+      console.log('🔄 Recalculating project costs (project or phases changed)');
+      calculateProjectCosts();
+    }
+  }, [currentProject, currentPhases, calculateProjectCosts, clearFinalMDsOverrides]);
 
   return (
     <div className="calculations-page">
@@ -379,18 +467,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
 
                 <div className="form-row">
                   <label>Primary Vendor:</label>
-                  <select
-                    value={workingPackageData?.gto?.primaryVendorId || ''}
-                    onChange={(e) => updateWorkingPackageCategory('gto', {
-                      primaryVendorId: e.target.value || null
-                    })}
-                    className="form-select"
-                  >
-                    <option value="">Select vendor...</option>
-                    {gtoSuppliers.map((s: any) => (
-                      <option key={`${s.id}_${s.jobClusterId || 'default'}`} value={s.id}>{s.displayName || `${s.name} (${s.role})`}</option>
-                    ))}
-                  </select>
+                  {renderSupplierControlGroup('gto', 'primaryResource', 'Primary Vendor')}
                 </div>
 
                 <div className="form-row">
@@ -412,18 +489,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
 
                 <div className="form-row">
                   <label>Secondary Vendor:</label>
-                  <select
-                    value={workingPackageData?.gto?.secondaryVendorId || ''}
-                    onChange={(e) => updateWorkingPackageCategory('gto', {
-                      secondaryVendorId: e.target.value || null
-                    })}
-                    className="form-select"
-                  >
-                    <option value="">Select vendor...</option>
-                    {gtoSuppliers.map((s: any) => (
-                      <option key={`${s.id}_${s.jobClusterId || 'default'}`} value={s.id}>{s.displayName || `${s.name} (${s.role})`}</option>
-                    ))}
-                  </select>
+                  {renderSupplierControlGroup('gto', 'secondaryResource', 'Secondary Vendor')}
                 </div>
               </>
             )}
@@ -465,18 +531,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
 
                 <div className="form-row">
                   <label>Primary Vendor:</label>
-                  <select
-                    value={workingPackageData?.gds?.primaryVendorId || ''}
-                    onChange={(e) => updateWorkingPackageCategory('gds', {
-                      primaryVendorId: e.target.value || null
-                    })}
-                    className="form-select"
-                  >
-                    <option value="">Select vendor...</option>
-                    {gdsSuppliers.map((s: any) => (
-                      <option key={`${s.id}_${s.jobClusterId || 'default'}`} value={s.id}>{s.displayName || `${s.name} (${s.role})`}</option>
-                    ))}
-                  </select>
+                  {renderSupplierControlGroup('gds', 'primaryResource', 'Primary Vendor')}
                 </div>
 
                 <div className="form-row">
@@ -498,18 +553,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
 
                 <div className="form-row">
                   <label>Secondary Vendor:</label>
-                  <select
-                    value={workingPackageData?.gds?.secondaryVendorId || ''}
-                    onChange={(e) => updateWorkingPackageCategory('gds', {
-                      secondaryVendorId: e.target.value || null
-                    })}
-                    className="form-select"
-                  >
-                    <option value="">Select vendor...</option>
-                    {gdsSuppliers.map((s: any) => (
-                      <option key={`${s.id}_${s.jobClusterId || 'default'}`} value={s.id}>{s.displayName || `${s.name} (${s.role})`}</option>
-                    ))}
-                  </select>
+                  {renderSupplierControlGroup('gds', 'secondaryResource', 'Secondary Vendor')}
                 </div>
               </>
             )}
@@ -855,6 +899,8 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
           </div>
         )}
       </div>
+      {/* Rate Specification Modal for Working Package and Phases */}
+      <RateSpecificationModal />
     </div>
   );
 };

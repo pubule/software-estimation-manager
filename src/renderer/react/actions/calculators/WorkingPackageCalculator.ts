@@ -216,59 +216,87 @@ export class WorkingPackageCalculator implements ICalculator {
 
   /**
    * Recupera il real rate per un vendor e ruolo
-   * Usa configManager.getRate() come fa FeatureBasedCalculator
+   * Usa workingPackageData per trovare la categoria del vendor,
+   * poi usa workingPackageResources per ottenere la selezione della modale
+   * SENZA fallback: se non trova la rate, ritorna 0 e logga errore
    */
   private getVendorRealRate(vendorId: string, role?: string): number {
     console.log('🔍 getVendorRealRate called for vendorId:', vendorId, 'role:', role);
-    console.log('🔍 configManager available:', !!this.configManager);
 
-    const vendor = this.getVendorData(vendorId);
-    console.log('🔍 vendor found:', !!vendor);
+    const store = this.store.getState();
+    const { workingPackageResources, currentProject } = store;
+    const workingPackageData = currentProject?.workingPackageData;
 
-    if (!vendor) {
-      console.warn('⚠️ Vendor not found:', vendorId);
+    if (!workingPackageData) {
+      console.error('❌ No workingPackageData found for vendor:', vendorId);
       return 0;
     }
 
-    // Se abbiamo il configManager, usa getRate come fa FeatureBasedCalculator
-    if (this.configManager && role) {
-      // Trova il job cluster per questo ruolo
-      const jobCluster = this.getJobClusterForRole(vendor, role);
-      if (jobCluster) {
-        console.log('🔍 Found jobCluster for role', role, ':', jobCluster);
-        try {
-          const rateDetails = this.configManager.getRate({
-            vendorId,
-            jobCluster: jobCluster.clusterId,
-            seniority: jobCluster.seniority || 'Mid-Level',
-            location: jobCluster.location || 'italy',
-            deliveryModel: jobCluster.deliveryModel || 'onsite'
-          });
-          if (rateDetails?.realRate) {
-            console.log('✅ Found rate via configManager.getRate:', rateDetails.realRate);
-            return rateDetails.realRate;
-          }
-        } catch (e) {
-          console.warn('⚠️ Error getting rate from configManager:', e);
-        }
-      }
+    // Trova la category e type per questo vendor cercando in workingPackageData
+    // GTO: primaryVendorId -> G2, secondaryVendorId -> TA
+    // GDS: primaryVendorId -> G1, secondaryVendorId -> PM
+    let category: 'gto' | 'gds' | null = null;
+    let type: 'primaryResource' | 'secondaryResource' | null = null;
+    let expectedRole: string | null = null;
+
+    if (workingPackageData.gto?.primaryVendorId === vendorId) {
+      category = 'gto';
+      type = 'primaryResource';
+      expectedRole = 'G2';
+    } else if (workingPackageData.gto?.secondaryVendorId === vendorId) {
+      category = 'gto';
+      type = 'secondaryResource';
+      expectedRole = 'TA';
+    } else if (workingPackageData.gds?.primaryVendorId === vendorId) {
+      category = 'gds';
+      type = 'primaryResource';
+      expectedRole = 'G1';
+    } else if (workingPackageData.gds?.secondaryVendorId === vendorId) {
+      category = 'gds';
+      type = 'secondaryResource';
+      expectedRole = 'PM';
     }
 
-    // Fallback: cerca rate nei job clusters
-    if (vendor.jobClusters && vendor.jobClusters.length > 0) {
-      for (const jc of vendor.jobClusters) {
-        if (jc.rate || jc.realRate) {
-          const rate = jc.realRate || jc.rate || 0;
-          console.log('✅ Found rate in jobCluster (fallback):', rate);
-          return rate;
-        }
-      }
+    console.log('🔍 Vendor allocation:', { category, type, expectedRole });
+
+    if (!category || !type) {
+      console.error('❌ Vendor', vendorId, 'not found in workingPackageData (primary/secondary vendors)');
+      return 0;
     }
 
-    // Fallback finale al rate del vendor
-    const fallbackRate = vendor.realRate || vendor.rate || vendor.officialRate || 0;
-    console.log('🔍 Fallback rate:', fallbackRate);
-    return fallbackRate;
+    // Verifica che il ruolo corrisponda (per debug)
+    if (role && expectedRole && role !== expectedRole) {
+      console.warn('⚠️ Role mismatch: expected', expectedRole, 'but got', role);
+    }
+
+    const resource = workingPackageResources?.[category]?.[type as keyof typeof workingPackageResources[category]];
+
+    console.log('🔍 WP Resource for', category, type, ':', resource);
+
+    if (resource && resource.vendorId === vendorId) {
+      // Usa i dettagli dalla selezione della modale
+      console.log('🔍 Using modal selection:', resource);
+      try {
+        const rateDetails = this.configManager.getRate({
+          vendorId: resource.vendorId,
+          jobCluster: resource.jobCluster,
+          seniority: resource.seniority,
+          location: resource.location,
+          deliveryModel: resource.deliveryModel
+        });
+        if (rateDetails?.realRate) {
+          console.log('✅ Found rate via modal selection:', rateDetails.realRate);
+          return rateDetails.realRate;
+        }
+      } catch (e) {
+        console.error('❌ Error getting rate from configManager:', e);
+      }
+      console.error('❌ Rate not found for vendor:', vendorId, 'with modal selection:', resource);
+      return 0;
+    }
+
+    console.error('❌ No resource found in workingPackageResources for vendor:', vendorId, '(resource:', resource, ')');
+    return 0;
   }
 
   /**

@@ -71,6 +71,14 @@ export interface WorkingPackageData {
   gds: WorkingPackageCategoryData;
 }
 
+export interface WorkingPackageResource {
+  vendorId: string;
+  jobCluster: string;
+  seniority: string;
+  location: string;
+  deliveryModel: string;
+}
+
 export class CalculationsActions {
   private getStore() { 
     return (window as any).appStore; 
@@ -1763,6 +1771,109 @@ ${assumptionsList}`;
       }
     } catch (error) {
       console.error('Failed to show error notification:', error);
+    }
+  }
+
+  // ======================
+  // WORKING PACKAGE RESOURCE ACTIONS
+  // ======================
+
+  /**
+   * Update Working Package resource selection (vendor + rate details)
+   * @param category - 'gto' or 'gds'
+   * @param resourceType - 'primaryResource' or 'secondaryResource'
+   * @param resource - Full resource config (vendorId, jobCluster, seniority, location, deliveryModel)
+   */
+  async updateWorkingPackageResource(
+    category: 'gto' | 'gds',
+    resourceType: 'primaryResource' | 'secondaryResource',
+    resource: Partial<WorkingPackageResource> | null
+  ): Promise<void> {
+    try {
+      const store = this.getStore();
+      if (!store) throw new Error('Store not available');
+      store.getState().updateWorkingPackageResource(category, resourceType, resource);
+      // Re-calculate costs to update rates based on new resource selection
+      this.calculateProjectCosts();
+    } catch (error) {
+      console.error('Failed to update Working Package resource:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Open rate specification modal for Working Package
+   * @param role - The role being configured (G1, G2, TA, PM)
+   */
+  openRateSpecModalForWP(role: string): void {
+    try {
+      const store = this.getStore();
+      if (!store) throw new Error('Store not available');
+      store.getState().openRateSpecModal(role, 'wp');
+    } catch (error) {
+      console.error('Failed to open rate specification modal for WP:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update Working Package vendor and resource together
+   * This ensures both workingPackageData (vendorId) and workingPackageResources (full rate details)
+   * are updated consistently when user selects a rate via modal.
+   * @param category - 'gto' or 'gds'
+   * @param resourceType - 'primaryResource' or 'secondaryResource'
+   * @param resource - Full resource config (vendorId, jobCluster, seniority, location, deliveryModel)
+   */
+  updateWorkingPackageVendorAndResource(
+    category: 'gto' | 'gds',
+    resourceType: 'primaryResource' | 'secondaryResource',
+    resource: Partial<WorkingPackageResource>
+  ): void {
+    try {
+      console.log('📦 updateWorkingPackageVendorAndResource called:', { category, resourceType, resource });
+      const store = this.getStore();
+      if (!store) throw new Error('Store not available');
+
+      const vendorIdFieldName = resourceType.replace('Resource', 'VendorId') as
+        | 'primaryVendorId'
+        | 'secondaryVendorId';
+
+      // Update vendorId in workingPackageData
+      const state = store.getState();
+      const workingPackageData = state.currentProject?.workingPackageData;
+      if (workingPackageData) {
+        const newWorkingPackageData = {
+          ...workingPackageData,
+          [category]: {
+            ...(workingPackageData[category] || {}),
+            [vendorIdFieldName]: resource.vendorId || workingPackageData[category]?.[vendorIdFieldName]
+          }
+        };
+        state.updateProjectField('workingPackageData', newWorkingPackageData);
+      }
+
+      // Update resource details in workingPackageResources
+      store.getState().updateWorkingPackageResource(category, resourceType, resource);
+
+      // Re-calculate costs to update rates based on new resource selection
+      this.calculateProjectCosts();
+    } catch (error) {
+      console.error('Failed to update Working Package vendor and resource:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Close rate specification modal
+   */
+  closeRateSpecModal(): void {
+    try {
+      const store = this.getStore();
+      if (!store) throw new Error('Store not available');
+      store.getState().closeRateSpecModal();
+    } catch (error) {
+      console.error('Failed to close rate specification modal:', error);
+      throw error;
     }
   }
 }

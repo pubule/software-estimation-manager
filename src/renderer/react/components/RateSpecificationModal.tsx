@@ -1,31 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../hooks/useStore';
+import { calculationsActions } from '../actions/CalculationsActions';
 
 const RateSpecificationModal: React.FC = () => {
-    const { rateSpecModal, closeRateSpecModal, globalConfig, selectedPhaseResources, updateSelectedPhaseResource } = useStore(state => ({
+    const { rateSpecModal, closeRateSpecModal, globalConfig, selectedPhaseResources, updateSelectedPhaseResource, workingPackageResources } = useStore(state => ({
         rateSpecModal: state.rateSpecModal,
         closeRateSpecModal: state.closeRateSpecModal,
         globalConfig: state.globalConfig,
         selectedPhaseResources: state.selectedPhaseResources,
         updateSelectedPhaseResource: state.updateSelectedPhaseResource,
+        workingPackageResources: state.workingPackageResources,
     }));
 
     const [localSelection, setLocalSelection] = useState<any>(null);
 
     useEffect(() => {
         if (rateSpecModal.isOpen && rateSpecModal.role) {
-            const currentResource = selectedPhaseResources[rateSpecModal.role as keyof typeof selectedPhaseResources];
-            setLocalSelection(currentResource || {});
+            // Determine which resource to load based on mode
+            if (rateSpecModal.mode === 'wp') {
+                // For WP mode, we need to determine the category (gto/gds) from the role
+                // G2/TA -> gto, G1/PM -> gds
+                const category = rateSpecModal.role === 'G2' || rateSpecModal.role === 'TA' ? 'gto' : 'gds';
+                const resourceType = rateSpecModal.role === 'G2' || rateSpecModal.role === 'G1' ? 'primaryResource' : 'secondaryResource';
+
+                const currentResource = workingPackageResources[category]?.[resourceType as keyof typeof workingPackageResources[category]];
+                setLocalSelection(currentResource || {});
+            } else {
+                // Phase mode
+                const currentResource = selectedPhaseResources[rateSpecModal.role as keyof typeof selectedPhaseResources];
+                setLocalSelection(currentResource || {});
+            }
         }
-    }, [rateSpecModal, selectedPhaseResources]);
+    }, [rateSpecModal, selectedPhaseResources, workingPackageResources]);
 
     if (!rateSpecModal.isOpen || !rateSpecModal.role || !globalConfig) {
         return null;
     }
 
     const handleSave = () => {
-        if (rateSpecModal.role) {
-            updateSelectedPhaseResource(rateSpecModal.role, localSelection);
+        if (rateSpecModal.role && localSelection?.vendorId) {
+            if (rateSpecModal.mode === 'wp') {
+                // For WP mode, determine category and resourceType
+                const category = rateSpecModal.role === 'G2' || rateSpecModal.role === 'TA' ? 'gto' : 'gds';
+                const resourceType = rateSpecModal.role === 'G2' || rateSpecModal.role === 'G1' ? 'primaryResource' : 'secondaryResource';
+                calculationsActions.updateWorkingPackageVendorAndResource(category, resourceType, localSelection);
+            } else {
+                updateSelectedPhaseResource(rateSpecModal.role, localSelection);
+            }
         }
         closeRateSpecModal();
     };
@@ -40,11 +61,20 @@ const RateSpecificationModal: React.FC = () => {
     const selectedLocation = locations.find((l: any) => l.id === localSelection?.location);
     const deliveryModels = selectedLocation ? selectedLocation.deliveryModels : [];
 
+    // Determine modal title based on role
+    const getModalTitle = () => {
+        if (rateSpecModal.role === 'G2') return 'Specify Rate for G2';
+        if (rateSpecModal.role === 'G1') return 'Specify Rate for G1';
+        if (rateSpecModal.role === 'TA') return 'Specify Rate for TA';
+        if (rateSpecModal.role === 'PM') return 'Specify Rate for PM';
+        return `Specify Rate for ${rateSpecModal.role}`;
+    };
+
     return (
         <div className="modal active">
             <div className="modal-content">
                 <div className="modal-header">
-                    <h3>Specify Rate for {rateSpecModal.role}</h3>
+                    <h3>{getModalTitle()}</h3>
                     <button className="modal-close" onClick={closeRateSpecModal}>&times;</button>
                 </div>
                 <div className="modal-body">
