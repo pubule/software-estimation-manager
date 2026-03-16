@@ -7,8 +7,9 @@
  * RESPONSABILITA':
  * - Leggere configurazione GTO/GDS
  * - Calcolare split primary/secondary
- * - Generare entries senza calcolo MDs/rate
- * - Gestire percentuali e importi
+ * - Calcolare MDs come amount / realRate
+ * - Supportare override MDs (come Feature-based)
+ * - Mantenere righe separate per Primary/Secondary
  */
 
 import type { ICalculator, WorkingPackageCostData, WorkingPackageEntry } from './Calculator';
@@ -39,10 +40,10 @@ export class WorkingPackageCalculator implements ICalculator {
 
   /**
    * Esegue il calcolo completo Working Package
-   * @param _overrides - Ignored in WP mode (only for interface compatibility)
+   * @param overrides - Optional Final MDs overrides { "vendorId_role": finalMDs }
    */
-  calculate(_overrides?: Record<string, number>): WorkingPackageCostData {
-    console.log('📦 WorkingPackageCalculator: Starting calculation...');
+  calculate(overrides?: Record<string, number>): WorkingPackageCostData {
+    console.log('📦 WorkingPackageCalculator: Starting calculation...', overrides ? `with ${Object.keys(overrides).length} overrides` : '');
 
     const entries: WorkingPackageEntry[] = [];
     const calculatedData = {
@@ -77,13 +78,13 @@ export class WorkingPackageCalculator implements ICalculator {
       projectTotal: calculatedData.gto.totalAmount + calculatedData.gds.totalAmount
     };
 
-    // Converti a VendorCost per compatibilità UI
-    const vendorCosts = this.convertToVendorCosts(entries);
+    // Converti a VendorCost per compatibilità UI (righe separate, non consolidate)
+    const vendorCosts = this.convertToVendorCosts(entries, overrides);
 
     // Calcola KPIs
     const kpiData = this.calculateKPIs(entries, summary);
 
-    console.log('✅ WorkingPackageCalculator: Completed with', entries.length, 'entries');
+    console.log('✅ WorkingPackageCalculator: Completed with', entries.length, 'entries,', vendorCosts.length, 'vendor costs');
 
     return {
       mode: 'working-package',
@@ -167,48 +168,71 @@ export class WorkingPackageCalculator implements ICalculator {
   /**
    * Converte WorkingPackageEntry in VendorCost per compatibilità UI
    *
-   * NOTA: In Working Package mode, MDs e Rate non sono significativi.
-   * Vengono impostati a valori placeholder (0, 1) per mantenere la compatibilità
-   * con la tabella esistente che si aspetta questi campi.
+   * NOTA: Le entry NON vengono consolidate per mantenere righe separate
+   * per Primary e Secondary vendor.
    *
-   * IMPORTANTE: Le entry vengono consolidate per vendor+role per evitare duplicati
-   * quando lo stesso vendor è usato per più categorie (GTO/GDS) o allocation types.
+   * Calcola MDs come: amount / realRate
+   * Applica override se presenti: finalMDs = override ?? estimatedMDs
+   * Calcola finalTotCost: finalMDs * realRate
    */
-  private convertToVendorCosts(entries: WorkingPackageEntry[]): VendorCost[] {
-    // Consolidate by vendorId+role to avoid duplicate keys
-    const consolidated = new Map<string, VendorCost>();
+  private convertToVendorCosts(entries: WorkingPackageEntry[], overrides?: Record<string, number>): VendorCost[] {
+    const vendorCosts: VendorCost[] = [];
 
     entries.forEach(entry => {
-      const key = `${entry.vendorId}_${entry.role}`;
+      // Ottieni il real rate reale del vendor
+      const realRate = this.getVendorRealRate(entry.vendorId);
 
-      if (consolidated.has(key)) {
-        // Add amounts for same vendor+role
-        const existing = consolidated.get(key)!;
-        existing.totCost += entry.amount;
-        existing.finalTotCost += entry.amount;
-      } else {
-        // In WP mode, i campi MDs e Rate sono placeholder
-        // L'importo reale è in totCost/finalTotCost
-        const placeholderMDs = 0;
-        const placeholderRate = 1;
+      // Calcola MDs: amount / rate
+      const estimatedMDs = realRate > 0 ? Math.round((entry.amount / realRate) * 10) / 10 : 0;
 
-        consolidated.set(key, {
-          vendorId: entry.vendorId,
-          vendorName: entry.vendorName,
-          role: entry.role,
-          department: entry.isInternal ? 'Internal' : 'External',
-          officialRate: placeholderRate,
-          realRate: placeholderRate,
-          estimatedMDs: placeholderMDs,
-          finalMDs: placeholderMDs,
-          totCost: entry.amount,
-          finalTotCost: entry.amount,
-          isInternal: entry.isInternal
-        });
-      }
+      // Applica override se presente
+      const overrideKey = `${entry.vendorId}_${entry.role}`;
+      const overrideMDs = overrides?.[overrideKey];
+      const finalMDs = overrideMDs !== undefined ? overrideMDs : estimatedMDs;
+
+      // Calcola finalTotCost
+      const finalTotCost = Math.round(finalMDs * realRate);
+
+      vendorCosts.push({
+        vendorId: entry.vendorId,
+        vendorName: entry.vendorName,
+        role: entry.role,
+        category: entry.category,  // NUOVO: GTO/GDS
+        allocationType: entry.allocationType,  // NUOVO: primary/secondary
+        department: entry.isInternal ? 'Internal' : 'External',
+        officialRate: realRate,
+        realRate: realRate,
+        estimatedMDs: estimatedMDs,
+        finalMDs: finalMDs,
+        totCost: entry.amount,
+        finalTotCost: finalTotCost,
+        isInternal: entry.isInternal
+      });
     });
 
-    return Array.from(consolidated.values());
+    return vendorCosts;
+  }
+
+  /**
+   * Recupera il real rate per un vendor
+   * Cerca prima nel job cluster con role matching, altrimenti usa officialRate/rate
+   */
+  private getVendorRealRate(vendorId: string): number {
+    const vendor = this.getVendorData(vendorId);
+    if (!vendor) return 0;
+
+    // Cerca rate nei job clusters
+    if (vendor.jobClusters && vendor.jobClusters.length > 0) {
+      // Trova il primo job cluster con un rate valido
+      for (const jc of vendor.jobClusters) {
+        if (jc.rate || jc.realRate) {
+          return jc.realRate || jc.rate || 0;
+        }
+      }
+    }
+
+    // Fallback al rate del vendor
+    return vendor.realRate || vendor.rate || vendor.officialRate || 0;
   }
 
   /**

@@ -733,82 +733,82 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                   {workingPackageEnabled ? (
                     <>
                       <th>Category</th>
-                      <th>Allocation</th>
-                      <th>Percentage</th>
+                      <th>Total MDs</th>
+                      <th>Final Tot MDs</th>
+                      <th>Rate</th>
+                      <th>Tot Cost</th>
+                      <th>Final Tot Cost</th>
                     </>
                   ) : (
                     <>
                       <th>Role</th>
-                      <th>Total MDs</th>
-                      <th>Final Tot MDs</th>
-                      <th>Real Rate</th>
+                      <th>Estimated MDs</th>
+                      <th>Final MDs</th>
+                      <th>Rate</th>
+                      <th>Total Cost</th>
+                      <th>Final Total Cost</th>
                     </>
                   )}
-                  <th>Total Cost</th>
-                  {!workingPackageEnabled && <th>Final Tot Cost</th>}
                 </tr>
               </thead>
               <tbody>
                 {filteredCosts.map((cost) => (
-                  <tr key={`${cost.vendorId}_${cost.role}`}>
+                  <tr key={`${cost.vendorId}_${cost.role}_${cost.allocationType || 'default'}`}>
                     <td className="vendor-name">
                       {cost.vendorName}
                       {cost.isInternal && <span className="internal-badge"> (Internal)</span>}
                     </td>
-                    {workingPackageEnabled ? (
-                      <>
-                        {/* Working Package Mode: Category, Allocation, Percentage */}
-                        <td className="wp-category">
-                          <span className={`category-badge category-${cost.role === 'G2' || cost.role === 'TA' ? 'gto' : 'gds'}`}>
-                            {cost.role === 'G2' || cost.role === 'TA' ? 'GTO' : 'GDS'}
-                          </span>
-                        </td>
-                        <td className="wp-allocation">
-                          <span className="allocation-text">-</span>
-                        </td>
-                        <td className="wp-percentage">-</td>
-                      </>
-                    ) : (
-                      <>
-                        {/* Feature-based Mode: Role, MDs, Rate */}
-                        <td className="vendor-role">
-                          <span className={`role-badge role-${cost.role.toLowerCase()}`}>
-                            {cost.role}
-                          </span>
-                        </td>
-                        <td className="total-mds">{cost.estimatedMDs}</td>
-                        <td className="final-tot-mds">
-                          <input
-                            type="number"
-                            value={getInputValue(cost)}
-                            onChange={(e) => {
-                              const value = parseFloat(e.target.value) || 0;
-                              handleFinalMDsChange(cost.vendorId, cost.role, value);
-                            }}
-                            className="final-mds-input"
-                            min="0"
-                            step="0.1"
-                            key={`${cost.vendorId}_${cost.role}`}
-                          />
-                          <button
-                            className="reset-mds-btn"
-                            onClick={() => resetSingleFinalMD(cost.vendorId, cost.role)}
-                            title="Reset to Official value"
-                          >
-                            ↻
-                          </button>
-                        </td>
-                        <td className="real-rate">€{cost.realRate.toLocaleString()}</td>
-                      </>
-                    )}
+                    {/* Column 2: Category (WP) or Role (FB) */}
+                    <td className={workingPackageEnabled ? "wp-category" : "vendor-role"}>
+                      {workingPackageEnabled ? (
+                        <span className={`category-badge category-${cost.category?.toLowerCase() || (cost.role === 'G2' || cost.role === 'TA' ? 'gto' : 'gds')}`}>
+                          {cost.category || (cost.role === 'G2' || cost.role === 'TA' ? 'GTO' : 'GDS')}
+                          {cost.allocationType && (
+                            <span className={`allocation-badge allocation-${cost.allocationType}`}>
+                              {cost.allocationType === 'primary' ? ' (P)' : ' (S)'}
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className={`role-badge role-${cost.role.toLowerCase()}`}>
+                          {cost.role}
+                        </span>
+                      )}
+                    </td>
+                    {/* Column 3: Total MDs (WP) / Estimated MDs (FB) */}
+                    <td className="total-mds">{cost.estimatedMDs.toFixed(1)}</td>
+                    {/* Column 4: Final Tot MDs (WP) / Final MDs (FB) - editable */}
+                    <td className="final-tot-mds">
+                      <input
+                        type="number"
+                        value={getInputValue(cost)}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0;
+                          handleFinalMDsChange(cost.vendorId, cost.role, value);
+                        }}
+                        className="final-mds-input"
+                        min="0"
+                        step="0.1"
+                        key={`${cost.vendorId}_${cost.role}_${workingPackageEnabled ? 'wp' : 'fb'}`}
+                      />
+                      <button
+                        className="reset-mds-btn"
+                        onClick={() => resetSingleFinalMD(cost.vendorId, cost.role)}
+                        title="Reset to calculated value"
+                      >
+                        ↻
+                      </button>
+                    </td>
+                    {/* Column 5: Rate */}
+                    <td className="real-rate">€{cost.realRate.toLocaleString()}</td>
+                    {/* Column 6: Tot Cost (WP) / Total Cost (FB) */}
                     <td className="total-cost">€{cost.totCost.toLocaleString()}</td>
-                    {!workingPackageEnabled && (
-                      <td className={`final-tot-cost ${
-                        cost.finalTotCost >= cost.totCost ? 'final-cost-higher' : 'final-cost-lower'
-                      }`}>
-                        <strong>€{cost.finalTotCost.toLocaleString()}</strong>
-                      </td>
-                    )}
+                    {/* Column 7: Final Tot Cost (WP) / Final Total Cost (FB) */}
+                    <td className={`final-tot-cost ${
+                      cost.finalTotCost >= cost.totCost ? 'final-cost-higher' : 'final-cost-lower'
+                    }`}>
+                      <strong>€{cost.finalTotCost.toLocaleString()}</strong>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -816,32 +816,21 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
               {/* Footer con totali */}
               <tfoot>
                 <tr className="totals-row">
-                  {workingPackageEnabled ? (
-                    <>
-                      <td colSpan={4}><strong>TOTALS</strong></td>
-                      <td className="total-cost">
-                        <strong>€{filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0).toLocaleString()}</strong>
+                  <td colSpan={5}><strong>TOTALS</strong></td>
+                  <td className="total-cost">
+                    <strong>€{filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0).toLocaleString()}</strong>
+                  </td>
+                  {(() => {
+                    const totalCost = filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0);
+                    const totalFinalCost = filteredCosts.reduce((sum, cost) => sum + cost.finalTotCost, 0);
+                    return (
+                      <td className={`total-final-cost ${
+                        totalFinalCost >= totalCost ? 'final-cost-higher' : 'final-cost-lower'
+                      }`}>
+                        <strong>€{totalFinalCost.toLocaleString()}</strong>
                       </td>
-                    </>
-                  ) : (
-                    <>
-                      <td colSpan={5}><strong>TOTALS</strong></td>
-                      <td className="total-cost">
-                        <strong>€{filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0).toLocaleString()}</strong>
-                      </td>
-                      {(() => {
-                        const totalCost = filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0);
-                        const totalFinalCost = filteredCosts.reduce((sum, cost) => sum + cost.finalTotCost, 0);
-                        return (
-                          <td className={`total-final-cost ${
-                            totalFinalCost >= totalCost ? 'final-cost-higher' : 'final-cost-lower'
-                          }`}>
-                            <strong>€{totalFinalCost.toLocaleString()}</strong>
-                          </td>
-                        );
-                      })()}
-                    </>
-                  )}
+                    );
+                  })()}
                 </tr>
               </tfoot>
             </table>
@@ -851,8 +840,8 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
               <div className="wp-mode-note">
                 <i className="fas fa-info-circle"></i>
                 <span>
-                  Working Package mode: Costs are calculated from total amounts, not from MDs × Rate.
-                  MDs and Rate columns are not applicable in this mode.
+                  Working Package mode: MDs are calculated as Amount ÷ Rate.
+                  You can adjust Final MDs to modify the final cost.
                 </span>
               </div>
             )}

@@ -26,6 +26,9 @@ export interface VendorCost {
   totCost: number;
   finalTotCost: number;
   isInternal: boolean;
+  // WP mode specific fields
+  category?: 'GTO' | 'GDS';
+  allocationType?: 'primary' | 'secondary';
 }
 
 export interface KPIData {
@@ -867,6 +870,7 @@ export class CalculationsActions {
 
   /**
    * EDITING: Update Final MDs per vendor - ATOMIC UPDATE
+   * Works for both Feature-based and Working Package modes
    */
   async updateFinalMDs(vendorId: string, role: string, newValue: number): Promise<void> {
     try {
@@ -879,6 +883,9 @@ export class CalculationsActions {
         throw new Error('No project loaded');
       }
 
+      // Detect current mode
+      const isWorkingPackageMode = currentProject.workingPackageData?.enabled || false;
+
       // Get current overrides and add new one
       const currentOverrides = state.calculationsData?.finalMDsOverrides || {};
       const key = `${vendorId}_${role}`;
@@ -887,20 +894,43 @@ export class CalculationsActions {
         [key]: newValue
       };
 
-      // Use FeatureBasedCalculator with the updated overrides
-      const { FeatureBasedCalculator } = await import('./calculators');
-      const calculator = new FeatureBasedCalculator(store, this.getConfigManager());
-      const result = calculator.calculate(updatedOverrides);
+      let result;
 
-      // SINGLE store update with everything (feature-based mode)
-      state.setCalculationsData({
-        vendorCosts: result.vendorCosts,
-        kpiData: result.kpiData,
-        finalMDsOverrides: updatedOverrides,
-        workingPackage: null // Explicitly null to trigger feature-based storage
-      });
+      if (isWorkingPackageMode) {
+        // Working Package mode: use WorkingPackageCalculator
+        const { WorkingPackageCalculator } = await import('./calculators');
+        const calculator = new WorkingPackageCalculator(store, this.getConfigManager());
+        result = calculator.calculate(updatedOverrides);
 
-      // 5. Save overrides to project for persistence
+        // Update store with WP results
+        state.setCalculationsData({
+          ...state.calculationsData,
+          workingPackage: {
+            vendorCosts: result.vendorCosts,
+            kpiData: result.kpiData,
+            entries: result.entries,
+            summary: result.summary,
+            calculated: result.calculated
+          },
+          featureBased: null,
+          finalMDsOverrides: updatedOverrides
+        });
+      } else {
+        // Feature-based mode: use FeatureBasedCalculator
+        const { FeatureBasedCalculator } = await import('./calculators');
+        const calculator = new FeatureBasedCalculator(store, this.getConfigManager());
+        result = calculator.calculate(updatedOverrides);
+
+        // SINGLE store update with everything (feature-based mode)
+        state.setCalculationsData({
+          vendorCosts: result.vendorCosts,
+          kpiData: result.kpiData,
+          finalMDsOverrides: updatedOverrides,
+          workingPackage: null // Explicitly null to trigger feature-based storage
+        });
+      }
+
+      // Save overrides to project for persistence
       state.updateProject({
         ...currentProject,
         finalMDsOverrides: updatedOverrides
@@ -1234,8 +1264,9 @@ ${assumptionsList}`;
 
   /**
    * Reset singolo Final MD al valore stimato
+   * Works for both Feature-based and Working Package modes
    */
-  resetSingleFinalMD(vendorId: string, role: string): void {
+  async resetSingleFinalMD(vendorId: string, role: string): Promise<void> {
     try {
       const store = this.getStore();
       const state = store.getState();
@@ -1246,29 +1277,56 @@ ${assumptionsList}`;
       }
 
       const key = `${vendorId}_${role}`;
-      
+
       // Rimuovi override specifico
       const currentOverrides = state.calculationsData?.finalMDsOverrides || {};
       const newOverrides = { ...currentOverrides };
       delete newOverrides[key];
-      
-      // 1. Process all costs (same as calculateProjectCosts)
-      const vendorCosts = this.processAllCosts(currentProject);
-      
-      // 2. Apply remaining overrides (excluding the one we just deleted)
-      const costsWithOverrides = this.applyFinalMDsOverridesWithCustom(vendorCosts, newOverrides);
-      
-      // 3. Calculate KPIs
-      const kpiData = this.calculateKPIs(costsWithOverrides);
-      
-      // 4. Update store with all changes
-      state.setCalculationsData({
-        vendorCosts: costsWithOverrides,
-        kpiData: kpiData,
+
+      // Detect current mode
+      const isWorkingPackageMode = currentProject.workingPackageData?.enabled || false;
+
+      if (isWorkingPackageMode) {
+        // Working Package mode: use WorkingPackageCalculator
+        const { WorkingPackageCalculator } = await import('./calculators');
+        const calculator = new WorkingPackageCalculator(store, this.getConfigManager());
+        const result = calculator.calculate(newOverrides);
+
+        // Update store with WP results
+        state.setCalculationsData({
+          ...state.calculationsData,
+          workingPackage: {
+            vendorCosts: result.vendorCosts,
+            kpiData: result.kpiData,
+            entries: result.entries,
+            summary: result.summary,
+            calculated: result.calculated
+          },
+          featureBased: null,
+          finalMDsOverrides: newOverrides
+        });
+      } else {
+        // Feature-based mode: use FeatureBasedCalculator
+        const { FeatureBasedCalculator } = await import('./calculators');
+        const calculator = new FeatureBasedCalculator(store, this.getConfigManager());
+        const result = calculator.calculate(newOverrides);
+
+        // Update store with FB results
+        state.setCalculationsData({
+          vendorCosts: result.vendorCosts,
+          kpiData: result.kpiData,
+          finalMDsOverrides: newOverrides,
+          workingPackage: null
+        });
+      }
+
+      // Save overrides to project for persistence
+      state.updateProject({
+        ...currentProject,
         finalMDsOverrides: newOverrides
       });
-      
-      console.log('Single Final MD reset:', { vendorId, role });
+
+      console.log('Single Final MD reset:', { vendorId, role, mode: isWorkingPackageMode ? 'WP' : 'FB' });
     } catch (error) {
       console.error('Failed to reset single Final MD:', error);
       throw error;
