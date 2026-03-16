@@ -145,31 +145,27 @@ export class CalculationsActions {
     const store = this.getStore();
     const state = store.getState();
 
-    // Preserva filtri esistenti e dati mode-specific
+    // Preserva filtri esistenti
     const existingFilters = state.calculationsData?.filters;
     const existingFB = state.calculationsData?.featureBased || {};
     const existingWP = state.calculationsData?.workingPackage || {};
 
-    // MODE-AWARE STORAGE: Save results to correct section
+    // MODE-AWARE STORAGE: Pass only data portion (not full state) to setCalculationsData
+    // The setCalculationsData method will build the full state structure internally
     let calculationsData: any;
 
     if (result.mode === 'working-package') {
       const wpResult = result as any;
-      // WP mode: update WP section, keep FB section intact
+      // WP mode: pass data with workingPackage entries/summary
       calculationsData = {
-        ...state.calculationsData,
+        vendorCosts: result.vendorCosts,
+        kpiData: result.kpiData,
         workingPackage: {
-          ...existingWP,
-          vendorCosts: result.vendorCosts,
-          kpiData: result.kpiData,
           entries: wpResult.entries,
           summary: wpResult.summary,
           calculated: wpResult.calculated,
-          // Preserve existing WP overrides
-          finalMDsOverrides: existingWP.finalMDsOverrides || {}
+          projectTotal: wpResult.projectTotal
         },
-        // Keep FB section intact
-        featureBased: existingFB,
         filters: existingFilters || { vendor: 'all', role: 'all', category: 'all' }
       };
     } else {
@@ -179,16 +175,9 @@ export class CalculationsActions {
       this.applyFinalMDsOverridesWithCustom(result.vendorCosts, fbOverrides);
 
       calculationsData = {
-        ...state.calculationsData,
-        featureBased: {
-          ...existingFB,
-          vendorCosts: result.vendorCosts,
-          kpiData: result.kpiData,
-          // Preserve existing FB overrides
-          finalMDsOverrides: fbOverrides
-        },
-        // Keep WP section intact
-        workingPackage: existingWP,
+        vendorCosts: result.vendorCosts,
+        kpiData: result.kpiData,
+        finalMDsOverrides: fbOverrides,
         filters: existingFilters || { vendor: 'all', role: 'all', category: 'all' }
       };
     }

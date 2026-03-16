@@ -254,11 +254,22 @@ const appStore = window.zustand.createStore((set, get) => ({
             },
 
             // 🧹 RESET: Calculations cache (will be recalculated for new project)
+            // 🔧 STRUCTURE FIX: Initialize with separate featureBased and workingPackage sections
             calculationsData: {
-                vendorCosts: [],
-                kpiData: null,
-                filters: { vendor: 'all', role: 'all', category: 'all' }, // ← RESET filters!
-                finalMDsOverrides: project?.finalMDsOverrides || {}, // ← Load from project if saved, else reset
+                featureBased: {
+                    vendorCosts: [],
+                    kpiData: null,
+                    finalMDsOverrides: project?.featureBasedOverrides || project?.finalMDsOverrides || {} // Migrate legacy overrides
+                },
+                workingPackage: {
+                    vendorCosts: [],
+                    kpiData: null,
+                    entries: [],
+                    summary: { gtoTotal: 0, gdsTotal: 0, projectTotal: 0 },
+                    calculated: { gto: {}, gds: {} },
+                    finalMDsOverrides: project?.workingPackageOverrides || {}
+                },
+                filters: { vendor: 'all', role: 'all', category: 'all' },
                 version: 0
             },
 
@@ -1588,44 +1599,43 @@ const appStore = window.zustand.createStore((set, get) => ({
         // Determine mode from project data
         const isWorkingPackageMode = currentState.currentProject?.workingPackageData?.enabled;
 
-        // SEPARATE STORAGE: Store data in mode-specific sections
-        if (isWorkingPackageMode) {
-            // WORKING PACKAGE MODE: Store in workingPackage section
-            set({
-                calculationsData: {
-                    ...(currentState.calculationsData || {}),
-                    // Store WP data separately
-                    workingPackage: {
-                        vendorCosts: data.vendorCosts,
-                        kpiData: data.kpiData,
-                        calculated: data.workingPackage?.calculated,
-                        projectTotal: data.workingPackage?.projectTotal
-                    },
-                    // WP mode doesn't use overrides
-                    finalMDsOverrides: {},
-                    filters: data.filters ?? preservedFilters,
-                    version: (currentState.calculationsData?.version || 0) + 1
-                }
-            });
-        } else {
-            // FEATURE-BASED MODE: Store in featureBased section
-            const preservedOverrides = currentState.calculationsData?.finalMDsOverrides || {};
-            set({
-                calculationsData: {
-                    ...(currentState.calculationsData || {}),
-                    // Store FB data separately
-                    featureBased: {
-                        vendorCosts: data.vendorCosts,
-                        kpiData: data.kpiData
-                    },
-                    // Preserve overrides for FB mode
-                    finalMDsOverrides: data.finalMDsOverrides ?? preservedOverrides,
-                    filters: data.filters ?? preservedFilters,
-                    version: (currentState.calculationsData?.version || 0) + 1
-                }
-            });
-        }
+        // Get existing sections to preserve
+        const existingFB = currentState.calculationsData?.featureBased || {};
+        const existingWP = currentState.calculationsData?.workingPackage || {};
 
+        set({
+            calculationsData: {
+                // Start with existing state
+                ...(currentState.calculationsData || {}),
+
+                // Update the active mode's section with incoming data
+                [isWorkingPackageMode ? 'workingPackage' : 'featureBased']: {
+                    vendorCosts: data.vendorCosts,
+                    kpiData: data.kpiData,
+                    // Preserve mode-specific fields
+                    ...(isWorkingPackageMode ? {
+                        entries: data.workingPackage?.entries ?? existingWP.entries,
+                        summary: data.workingPackage?.summary ?? existingWP.summary,
+                        calculated: data.workingPackage?.calculated ?? existingWP.calculated,
+                        projectTotal: data.workingPackage?.projectTotal
+                    } : {
+                        finalMDsOverrides: data.finalMDsOverrides ?? existingFB.finalMDsOverrides ?? {}
+                    }),
+                },
+
+                // Update the inactive mode section to preserve its data
+                [isWorkingPackageMode ? 'featureBased' : 'workingPackage']: {
+                    // For inactive mode, preserve all existing data
+                    ...(isWorkingPackageMode ? existingFB : existingWP)
+                },
+
+                // Update filters if provided
+                filters: data.filters ?? preservedFilters,
+
+                // Increment version for React re-renders
+                version: (currentState.calculationsData?.version || 0) + 1
+            }
+        });
     },
 
     /**
@@ -1679,13 +1689,24 @@ const appStore = window.zustand.createStore((set, get) => ({
 
     /**
      * Clear calculations data
+     * 🔧 STRUCTURE FIX: Clear both featureBased and workingPackage sections
      */
     clearCalculations: (preserveOverrides) => set(state => ({
         calculationsData: {
-            vendorCosts: [],
-            kpiData: null,
-            filters: { vendor: 'all', role: 'all' },
-            finalMDsOverrides: preserveOverrides || {},
+            featureBased: {
+                vendorCosts: [],
+                kpiData: null,
+                finalMDsOverrides: preserveOverrides?.featureBased || {}
+            },
+            workingPackage: {
+                vendorCosts: [],
+                kpiData: null,
+                entries: [],
+                summary: { gtoTotal: 0, gdsTotal: 0, projectTotal: 0 },
+                calculated: { gto: {}, gds: {} },
+                finalMDsOverrides: preserveOverrides?.workingPackage || {}
+            },
+            filters: { vendor: 'all', role: 'all', category: 'all' },
             version: (state.calculationsData?.version || 0) + 1 // Increment version
         }
     })),
