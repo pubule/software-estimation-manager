@@ -847,16 +847,6 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
               </tfoot>
             </table>
 
-            {/* Working Package Note */}
-            {workingPackageEnabled && (
-              <div className="wp-mode-note">
-                <i className="fas fa-info-circle"></i>
-                <span>
-                  Working Package mode: MDs are calculated as Amount ÷ Rate.
-                  You can adjust Final MDs to modify the final cost.
-                </span>
-              </div>
-            )}
           </div>
         ) : (
           <div className="empty-state">
