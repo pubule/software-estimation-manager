@@ -214,8 +214,12 @@ export class PhasesActions {
         }
       }
 
-      // Show toast if any rates are missing
-      if (missingRates.length > 0) {
+      // Show toast if any rates are missing AND user has finished configuring phases
+      // (don't show while user is still selecting resources)
+      const allResourcesConfigured = Object.values(selectedPhaseResources).every(
+        r => r && r.vendorId && r.jobCluster && r.seniority && r.location && r.deliveryModel
+      );
+      if (missingRates.length > 0 && allResourcesConfigured) {
         const errorMsg = `Rate not configured for: ${missingRates.join(', ')}. Click "Specify full rate details" to configure.`;
         this.showErrorNotification(errorMsg);
       }

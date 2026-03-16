@@ -1191,15 +1191,23 @@ export class VersionHistoryActions {
       const store = this.getStore();
       const currentState = store.getState();
       const calculationsData = currentState.calculationsData;
-      
-      
-      if (calculationsData?.vendorCosts && calculationsData.vendorCosts.length > 0) {
+
+      // 🔧 STRUCTURE FIX: Determine which mode is active and read from correct section
+      const isWP = currentState.currentProject?.workingPackageData?.enabled;
+      const activeVendorCosts = isWP
+        ? calculationsData?.workingPackage?.vendorCosts
+        : calculationsData?.featureBased?.vendorCosts;
+      const activeKpiData = isWP
+        ? calculationsData?.workingPackage?.kpiData
+        : calculationsData?.featureBased?.kpiData;
+
+      if (activeVendorCosts && activeVendorCosts.length > 0) {
         // Includi tutti i dati di calcolo aggiornati
         // 🔧 SEPARAZIONE OVERRIDE: usa la nuova struttura con featureBased e workingPackage separati
         snapshot.calculationData = {
-          vendorCosts: JSON.parse(JSON.stringify(calculationsData.vendorCosts)),
+          vendorCosts: JSON.parse(JSON.stringify(activeVendorCosts)),
           filters: JSON.parse(JSON.stringify(calculationsData.filters || {})),
-          kpiData: calculationsData.kpiData ? JSON.parse(JSON.stringify(calculationsData.kpiData)) : null,
+          kpiData: activeKpiData ? JSON.parse(JSON.stringify(activeKpiData)) : null,
           timestamp: new Date().toISOString(), // Timestamp per tracking
           version: calculationsData.version || 0,
           // Nuova struttura: override separati per FB e WP
@@ -1217,18 +1225,23 @@ export class VersionHistoryActions {
           ))
         };
 
-        console.log('✅ Successfully captured calculationData with', calculationsData.vendorCosts.length, 'vendors');
+        console.log('✅ Successfully captured calculationData with', activeVendorCosts.length, 'vendors');
       } else {
         console.log('⚠️  No vendor costs found in store - keeping existing calculationData in snapshot');
         // Non rimuovere calculationData esistente se non ci sono nuovi dati
       }
     } catch (error) {
       console.error('❌ Failed to capture latest calculationData from store:', error);
-      // Fallback: prova con il metodo precedente
-      const calculationsData = (window as any).appStore?.getState()?.calculationsData;
-      if (calculationsData?.vendorCosts) {
+      // Fallback: prova con il metodo precedente (leggi dalla sezione corretta)
+      const appStore = (window as any).appStore?.getState();
+      const calculationsData = appStore?.calculationsData;
+      const isWPFallback = appStore?.currentProject?.workingPackageData?.enabled;
+      const fallbackVendorCosts = isWPFallback
+        ? calculationsData?.workingPackage?.vendorCosts
+        : calculationsData?.featureBased?.vendorCosts;
+      if (fallbackVendorCosts) {
         snapshot.calculationData = {
-          vendorCosts: JSON.parse(JSON.stringify(calculationsData.vendorCosts))
+          vendorCosts: JSON.parse(JSON.stringify(fallbackVendorCosts))
         };
       }
     }
