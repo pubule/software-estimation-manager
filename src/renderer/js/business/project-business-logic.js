@@ -290,6 +290,9 @@ class ProjectBusinessLogic extends BaseComponent {
                 }
             }
 
+            // 🔧 FIX: Ripristina finalMDsOverrides dallo snapshot della versione corrente
+            this.restoreFinalMDsOverridesFromVersion(projectData);
+
             // Auto-navigate to features section (AFTER version creation)
             if (this.app.navigationManager) {
                 try {
@@ -368,10 +371,17 @@ class ProjectBusinessLogic extends BaseComponent {
             }
 
             // CRITICAL: Sync finalMDsOverrides from calculationsData to currentProject before saving
+            // MODE-AWARE: Sync both FB and WP overrides separately
             const calculationsData = state.calculationsData;
-            
-            if (calculationsData?.finalMDsOverrides) {
-                state.currentProject.finalMDsOverrides = { ...calculationsData.finalMDsOverrides };
+
+            // Sync Feature Based overrides
+            if (calculationsData?.featureBased?.finalMDsOverrides) {
+                state.currentProject.featureBasedOverrides = { ...calculationsData.featureBased.finalMDsOverrides };
+            }
+
+            // Sync Working Package overrides
+            if (calculationsData?.workingPackage?.finalMDsOverrides) {
+                state.currentProject.workingPackageOverrides = { ...calculationsData.workingPackage.finalMDsOverrides };
             }
 
             // Save project (now includes manual finalMDsOverrides modifications)
@@ -558,6 +568,73 @@ class ProjectBusinessLogic extends BaseComponent {
             console.error('❌ Failed to delete project:', error);
             NotificationManager.error(`Failed to delete project: ${error.message}`);
             throw error;
+        }
+    }
+
+    // =====================================
+    // FINAL MDS OVERRIDES RESTORATION
+    // =====================================
+
+    /**
+     * 🔧 Ripristina finalMDsOverrides dallo snapshot della versione corrente
+     * MODE-AWARE: Ripristina separatamente gli override per FB e WP
+     */
+    restoreFinalMDsOverridesFromVersion(projectData) {
+        try {
+            if (!projectData?.versions || projectData.versions.length === 0) {
+                console.log('ℹ️ No versions found, skipping finalMDsOverrides restoration');
+                return;
+            }
+
+            // Trova la versione più recente
+            const mostRecentVersion = projectData.versions.reduce((latest, current) => {
+                const latestNum = parseInt(latest.id.replace('V-', ''));
+                const currentNum = parseInt(current.id.replace('V-', ''));
+                return currentNum > latestNum ? current : latest;
+            });
+
+            const calcData = mostRecentVersion?.projectSnapshot?.calculationData;
+            if (!calcData) {
+                console.log('ℹ️ No calculationData found in version snapshot');
+                return;
+            }
+
+            const globalStore = window.appStore;
+            if (!globalStore) return;
+
+            const state = globalStore.getState();
+            const calculationsData = state.calculationsData || {};
+
+            // Ripristina FB overrides
+            const fbOverrides = calcData.featureBased?.finalMDsOverrides || {};
+            if (Object.keys(fbOverrides).length > 0) {
+                projectData.featureBasedOverrides = { ...fbOverrides };
+                console.log('🔄 Restoring FB finalMDsOverrides:', fbOverrides);
+            }
+
+            // Ripristina WP overrides
+            const wpOverrides = calcData.workingPackage?.finalMDsOverrides || {};
+            if (Object.keys(wpOverrides).length > 0) {
+                projectData.workingPackageOverrides = { ...wpOverrides };
+                console.log('🔄 Restoring WP finalMDsOverrides:', wpOverrides);
+            }
+
+            // Aggiorna store con entrambi
+            state.setCalculationsData({
+                ...calculationsData,
+                featureBased: {
+                    ...calculationsData.featureBased,
+                    finalMDsOverrides: { ...fbOverrides }
+                },
+                workingPackage: {
+                    ...calculationsData.workingPackage,
+                    finalMDsOverrides: { ...wpOverrides }
+                }
+            });
+
+            console.log('✅ finalMDsOverrides restored to store (FB + WP)');
+        } catch (error) {
+            console.error('⚠️ Failed to restore finalMDsOverrides from version:', error);
         }
     }
 

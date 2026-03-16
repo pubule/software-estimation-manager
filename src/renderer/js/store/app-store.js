@@ -152,10 +152,22 @@ const appStore = window.zustand.createStore((set, get) => ({
     // CALCULATIONS STATE
     // ======================
     calculationsData: {
-        vendorCosts: [],
-        kpiData: null,
-        filters: { vendor: 'all', role: 'all', category: 'all' }, // Added category filter for ALL/GTO/GDS
-        finalMDsOverrides: {}, // Manual overrides per vendor-role-dept
+        // Mode-specific storage with separate overrides
+        featureBased: {
+            vendorCosts: [],
+            kpiData: null,
+            finalMDsOverrides: {} // Overrides SOLO per Feature Based mode
+        },
+        workingPackage: {
+            vendorCosts: [],
+            kpiData: null,
+            entries: [],
+            summary: { gtoTotal: 0, gdsTotal: 0, projectTotal: 0 },
+            calculated: { gto: {}, gds: {} },
+            finalMDsOverrides: {} // Overrides SOLO per Working Package mode
+        },
+        // Shared settings
+        filters: { vendor: 'all', role: 'all', category: 'all' },
         version: 0 // Version counter to force React re-renders
     },
 
@@ -1649,12 +1661,19 @@ const appStore = window.zustand.createStore((set, get) => ({
     },
 
     /**
-     * Clear all Final MDs overrides
+     * Clear all Final MDs overrides (both FB and WP modes)
      */
     clearFinalMDsOverrides: () => set(state => ({
         calculationsData: {
             ...state.calculationsData,
-            finalMDsOverrides: {}
+            featureBased: {
+                ...state.calculationsData?.featureBased,
+                finalMDsOverrides: {}
+            },
+            workingPackage: {
+                ...state.calculationsData?.workingPackage,
+                finalMDsOverrides: {}
+            }
         }
     })),
 

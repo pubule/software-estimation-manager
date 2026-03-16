@@ -1195,15 +1195,28 @@ export class VersionHistoryActions {
       
       if (calculationsData?.vendorCosts && calculationsData.vendorCosts.length > 0) {
         // Includi tutti i dati di calcolo aggiornati
+        // 🔧 SEPARAZIONE OVERRIDE: usa la nuova struttura con featureBased e workingPackage separati
         snapshot.calculationData = {
           vendorCosts: JSON.parse(JSON.stringify(calculationsData.vendorCosts)),
-          finalMDsOverrides: JSON.parse(JSON.stringify(calculationsData.finalMDsOverrides || {})),
           filters: JSON.parse(JSON.stringify(calculationsData.filters || {})),
           kpiData: calculationsData.kpiData ? JSON.parse(JSON.stringify(calculationsData.kpiData)) : null,
           timestamp: new Date().toISOString(), // Timestamp per tracking
-          version: calculationsData.version || 0
+          version: calculationsData.version || 0,
+          // Nuova struttura: override separati per FB e WP
+          featureBased: {
+            finalMDsOverrides: JSON.parse(JSON.stringify(calculationsData.featureBased?.finalMDsOverrides || {}))
+          },
+          workingPackage: {
+            finalMDsOverrides: JSON.parse(JSON.stringify(calculationsData.workingPackage?.finalMDsOverrides || {}))
+          },
+          // Mantieni per retrocompatibilità (legacy)
+          finalMDsOverrides: JSON.parse(JSON.stringify(
+            calculationsData.featureBased?.finalMDsOverrides ||
+            calculationsData.workingPackage?.finalMDsOverrides ||
+            calculationsData.finalMDsOverrides || {}
+          ))
         };
-        
+
         console.log('✅ Successfully captured calculationData with', calculationsData.vendorCosts.length, 'vendors');
       } else {
         console.log('⚠️  No vendor costs found in store - keeping existing calculationData in snapshot');

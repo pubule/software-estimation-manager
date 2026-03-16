@@ -81,7 +81,15 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     console.log('🔍 FILTERS COMBINED - Result filters:', result);
     return result;
   }, [vendorFilter, roleFilter, categoryFilter]);
-  const finalMDsOverrides = useStore(state => state.calculationsData?.finalMDsOverrides || {});
+  // MODE-AWARE: Separate overrides for FB and WP modes
+  const finalMDsOverrides = useStore(state => {
+    const isWP = state.currentProject?.workingPackageData?.enabled;
+    if (isWP) {
+      return state.calculationsData?.workingPackage?.finalMDsOverrides || {};
+    } else {
+      return state.calculationsData?.featureBased?.finalMDsOverrides || {};
+    }
+  });
 
   // Working Package calculated data (from separate store section)
   const workingPackageCalculated = useStore(state => state.calculationsData?.workingPackage);

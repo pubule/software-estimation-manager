@@ -116,9 +116,16 @@ export class CalculationsActions {
 
       const calculator = factory.createCalculator();
 
-      // Pass existing overrides to calculator (only used by FeatureBasedCalculator)
-      // Read from project first (persistent), fallback to store (temporary)
-      const existingOverrides = currentProject.finalMDsOverrides || state.calculationsData?.finalMDsOverrides || {};
+      // MODE-AWARE: Pass existing overrides from the CORRECT mode section
+      const isWP = currentProject.workingPackageData?.enabled || false;
+      let existingOverrides;
+      if (isWP) {
+        // WP mode: read WP overrides from project or store
+        existingOverrides = currentProject.workingPackageOverrides || state.calculationsData?.workingPackage?.finalMDsOverrides || {};
+      } else {
+        // FB mode: read FB overrides from project or store
+        existingOverrides = currentProject.featureBasedOverrides || state.calculationsData?.featureBased?.finalMDsOverrides || {};
+      }
       const result = (calculator as any).calculate(existingOverrides);
 
       // Aggiorna store con i risultati
@@ -138,35 +145,50 @@ export class CalculationsActions {
     const store = this.getStore();
     const state = store.getState();
 
-    // Preserva filtri esistenti
+    // Preserva filtri esistenti e dati mode-specific
     const existingFilters = state.calculationsData?.filters;
-    const existingOverrides = state.calculationsData?.finalMDsOverrides || {};
+    const existingFB = state.calculationsData?.featureBased || {};
+    const existingWP = state.calculationsData?.workingPackage || {};
 
-    // SEPARATE STORAGE: Prepare data for mode-specific section
+    // MODE-AWARE STORAGE: Save results to correct section
     let calculationsData: any;
 
     if (result.mode === 'working-package') {
       const wpResult = result as any;
+      // WP mode: update WP section, keep FB section intact
       calculationsData = {
-        vendorCosts: result.vendorCosts,
-        kpiData: result.kpiData,
-        // WP mode has no overrides
-        finalMDsOverrides: {},
+        ...state.calculationsData,
         workingPackage: {
+          ...existingWP,
+          vendorCosts: result.vendorCosts,
+          kpiData: result.kpiData,
+          entries: wpResult.entries,
+          summary: wpResult.summary,
           calculated: wpResult.calculated,
-          projectTotal: wpResult.summary.projectTotal
+          // Preserve existing WP overrides
+          finalMDsOverrides: existingWP.finalMDsOverrides || {}
         },
+        // Keep FB section intact
+        featureBased: existingFB,
         filters: existingFilters || { vendor: 'all', role: 'all', category: 'all' }
       };
     } else {
-      // Feature-based: apply overrides
-      this.applyFinalMDsOverridesWithCustom(result.vendorCosts, existingOverrides);
+      // FB mode: update FB section, keep WP section intact
+      // Feature-based: apply FB overrides (if any)
+      const fbOverrides = existingFB.finalMDsOverrides || {};
+      this.applyFinalMDsOverridesWithCustom(result.vendorCosts, fbOverrides);
+
       calculationsData = {
-        vendorCosts: result.vendorCosts,
-        kpiData: result.kpiData,
-        finalMDsOverrides: existingOverrides,
-        // FB mode has no workingPackage data
-        workingPackage: null,
+        ...state.calculationsData,
+        featureBased: {
+          ...existingFB,
+          vendorCosts: result.vendorCosts,
+          kpiData: result.kpiData,
+          // Preserve existing FB overrides
+          finalMDsOverrides: fbOverrides
+        },
+        // Keep WP section intact
+        workingPackage: existingWP,
         filters: existingFilters || { vendor: 'all', role: 'all', category: 'all' }
       };
     }
@@ -886,54 +908,58 @@ export class CalculationsActions {
       // Detect current mode
       const isWorkingPackageMode = currentProject.workingPackageData?.enabled || false;
 
-      // Get current overrides and add new one
-      const currentOverrides = state.calculationsData?.finalMDsOverrides || {};
+      // Get current overrides from the CORRECT mode section
       const key = `${vendorId}_${role}`;
-      const updatedOverrides = {
-        ...currentOverrides,
-        [key]: newValue
-      };
-
-      let result;
+      let updatedOverrides;
 
       if (isWorkingPackageMode) {
-        // Working Package mode: use WorkingPackageCalculator
+        // Working Package mode: read/write WP overrides only
+        const currentWPOverrides = state.calculationsData?.workingPackage?.finalMDsOverrides || {};
+        updatedOverrides = { ...currentWPOverrides, [key]: newValue };
+
         const { WorkingPackageCalculator } = await import('./calculators');
         const calculator = new WorkingPackageCalculator(store, this.getConfigManager());
-        result = calculator.calculate(updatedOverrides);
+        const result = calculator.calculate(updatedOverrides);
 
-        // Update store with WP results
+        // Update store with WP results - keep FB overrides intact
         state.setCalculationsData({
           ...state.calculationsData,
           workingPackage: {
+            ...state.calculationsData?.workingPackage,
             vendorCosts: result.vendorCosts,
             kpiData: result.kpiData,
             entries: result.entries,
             summary: result.summary,
-            calculated: result.calculated
-          },
-          featureBased: null,
-          finalMDsOverrides: updatedOverrides
+            calculated: result.calculated,
+            finalMDsOverrides: updatedOverrides
+          }
         });
       } else {
-        // Feature-based mode: use FeatureBasedCalculator
+        // Feature-based mode: read/write FB overrides only
+        const currentFBOverrides = state.calculationsData?.featureBased?.finalMDsOverrides || {};
+        updatedOverrides = { ...currentFBOverrides, [key]: newValue };
+
         const { FeatureBasedCalculator } = await import('./calculators');
         const calculator = new FeatureBasedCalculator(store, this.getConfigManager());
-        result = calculator.calculate(updatedOverrides);
+        const result = calculator.calculate(updatedOverrides);
 
-        // SINGLE store update with everything (feature-based mode)
+        // Update store with FB results - keep WP overrides intact
         state.setCalculationsData({
-          vendorCosts: result.vendorCosts,
-          kpiData: result.kpiData,
-          finalMDsOverrides: updatedOverrides,
-          workingPackage: null // Explicitly null to trigger feature-based storage
+          ...state.calculationsData,
+          featureBased: {
+            ...state.calculationsData?.featureBased,
+            vendorCosts: result.vendorCosts,
+            kpiData: result.kpiData,
+            finalMDsOverrides: updatedOverrides
+          }
         });
       }
 
-      // Save overrides to project for persistence
+      // Save mode-specific overrides to project for persistence
       state.updateProject({
         ...currentProject,
-        finalMDsOverrides: updatedOverrides
+        workingPackageOverrides: isWorkingPackageMode ? updatedOverrides : (currentProject.workingPackageOverrides || {}),
+        featureBasedOverrides: !isWorkingPackageMode ? updatedOverrides : (currentProject.featureBasedOverrides || {})
       });
 
     } catch (error) {
@@ -1278,52 +1304,60 @@ ${assumptionsList}`;
 
       const key = `${vendorId}_${role}`;
 
-      // Rimuovi override specifico
-      const currentOverrides = state.calculationsData?.finalMDsOverrides || {};
-      const newOverrides = { ...currentOverrides };
-      delete newOverrides[key];
-
       // Detect current mode
       const isWorkingPackageMode = currentProject.workingPackageData?.enabled || false;
+      let newOverrides;
 
       if (isWorkingPackageMode) {
-        // Working Package mode: use WorkingPackageCalculator
+        // Working Package mode: remove from WP overrides only
+        const currentWPOverrides = state.calculationsData?.workingPackage?.finalMDsOverrides || {};
+        newOverrides = { ...currentWPOverrides };
+        delete newOverrides[key];
+
         const { WorkingPackageCalculator } = await import('./calculators');
         const calculator = new WorkingPackageCalculator(store, this.getConfigManager());
         const result = calculator.calculate(newOverrides);
 
-        // Update store with WP results
+        // Update store with WP results - keep FB overrides intact
         state.setCalculationsData({
           ...state.calculationsData,
           workingPackage: {
+            ...state.calculationsData?.workingPackage,
             vendorCosts: result.vendorCosts,
             kpiData: result.kpiData,
             entries: result.entries,
             summary: result.summary,
-            calculated: result.calculated
-          },
-          featureBased: null,
-          finalMDsOverrides: newOverrides
+            calculated: result.calculated,
+            finalMDsOverrides: newOverrides
+          }
         });
       } else {
-        // Feature-based mode: use FeatureBasedCalculator
+        // Feature-based mode: remove from FB overrides only
+        const currentFBOverrides = state.calculationsData?.featureBased?.finalMDsOverrides || {};
+        newOverrides = { ...currentFBOverrides };
+        delete newOverrides[key];
+
         const { FeatureBasedCalculator } = await import('./calculators');
         const calculator = new FeatureBasedCalculator(store, this.getConfigManager());
         const result = calculator.calculate(newOverrides);
 
-        // Update store with FB results
+        // Update store with FB results - keep WP overrides intact
         state.setCalculationsData({
-          vendorCosts: result.vendorCosts,
-          kpiData: result.kpiData,
-          finalMDsOverrides: newOverrides,
-          workingPackage: null
+          ...state.calculationsData,
+          featureBased: {
+            ...state.calculationsData?.featureBased,
+            vendorCosts: result.vendorCosts,
+            kpiData: result.kpiData,
+            finalMDsOverrides: newOverrides
+          }
         });
       }
 
-      // Save overrides to project for persistence
+      // Save mode-specific overrides to project for persistence
       state.updateProject({
         ...currentProject,
-        finalMDsOverrides: newOverrides
+        workingPackageOverrides: isWorkingPackageMode ? newOverrides : (currentProject.workingPackageOverrides || {}),
+        featureBasedOverrides: !isWorkingPackageMode ? newOverrides : (currentProject.featureBasedOverrides || {})
       });
 
       console.log('Single Final MD reset:', { vendorId, role, mode: isWorkingPackageMode ? 'WP' : 'FB' });
