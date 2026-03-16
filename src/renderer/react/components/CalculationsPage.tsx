@@ -740,7 +740,8 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                   <th>Vendor</th>
                   {workingPackageEnabled ? (
                     <>
-                      <th>Category</th>
+                      <th>Role</th>
+                      <th>Type</th>
                       <th>Total MDs</th>
                       <th>Final Tot MDs</th>
                       <th>Rate</th>
@@ -766,16 +767,11 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                       {cost.vendorName}
                       {cost.isInternal && <span className="internal-badge"> (Internal)</span>}
                     </td>
-                    {/* Column 2: Category (WP) or Role (FB) */}
-                    <td className={workingPackageEnabled ? "wp-category" : "vendor-role"}>
+                    {/* Column 2: Role (WP) or Role (FB) */}
+                    <td className={workingPackageEnabled ? "wp-role" : "vendor-role"}>
                       {workingPackageEnabled ? (
-                        <span className={`category-badge category-${cost.category?.toLowerCase() || (cost.role === 'G2' || cost.role === 'TA' ? 'gto' : 'gds')}`}>
-                          {cost.category || (cost.role === 'G2' || cost.role === 'TA' ? 'GTO' : 'GDS')}
-                          {cost.allocationType && (
-                            <span className={`allocation-badge allocation-${cost.allocationType}`}>
-                              {cost.allocationType === 'primary' ? ' (P)' : ' (S)'}
-                            </span>
-                          )}
+                        <span className={`role-badge role-${cost.role.toLowerCase()}`}>
+                          {cost.role}
                         </span>
                       ) : (
                         <span className={`role-badge role-${cost.role.toLowerCase()}`}>
@@ -783,9 +779,17 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                         </span>
                       )}
                     </td>
-                    {/* Column 3: Total MDs (WP) / Estimated MDs (FB) */}
+                    {/* Column 3: Type (WP only) */}
+                    <td className="wp-type">
+                      {workingPackageEnabled && (
+                        <span className={`type-badge type-${cost.isInternal ? 'internal' : 'external'}`}>
+                          {cost.isInternal ? 'Internal' : 'External'}
+                        </span>
+                      )}
+                    </td>
+                    {/* Column 4: Total MDs (WP) / Estimated MDs (FB) */}
                     <td className="total-mds">{cost.estimatedMDs.toFixed(1)}</td>
-                    {/* Column 4: Final Tot MDs (WP) / Final MDs (FB) - editable */}
+                    {/* Column 5: Final Tot MDs (WP) / Final MDs (FB) - editable */}
                     <td className="final-tot-mds">
                       <input
                         type="number"
@@ -807,11 +811,11 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                         ↻
                       </button>
                     </td>
-                    {/* Column 5: Rate */}
+                    {/* Column 6: Rate */}
                     <td className="real-rate">€{cost.realRate.toLocaleString()}</td>
-                    {/* Column 6: Tot Cost (WP) / Total Cost (FB) */}
+                    {/* Column 7: Tot Cost (WP) / Total Cost (FB) */}
                     <td className="total-cost">€{cost.totCost.toLocaleString()}</td>
-                    {/* Column 7: Final Tot Cost (WP) / Final Total Cost (FB) */}
+                    {/* Column 8: Final Tot Cost (WP) / Final Total Cost (FB) */}
                     <td className={`final-tot-cost ${
                       cost.finalTotCost >= cost.totCost ? 'final-cost-higher' : 'final-cost-lower'
                     }`}>
@@ -824,7 +828,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
               {/* Footer con totali */}
               <tfoot>
                 <tr className="totals-row">
-                  <td colSpan={5}><strong>TOTALS</strong></td>
+                  <td colSpan={6}><strong>TOTALS</strong></td>
                   <td className="total-cost">
                     <strong>€{filteredCosts.reduce((sum, cost) => sum + cost.totCost, 0).toLocaleString()}</strong>
                   </td>
