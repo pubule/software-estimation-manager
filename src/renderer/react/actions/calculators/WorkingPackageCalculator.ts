@@ -30,6 +30,7 @@ export class WorkingPackageCalculator implements ICalculator {
   constructor(store: any, configManager: any) {
     this.store = store;
     this.configManager = configManager;
+    console.log('📦 WorkingPackageCalculator created, configManager available:', !!configManager);
     this.project = store.getState().currentProject;
     this.workingPackageData = this.project?.workingPackageData || {
       enabled: false,
@@ -179,8 +180,8 @@ export class WorkingPackageCalculator implements ICalculator {
     const vendorCosts: VendorCost[] = [];
 
     entries.forEach(entry => {
-      // Ottieni il real rate reale del vendor
-      const realRate = this.getVendorRealRate(entry.vendorId);
+      // Ottieni il real rate reale del vendor (passa anche il ruolo)
+      const realRate = this.getVendorRealRate(entry.vendorId, entry.role);
 
       // Calcola MDs: amount / rate
       const estimatedMDs = realRate > 0 ? Math.round((entry.amount / realRate) * 10) / 10 : 0;
@@ -214,25 +215,74 @@ export class WorkingPackageCalculator implements ICalculator {
   }
 
   /**
-   * Recupera il real rate per un vendor
-   * Cerca prima nel job cluster con role matching, altrimenti usa officialRate/rate
+   * Recupera il real rate per un vendor e ruolo
+   * Usa configManager.getRate() come fa FeatureBasedCalculator
    */
-  private getVendorRealRate(vendorId: string): number {
-    const vendor = this.getVendorData(vendorId);
-    if (!vendor) return 0;
+  private getVendorRealRate(vendorId: string, role?: string): number {
+    console.log('🔍 getVendorRealRate called for vendorId:', vendorId, 'role:', role);
+    console.log('🔍 configManager available:', !!this.configManager);
 
-    // Cerca rate nei job clusters
-    if (vendor.jobClusters && vendor.jobClusters.length > 0) {
-      // Trova il primo job cluster con un rate valido
-      for (const jc of vendor.jobClusters) {
-        if (jc.rate || jc.realRate) {
-          return jc.realRate || jc.rate || 0;
+    const vendor = this.getVendorData(vendorId);
+    console.log('🔍 vendor found:', !!vendor);
+
+    if (!vendor) {
+      console.warn('⚠️ Vendor not found:', vendorId);
+      return 0;
+    }
+
+    // Se abbiamo il configManager, usa getRate come fa FeatureBasedCalculator
+    if (this.configManager && role) {
+      // Trova il job cluster per questo ruolo
+      const jobCluster = this.getJobClusterForRole(vendor, role);
+      if (jobCluster) {
+        console.log('🔍 Found jobCluster for role', role, ':', jobCluster);
+        try {
+          const rateDetails = this.configManager.getRate({
+            vendorId,
+            jobCluster: jobCluster.clusterId,
+            seniority: jobCluster.seniority || 'Mid-Level',
+            location: jobCluster.location || 'italy',
+            deliveryModel: jobCluster.deliveryModel || 'onsite'
+          });
+          if (rateDetails?.realRate) {
+            console.log('✅ Found rate via configManager.getRate:', rateDetails.realRate);
+            return rateDetails.realRate;
+          }
+        } catch (e) {
+          console.warn('⚠️ Error getting rate from configManager:', e);
         }
       }
     }
 
-    // Fallback al rate del vendor
-    return vendor.realRate || vendor.rate || vendor.officialRate || 0;
+    // Fallback: cerca rate nei job clusters
+    if (vendor.jobClusters && vendor.jobClusters.length > 0) {
+      for (const jc of vendor.jobClusters) {
+        if (jc.rate || jc.realRate) {
+          const rate = jc.realRate || jc.rate || 0;
+          console.log('✅ Found rate in jobCluster (fallback):', rate);
+          return rate;
+        }
+      }
+    }
+
+    // Fallback finale al rate del vendor
+    const fallbackRate = vendor.realRate || vendor.rate || vendor.officialRate || 0;
+    console.log('🔍 Fallback rate:', fallbackRate);
+    return fallbackRate;
+  }
+
+  /**
+   * Trova il job cluster per un ruolo specifico
+   */
+  private getJobClusterForRole(vendor: any, role: string): any {
+    if (!vendor.jobClusters || vendor.jobClusters.length === 0) return null;
+
+    // Cerca job cluster che matcha il ruolo
+    const matching = vendor.jobClusters.find((jc: any) => jc.role === role);
+    if (matching) return matching;
+
+    // Se non trovato, ritorna il primo
+    return vendor.jobClusters[0];
   }
 
   /**
