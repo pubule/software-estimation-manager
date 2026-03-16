@@ -161,6 +161,8 @@ export class CalculationsActions {
         vendorCosts: result.vendorCosts,
         kpiData: result.kpiData,
         workingPackage: {
+          vendorCosts: result.vendorCosts,
+          kpiData: result.kpiData,
           entries: wpResult.entries,
           summary: wpResult.summary,
           calculated: wpResult.calculated,
@@ -172,12 +174,16 @@ export class CalculationsActions {
       // FB mode: update FB section, keep WP section intact
       // Feature-based: apply FB overrides (if any)
       const fbOverrides = existingFB.finalMDsOverrides || {};
-      this.applyFinalMDsOverridesWithCustom(result.vendorCosts, fbOverrides);
+      const vendorCostsWithOverrides = this.applyFinalMDsOverridesWithCustom(result.vendorCosts, fbOverrides);
 
       calculationsData = {
-        vendorCosts: result.vendorCosts,
+        vendorCosts: vendorCostsWithOverrides,
         kpiData: result.kpiData,
-        finalMDsOverrides: fbOverrides,
+        featureBased: {
+          vendorCosts: vendorCostsWithOverrides,
+          kpiData: result.kpiData,
+          finalMDsOverrides: fbOverrides
+        },
         filters: existingFilters || { vendor: 'all', role: 'all', category: 'all' }
       };
     }
@@ -911,17 +917,19 @@ export class CalculationsActions {
         const result = calculator.calculate(updatedOverrides);
 
         // Update store with WP results - keep FB overrides intact
+        // setCalculationsData reads finalMDsOverrides from workingPackage section
         state.setCalculationsData({
-          ...state.calculationsData,
+          vendorCosts: result.vendorCosts,
+          kpiData: result.kpiData,
           workingPackage: {
-            ...state.calculationsData?.workingPackage,
             vendorCosts: result.vendorCosts,
             kpiData: result.kpiData,
             entries: result.entries,
             summary: result.summary,
             calculated: result.calculated,
             finalMDsOverrides: updatedOverrides
-          }
+          },
+          filters: state.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' }
         });
       } else {
         // Feature-based mode: read/write FB overrides only
@@ -933,14 +941,16 @@ export class CalculationsActions {
         const result = calculator.calculate(updatedOverrides);
 
         // Update store with FB results - keep WP overrides intact
+        // setCalculationsData reads finalMDsOverrides from featureBased section
         state.setCalculationsData({
-          ...state.calculationsData,
+          vendorCosts: result.vendorCosts,
+          kpiData: result.kpiData,
           featureBased: {
-            ...state.calculationsData?.featureBased,
             vendorCosts: result.vendorCosts,
             kpiData: result.kpiData,
             finalMDsOverrides: updatedOverrides
-          }
+          },
+          filters: state.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' }
         });
       }
 
@@ -1308,17 +1318,19 @@ ${assumptionsList}`;
         const result = calculator.calculate(newOverrides);
 
         // Update store with WP results - keep FB overrides intact
+        // setCalculationsData reads finalMDsOverrides from workingPackage section
         state.setCalculationsData({
-          ...state.calculationsData,
+          vendorCosts: result.vendorCosts,
+          kpiData: result.kpiData,
           workingPackage: {
-            ...state.calculationsData?.workingPackage,
             vendorCosts: result.vendorCosts,
             kpiData: result.kpiData,
             entries: result.entries,
             summary: result.summary,
             calculated: result.calculated,
             finalMDsOverrides: newOverrides
-          }
+          },
+          filters: state.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' }
         });
       } else {
         // Feature-based mode: remove from FB overrides only
@@ -1331,14 +1343,16 @@ ${assumptionsList}`;
         const result = calculator.calculate(newOverrides);
 
         // Update store with FB results - keep WP overrides intact
+        // setCalculationsData reads finalMDsOverrides from featureBased section
         state.setCalculationsData({
-          ...state.calculationsData,
+          vendorCosts: result.vendorCosts,
+          kpiData: result.kpiData,
           featureBased: {
-            ...state.calculationsData?.featureBased,
             vendorCosts: result.vendorCosts,
             kpiData: result.kpiData,
             finalMDsOverrides: newOverrides
-          }
+          },
+          filters: state.calculationsData?.filters || { vendor: 'all', role: 'all', category: 'all' }
         });
       }
 

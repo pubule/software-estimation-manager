@@ -1617,9 +1617,10 @@ const appStore = window.zustand.createStore((set, get) => ({
                         entries: data.workingPackage?.entries ?? existingWP.entries,
                         summary: data.workingPackage?.summary ?? existingWP.summary,
                         calculated: data.workingPackage?.calculated ?? existingWP.calculated,
-                        projectTotal: data.workingPackage?.projectTotal
+                        projectTotal: data.workingPackage?.projectTotal,
+                        finalMDsOverrides: data.workingPackage?.finalMDsOverrides ?? existingWP.finalMDsOverrides ?? {}
                     } : {
-                        finalMDsOverrides: data.finalMDsOverrides ?? existingFB.finalMDsOverrides ?? {}
+                        finalMDsOverrides: data.featureBased?.finalMDsOverrides ?? existingFB.finalMDsOverrides ?? {}
                     }),
                 },
 
