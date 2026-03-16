@@ -174,7 +174,7 @@ export class FeatureBasedCalculator implements ICalculator {
           finalMDs: finalMDs,
           totCost: Math.round(total.cost),
           finalTotCost: Math.round(finalMDs * realRate),
-          isInternal: supplier?.type === 'internal'
+          isInternal: supplier?.type?.toLowerCase() === 'internal'
         });
       }
     });

@@ -163,7 +163,7 @@ const FeaturesFilters: React.FC<FeaturesFiltersProps> = ({
           <option value="">All Suppliers</option>
           {filterOptions.suppliers.map(supplier => {
             const rate = supplier.realRate || supplier.officialRate || 0;
-            const isInternal = supplier.type === 'internal' || supplier.isInternal;
+            const isInternal = supplier.type?.toLowerCase() === 'internal' || supplier.isInternal;
             const internalSuffix = isInternal ? ' - Internal' : '';
             const displayName = `${supplier.department} - ${supplier.name} (€${rate}/day)${internalSuffix}`;
             

@@ -751,6 +751,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                   ) : (
                     <>
                       <th>Role</th>
+                      <th>Type</th>
                       <th>Estimated MDs</th>
                       <th>Final MDs</th>
                       <th>Rate</th>
@@ -779,13 +780,11 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                         </span>
                       )}
                     </td>
-                    {/* Column 3: Type (WP only) */}
+                    {/* Column 3: Type (shown in both WP and FB modes) */}
                     <td className="wp-type">
-                      {workingPackageEnabled && (
-                        <span className={`type-badge type-${cost.isInternal ? 'internal' : 'external'}`}>
-                          {cost.isInternal ? 'Internal' : 'External'}
-                        </span>
-                      )}
+                      <span className={`type-badge type-${cost.isInternal ? 'internal' : 'external'}`}>
+                        {cost.isInternal ? 'Internal' : 'External'}
+                      </span>
                     </td>
                     {/* Column 4: Total MDs (WP) / Estimated MDs (FB) */}
                     <td className="total-mds">{cost.estimatedMDs.toFixed(1)}</td>

@@ -438,7 +438,7 @@ export class CalculationsActions {
             finalMDs: finalMDs,
             totCost: Math.round(total.cost),
             finalTotCost: Math.round(finalMDs * effectiveRate),
-            isInternal: supplierData.type === 'internal' || false
+            isInternal: supplierData.type?.toLowerCase() === 'internal' || false
           });
         }
       }
@@ -551,7 +551,7 @@ export class CalculationsActions {
             finalMDs: finalMDs,
             totCost: totCost,
             finalTotCost: Math.round(finalMDs * tempRate),
-            isInternal: supplierData.type === 'internal' || false
+            isInternal: supplierData.type?.toLowerCase() === 'internal' || false
           };
           
           costs.push(cost);
@@ -644,7 +644,7 @@ export class CalculationsActions {
             finalMDs: roleMDs,
             totCost: roleCost,
             finalTotCost: roleCost,
-            isInternal: supplierData.type === 'internal' || false
+            isInternal: supplierData.type?.toLowerCase() === 'internal' || false
           };
 
           costs.push(cost);
@@ -745,7 +745,7 @@ export class CalculationsActions {
       finalMDs: finalMDs,
       totCost: totCost,
       finalTotCost: Math.round(finalMDs * rate),
-      isInternal: supplierData.type === 'internal' || false
+      isInternal: supplierData.type?.toLowerCase() === 'internal' || false
     };
 
     return coverageCost;

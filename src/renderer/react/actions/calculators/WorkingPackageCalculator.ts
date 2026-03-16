@@ -123,7 +123,7 @@ export class WorkingPackageCalculator implements ICalculator {
           allocationType: 'primary',
           percentage: 100 - (categoryData.secondaryPercentage || 0),
           amount: split.primaryAmount,
-          isInternal: primaryVendor.type === 'internal',
+          isInternal: primaryVendor.type?.toLowerCase() === 'internal',
           role: this.getVendorRole(categoryData.primaryVendorId) || defaultRole
         });
       }
@@ -140,7 +140,7 @@ export class WorkingPackageCalculator implements ICalculator {
           allocationType: 'secondary',
           percentage: categoryData.secondaryPercentage,
           amount: split.secondaryAmount,
-          isInternal: secondaryVendor.type === 'internal',
+          isInternal: secondaryVendor.type?.toLowerCase() === 'internal',
           role: this.getVendorRole(categoryData.secondaryVendorId) || defaultRole
         });
       }
