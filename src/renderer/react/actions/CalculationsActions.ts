@@ -1325,13 +1325,31 @@ ${assumptionsList}`;
         const calculator = new WorkingPackageCalculator(store, this.getConfigManager());
         const result = calculator.calculate(newOverrides);
 
+        // In WP mode: force finalTotCost = totCost, recalculate finalMDs
+        // This ensures costs remain fixed (set by user via Total Amount * percentage)
+        const adjustedVendorCosts = result.vendorCosts.map((cost: any) => {
+          if (cost.vendorId === vendorId && cost.role === role) {
+            // Force final Tot Cost = Tot Cost (original allocation)
+            const finalTotCost = cost.totCost;
+            // Recalculate final MDs using the rate
+            const realRate = cost.realRate;
+            const finalMDs = realRate > 0 ? Math.round((finalTotCost / realRate) * 10) / 10 : 0;
+            return {
+              ...cost,
+              finalTotCost,
+              finalMDs
+            };
+          }
+          return cost;
+        });
+
         // Update store with WP results - keep FB overrides intact
         // setCalculationsData reads finalMDsOverrides from workingPackage section
         state.setCalculationsData({
-          vendorCosts: result.vendorCosts,
+          vendorCosts: adjustedVendorCosts,
           kpiData: result.kpiData,
           workingPackage: {
-            vendorCosts: result.vendorCosts,
+            vendorCosts: adjustedVendorCosts,
             kpiData: result.kpiData,
             entries: result.entries,
             summary: result.summary,
