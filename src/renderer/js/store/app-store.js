@@ -346,6 +346,17 @@ const appStore = window.zustand.createStore((set, get) => ({
             // instead of relying on get() which may return stale state due to race conditions
             state.initializePhases(project);
             console.log('✅ Store: Phases reinitialized from new project data');
+
+            // 🔧 CRITICAL FIX: Load workingPackageResources from project if present
+            // This preserves the vendor + rate details (jobCluster, seniority, location, deliveryModel)
+            // when loading a saved project
+            if (project.workingPackageResources) {
+                console.log('🔧 Loading workingPackageResources from project:', project.workingPackageResources);
+                // Update workingPackageResources in store to match project data
+                set({ workingPackageResources: project.workingPackageResources });
+            } else {
+                console.log('ℹ️ No workingPackageResources found in project, using defaults');
+            }
         }
 
         // CRITICAL FALLBACK: Force navigation manager to update menu state
@@ -601,6 +612,25 @@ const appStore = window.zustand.createStore((set, get) => ({
         const updatedProject = {
             ...currentState.currentProject,
             [field]: value
+        };
+
+        set({
+            currentProject: updatedProject,
+            isDirty: true
+        });
+    },
+
+    /**
+     * Update Working Package resources (for persistence in project JSON)
+     * This is separate from workingPackageData to keep phases/featureBased segregated from Working Package
+     */
+    updateWorkingPackageResources: (resources) => {
+        const currentState = get();
+        if (!currentState.currentProject) return;
+
+        const updatedProject = {
+            ...currentState.currentProject,
+            workingPackageResources: resources
         };
 
         set({
@@ -958,9 +988,24 @@ const appStore = window.zustand.createStore((set, get) => ({
     updateSelectedPhaseResource: (resourceType, resourceDetails) => {
         const state = get();
         const { selectedPhaseResources } = state;
+        const existingResource = selectedPhaseResources[resourceType] || {};
+
+        // Merge new resource with existing resource to preserve fields that weren't changed
+        const mergedResource = {
+            ...existingResource,
+            ...resourceDetails
+        };
+
+        // Clean up any undefined values that might have been carried over from existing resource
+        Object.keys(mergedResource).forEach((key) => {
+            if (mergedResource[key] === undefined) {
+                delete mergedResource[key];
+            }
+        });
+
         const newSelectedResources = {
             ...selectedPhaseResources,
-            [resourceType]: resourceDetails,
+            [resourceType]: mergedResource,
         };
 
         set({
@@ -978,12 +1023,26 @@ const appStore = window.zustand.createStore((set, get) => ({
         const state = get();
         const { workingPackageResources } = state;
         const currentCategory = workingPackageResources[category] || {};
+        const existingResource = currentCategory[resourceType] || {};
+
+        // Merge new resource with existing resource to preserve fields that weren't changed
+        const mergedResource = {
+            ...existingResource,
+            ...resourceDetails
+        };
+
+        // Clean up any undefined values that might have been carried over from existing resource
+        Object.keys(mergedResource).forEach((key) => {
+            if (mergedResource[key] === undefined) {
+                delete mergedResource[key];
+            }
+        });
 
         const newWorkingPackageResources = {
             ...workingPackageResources,
             [category]: {
                 ...currentCategory,
-                [resourceType]: resourceDetails
+                [resourceType]: mergedResource
             }
         };
 

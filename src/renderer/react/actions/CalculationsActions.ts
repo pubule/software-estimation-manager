@@ -1492,6 +1492,13 @@ ${assumptionsList}`;
 
       state.updateProjectField('workingPackageData', workingPackage);
 
+      // Also save workingPackageResources to project for persistence
+      const workingPackageResources = currentProject.workingPackageResources || {
+        gto: { primaryResource: null, secondaryResource: null },
+        gds: { primaryResource: null, secondaryResource: null }
+      };
+      state.updateWorkingPackageResources(workingPackageResources);
+
       // Ricalcola
       this.calculateProjectCosts();
 
@@ -1521,6 +1528,13 @@ ${assumptionsList}`;
       };
 
       state.updateProjectField('workingPackageData', workingPackage);
+
+      // Also save workingPackageResources to project for persistence
+      const workingPackageResources = currentProject.workingPackageResources || {
+        gto: { primaryResource: null, secondaryResource: null },
+        gds: { primaryResource: null, secondaryResource: null }
+      };
+      state.updateWorkingPackageResources(workingPackageResources);
 
       // Ricalcola se abilitato
       if (workingPackage.enabled) {
@@ -1582,6 +1596,13 @@ ${assumptionsList}`;
       };
 
       state.updateProjectField('workingPackageData', workingPackage);
+
+      // Also save workingPackageResources to project for persistence
+      const workingPackageResources = currentProject.workingPackageResources || {
+        gto: { primaryResource: null, secondaryResource: null },
+        gds: { primaryResource: null, secondaryResource: null }
+      };
+      state.updateWorkingPackageResources(workingPackageResources);
 
       // Ricalcola se il Working Package è abilitato
       if (currentWP.enabled) {
@@ -1810,7 +1831,44 @@ ${assumptionsList}`;
     try {
       const store = this.getStore();
       if (!store) throw new Error('Store not available');
-      store.getState().updateWorkingPackageResource(category, resourceType, resource);
+      const state = store.getState();
+
+      // Update in store
+      state.updateWorkingPackageResource(category, resourceType, resource);
+
+      // Also save to project for persistence
+      const workingPackageResources = state.currentProject?.workingPackageResources || {
+        gto: { primaryResource: null, secondaryResource: null },
+        gds: { primaryResource: null, secondaryResource: null }
+      };
+      const currentCategory = workingPackageResources[category] || {};
+      const existingResource = currentCategory[resourceType] || {};
+
+      // Merge new resource with existing resource to preserve fields that weren't changed
+      // Only merge fields that have truthy values in the new resource
+      const mergedResource = {
+        ...existingResource,
+        ...resource
+      };
+
+      // Clean up any undefined values that might have been carried over from existing resource
+      // This ensures that if a field was undefined before but is now missing in new resource,
+      // we don't explicitly set it to undefined
+      Object.keys(mergedResource).forEach((key) => {
+        if (mergedResource[key] === undefined) {
+          delete mergedResource[key];
+        }
+      });
+
+      const newWorkingPackageResources = {
+        ...workingPackageResources,
+        [category]: {
+          ...currentCategory,
+          [resourceType]: mergedResource
+        }
+      };
+      state.updateWorkingPackageResources(newWorkingPackageResources);
+
       // Re-calculate costs to update rates based on new resource selection
       this.calculateProjectCosts();
     } catch (error) {
@@ -1857,8 +1915,8 @@ ${assumptionsList}`;
         | 'secondaryVendorId';
 
       // Update vendorId in workingPackageData
-      const state = store.getState();
-      const workingPackageData = state.currentProject?.workingPackageData;
+      const currentState = store.getState();
+      const workingPackageData = currentState.currentProject?.workingPackageData;
       if (workingPackageData) {
         const newWorkingPackageData = {
           ...workingPackageData,
@@ -1867,11 +1925,44 @@ ${assumptionsList}`;
             [vendorIdFieldName]: resource.vendorId || workingPackageData[category]?.[vendorIdFieldName]
           }
         };
-        state.updateProjectField('workingPackageData', newWorkingPackageData);
+        currentState.updateProjectField('workingPackageData', newWorkingPackageData);
       }
 
-      // Update resource details in workingPackageResources
-      store.getState().updateWorkingPackageResource(category, resourceType, resource);
+      // Update resource details in workingPackageResources AND save to project
+      currentState.updateWorkingPackageResource(category, resourceType, resource);
+
+      // Also save workingPackageResources to project for persistence
+      const workingPackageResources = currentState.currentProject?.workingPackageResources || {
+        gto: { primaryResource: null, secondaryResource: null },
+        gds: { primaryResource: null, secondaryResource: null }
+      };
+      const currentCategory = workingPackageResources[category] || {};
+      const existingResource = currentCategory[resourceType] || {};
+
+      // Merge new resource with existing resource to preserve fields that weren't changed
+      // This prevents data loss when partial updates are made (e.g., only vendorId changed)
+      const mergedResource = {
+        ...existingResource,
+        ...resource
+      };
+
+      // Clean up any undefined values that might have been carried over from existing resource
+      // This ensures that if a field was undefined before but is now missing in new resource,
+      // we don't explicitly set it to undefined
+      Object.keys(mergedResource).forEach((key) => {
+        if (mergedResource[key] === undefined) {
+          delete mergedResource[key];
+        }
+      });
+
+      const newWorkingPackageResources = {
+        ...workingPackageResources,
+        [category]: {
+          ...currentCategory,
+          [resourceType]: mergedResource
+        }
+      };
+      currentState.updateWorkingPackageResources(newWorkingPackageResources);
 
       // Re-calculate costs to update rates based on new resource selection
       this.calculateProjectCosts();
