@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "strict": false,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/renderer/react/*"],
+      "@/hooks/*": ["src/renderer/react/hooks/*"],
+      "@/components/*": ["src/renderer/react/components/*"]
+    }
+  },
+  "include": [
+    "src/renderer/react/actions/**/*",
+    "src/renderer/react/calculators/**/*",
+    "cucumber/**/*"
+  ]
+}
