@@ -33,9 +33,9 @@ src/
 │   └── index.html            # Entry point principale
 
 cucumber/                     # Test framework UNICO
-├── step-definitions/         # Step definitions Cucumber
-├── page-objects/            # Page objects per UI testing
-└── fixtures/                # Test data
+├── support/                 # World, hooks, mocks (window-mock.js)
+├── step-definitions/        # Step definitions Cucumber (.ts files)
+└── fixtures/                # Test data (JSON fixtures, CSV)
 
 features/                    # SOLO file .feature (Gherkin)
 ```
