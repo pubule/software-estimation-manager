@@ -27,7 +27,9 @@ Then('assumptions count should be {int}', function (expected: number) {
 });
 
 Then('the approval status should be {string}', function (expected: string) {
-  assert.strictEqual(this.getState().currentProject.approvalStatus, expected);
+  const project = this.getState().currentProject;
+  const status = project.project?.approvalStatus || project.approvalStatus;
+  assert.strictEqual(status, expected);
 });
 
 When('I set approval status to {string}', function (status: string) {

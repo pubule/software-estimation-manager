@@ -3,6 +3,11 @@ const { setupWindowMock, resetStore, setConfigManager } = require('./mocks/windo
 const path = require('path');
 const fs = require('fs');
 
+// Ensure window mock exists before ESM step-definition modules are imported.
+// Modules like VersionHistoryActions export a singleton that references window
+// at module-load time, so the mock must be available early.
+setupWindowMock();
+
 class TestWorld {
   constructor() {
     this.store = null;

@@ -53,8 +53,11 @@ function setupWindowMock() {
       this.detail = options?.detail;
     }
   };
+  global.window.confirm = () => true;
   global.window.location = { hostname: 'test', hash: '' };
   global.window.open = () => {};
+  global.window.confirm = () => true;
+  global.window.alert = () => {};
   global.window.isSecureContext = false;
   global.window.URL = {
     createObjectURL: () => 'blob:test',
@@ -84,6 +87,9 @@ function setupWindowMock() {
   if (typeof global.console === 'undefined') {
     global.console = console;
   }
+
+  global.confirm = () => true;
+  global.alert = () => {};
 }
 
 function loadStore() {

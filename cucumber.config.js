@@ -1,8 +1,7 @@
 const common = {
   paths: ['features/**/*.feature'],
-  require: ['cucumber/support/**/*.js'],
+  require: ['cucumber/support/**/*.js', 'cucumber/step-definitions/**/*.ts'],
   requireModule: ['tsx/cjs'],
-  import: ['cucumber/step-definitions/**/*.ts'],
   format: ['progress-bar'],
   timeout: 10000,
 };
