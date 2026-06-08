@@ -1,11 +1,10 @@
 module.exports = {
   default: {
-    require: [
-      'cucumber/support/**/*.js',
-      'cucumber/step-definitions/**/*.js'
-    ],
-    format: ['progress'],
+    require: ['cucumber/support/**/*.js'],
+    requireModule: ['tsx/cjs'],
+    import: ['cucumber/step-definitions/**/*.ts'],
+    format: ['progress-bar'],
     paths: ['features/**/*.feature'],
-    timeout: 60000
-  }
+    timeout: 10000,
+  },
 };

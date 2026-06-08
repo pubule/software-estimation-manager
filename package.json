@@ -18,7 +18,18 @@
     "pack": "electron-builder --dir",
     "postinstall": "electron-builder install-app-deps",
     "restart": "pkill -f electron && npm run build:react && npm run start",
-    "restart:dev": "pkill -f electron && npm run build:react:dev && npm run dev"
+    "restart:dev": "pkill -f electron && npm run build:react:dev && npm run dev",
+    "test": "cucumber-js",
+    "test:features": "cucumber-js --profile features",
+    "test:projects": "cucumber-js --profile projects",
+    "test:phases": "cucumber-js --profile phases",
+    "test:calculations": "cucumber-js --profile calculations",
+    "test:capacity": "cucumber-js --profile capacity",
+    "test:allocations": "cucumber-js --profile allocations",
+    "test:assumptions": "cucumber-js --profile assumptions",
+    "test:version-history": "cucumber-js --profile version-history",
+    "test:tickets": "cucumber-js --profile tickets",
+    "test:config": "cucumber-js --profile configuration"
   },
   "keywords": [
     "electron",
