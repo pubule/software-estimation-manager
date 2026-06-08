@@ -1,0 +1,63 @@
+{
+  "vendors": [
+    {
+      "id": "vendor-internal",
+      "name": "Internal Team",
+      "isInternal": true,
+      "jobClusters": [
+        {
+          "id": "jc-dev",
+          "name": "Development",
+          "role": "G2",
+          "rates": [
+            { "seniority": "Senior", "location": "Onshore", "deliveryModel": "Standard", "officialRate": 450, "realRate": 450 },
+            { "seniority": "Junior", "location": "Onshore", "deliveryModel": "Standard", "officialRate": 300, "realRate": 300 }
+          ]
+        },
+        {
+          "id": "jc-pm",
+          "name": "Project Management",
+          "role": "PM",
+          "rates": [
+            { "seniority": "Senior", "location": "Onshore", "deliveryModel": "Standard", "officialRate": 550, "realRate": 550 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vendor-external",
+      "name": "External Partner",
+      "isInternal": false,
+      "jobClusters": [
+        {
+          "id": "jc-dev-ext",
+          "name": "Development",
+          "role": "G1",
+          "rates": [
+            { "seniority": "Senior", "location": "Offshore", "deliveryModel": "Standard", "officialRate": 350, "realRate": 350 },
+            { "seniority": "Junior", "location": "Offshore", "deliveryModel": "Standard", "officialRate": 200, "realRate": 200 }
+          ]
+        },
+        {
+          "id": "jc-ta-ext",
+          "name": "Technical Architecture",
+          "role": "TA",
+          "rates": [
+            { "seniority": "Senior", "location": "Onshore", "deliveryModel": "Standard", "officialRate": 500, "realRate": 500 }
+          ]
+        }
+      ]
+    }
+  ],
+  "teams": [
+    {
+      "id": "team-dev",
+      "name": "Development Team",
+      "members": [
+        { "id": "member-1", "name": "Alice Dev", "role": "Developer", "country": "IT", "availabilityPercentage": 100, "vacationDays": 25 },
+        { "id": "member-2", "name": "Bob Arch", "role": "Architect", "country": "IT", "availabilityPercentage": 80, "vacationDays": 25 },
+        { "id": "member-3", "name": "Carol PM", "role": "PM", "country": "RO", "availabilityPercentage": 50, "vacationDays": 21 }
+      ]
+    }
+  ]
+}

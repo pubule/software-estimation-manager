@@ -1,0 +1,78 @@
+{
+  "project": {
+    "id": "test-project-full",
+    "name": "Full Test Project",
+    "description": "Project with features, phases, and assumptions",
+    "comment": "For integration testing",
+    "projectCode": "FTP-001",
+    "created": "2026-01-01T00:00:00.000Z",
+    "modified": "2026-06-01T00:00:00.000Z"
+  },
+  "features": [
+    {
+      "id": "F001",
+      "name": "User Login",
+      "description": "Authentication feature",
+      "category": "Security",
+      "featureType": "New Development",
+      "supplier": "vendor-internal",
+      "manDays": 15,
+      "role": "G2",
+      "rate": 450,
+      "created": "2026-01-15T00:00:00.000Z",
+      "modified": "2026-01-15T00:00:00.000Z"
+    },
+    {
+      "id": "F002",
+      "name": "Dashboard",
+      "description": "Main dashboard",
+      "category": "UI",
+      "featureType": "New Development",
+      "supplier": "vendor-external",
+      "manDays": 25,
+      "role": "G1",
+      "rate": 350,
+      "created": "2026-02-01T00:00:00.000Z",
+      "modified": "2026-02-01T00:00:00.000Z"
+    },
+    {
+      "id": "F003",
+      "name": "API Integration",
+      "description": "REST API endpoints",
+      "category": "Backend",
+      "featureType": "Enhancement",
+      "supplier": "vendor-internal",
+      "manDays": 10,
+      "role": "TA",
+      "rate": 500,
+      "created": "2026-03-01T00:00:00.000Z",
+      "modified": "2026-03-01T00:00:00.000Z"
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A001",
+      "description": "Client provides test data by March",
+      "type": "Dependency",
+      "impact": "High",
+      "created": "2026-01-10T00:00:00.000Z",
+      "modified": "2026-01-10T00:00:00.000Z"
+    },
+    {
+      "id": "A002",
+      "description": "No changes to authentication provider",
+      "type": "Technical",
+      "impact": "Medium",
+      "created": "2026-01-10T00:00:00.000Z",
+      "modified": "2026-01-10T00:00:00.000Z"
+    }
+  ],
+  "phases": [],
+  "versions": [],
+  "approvalStatus": "Pending Approval",
+  "coverage": {
+    "totalManDays": 50,
+    "coveredManDays": 50,
+    "coveragePercentage": 100
+  }
+}
