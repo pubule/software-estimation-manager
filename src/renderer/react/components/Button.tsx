@@ -179,10 +179,11 @@ const Button: React.FC<ButtonProps> = ({
   'aria-busy': ariaBusy,
   ...restProps
 }) => {
-  // Construct CSS class list
+  // Construct CSS class list — map 'danger' variant to 'destructive' CSS class
+  const cssVariant = variant === 'danger' ? 'destructive' : variant;
   const classes = [
     'btn',
-    `btn-${variant}`,
+    `btn-${cssVariant}`,
     `btn-${size}`,
     fullWidth && 'btn-full-width',
     loading && 'btn-loading',

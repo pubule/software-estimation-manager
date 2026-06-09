@@ -987,11 +987,11 @@ select:read-only:focus-visible {
        ======================================================================== */
 
     /* Background Colors — Midnight Blue */
-    --color-bg-primary: #141825;
-    --color-bg-secondary: #181d2a;
-    --color-bg-tertiary: #1a1f2e;
-    --color-bg-quaternary: #1e2436;
-    --color-bg-hover: #222940;
+    --color-bg-primary: #0f1420;
+    --color-bg-secondary: #161c2c;
+    --color-bg-tertiary: #1c2338;
+    --color-bg-quaternary: #243044;
+    --color-bg-hover: #2a3750;
     --color-bg-active: #1a2a4a;
     --color-bg-selected: #1e3560;
 
@@ -1052,8 +1052,8 @@ select:read-only:focus-visible {
     --btn-primary-bg-hover: #7da0ff;
     --btn-primary-color: #ffffff;
 
-    --btn-secondary-bg: #1e2436;
-    --btn-secondary-bg-hover: #222940;
+    --btn-secondary-bg: #243044;
+    --btn-secondary-bg-hover: #2a3750;
     --btn-secondary-color: #e2e6f0;
 
     --btn-destructive-bg: #f87171;
@@ -1063,9 +1063,9 @@ select:read-only:focus-visible {
     /* ========================================================================
        COMPONENT TOKENS - Inputs
        ======================================================================== */
-    --input-bg: #1e2436;
-    --input-bg-readonly: #1e2436;
-    --input-bg-disabled: #1a1f2e;
+    --input-bg: #243044;
+    --input-bg-readonly: #243044;
+    --input-bg-disabled: #1c2338;
 
     --input-border: #2d3550;
     --input-border-light: #252b3d;
@@ -1085,7 +1085,7 @@ select:read-only:focus-visible {
     /* ========================================================================
        SCROLLBAR TOKENS
        ======================================================================== */
-    --scrollbar-bg: #0e1219;
+    --scrollbar-bg: #0a0e18;
     --scrollbar-thumb: #252b3d;
     --scrollbar-thumb-hover: #2d3550;
 
@@ -1495,7 +1495,7 @@ select:read-only:focus-visible {
     }
 
     .btn-destructive:hover:not(:disabled) {
-        background-color: #d32f2f;
+        background-color: var(--btn-destructive-bg-hover);
     }
 
     .btn-small {
@@ -1945,16 +1945,16 @@ select:read-only:focus-visible {
         }
     }
 
---sidebar-bg: #141825;
+--sidebar-bg: #0f1420;
     --sidebar-border: #252b3d;
 
     /* Table */
-    --table-header-bg: #1a1f2e;
-    --table-row-hover: #222940;
+    --table-header-bg: #1c2338;
+    --table-row-hover: #2a3750;
     --table-border: #252b3d;
 
     /* Modal */
-    --modal-bg: #1a1f2e;
+    --modal-bg: #1c2338;
     --modal-overlay: rgba(10, 14, 22, 0.7);
 
     /* Typography */
