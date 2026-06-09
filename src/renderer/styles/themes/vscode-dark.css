@@ -986,33 +986,33 @@ select:read-only:focus-visible {
        COLOR DESIGN TOKENS (Style-Guide Aligned - --color-* prefix)
        ======================================================================== */
 
-    /* Background Colors */
-    --color-bg-primary: #1e1e1e;
-    --color-bg-secondary: #252526;
-    --color-bg-tertiary: #2d2d30;
-    --color-bg-quaternary: #3c3c3c;
-    --color-bg-hover: #2a2d2e;
-    --color-bg-active: #094771;
-    --color-bg-selected: #264f78;
+    /* Background Colors — Midnight Blue */
+    --color-bg-primary: #141825;
+    --color-bg-secondary: #181d2a;
+    --color-bg-tertiary: #1a1f2e;
+    --color-bg-quaternary: #1e2436;
+    --color-bg-hover: #222940;
+    --color-bg-active: #1a2a4a;
+    --color-bg-selected: #1e3560;
 
-    /* Text Colors */
-    --color-text-primary: #cccccc;
-    --color-text-secondary: #a0a0a0;
-    --color-text-muted: #6a6a6a;
+    /* Text Colors — Midnight Blue */
+    --color-text-primary: #e2e6f0;
+    --color-text-secondary: #8892a4;
+    --color-text-muted: #5a6785;
     --color-text-inverse: #ffffff;
-    --color-text-accent: #007acc;
+    --color-text-accent: #638cff;
 
-    /* Border & Divider Colors */
-    --color-border: #3e3e42;
-    --color-border-primary: #3c3c3c;
-    --color-border-secondary: #464647;
-    --color-border-focus: #007fd4;
+    /* Border & Divider Colors — Midnight Blue */
+    --color-border: #252b3d;
+    --color-border-primary: #252b3d;
+    --color-border-secondary: #2d3550;
+    --color-border-focus: #638cff;
 
-    /* Status Colors */
-    --color-success: #4caf50;
-    --color-warning: #ff9800;
-    --color-error: #f44336;
-    --color-info: #2196f3;
+    /* Status Colors — Midnight Blue */
+    --color-success: #4ade80;
+    --color-warning: #fbbf24;
+    --color-error: #f87171;
+    --color-info: #60a5fa;
 
     /* ========================================================================
        LEGACY ALIASES (Backward Compatibility)
@@ -1048,33 +1048,33 @@ select:read-only:focus-visible {
     /* ========================================================================
        COMPONENT TOKENS - Buttons
        ======================================================================== */
-    --btn-primary-bg: #0e639c;
-    --btn-primary-bg-hover: #1177bb;
+    --btn-primary-bg: #638cff;
+    --btn-primary-bg-hover: #7da0ff;
     --btn-primary-color: #ffffff;
 
-    --btn-secondary-bg: #3c3c3c;
-    --btn-secondary-bg-hover: #464647;
-    --btn-secondary-color: #cccccc;
+    --btn-secondary-bg: #1e2436;
+    --btn-secondary-bg-hover: #222940;
+    --btn-secondary-color: #e2e6f0;
 
-    --btn-destructive-bg: #f44336;
-    --btn-destructive-bg-hover: #d32f2f;
+    --btn-destructive-bg: #f87171;
+    --btn-destructive-bg-hover: #ef4444;
     --btn-destructive-color: #ffffff;
 
     /* ========================================================================
        COMPONENT TOKENS - Inputs
        ======================================================================== */
-    --input-bg: #3c3c3c;
-    --input-bg-readonly: #3c3c3c;
-    --input-bg-disabled: #2d2d30;
+    --input-bg: #1e2436;
+    --input-bg-readonly: #1e2436;
+    --input-bg-disabled: #1a1f2e;
 
-    --input-border: #464647;
-    --input-border-light: #3c3c3c;
-    --input-focus: #007fd4;
-    --input-focus-shadow: rgba(0, 127, 212, 0.2);
+    --input-border: #2d3550;
+    --input-border-light: #252b3d;
+    --input-focus: #638cff;
+    --input-focus-shadow: rgba(99, 140, 255, 0.2);
 
-    --input-text: #cccccc;
-    --input-text-readonly: #6a6a6a;
-    --input-text-disabled: #6a6a6a;
+    --input-text: #e2e6f0;
+    --input-text-readonly: #5a6785;
+    --input-text-disabled: #5a6785;
 
     /* ========================================================================
        COMPONENT TOKENS - Legacy Button (for backward compatibility)
@@ -1085,17 +1085,17 @@ select:read-only:focus-visible {
     /* ========================================================================
        SCROLLBAR TOKENS
        ======================================================================== */
-    --scrollbar-bg: #1e1e1e;
-    --scrollbar-thumb: #424242;
-    --scrollbar-thumb-hover: #4f4f4f;
+    --scrollbar-bg: #0e1219;
+    --scrollbar-thumb: #252b3d;
+    --scrollbar-thumb-hover: #2d3550;
 
     /* ========================================================================
        ACCENT TOKENS (resolve broken refs in main.css, calculations.css,
        categories-config.css, teams-config.css)
        ======================================================================== */
     --accent-primary: var(--color-text-accent);
-    --accent-primary-alpha: rgba(0, 122, 204, 0.2);
-    --accent-primary-rgb: 0, 122, 204;
+    --accent-primary-alpha: rgba(99, 140, 255, 0.2);
+    --accent-primary-rgb: 99, 140, 255;
 
     /* ========================================================================
        MISSING FONT SIZE
@@ -1105,14 +1105,14 @@ select:read-only:focus-visible {
     /* ========================================================================
        ROLE / RESOURCE COLORS
        ======================================================================== */
-    --color-role-g1: #4caf50;
-    --color-role-g1-light: #66bb6a;
-    --color-role-g2: #2196f3;
-    --color-role-g2-light: #42a5f5;
-    --color-role-ta: #ff9800;
-    --color-role-ta-light: #ffb74d;
-    --color-role-pm: #9c27b0;
-    --color-role-pm-light: #ce93d8;
+    --color-role-g1: #4ade80;
+    --color-role-g1-light: #6ee7a0;
+    --color-role-g2: #60a5fa;
+    --color-role-g2-light: #93c5fd;
+    --color-role-ta: #fbbf24;
+    --color-role-ta-light: #fcd34d;
+    --color-role-pm: #a78bfa;
+    --color-role-pm-light: #c4b5fd;
 
     /* ========================================================================
        TYPOGRAPHY TOKENS
@@ -1945,17 +1945,17 @@ select:read-only:focus-visible {
         }
     }
 
---sidebar-bg: #252526;
-    --sidebar-border: #3c3c3c;
+--sidebar-bg: #141825;
+    --sidebar-border: #252b3d;
 
     /* Table */
-    --table-header-bg: #2d2d30;
-    --table-row-hover: #2a2d2e;
-    --table-border: #3c3c3c;
+    --table-header-bg: #1a1f2e;
+    --table-row-hover: #222940;
+    --table-border: #252b3d;
 
     /* Modal */
-    --modal-bg: #252526;
-    --modal-overlay: rgba(0, 0, 0, 0.6);
+    --modal-bg: #1a1f2e;
+    --modal-overlay: rgba(10, 14, 22, 0.7);
 
     /* Typography */
     --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
