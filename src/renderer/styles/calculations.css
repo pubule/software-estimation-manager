@@ -861,6 +861,32 @@
     font-style: italic;
 }
 
+/* Accessibility: High Contrast Mode */
+@media (prefers-contrast: high) {
+    .calculations-table th,
+    .calculations-table td {
+        border: 2px solid var(--text-primary);
+    }
+
+    .kpi-card {
+        border: 2px solid currentColor;
+    }
+
+    .filter-btn {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .kpi-card,
+    .filter-btn,
+    .mode-btn,
+    .btn-share {
+        transition: none;
+    }
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
     .kpi-cards {
