@@ -206,8 +206,10 @@ export class WorkingPackageCalculator implements ICalculator {
       const overrideMDs = overrides?.[overrideKey];
       const finalMDs = overrideMDs !== undefined ? overrideMDs : estimatedMDs;
 
-      // Calcola finalTotCost
-      const finalTotCost = Math.round(finalMDs * realRate);
+      // In WP mode, use the original amount when no override is applied
+      const finalTotCost = overrideMDs !== undefined
+        ? Math.round(overrideMDs * realRate)
+        : entry.amount;
 
       vendorCosts.push({
         vendorId: entry.vendorId,
