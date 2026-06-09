@@ -96,7 +96,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
                       onClick={() => toggleRowExpansion(feature.id)}
                       aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
                     >
-                      <i className={`fas fa-chevron-${isExpanded ? 'down' : 'right'}`}></i>
+                      <i className="fas fa-chevron-right"></i>
                     </button>
                   </td>
                   <td className="feature-id">
@@ -150,65 +150,36 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
             {isExpanded && (
               <tr className="feature-expanded-row">
                 <td colSpan={8} className="expanded-content">
-                  <div className="expanded-details">
-                    {/* Technical Information Card */}
-                    <div className="detail-card technical-card">
-                      <div className="card-header">
-                        <i className="fas fa-cog card-icon"></i>
-                        <h4>Technical Details</h4>
-                      </div>
-                      <div className="card-content">
-                        <div className="detail-item">
-                          <i className="fas fa-tag detail-icon"></i>
-                          <span className="detail-label">Feature Type</span>
-                          <span className="detail-value">
-                            {featureActions.getFeatureTypeNameById(feature.category, feature.featureType)}
-                          </span>
-                        </div>
-                        <div className="detail-item">
-                          <i className="fas fa-chart-line detail-icon"></i>
-                          <span className="detail-label">Expertise</span>
-                          <span className="detail-value expertise-value">{formatPercentage(feature.expertise)}</span>
-                        </div>
-                        <div className="detail-item">
-                          <i className="fas fa-exclamation-triangle detail-icon"></i>
-                          <span className="detail-label">Risk Margin</span>
-                          <span className="detail-value risk-value">{formatPercentage(feature.riskMargin)}</span>
-                        </div>
-                      </div>
+                  <div className="expanded-detail-grid">
+                    <div className="expanded-detail-entry">
+                      <span className="expanded-detail-label">Feature Type</span>
+                      <span className="expanded-detail-value">
+                        {featureActions.getFeatureTypeNameById(feature.category, feature.featureType)}
+                      </span>
                     </div>
-
-                    {/* Notes Card */}
-                    <div className="detail-card notes-card">
-                      <div className="card-header">
-                        <i className="fas fa-sticky-note card-icon"></i>
-                        <h4>Notes</h4>
-                      </div>
-                      <div className="card-content notes-content">
-                        {feature.notes || 'No notes available'}
-                      </div>
+                    <div className="expanded-detail-entry">
+                      <span className="expanded-detail-label">Expertise</span>
+                      <span className="expanded-detail-value expertise-value">{formatPercentage(feature.expertise)}</span>
                     </div>
-
-                    {/* Timeline Card */}
-                    <div className="detail-card timeline-card">
-                      <div className="card-header">
-                        <i className="fas fa-calendar card-icon"></i>
-                        <h4>Timeline</h4>
-                      </div>
-                      <div className="card-content">
-                        <div className="detail-item">
-                          <i className="fas fa-plus-circle detail-icon"></i>
-                          <span className="detail-label">Created</span>
-                          <span className="detail-value">{formatDate(feature.created)}</span>
-                        </div>
-                        <div className="detail-item">
-                          <i className="fas fa-edit detail-icon"></i>
-                          <span className="detail-label">Modified</span>
-                          <span className="detail-value">{formatDate(feature.modified)}</span>
-                        </div>
-                      </div>
+                    <div className="expanded-detail-entry">
+                      <span className="expanded-detail-label">Risk Margin</span>
+                      <span className="expanded-detail-value risk-value">{formatPercentage(feature.riskMargin)}</span>
+                    </div>
+                    <div className="expanded-detail-entry">
+                      <span className="expanded-detail-label">Created</span>
+                      <span className="expanded-detail-value">{formatDate(feature.created)}</span>
+                    </div>
+                    <div className="expanded-detail-entry">
+                      <span className="expanded-detail-label">Modified</span>
+                      <span className="expanded-detail-value">{formatDate(feature.modified)}</span>
                     </div>
                   </div>
+                  {feature.notes && (
+                    <div className="expanded-detail-notes">
+                      <span className="expanded-detail-label">Notes</span>
+                      <p className="expanded-detail-notes-text">{feature.notes}</p>
+                    </div>
+                  )}
                 </td>
               </tr>
             )}
