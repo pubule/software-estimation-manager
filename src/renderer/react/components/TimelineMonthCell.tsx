@@ -84,7 +84,7 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
                     left: '50%',
                     transform: 'translateX(-50%)',
                     marginTop: '8px',
-                    backgroundColor: '#252526',
+                    backgroundColor: 'var(--bg-secondary)',
                     border: `2px solid ${data.statusColor}`,
                     borderRadius: '6px',
                     padding: '12px',

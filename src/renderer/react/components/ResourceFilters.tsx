@@ -45,7 +45,7 @@ export const ResourceFilters: React.FC<ResourceFiltersProps> = ({
     const monthOptions = generateMonthOptions();
 
     const selectStyle: React.CSSProperties = {
-        backgroundColor: '#3c3c3c',
+        backgroundColor: 'var(--bg-quaternary)',
         color: '#d4d4d4',
         border: '1px solid #555',
         borderRadius: '4px',
@@ -68,7 +68,7 @@ export const ResourceFilters: React.FC<ResourceFiltersProps> = ({
 
     return (
         <div style={{
-            backgroundColor: '#252526',
+            backgroundColor: 'var(--bg-secondary)',
             padding: '16px',
             borderRadius: '8px',
             marginBottom: '20px',

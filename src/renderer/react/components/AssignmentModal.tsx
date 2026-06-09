@@ -824,7 +824,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
             <div style={{
                 marginTop: '16px',
                 padding: '12px',
-                backgroundColor: '#2d2d30',
+                backgroundColor: 'var(--bg-tertiary)',
                 borderRadius: '6px',
                 border: '1px solid #3c3c3c'
             }}>
@@ -850,7 +850,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                         const hasOverflow = overflowAnalysis?.overflowByMonth[month] !== undefined;
                         const overflowAmount = overflowAnalysis?.overflowByMonth[month] || 0;
 
-                        const bgColor = hasOverflow ? '#f48771' : planned > 0 ? '#4ec9b0' : '#3c3c3c';
+                        const bgColor = hasOverflow ? '#f48771' : planned > 0 ? '#4ec9b0' : 'var(--bg-quaternary)';
 
                         return (
                             <div key={month} style={{
@@ -860,14 +860,14 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                 textAlign: 'center',
                                 opacity: 0.8
                             }}>
-                                <div style={{ fontSize: '11px', color: '#1e1e1e', fontWeight: '600' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--bg-primary)', fontWeight: '600' }}>
                                     {month}
                                 </div>
-                                <div style={{ fontSize: '16px', color: '#1e1e1e', fontWeight: '700', marginTop: '4px' }}>
+                                <div style={{ fontSize: '16px', color: 'var(--bg-primary)', fontWeight: '700', marginTop: '4px' }}>
                                     {planned.toFixed(1)} MD
                                 </div>
                                 {hasOverflow && (
-                                    <div style={{ fontSize: '10px', color: '#1e1e1e', marginTop: '2px' }}>
+                                    <div style={{ fontSize: '10px', color: 'var(--bg-primary)', marginTop: '2px' }}>
                                         ⚠️ +{overflowAmount.toFixed(1)} overflow
                                     </div>
                                 )}
@@ -908,7 +908,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
             <div style={{
                 marginTop: '12px',
                 padding: '10px',
-                backgroundColor: '#2d2d30',
+                backgroundColor: 'var(--bg-tertiary)',
                 borderRadius: '6px',
                 border: '1px solid #3c3c3c'
             }}>
@@ -1037,7 +1037,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                         {selectedMember && (
                             <div style={{
                                 padding: '10px',
-                                backgroundColor: '#2d2d30',
+                                backgroundColor: 'var(--bg-tertiary)',
                                 borderRadius: '6px',
                                 fontSize: '12px',
                                 color: '#858585',
@@ -1089,7 +1089,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                             key={phase.id}
                                             style={{
                                                 padding: '12px',
-                                                backgroundColor: '#2d2d30',
+                                                backgroundColor: 'var(--bg-tertiary)',
                                                 borderRadius: '6px',
                                                 marginBottom: '12px',
                                                 border: '1px solid #3c3c3c'
@@ -1135,7 +1135,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                             width: '100%',
                                                             padding: '6px',
                                                             fontSize: '12px',
-                                                            backgroundColor: '#1e1e1e',
+                                                            backgroundColor: 'var(--bg-primary)',
                                                             border: '1px solid #3c3c3c',
                                                             borderRadius: '4px',
                                                             color: '#d4d4d4'
@@ -1161,7 +1161,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                             width: '100%',
                                                             padding: '6px',
                                                             fontSize: '12px',
-                                                            backgroundColor: '#1e1e1e',
+                                                            backgroundColor: 'var(--bg-primary)',
                                                             border: '1px solid #3c3c3c',
                                                             borderRadius: '4px',
                                                             color: '#d4d4d4'
@@ -1190,7 +1190,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                             width: '100%',
                                                             padding: '6px',
                                                             fontSize: '12px',
-                                                            backgroundColor: '#1e1e1e',
+                                                            backgroundColor: 'var(--bg-primary)',
                                                             border: '1px solid #3c3c3c',
                                                             borderRadius: '4px',
                                                             color: '#d4d4d4'
@@ -1210,7 +1210,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                             key={phase.phaseId}
                                             style={{
                                                 padding: '12px',
-                                                backgroundColor: '#2d2d30',
+                                                backgroundColor: 'var(--bg-tertiary)',
                                                 borderRadius: '6px',
                                                 marginBottom: '12px',
                                                 border: '1px solid #3c3c3c'
@@ -1248,7 +1248,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                             width: '100%',
                                                             padding: '6px',
                                                             fontSize: '12px',
-                                                            backgroundColor: '#1e1e1e',
+                                                            backgroundColor: 'var(--bg-primary)',
                                                             border: '1px solid #3c3c3c',
                                                             borderRadius: '4px',
                                                             color: '#d4d4d4'
@@ -1273,7 +1273,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                             width: '100%',
                                                             padding: '6px',
                                                             fontSize: '12px',
-                                                            backgroundColor: '#1e1e1e',
+                                                            backgroundColor: 'var(--bg-primary)',
                                                             border: '1px solid #3c3c3c',
                                                             borderRadius: '4px',
                                                             color: '#d4d4d4'
@@ -1300,7 +1300,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                                                             width: '100%',
                                                             padding: '6px',
                                                             fontSize: '12px',
-                                                            backgroundColor: '#1e1e1e',
+                                                            backgroundColor: 'var(--bg-primary)',
                                                             border: '1px solid #3c3c3c',
                                                             borderRadius: '4px',
                                                             color: '#d4d4d4'

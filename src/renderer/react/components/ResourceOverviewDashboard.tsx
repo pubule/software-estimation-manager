@@ -75,7 +75,7 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
         }}>
             {/* Total Members */}
             <div style={{
-                backgroundColor: '#252526',
+                backgroundColor: 'var(--bg-secondary)',
                 padding: '20px',
                 borderRadius: '8px',
                 borderLeft: '4px solid #569cd6',
@@ -87,7 +87,7 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
 
             {/* Average Utilization */}
             <div style={{
-                backgroundColor: '#252526',
+                backgroundColor: 'var(--bg-secondary)',
                 padding: '20px',
                 borderRadius: '8px',
                 borderLeft: '4px solid #4ec9b0',
@@ -101,7 +101,7 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
 
             {/* Total Capacity */}
             <div style={{
-                backgroundColor: '#252526',
+                backgroundColor: 'var(--bg-secondary)',
                 padding: '20px',
                 borderRadius: '8px',
                 borderLeft: '4px solid #dcdcaa',
@@ -118,7 +118,7 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
 
             {/* Total Available */}
             <div style={{
-                backgroundColor: '#252526',
+                backgroundColor: 'var(--bg-secondary)',
                 padding: '20px',
                 borderRadius: '8px',
                 borderLeft: '4px solid #4ec9b0',
@@ -132,7 +132,7 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
 
             {/* Status Distribution */}
             <div style={{
-                backgroundColor: '#252526',
+                backgroundColor: 'var(--bg-secondary)',
                 padding: '20px',
                 borderRadius: '8px',
                 borderLeft: '4px solid #c586c0',
@@ -192,7 +192,7 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
                     onClick={refresh}
                     style={{
                         marginTop: '20px',
-                        backgroundColor: '#0e639c',
+                        backgroundColor: 'var(--btn-primary-bg)',
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
@@ -229,7 +229,7 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
     return (
         <div style={{
             padding: '24px',
-            backgroundColor: '#1e1e1e',
+            backgroundColor: 'var(--bg-primary)',
             minHeight: '100vh'
         }}>
             {/* Header */}
@@ -278,7 +278,7 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
                     <button
                         onClick={() => setViewMode('grid')}
                         style={{
-                            backgroundColor: viewMode === 'grid' ? '#0e639c' : '#3c3c3c',
+                            backgroundColor: viewMode === 'grid' ? 'var(--btn-primary-bg)' : 'var(--bg-quaternary)',
                             color: 'white',
                             border: 'none',
                             borderRadius: '4px',
@@ -292,7 +292,7 @@ export const ResourceOverviewDashboard: React.FC<ResourceOverviewDashboardProps>
                     <button
                         onClick={() => setViewMode('list')}
                         style={{
-                            backgroundColor: viewMode === 'list' ? '#0e639c' : '#3c3c3c',
+                            backgroundColor: viewMode === 'list' ? 'var(--btn-primary-bg)' : 'var(--bg-quaternary)',
                             color: 'white',
                             border: 'none',
                             borderRadius: '4px',

@@ -127,7 +127,7 @@ export const TicketDashboard: React.FC = () => {
       case 'P6': return '#ff8800'; // High orange (was P2 color)
       case 'P7': return '#ffcc00'; // Medium yellow (was P3 color)
       case 'P8': return '#88cc00'; // Low green (was P4 color)
-      default: return '#cccccc';
+      default: return 'var(--text-primary)';
     }
   };
 

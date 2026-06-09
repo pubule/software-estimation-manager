@@ -45,8 +45,8 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
             style={{
                 display: 'grid',
                 gridTemplateColumns: '250px 1fr',
-                borderBottom: '1px solid #3c3c3c',
-                backgroundColor: '#252526'
+                borderBottom: '1px solid var(--border-primary)',
+                backgroundColor: 'var(--bg-secondary)'
             }}
         >
             {/* Member Info Column */}
@@ -63,7 +63,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                 onClick={() => onMemberClick?.(member)}
                 onMouseEnter={(e) => {
                     if (onMemberClick) {
-                        e.currentTarget.style.backgroundColor = '#2d2d30';
+                        e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
                     }
                 }}
                 onMouseLeave={(e) => {
@@ -149,7 +149,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                                 style={{
                                     border: '1px solid #3c3c3c',
                                     minHeight: '50px',
-                                    backgroundColor: '#1e1e1e',
+                                    backgroundColor: 'var(--bg-primary)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
