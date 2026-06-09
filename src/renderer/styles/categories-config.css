@@ -81,7 +81,7 @@
     background: var(--bg-primary);
     color: var(--text-primary);
     border-radius: 50%;
-    padding: 2px 6px;
+    padding: 2px var(--spacing-sm);
     font-size: var(--font-size-xs);
     min-width: 20px;
     text-align: center;
@@ -153,12 +153,12 @@
 
 .categories-list::-webkit-scrollbar-track {
     background: var(--bg-secondary);
-    border-radius: 4px;
+    border-radius: var(--radius-md);
 }
 
 .categories-list::-webkit-scrollbar-thumb {
     background: var(--border-color);
-    border-radius: 4px;
+    border-radius: var(--radius-md);
 }
 
 .categories-list::-webkit-scrollbar-thumb:hover {
@@ -216,7 +216,7 @@
 }
 
 .status-badge {
-    padding: 3px 8px;
+    padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: calc(var(--border-radius) + 2px);
     font-size: var(--font-size-xs);
     font-weight: 600;
@@ -225,14 +225,14 @@
 }
 
 .status-badge.active {
-    background: #4caf50;
+    background: var(--success);
     color: white;
     box-shadow: 0 1px 2px rgba(40, 167, 69, 0.3);
 }
 
 .status-badge.inactive {
-    background: #ffc107;
-    color: #212529;
+    background: var(--warning);
+    color: var(--text-primary);
     box-shadow: 0 1px 2px rgba(255, 193, 7, 0.3);
 }
 
@@ -309,7 +309,7 @@
 }
 
 .no-selection-message i {
-    font-size: 48px;
+    font-size: 3rem;
     margin-bottom: var(--spacing-md);
     color: var(--text-disabled);
 }
@@ -356,12 +356,12 @@
 
 .feature-types-section::-webkit-scrollbar-track {
     background: var(--bg-secondary);
-    border-radius: 4px;
+    border-radius: var(--radius-md);
 }
 
 .feature-types-section::-webkit-scrollbar-thumb {
     background: var(--border-color);
-    border-radius: 4px;
+    border-radius: var(--radius-md);
 }
 
 .feature-types-section::-webkit-scrollbar-thumb:hover {
@@ -394,7 +394,7 @@
 
 .feature-types-table::-webkit-scrollbar-thumb {
     background: var(--border-color);
-    border-radius: 4px;
+    border-radius: var(--radius-md);
 }
 
 .feature-types-table::-webkit-scrollbar-thumb:hover {
@@ -448,7 +448,7 @@
 .average-mds-value {
     background: var(--accent-primary);
     color: white;
-    padding: 4px 10px;
+    padding: var(--spacing-xs) 10px;
     border-radius: var(--border-radius);
     font-weight: 600;
     font-size: var(--font-size-sm);
@@ -472,7 +472,7 @@
 }
 
 .empty-state i {
-    font-size: 48px;
+    font-size: 3rem;
     margin-bottom: var(--spacing-md);
     color: var(--text-disabled);
 }

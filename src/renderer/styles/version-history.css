@@ -161,7 +161,7 @@
 .current-badge {
     display: inline-block;
     margin-left: var(--spacing-sm);
-    padding: 2px 8px;
+    padding: 2px var(--spacing-sm);
     background-color: var(--success);
     color: white;
     border-radius: var(--radius-sm);
@@ -181,7 +181,7 @@
 .version-stats-compact span {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--spacing-xs);
     color: var(--text-secondary);
 }
 
@@ -375,7 +375,7 @@
 
 .version-stat-value {
     text-align: center;
-    padding: 4px 8px;
+    padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: var(--radius-sm);
     font-family: monospace;
     font-weight: 600;
@@ -482,7 +482,7 @@
 
 .version-phase-value {
     text-align: center;
-    padding: 4px 8px;
+    padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: var(--radius-sm);
     font-family: monospace;
     font-size: var(--font-size-sm);
@@ -672,7 +672,7 @@
     font-size: var(--font-size-sm);
     font-weight: 500;
     background-color: var(--color-bg-quaternary);
-    padding: 4px 8px;
+    padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: var(--radius-xs);
 }
 
@@ -727,7 +727,7 @@
 }
 
 .change-count {
-    padding: 6px 12px;
+    padding: var(--spacing-sm) 12px;
     border-radius: var(--radius-sm);
     font-weight: 600;
     font-size: var(--font-size-sm);
