@@ -11,6 +11,9 @@ class TeamsConfigManager {
         this.currentScope = 'global'; // 'global' or 'project'
         this.editingTeam = null;
         this.editingTeamMember = null;
+
+        this.memberNameFilter = '';
+        this.memberRoleFilter = 'all';
         
         // Flags to prevent double operations - same as Categories
         this.isDeletingTeam = false;
@@ -557,6 +560,8 @@ class TeamsConfigManager {
     selectTeam(teamId) {
         const teams = this.getCurrentTeams();
         this.selectedTeam = teams.find(t => t.id === teamId) || null;
+        this.memberNameFilter = '';
+        this.memberRoleFilter = 'all';
 
         // Update visual selection
         document.querySelectorAll('.team-item').forEach(item => {
@@ -598,7 +603,7 @@ class TeamsConfigManager {
 
             <div class="team-members-section">
                 <h4>Team Members (${members.length})</h4>
-                
+
                 ${members.length === 0 ? `
                     <div class="empty-state">
                         <i class="fas fa-user-plus"></i>
@@ -606,6 +611,17 @@ class TeamsConfigManager {
                         <small>Add team members to this team</small>
                     </div>
                 ` : `
+                    <div class="team-members-filters">
+                        <input type="text" id="member-name-filter" class="filter-input"
+                               placeholder="Filter by name..." value="${this.escapeHtml(this.memberNameFilter)}">
+                        <select id="member-role-filter" class="filter-dropdown">
+                            <option value="all"${this.memberRoleFilter === 'all' ? ' selected' : ''}>All Roles</option>
+                            <option value="G1"${this.memberRoleFilter === 'G1' ? ' selected' : ''}>G1</option>
+                            <option value="G2"${this.memberRoleFilter === 'G2' ? ' selected' : ''}>G2</option>
+                            <option value="TA"${this.memberRoleFilter === 'TA' ? ' selected' : ''}>TA</option>
+                            <option value="PM"${this.memberRoleFilter === 'PM' ? ' selected' : ''}>PM</option>
+                        </select>
+                    </div>
                     <div class="team-members-table">
                         <table class="data-table">
                             <thead>
@@ -613,14 +629,26 @@ class TeamsConfigManager {
                                     <th>Name</th>
                                     <th>User ID</th>
                                     <th>Role</th>
-                                    <th>Vendor</th>
+                                    <th>Rate</th>
                                     <th>Capacity</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${members.map(member => {
-                                    const vendorName = this.getVendorDisplayName(member.vendorId, member.vendorType);
+                                ${members.filter(member => {
+                                    const nameMatch = !this.memberNameFilter ||
+                                        `${member.firstName} ${member.lastName}`.toLowerCase().includes(this.memberNameFilter.toLowerCase());
+                                    const roleMatch = this.memberRoleFilter === 'all' || member.role === this.memberRoleFilter;
+                                    return nameMatch && roleMatch;
+                                }).map(member => {
+                                    const rateInfo = this.configManager?.getRate({
+                                        vendorId: member.vendor || member.vendorId,
+                                        jobCluster: member.jobCluster,
+                                        seniority: member.seniority,
+                                        location: member.location,
+                                        deliveryModel: member.deliveryModel || 'onsite'
+                                    });
+                                    const rateDisplay = rateInfo && rateInfo.realRate ? `€${rateInfo.realRate.toLocaleString()}/day` : 'N/A';
                                     return `
                                         <tr>
                                             <td class="member-name">
@@ -632,10 +660,8 @@ class TeamsConfigManager {
                                                 <span class="user-id-value" title="${this.escapeHtml(member['user-id'] || '')}">${this.escapeHtml(member['user-id'] || '')}</span>
                                             </td>
                                             <td class="member-role">${this.escapeHtml(member.seniority || '')} ${this.escapeHtml(member.jobCluster || '')}</td>
-                                            <td class="member-vendor">
-                                                <span class="vendor-badge vendor-${member.vendorType}">
-                                                    ${vendorName}
-                                                </span>
+                                            <td class="member-rate">
+                                                <span class="rate-value">${rateDisplay}</span>
                                             </td>
                                             <td class="member-capacity">
                                                 <span class="capacity-value">${member.monthlyCapacity} days/month</span>
@@ -666,6 +692,23 @@ class TeamsConfigManager {
                 `}
             </div>
         `;
+
+        const nameFilter = document.getElementById('member-name-filter');
+        if (nameFilter) {
+            nameFilter.addEventListener('input', (e) => {
+                this.memberNameFilter = e.target.value;
+                this.renderTeamDetails();
+                const el = document.getElementById('member-name-filter');
+                if (el) { el.focus(); el.selectionStart = el.selectionEnd = el.value.length; }
+            });
+        }
+        const roleFilter = document.getElementById('member-role-filter');
+        if (roleFilter) {
+            roleFilter.addEventListener('change', (e) => {
+                this.memberRoleFilter = e.target.value;
+                this.renderTeamDetails();
+            });
+        }
     }
 
     /**

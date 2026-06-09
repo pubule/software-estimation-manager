@@ -283,6 +283,36 @@
     font-weight: 600;
 }
 
+.team-members-filters {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.team-members-filters .filter-input {
+    flex: 1;
+    padding: 6px 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.team-members-filters .filter-input::placeholder {
+    color: var(--text-secondary);
+}
+
+.team-members-filters .filter-dropdown {
+    padding: 6px 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    min-width: 120px;
+}
+
 .team-members-table {
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
