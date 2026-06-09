@@ -5,7 +5,7 @@
  * - .btn (base)
  * - .btn-primary (primary action)
  * - .btn-secondary (secondary action)
- * - .btn-danger (destructive action)
+ * - .btn-destructive (destructive action)
  * - .btn-warning (warning action)
  * - .btn-link (link-styled)
  * - .btn-small (small size)
@@ -162,23 +162,23 @@
    VARIANT: DANGER (Destructive action, warning color)
    ============================================================================ */
 
-.btn-danger {
-  background-color: var(--btn-danger-bg, #f44336);
-  color: var(--btn-danger-color, #ffffff);
+.btn-destructive {
+  background-color: var(--btn-destructive-bg, #f44336);
+  color: var(--btn-destructive-color, #ffffff);
 }
 
-.btn-danger:hover:not(:disabled) {
-  background-color: var(--btn-danger-bg-hover, #d32f2f);
+.btn-destructive:hover:not(:disabled) {
+  background-color: var(--btn-destructive-bg-hover, #d32f2f);
   box-shadow: 0 2px 8px rgba(244, 67, 54, 0.2);
 }
 
-.btn-danger:active:not(:disabled) {
+.btn-destructive:active:not(:disabled) {
   background-color: #b71c1c;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.btn-danger:disabled {
-  background-color: var(--btn-danger-bg, #f44336);
+.btn-destructive:disabled {
+  background-color: var(--btn-destructive-bg, #f44336);
   opacity: 0.6;
 }
 
@@ -400,15 +400,15 @@
   }
 
   /* Danger button */
-  .btn-danger {
-    background-color: var(--btn-danger-bg, #f44336);
+  .btn-destructive {
+    background-color: var(--btn-destructive-bg, #f44336);
   }
 
-  .btn-danger:hover:not(:disabled) {
-    background-color: var(--btn-danger-bg-hover, #d32f2f);
+  .btn-destructive:hover:not(:disabled) {
+    background-color: var(--btn-destructive-bg-hover, #d32f2f);
   }
 
-  .btn-danger:active:not(:disabled) {
+  .btn-destructive:active:not(:disabled) {
     background-color: #b71c1c;
   }
 
@@ -453,15 +453,15 @@
   background-color: var(--btn-secondary-bg-hover, #464647);
 }
 
-.vscode-dark .btn-danger,
-[data-theme="vscode-dark"] .btn-danger {
-  background-color: var(--btn-danger-bg, #f44336);
-  color: var(--btn-danger-color, #ffffff);
+.vscode-dark .btn-destructive,
+[data-theme="vscode-dark"] .btn-destructive {
+  background-color: var(--btn-destructive-bg, #f44336);
+  color: var(--btn-destructive-color, #ffffff);
 }
 
-.vscode-dark .btn-danger:hover:not(:disabled),
-[data-theme="vscode-dark"] .btn-danger:hover:not(:disabled) {
-  background-color: var(--btn-danger-bg-hover, #d32f2f);
+.vscode-dark .btn-destructive:hover:not(:disabled),
+[data-theme="vscode-dark"] .btn-destructive:hover:not(:disabled) {
+  background-color: var(--btn-destructive-bg-hover, #d32f2f);
 }
 
 /* ============================================================================

@@ -476,7 +476,7 @@ class CategoriesConfigManager {
                                     data-category-id="${category.id}" title="Duplicate Category">
                                 <i class="fas fa-copy"></i>
                             </button>
-                            <button class="btn btn-small btn-danger" data-action="delete-category" 
+                            <button class="btn btn-small btn-destructive" data-action="delete-category" 
                                     data-category-id="${category.id}" title="Delete Category">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -571,7 +571,7 @@ class CategoriesConfigManager {
                                                     data-feature-type-id="${ft.id}" title="Duplicate">
                                                 <i class="fas fa-copy"></i>
                                             </button>
-                                            <button class="btn btn-small btn-danger" 
+                                            <button class="btn btn-small btn-destructive" 
                                                     data-action="delete-feature-type" 
                                                     data-feature-type-id="${ft.id}" title="Delete">
                                                 <i class="fas fa-trash"></i>

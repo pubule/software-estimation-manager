@@ -531,7 +531,7 @@ class TeamsConfigManager {
                                     data-team-id="${team.id}" title="Duplicate Team">
                                 <i class="fas fa-copy"></i>
                             </button>
-                            <button class="btn btn-small btn-danger" 
+                            <button class="btn btn-small btn-destructive" 
                                     data-action="delete-team" 
                                     data-team-id="${team.id}" title="Delete Team">
                                 <i class="fas fa-trash"></i>
@@ -651,7 +651,7 @@ class TeamsConfigManager {
                                                         data-team-member-id="${member.id}" title="Duplicate">
                                                     <i class="fas fa-copy"></i>
                                                 </button>
-                                                <button class="btn btn-small btn-danger" 
+                                                <button class="btn btn-small btn-destructive" 
                                                         data-action="delete-team-member" 
                                                         data-team-member-id="${member.id}" title="Delete">
                                                     <i class="fas fa-trash"></i>

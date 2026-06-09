@@ -280,12 +280,12 @@
     border-color: rgba(255, 255, 255, 0.4);
 }
 
-.category-item.selected .category-actions .btn-danger {
+.category-item.selected .category-actions .btn-destructive {
     background: rgba(220, 53, 69, 0.8);
     border-color: rgba(220, 53, 69, 0.9);
 }
 
-.category-item.selected .category-actions .btn-danger:hover {
+.category-item.selected .category-actions .btn-destructive:hover {
     background: rgba(220, 53, 69, 1);
     border-color: rgba(220, 53, 69, 1);
 }

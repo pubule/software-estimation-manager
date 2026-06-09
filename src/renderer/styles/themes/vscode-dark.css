@@ -1056,9 +1056,9 @@ select:read-only:focus-visible {
     --btn-secondary-bg-hover: #464647;
     --btn-secondary-color: #cccccc;
 
-    --btn-danger-bg: #f44336;
-    --btn-danger-bg-hover: #d32f2f;
-    --btn-danger-color: #ffffff;
+    --btn-destructive-bg: #f44336;
+    --btn-destructive-bg-hover: #d32f2f;
+    --btn-destructive-color: #ffffff;
 
     /* ========================================================================
        COMPONENT TOKENS - Inputs
@@ -1489,12 +1489,12 @@ select:read-only:focus-visible {
         background-color: var(--btn-secondary-hover);
     }
 
-    .btn-danger {
+    .btn-destructive {
         background-color: var(--error);
         color: var(--text-inverse);
     }
 
-    .btn-danger:hover:not(:disabled) {
+    .btn-destructive:hover:not(:disabled) {
         background-color: #d32f2f;
     }
 
