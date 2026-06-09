@@ -174,7 +174,7 @@ export class CalculationsActions {
           entries: wpResult.entries,
           summary: wpResult.summary,
           calculated: wpResult.calculated,
-          projectTotal: wpResult.projectTotal
+          projectTotal: wpResult.summary?.projectTotal || 0
         },
         filters: existingFilters || { vendor: 'all', role: 'all', category: 'all' }
       };
@@ -200,139 +200,6 @@ export class CalculationsActions {
 
     console.log(`✅ CalculationsActions: ${result.mode} calculation completed with`,
       result.vendorCosts.length, 'vendor costs');
-  }
-
-  /**
-   * Calcola costi per modalità Working Package (top-down estimation)
-   * Supporta GTO e GDS separati con vendor primario e secondario per ciascuno
-   */
-  private calculateWorkingPackageCosts(workingPackage: WorkingPackageData): void {
-    const store = this.getStore();
-    const state = store.getState();
-
-    const vendorCosts: VendorCost[] = [];
-    const calculatedData: any = {
-      gto: { primaryAmount: 0, secondaryAmount: 0, totalAmount: 0 },
-      gds: { primaryAmount: 0, secondaryAmount: 0, totalAmount: 0 }
-    };
-    const tempRate = 400; // Temporary fixed rate
-
-    // Processa GTO
-    if (workingPackage.gto?.enabled && workingPackage.gto.totalAmount > 0) {
-      const gtoCosts = this.calculateCategoryCosts(workingPackage.gto, 'gto');
-      vendorCosts.push(...gtoCosts.vendorCosts);
-      calculatedData.gto = gtoCosts.calculated;
-    }
-
-    // Processa GDS
-    if (workingPackage.gds?.enabled && workingPackage.gds.totalAmount > 0) {
-      const gdsCosts = this.calculateCategoryCosts(workingPackage.gds, 'gds');
-      vendorCosts.push(...gdsCosts.vendorCosts);
-      calculatedData.gds = gdsCosts.calculated;
-    }
-
-    // Se nessuna categoria è abilitata o ha dati validi
-    if (vendorCosts.length === 0) {
-      state.setCalculationsData({
-        vendorCosts: [],
-        kpiData: this.getEmptyKPIData(),
-        workingPackage: { error: 'No valid Working Package data. Enable GTO or GDS and configure vendors.' }
-      });
-      return;
-    }
-
-    // Calcola KPI
-    const kpiData = this.calculateKPIs(vendorCosts);
-
-    // Calcola totali progetto
-    const projectTotal = calculatedData.gto.totalAmount + calculatedData.gds.totalAmount;
-
-    // Aggiorna store
-    state.setCalculationsData({
-      vendorCosts,
-      kpiData,
-      finalMDsOverrides: {},
-      workingPackage: {
-        ...workingPackage,
-        calculated: calculatedData,
-        projectTotal
-      }
-    });
-
-    console.log('✅ Working Package calculations completed:', vendorCosts.length, 'vendor costs');
-  }
-
-  /**
-   * Calcola costi per una singola categoria (GTO o GDS)
-   */
-  private calculateCategoryCosts(
-    categoryData: WorkingPackageCategoryData,
-    category: 'gto' | 'gds'
-  ): { vendorCosts: VendorCost[]; calculated: { primaryAmount: number; secondaryAmount: number; totalAmount: number } } {
-    const vendorCosts: VendorCost[] = [];
-    const {
-      totalAmount,
-      primaryVendorId,
-      secondaryVendorId,
-      secondaryPercentage
-    } = categoryData;
-    const tempRate = 400;
-
-    // Se mancano dati essenziali, ritorna vuoto
-    if (!totalAmount || !primaryVendorId) {
-      return { vendorCosts, calculated: { primaryAmount: 0, secondaryAmount: 0, totalAmount: 0 } };
-    }
-
-    // Calcoli
-    const secondaryAmount = totalAmount * (secondaryPercentage / 100);
-    const primaryAmount = totalAmount - secondaryAmount;
-
-    // Recupera dati vendor
-    const primaryVendor = this.getSupplierData(primaryVendorId);
-    const secondaryVendor = secondaryVendorId ? this.getSupplierData(secondaryVendorId) : null;
-
-    // Determina il ruolo di default in base alla categoria
-    const defaultRole = category === 'gto' ? 'G2' : 'G1';
-
-    // Crea VendorCost per vendor primario
-    const primaryCost: VendorCost = {
-      vendorId: primaryVendorId,
-      vendorName: primaryVendor?.name || `${category.toUpperCase()} Primary Vendor`,
-      role: defaultRole,
-      department: primaryVendor?.department || 'Development',
-      officialRate: tempRate,
-      realRate: tempRate,
-      estimatedMDs: 0,
-      finalMDs: 0,
-      totCost: primaryAmount,
-      finalTotCost: primaryAmount,
-      isInternal: primaryVendor?.type === 'internal'
-    };
-
-    vendorCosts.push(primaryCost);
-
-    // Aggiungi vendor secondario se presente
-    if (secondaryVendor && secondaryAmount > 0) {
-      const secondaryCost: VendorCost = {
-        vendorId: secondaryVendorId!,
-        vendorName: secondaryVendor.name || `${category.toUpperCase()} Secondary Vendor`,
-        role: category === 'gto' ? 'TA' : 'PM',
-        department: secondaryVendor.department || 'General',
-        officialRate: tempRate,
-        realRate: tempRate,
-        estimatedMDs: 0,
-        finalMDs: 0,
-        totCost: secondaryAmount,
-        finalTotCost: secondaryAmount,
-        isInternal: secondaryVendor.type === 'internal'
-      };
-      vendorCosts.push(secondaryCost);
-    }
-
-    return {
-      vendorCosts,
-      calculated: { primaryAmount, secondaryAmount, totalAmount }
-    };
   }
 
   /**

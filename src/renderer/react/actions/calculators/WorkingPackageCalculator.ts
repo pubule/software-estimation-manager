@@ -169,13 +169,15 @@ export class WorkingPackageCalculator implements ICalculator {
    * Calcola lo split tra primary e secondary
    */
   private calculateSplit(totalAmount: number, secondaryPercentage: number): SplitResult {
-    const secondaryAmount = Math.round(totalAmount * (secondaryPercentage / 100));
-    const primaryAmount = totalAmount - secondaryAmount;
+    const secondaryAmount = secondaryPercentage > 0 && secondaryPercentage < 100
+      ? Math.round(totalAmount * secondaryPercentage / (100 - secondaryPercentage) * 100) / 100
+      : 0;
+    const primaryAmount = totalAmount;
 
     return {
       primaryAmount,
       secondaryAmount,
-      totalAmount
+      totalAmount: primaryAmount + secondaryAmount
     };
   }
 
