@@ -223,11 +223,11 @@
 }
 
 .gto-summary h5 {
-    color: #2196f3;
+    color: var(--info);
 }
 
 .gds-summary h5 {
-    color: #ff9800;
+    color: var(--warning);
 }
 
 .summary-row.grand-total {
@@ -279,7 +279,7 @@
 
 .summary-row.primary span:last-child {
     font-weight: 600;
-    color: #2196f3;
+    color: var(--info);
 }
 
 .summary-row.secondary {
@@ -288,7 +288,7 @@
 
 .summary-row.secondary span:last-child {
     font-weight: 600;
-    color: #ff9800;
+    color: var(--warning);
 }
 
 /* ======================
@@ -517,15 +517,15 @@
 
 /* Color coding for KPI cards */
 .gto-card {
-    border-left: 4px solid #2196f3; /* Blue */
+    border-left: 4px solid var(--info);
 }
 
 .gds-card {
-    border-left: 4px solid #ff9800; /* Orange */
+    border-left: 4px solid var(--warning);
 }
 
 .total-card {
-    border-left: 4px solid #4caf50; /* Green */
+    border-left: 4px solid var(--success);
 }
 
 /* Filter Buttons Section */
@@ -610,7 +610,7 @@
 
 /* Share Button */
 .btn-share {
-    background-color: #2196f3;
+    background-color: var(--btn-primary-bg);
     color: white;
     border: none;
     padding: var(--spacing-sm) var(--spacing-md);
@@ -622,7 +622,7 @@
 }
 
 .btn-share:hover {
-    background-color: #1976d2;
+    background-color: var(--btn-primary-bg-hover);
 }
 
 /* Table Section */
@@ -761,26 +761,26 @@
 
 .role-g1 {
     background-color: rgba(76, 175, 80, 0.2);
-    color: #66bb6a;
-    border: 1px solid #66bb6a;
+    color: var(--color-role-g1-light);
+    border: 1px solid var(--color-role-g1-light);
 }
 
 .role-g2 {
     background-color: rgba(33, 150, 243, 0.2);
-    color: #42a5f5;
-    border: 1px solid #42a5f5;
+    color: var(--color-role-g2-light);
+    border: 1px solid var(--color-role-g2-light);
 }
 
 .role-ta {
     background-color: rgba(255, 152, 0, 0.2);
-    color: #ffb74d;
-    border: 1px solid #ffb74d;
+    color: var(--color-role-ta-light);
+    border: 1px solid var(--color-role-ta-light);
 }
 
 .role-pm {
     background-color: rgba(156, 39, 176, 0.2);
-    color: #ce93d8;
-    border: 1px solid #ce93d8;
+    color: var(--color-role-pm-light);
+    border: 1px solid var(--color-role-pm-light);
 }
 
 /* Number and Currency Formatting */
