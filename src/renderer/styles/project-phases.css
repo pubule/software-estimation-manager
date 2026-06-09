@@ -59,7 +59,7 @@
     grid-template-columns: 180px 1fr;
     margin-bottom: var(--spacing-lg);
     padding: var(--spacing-md);
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: var(--bg-tertiary);
     border-radius: var(--radius-md);
     border: none;
     gap: var(--spacing-md);
@@ -221,7 +221,7 @@
 
 .phases-table th,
 .phases-table td {
-    padding: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-sm);
     text-align: center;
     border: 1px solid var(--border-primary);
     white-space: nowrap;
@@ -478,10 +478,10 @@
 }
 
 /* Resource Type Colors */
-.resource-g1 { color: #4caf50; }
-.resource-g2 { color: #2196f3; }
-.resource-ta { color: #ff9800; }
-.resource-pm { color: #9c27b0; }
+.resource-g1 { color: var(--color-role-g1); }
+.resource-g2 { color: var(--color-role-g2); }
+.resource-ta { color: var(--color-role-ta); }
+.resource-pm { color: var(--color-role-pm); }
 
 /* Phase Type Indicators */
 .phase-analysis .phase-name { border-left: 3px solid var(--info); }
