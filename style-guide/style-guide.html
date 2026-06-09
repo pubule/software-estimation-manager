@@ -63,11 +63,11 @@
             --font-weight-bold: 700;
 
             /* Spacing */
-            --spacing-xs: 0.25rem;
-            --spacing-sm: 0.5rem;
-            --spacing-md: 1rem;
-            --spacing-lg: 1.5rem;
-            --spacing-xl: 2rem;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
             --spacing-2xl: 2.5rem;
             --spacing-3xl: 3rem;
 
@@ -83,7 +83,7 @@
             --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
 
             /* Transitions */
-            --transition-fast: 0.1s ease-in-out;
+            --transition-fast: 0.15s ease;
             --transition-base: 0.2s ease-in-out;
             --transition-slow: 0.3s ease-in-out;
 
@@ -103,8 +103,8 @@
             --btn-primary-bg-hover: #1177bb;
             --btn-secondary-bg: #3c3c3c;
             --btn-secondary-bg-hover: #464647;
-            --btn-danger-bg: #f44336;
-            --btn-danger-bg-hover: #d32f2f;
+            --btn-destructive-bg: #f44336;
+            --btn-destructive-bg-hover: #d32f2f;
 
             /* Input-Specific Variables */
             --input-border: #464647;
@@ -117,11 +117,6 @@
             --input-text: #cccccc;
             --input-text-readonly: #6a6a6a;
             --input-text-disabled: #6a6a6a;
-
-            /* Transition Timing - Actual Implementation Values */
-            --transition-fast: 0.15s ease;
-            --transition-normal: 0.3s ease;
-            --transition-slow: 0.5s ease;
 
             /* Breakpoints */
             --bp-sm: 640px;
@@ -440,27 +435,27 @@
         }
 
         /* Button Variant - Danger (formerly destructive) */
-        .btn-danger {
-            background-color: var(--btn-danger-bg);
-            color: var(--color-text-inverse);
-        }
-
-        .btn-danger:hover:not(:disabled) {
-            background-color: var(--btn-danger-bg-hover);
-        }
-
-        .btn-danger:active:not(:disabled) {
-            background-color: #b71c1c;
-        }
-
-        /* Deprecated: Use .btn-danger instead */
         .btn-destructive {
-            background-color: var(--btn-danger-bg);
+            background-color: var(--btn-destructive-bg);
             color: var(--color-text-inverse);
         }
 
         .btn-destructive:hover:not(:disabled) {
-            background-color: var(--btn-danger-bg-hover);
+            background-color: var(--btn-destructive-bg-hover);
+        }
+
+        .btn-destructive:active:not(:disabled) {
+            background-color: #b71c1c;
+        }
+
+        /* Deprecated: Use .btn-destructive instead */
+        .btn-danger {
+            background-color: var(--btn-destructive-bg);
+            color: var(--color-text-inverse);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background-color: var(--btn-destructive-bg-hover);
         }
 
         /* Button Variant - Small */
