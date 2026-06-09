@@ -299,7 +299,7 @@
 .btn.override-supplier:hover,
 .btn.override-resource:hover,
 .btn.override-category:hover {
-    background-color: #f57c00;
+    background-color: var(--warning);
 }
 
 /* Configuration Description */
