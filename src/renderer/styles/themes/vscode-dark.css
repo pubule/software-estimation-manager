@@ -1089,6 +1089,31 @@ select:read-only:focus-visible {
     --scrollbar-thumb: #424242;
     --scrollbar-thumb-hover: #4f4f4f;
 
+    /* ========================================================================
+       ACCENT TOKENS (resolve broken refs in main.css, calculations.css,
+       categories-config.css, teams-config.css)
+       ======================================================================== */
+    --accent-primary: var(--color-text-accent);
+    --accent-primary-alpha: rgba(0, 122, 204, 0.2);
+    --accent-primary-rgb: 0, 122, 204;
+
+    /* ========================================================================
+       MISSING FONT SIZE
+       ======================================================================== */
+    --font-size-xs: 11px;
+
+    /* ========================================================================
+       ROLE / RESOURCE COLORS
+       ======================================================================== */
+    --color-role-g1: #4caf50;
+    --color-role-g1-light: #66bb6a;
+    --color-role-g2: #2196f3;
+    --color-role-g2-light: #42a5f5;
+    --color-role-ta: #ff9800;
+    --color-role-ta-light: #ffb74d;
+    --color-role-pm: #9c27b0;
+    --color-role-pm-light: #ce93d8;
+
     /* Sidebar */
     .sidebar {
         width: 250px;
