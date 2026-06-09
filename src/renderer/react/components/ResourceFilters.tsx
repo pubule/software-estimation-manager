@@ -46,7 +46,7 @@ export const ResourceFilters: React.FC<ResourceFiltersProps> = ({
 
     const selectStyle: React.CSSProperties = {
         backgroundColor: 'var(--bg-quaternary)',
-        color: '#d4d4d4',
+        color: 'var(--text-primary)',
         border: '1px solid #555',
         borderRadius: '4px',
         padding: '8px 12px',

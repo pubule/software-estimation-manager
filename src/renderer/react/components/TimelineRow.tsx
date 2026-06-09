@@ -53,7 +53,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
             <div
                 style={{
                     padding: '12px 16px',
-                    borderRight: '1px solid #3c3c3c',
+                    borderRight: '1px solid var(--border-primary)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'center',
@@ -87,7 +87,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                     <div style={{
                         fontSize: '14px',
                         fontWeight: '600',
-                        color: '#d4d4d4',
+                        color: 'var(--text-primary)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap'
@@ -109,7 +109,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                 </div>
                 <div style={{
                     fontSize: '11px',
-                    color: '#6a6a6a',
+                    color: 'var(--text-muted)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -147,13 +147,13 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                             <div
                                 key={month}
                                 style={{
-                                    border: '1px solid #3c3c3c',
+                                    border: '1px solid var(--border-primary)',
                                     minHeight: '50px',
                                     backgroundColor: 'var(--bg-primary)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    color: '#6a6a6a',
+                                    color: 'var(--text-muted)',
                                     fontSize: '11px'
                                 }}
                             >

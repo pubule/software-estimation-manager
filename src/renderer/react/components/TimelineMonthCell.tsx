@@ -100,8 +100,8 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
                     fontWeight: '700',
                     marginBottom: '8px',
                     paddingBottom: '8px',
-                    borderBottom: '1px solid #3c3c3c',
-                    color: '#d4d4d4'
+                    borderBottom: '1px solid var(--border-primary)',
+                    color: 'var(--text-primary)'
                 }}>
                     {memberName} - {monthLabel}
                 </div>
@@ -110,12 +110,12 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: '#858585' }}>Monthly Capacity:</span>
-                        <span style={{ color: '#d4d4d4', fontWeight: '600' }}>{data.monthlyCapacity.toFixed(1)} MD</span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{data.monthlyCapacity.toFixed(1)} MD</span>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: '#858585' }}>Working Days:</span>
-                        <span style={{ color: '#d4d4d4', fontWeight: '600' }}>{data.baseWorkingDays} days</span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{data.baseWorkingDays} days</span>
                     </div>
 
                     {data.vacationDays > 0 && (
@@ -129,12 +129,12 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
                         display: 'flex',
                         justifyContent: 'space-between',
                         paddingTop: '4px',
-                        borderTop: '1px solid #3c3c3c',
+                        borderTop: '1px solid var(--border-primary)',
                         marginTop: '4px'
                     }}>
                         <span style={{ color: '#858585' }}>Allocated:</span>
                         <span style={{
-                            color: data.isOverallocated ? '#f48771' : '#d4d4d4',
+                            color: data.isOverallocated ? '#f48771' : 'var(--text-primary)',
                             fontWeight: '600'
                         }}>
                             {data.existingAllocations.toFixed(1)} MD
@@ -155,7 +155,7 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
                         display: 'flex',
                         justifyContent: 'space-between',
                         paddingTop: '4px',
-                        borderTop: '1px solid #3c3c3c',
+                        borderTop: '1px solid var(--border-primary)',
                         marginTop: '4px'
                     }}>
                         <span style={{ color: '#858585' }}>Utilization:</span>
@@ -196,7 +196,7 @@ export const TimelineMonthCell: React.FC<TimelineMonthCellProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: onClick ? 'pointer' : 'default',
-                border: '1px solid #3c3c3c',
+                border: '1px solid var(--border-primary)',
                 transition: 'all 0.2s ease'
             }}
             onMouseEnter={() => setShowTooltip(true)}

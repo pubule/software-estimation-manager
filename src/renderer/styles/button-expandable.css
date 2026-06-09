@@ -297,10 +297,10 @@
    ============================================================ */
 
 :root {
-  --expand-icon-color: #007acc;
-  --focus-color: #007fd4;
+  --expand-icon-color: var(--color-text-accent);
+  --focus-color: var(--color-border-focus);
   --button-hover-bg: rgba(255, 255, 255, 0.1);
-  --button-focus-ring: rgba(0, 122, 204, 0.1);
+  --button-focus-ring: rgba(99, 140, 255, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
