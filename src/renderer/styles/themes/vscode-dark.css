@@ -775,6 +775,7 @@ select:read-only:focus-visible {
 .pm-search-bar {
     display: flex;
     gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
     margin-bottom: var(--spacing-sm);
     align-items: center;
     padding: 0 var(--spacing-md);
@@ -787,16 +788,18 @@ select:read-only:focus-visible {
 
 .pm-search-icon {
     position: absolute;
-    left: 12px;
+    left: 10px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-secondary);
-    font-size: var(--font-size-sm);
+    font-size: 11px;
+    pointer-events: none;
+    z-index: 1;
 }
 
 .pm-search-input {
     width: 100%;
-    padding: 8px 32px 8px 36px;
+    padding: 8px 32px 8px 32px !important;
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
@@ -913,6 +916,8 @@ select:read-only:focus-visible {
     padding: 0 var(--spacing-md);
     flex: 1;
     overflow: auto;
+    max-height: calc(100vh - 300px);
+    min-height: 200px;
 }
 
 .pm-table {
