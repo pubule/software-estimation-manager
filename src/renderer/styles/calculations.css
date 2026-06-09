@@ -376,7 +376,7 @@
 
 .kpi-card:hover {
     border-color: var(--border-hover);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
 }
 
 .kpi-header {
@@ -558,8 +558,8 @@
 .filter-btn {
     padding: var(--spacing-xs) var(--spacing-sm);
     background-color: var(--bg-quaternary);
-    border: 2px solid var(--border-primary);
-    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-md);
     color: var(--text-secondary);
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -695,10 +695,10 @@
 }
 
 .calculations-table th {
-    background-color: var(--bg-quaternary);
+    background-color: var(--bg-tertiary);
     color: var(--text-primary);
     font-weight: 600;
-    padding: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-sm);
     text-align: left;
     border-bottom: 2px solid var(--border-primary);
     border-right: 1px solid var(--border-primary);
@@ -712,7 +712,7 @@
 }
 
 .calculations-table td {
-    padding: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-sm);
     border-bottom: 1px solid var(--border-primary);
     border-right: 1px solid var(--border-primary);
     color: var(--text-primary);
