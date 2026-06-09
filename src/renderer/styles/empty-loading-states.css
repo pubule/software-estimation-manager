@@ -7,10 +7,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-xl, 32px);
+  padding: var(--spacing-3xl, 3rem) var(--spacing-lg, 24px);
   text-align: center;
   color: var(--text-muted, #9d9d9d);
   background: transparent;
+  border: 2px dashed var(--color-border, #3e3e42);
   border-radius: var(--radius-lg, 6px);
   min-height: 200px;
 }
