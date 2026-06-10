@@ -61,6 +61,7 @@
     "@openai/codex": "^0.42.0",
     "electron-store": "^8.1.0",
     "exceljs": "^4.4.0",
+    "impeccable": "^2.3.2",
     "papaparse": "^5.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -70,6 +71,7 @@
     "zustand": "^5.0.8"
   },
   "build": {
+    "electronDist": "node_modules/electron/dist",
     "appId": "com.yourcompany.software-estimation-manager",
     "productName": "Software Estimation Manager",
     "directories": {
