@@ -149,9 +149,9 @@ export class TicketDashboardActions {
    */
   importCsvData(csvContent: string): void {
     try {
-      if (import.meta.env.DEV) console.log('[IMPORT-CSV] Starting import...');
+      if (import.meta.env?.DEV) console.log('[IMPORT-CSV] Starting import...');
       const tickets = this.parseCsvContent(csvContent);
-      if (import.meta.env.DEV) console.log('[IMPORT-CSV] Parsed tickets:', tickets.length);
+      if (import.meta.env?.DEV) console.log('[IMPORT-CSV] Parsed tickets:', tickets.length);
 
       if (tickets.length === 0) {
         console.warn('[IMPORT-CSV] No valid tickets found in CSV');
@@ -162,21 +162,21 @@ export class TicketDashboardActions {
       const state = store.getState();
 
       // Store raw ticket data
-      if (import.meta.env.DEV) console.log('[IMPORT-CSV] Storing ticket data in state...');
+      if (import.meta.env?.DEV) console.log('[IMPORT-CSV] Storing ticket data in state...');
       state.setTicketData(tickets);
 
       // Calculate initial metrics
-      if (import.meta.env.DEV) console.log('[IMPORT-CSV] Calculating metrics...');
+      if (import.meta.env?.DEV) console.log('[IMPORT-CSV] Calculating metrics...');
       this.calculateMetrics();
 
       // Generate alerts
-      if (import.meta.env.DEV) console.log('[IMPORT-CSV] Generating alerts...');
+      if (import.meta.env?.DEV) console.log('[IMPORT-CSV] Generating alerts...');
       this.generateAlerts();
 
-      if (import.meta.env.DEV) console.log('[IMPORT-CSV] Marking state as dirty...');
+      if (import.meta.env?.DEV) console.log('[IMPORT-CSV] Marking state as dirty...');
       state.markDirty();
 
-      if (import.meta.env.DEV) console.log('[IMPORT-CSV] Import completed successfully');
+      if (import.meta.env?.DEV) console.log('[IMPORT-CSV] Import completed successfully');
     } catch (error) {
       console.error('[IMPORT-CSV] Error importing CSV:', error);
       const store = this.getStore();
@@ -195,7 +195,7 @@ export class TicketDashboardActions {
     const headers = lines[0].map(h => h.trim().toLowerCase());
     const tickets: TicketData[] = [];
 
-    if (import.meta.env.DEV) console.log('[IMPORT-CSV] CSV Headers found:', headers);
+    if (import.meta.env?.DEV) console.log('[IMPORT-CSV] CSV Headers found:', headers);
 
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i];
@@ -226,7 +226,7 @@ export class TicketDashboardActions {
         ticket.state = hasState;
         tickets.push(ticket);
       } else {
-        if (import.meta.env.DEV) console.log('[IMPORT-CSV] Skipping invalid ticket:', { hasNumber, hasOpenedAt, hasPriority, hasState });
+        if (import.meta.env?.DEV) console.log('[IMPORT-CSV] Skipping invalid ticket:', { hasNumber, hasOpenedAt, hasPriority, hasState });
       }
     }
 
@@ -885,7 +885,7 @@ export class TicketDashboardActions {
         return;
       }
 
-      if (import.meta.env.DEV) console.log('[EXPORT] Starting Excel export with', tickets.length, 'tickets');
+      if (import.meta.env?.DEV) console.log('[EXPORT] Starting Excel export with', tickets.length, 'tickets');
 
       // Prepare all export data
       const exportData = this.prepareExportData();
@@ -894,7 +894,7 @@ export class TicketDashboardActions {
       const result = await (window as any).electronAPI.exportTicketReport(exportData);
 
       if (result.success) {
-        if (import.meta.env.DEV) console.log('[EXPORT] Report exported successfully:', result.path);
+        if (import.meta.env?.DEV) console.log('[EXPORT] Report exported successfully:', result.path);
         alert(`Report exported successfully!\nFile: ${result.filename}\nLocation: Downloads folder`);
       } else {
         console.error('[EXPORT] Export failed:', result.error);
@@ -1234,7 +1234,7 @@ export class TicketDashboardActions {
       // Freeze header row
       sheet['!freeze'] = { xSplit: 0, ySplit: 1 };
 
-      if (import.meta.env.DEV) console.log('[EXPORT] Dashboard Summary sheet created with 14 KPIs');
+      if (import.meta.env?.DEV) console.log('[EXPORT] Dashboard Summary sheet created with 14 KPIs');
       return sheet;
 
     } catch (error) {
@@ -1318,7 +1318,7 @@ export class TicketDashboardActions {
       sheet['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 20 }];
       sheet['!freeze'] = { xSplit: 0, ySplit: 2 };
 
-      if (import.meta.env.DEV) console.log('[EXPORT] Unified Tickets sheet created');
+      if (import.meta.env?.DEV) console.log('[EXPORT] Unified Tickets sheet created');
       return sheet;
     } catch (error) {
       console.error('[EXPORT] Error creating unified tickets sheet:', error);
@@ -1424,7 +1424,7 @@ export class TicketDashboardActions {
       sheet['!cols'] = [{ wch: 15 }, { wch: 35 }, { wch: 18 }];
       sheet['!freeze'] = { xSplit: 0, ySplit: 1 };
 
-      if (import.meta.env.DEV) console.log('[EXPORT] Resolution Metrics sheet created');
+      if (import.meta.env?.DEV) console.log('[EXPORT] Resolution Metrics sheet created');
       return sheet;
     } catch (error) {
       console.error('[EXPORT] Error creating resolution metrics sheet:', error);
@@ -1507,7 +1507,7 @@ export class TicketDashboardActions {
       sheet['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 12 }];
       sheet['!freeze'] = { xSplit: 0, ySplit: 5 };
 
-      if (import.meta.env.DEV) console.log('[EXPORT] Resolution Rate sheet created');
+      if (import.meta.env?.DEV) console.log('[EXPORT] Resolution Rate sheet created');
       return sheet;
     } catch (error) {
       console.error('[EXPORT] Error creating resolution rate sheet:', error);
@@ -1595,7 +1595,7 @@ export class TicketDashboardActions {
       sheet['!cols'] = [{ wch: 12 }, { wch: 35 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 15 }, { wch: 12 }];
       sheet['!freeze'] = { xSplit: 0, ySplit: 7 };
 
-      if (import.meta.env.DEV) console.log('[EXPORT] Backlog sheet created');
+      if (import.meta.env?.DEV) console.log('[EXPORT] Backlog sheet created');
       return sheet;
     } catch (error) {
       console.error('[EXPORT] Error creating backlog sheet:', error);
@@ -1696,7 +1696,7 @@ export class TicketDashboardActions {
       sheet['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
       sheet['!freeze'] = { xSplit: 0, ySplit: 2 };
 
-      if (import.meta.env.DEV) console.log('[EXPORT] Team Analysis sheet created');
+      if (import.meta.env?.DEV) console.log('[EXPORT] Team Analysis sheet created');
       return sheet;
     } catch (error) {
       console.error('[EXPORT] Error creating team analysis sheet:', error);
@@ -1975,7 +1975,7 @@ export class TicketDashboardActions {
       sheet['!cols'] = Array(dataHeaders.length).fill({ wch: 15 });
       sheet['!freeze'] = { xSplit: 0, ySplit: 6 };
 
-      if (import.meta.env.DEV) console.log(`[EXPORT] Alert sheet created: ${sheetName}`);
+      if (import.meta.env?.DEV) console.log(`[EXPORT] Alert sheet created: ${sheetName}`);
       return sheet;
     } catch (error) {
       console.error(`[EXPORT] Error creating ${alertType} alert sheet:`, error);
@@ -2110,7 +2110,7 @@ export class TicketDashboardActions {
 
       sheet['!freeze'] = { xSplit: 0, ySplit: 1 };
 
-      if (import.meta.env.DEV) console.log('[EXPORT] Full Backlog sheet created');
+      if (import.meta.env?.DEV) console.log('[EXPORT] Full Backlog sheet created');
       return sheet;
     } catch (error) {
       console.error('[EXPORT] Error creating full backlog sheet:', error);
@@ -2210,7 +2210,7 @@ export class TicketDashboardActions {
 
       sheet['!cols'] = [{ wch: 35 }, { wch: 60 }];
 
-      if (import.meta.env.DEV) console.log('[EXPORT] Metadata sheet created');
+      if (import.meta.env?.DEV) console.log('[EXPORT] Metadata sheet created');
       return sheet;
     } catch (error) {
       console.error('[EXPORT] Error creating metadata sheet:', error);
@@ -2300,7 +2300,7 @@ export class TicketDashboardActions {
           }
         }
       }
-      if (import.meta.env.DEV) console.log(`[EXPORT] Header formatting applied to rows ${startRow}-${endRow}`);
+      if (import.meta.env?.DEV) console.log(`[EXPORT] Header formatting applied to rows ${startRow}-${endRow}`);
       return sheet;
     } catch (error) {
       console.error('[EXPORT] Error applying header formatting:', error);
@@ -2313,7 +2313,7 @@ export class TicketDashboardActions {
    */
   applyConditionalFormatting(sheet: any, range: string, rules: any[]): any {
     try {
-      if (import.meta.env.DEV) console.log(`[EXPORT] Conditional formatting applied to range: ${range}`);
+      if (import.meta.env?.DEV) console.log(`[EXPORT] Conditional formatting applied to range: ${range}`);
       return sheet;
     } catch (error) {
       console.error('[EXPORT] Error applying conditional formatting:', error);
@@ -2326,7 +2326,7 @@ export class TicketDashboardActions {
    */
   formatNumberColumn(sheet: any, column: string, format: string): any {
     try {
-      if (import.meta.env.DEV) console.log(`[EXPORT] Number formatting applied to column ${column} with format: ${format}`);
+      if (import.meta.env?.DEV) console.log(`[EXPORT] Number formatting applied to column ${column} with format: ${format}`);
       return sheet;
     } catch (error) {
       console.error('[EXPORT] Error formatting number column:', error);
@@ -2340,7 +2340,7 @@ export class TicketDashboardActions {
   freezeHeaderRow(sheet: any): any {
     try {
       sheet['!freeze'] = { xSplit: 0, ySplit: 1 };
-      if (import.meta.env.DEV) console.log('[EXPORT] Header row frozen');
+      if (import.meta.env?.DEV) console.log('[EXPORT] Header row frozen');
       return sheet;
     } catch (error) {
       console.error('[EXPORT] Error freezing header row:', error);
@@ -2353,7 +2353,7 @@ export class TicketDashboardActions {
    */
   autoFitColumns(sheet: any): any {
     try {
-      if (import.meta.env.DEV) console.log('[EXPORT] Column auto-fit applied');
+      if (import.meta.env?.DEV) console.log('[EXPORT] Column auto-fit applied');
       return sheet;
     } catch (error) {
       console.error('[EXPORT] Error auto-fitting columns:', error);
@@ -2394,7 +2394,7 @@ export class TicketDashboardActions {
         }
       }
 
-      if (import.meta.env.DEV) console.log('[EXPORT] Data validation passed');
+      if (import.meta.env?.DEV) console.log('[EXPORT] Data validation passed');
       return true;
     } catch (error) {
       console.error('[EXPORT] Data validation error:', error);

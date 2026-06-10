@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../hooks/useStore';
 import { useProjectActions } from '../hooks/useProjectActions';
 import { NewProjectFormData, SavedProject, projectActions } from '../actions/ProjectsActions';
-import { getAppController } from '../electronBridge';
+import { getAppController } from '../utils/electronBridge';
 import Button from './Button';
 import ApprovalStatusIcon from './ApprovalStatusIcon';
 import NewProjectModal from './NewProjectModal';

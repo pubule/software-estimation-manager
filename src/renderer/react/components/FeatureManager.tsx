@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useProject, Feature } from '../hooks/useStore';
 import { useStore } from '../hooks/useStore';
 import { useFeatureActions } from '../hooks/useFeatureActions';
-import { getAppStore } from '../electronBridge';
+import { getAppStore } from '../utils/electronBridge';
 import FeatureTable from './FeatureTable';
 import FeatureModal from './FeatureModal';
 import ConfirmDialog from './ConfirmDialog';
@@ -40,14 +40,14 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
     const store = getAppStore();
     if (store) {
       store.getState().setComponentInitialized('features', true);
-      if (import.meta.env.DEV) console.log('FeatureManager: Component initialized and tracked in store');
+      if (import.meta.env?.DEV) console.log('FeatureManager: Component initialized and tracked in store');
     }
 
     return () => {
       // Cleanup on unmount
       if (store) {
         store.getState().setComponentInitialized('features', false);
-        if (import.meta.env.DEV) console.log('FeatureManager: Component unmounted, tracking cleared');
+        if (import.meta.env?.DEV) console.log('FeatureManager: Component unmounted, tracking cleared');
       }
     };
   }, []);

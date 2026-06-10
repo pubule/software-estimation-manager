@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../hooks/useStore';
-import { getAppController } from '../electronBridge';
+import { getAppController } from '../utils/electronBridge';
 import Button from './Button';
 import ApprovalStatusIcon from './ApprovalStatusIcon';
 

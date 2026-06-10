@@ -18,7 +18,7 @@ import Button from './Button';
 import { useResourceOverviewHeatmap } from '../hooks/useResourceOverviewHeatmap';
 import type { HeatmapMember, HeatmapCell } from '../hooks/useResourceOverviewHeatmap';
 import { ResourceOverviewExportActions } from '../actions/ResourceOverviewExportActions';
-import { getCapacityActionsClass, getTeamHelpers, getElectronAPI } from '../electronBridge';
+import { getCapacityActionsClass, getTeamHelpers, getElectronAPI } from '../utils/electronBridge';
 import '../../styles/capacity-heatmap.css';
 
 interface ResourceOverviewHeatmapProps {

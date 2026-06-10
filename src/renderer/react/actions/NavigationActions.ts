@@ -39,7 +39,7 @@ export class NavigationActions {
       state.setCurrentSection(section);
     }
 
-    if (import.meta.env.DEV) console.log(`Navigation: Moved to ${section}, state preserved`);
+    if (import.meta.env?.DEV) console.log(`Navigation: Moved to ${section}, state preserved`);
   }
 
   /**
@@ -56,7 +56,7 @@ export class NavigationActions {
     const state = store.getState();
     state.setComponentInitialized(component, initialized);
     
-    if (import.meta.env.DEV) console.log(`Navigation: Component ${component} initialized: ${initialized}`);
+    if (import.meta.env?.DEV) console.log(`Navigation: Component ${component} initialized: ${initialized}`);
   }
 
   /**
@@ -80,14 +80,14 @@ export class NavigationActions {
 
     // Business logic: if configurations already exist, do NOT reset
     if (hasExistingPhases && hasSelectedSuppliers) {
-      if (import.meta.env.DEV) console.log('Phases already configured, preserving existing state');
+      if (import.meta.env?.DEV) console.log('Phases already configured, preserving existing state');
       state.setCurrentSection('phases');
       return;
     }
 
     // Only initialize if necessary
     if (!hasExistingPhases) {
-      if (import.meta.env.DEV) console.log('Initializing phases for first time');
+      if (import.meta.env?.DEV) console.log('Initializing phases for first time');
       state.initializePhases();
     }
 
@@ -114,7 +114,7 @@ export class NavigationActions {
       };
 
       state.preserveSectionState('features', featuresState);
-      if (import.meta.env.DEV) console.log('Features state preserved before navigation');
+      if (import.meta.env?.DEV) console.log('Features state preserved before navigation');
     }
 
     state.setCurrentSection('features');
@@ -134,9 +134,9 @@ export class NavigationActions {
     const isInitialized = state.isComponentInitialized('projects');
 
     if (!isInitialized) {
-      if (import.meta.env.DEV) console.log('Projects page will initialize for first time');
+      if (import.meta.env?.DEV) console.log('Projects page will initialize for first time');
     } else {
-      if (import.meta.env.DEV) console.log('Projects wrapper already initialized, preserving state');
+      if (import.meta.env?.DEV) console.log('Projects wrapper already initialized, preserving state');
     }
 
     state.setCurrentSection('projects');
@@ -164,13 +164,13 @@ export class NavigationActions {
     const isInitialized = state.isComponentInitialized('calculations');
 
     if (!isInitialized) {
-      if (import.meta.env.DEV) console.log('Calculations page will initialize for first time');
+      if (import.meta.env?.DEV) console.log('Calculations page will initialize for first time');
     } else {
-      if (import.meta.env.DEV) console.log('Calculations wrapper already initialized, preserving state');
+      if (import.meta.env?.DEV) console.log('Calculations wrapper already initialized, preserving state');
     }
 
     state.setCurrentSection('calculations');
-    if (import.meta.env.DEV) console.log('Navigated to calculations page');
+    if (import.meta.env?.DEV) console.log('Navigated to calculations page');
   }
   
   /**
@@ -182,7 +182,7 @@ export class NavigationActions {
 
     const state = store.getState();
     state.setCurrentSection('history');
-    if (import.meta.env.DEV) console.log('Navigated to version history page');
+    if (import.meta.env?.DEV) console.log('Navigated to version history page');
   }
 
   /**
@@ -221,7 +221,7 @@ export class NavigationActions {
       };
       
       state.preserveSectionState('phases', phasesState);
-      if (import.meta.env.DEV) console.log('NavigationActions: Preserved phases state including supplier selections');
+      if (import.meta.env?.DEV) console.log('NavigationActions: Preserved phases state including supplier selections');
     }
   }
 
@@ -239,7 +239,7 @@ export class NavigationActions {
         && typeof state.navigationState.preservedStates.has === 'function' 
         && state.navigationState.preservedStates.has('phases')) {
       state.restoreSectionState('phases');
-      if (import.meta.env.DEV) console.log('NavigationActions: Restored phases state including supplier selections');
+      if (import.meta.env?.DEV) console.log('NavigationActions: Restored phases state including supplier selections');
       return true;
     }
     
@@ -265,7 +265,7 @@ export class NavigationActions {
       };
       
       state.preserveSectionState('features', featuresState);
-      if (import.meta.env.DEV) console.log('NavigationActions: Preserved features state');
+      if (import.meta.env?.DEV) console.log('NavigationActions: Preserved features state');
     }
   }
 
@@ -286,7 +286,7 @@ export class NavigationActions {
     const state = store.getState();
 
     if (section === 'phases') {
-      if (import.meta.env.DEV) console.log('Force resetting phases section');
+      if (import.meta.env?.DEV) console.log('Force resetting phases section');
       state.initializePhases(); // Force re-init
     }
   }
@@ -312,7 +312,7 @@ export class NavigationActions {
 
     if (section === 'phases') {
       navigationManager.reactPhasesWrapper = null;
-      if (import.meta.env.DEV) console.log('Forced phases component re-initialization');
+      if (import.meta.env?.DEV) console.log('Forced phases component re-initialization');
     }
   }
 }

@@ -72,7 +72,7 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
         setPreviousProjectId(currentProject.projectId);
 
         // PATTERN: Delegate ALL business logic to Actions
-        if (import.meta.env.DEV) console.log('PhasesManager: Loading phase data - new project detected');
+        if (import.meta.env?.DEV) console.log('PhasesManager: Loading phase data - new project detected');
         loadPhaseData()
           .then(() => {
             setIsLoading(false);
@@ -83,7 +83,7 @@ const PhasesManager: React.FC<PhasesManagerProps> = ({ className = '' }) => {
             setIsLoading(false);
           });
       } else {
-        if (import.meta.env.DEV) console.log('PhasesManager: Skipping reload - only metadata changed');
+        if (import.meta.env?.DEV) console.log('PhasesManager: Skipping reload - only metadata changed');
       }
     } else {
       setIsLoading(false);

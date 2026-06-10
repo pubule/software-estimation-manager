@@ -176,7 +176,7 @@ export class VersionHistoryActions {
     // Listen for project-modified event to auto-sync current version
     window.addEventListener('project-modified', this.handleProjectModified.bind(this));
     
-    if (import.meta.env.DEV) console.log('VersionHistoryActions: Event listeners initialized (State/Actions/Dispatcher pattern)');
+    if (import.meta.env?.DEV) console.log('VersionHistoryActions: Event listeners initialized (State/Actions/Dispatcher pattern)');
   }
 
   /**
@@ -187,10 +187,10 @@ export class VersionHistoryActions {
     
     try {
       if (versionHistoryAvailable && hasVersions) {
-        if (import.meta.env.DEV) console.log('Project saved event received - updating current version');
+        if (import.meta.env?.DEV) console.log('Project saved event received - updating current version');
         await this.updateCurrentVersion();
       } else {
-        if (import.meta.env.DEV) console.log('No versions to update or versionHistoryActions not available');
+        if (import.meta.env?.DEV) console.log('No versions to update or versionHistoryActions not available');
       }
     } catch (error) {
       console.error('Failed to update current version from project-saved event:', error);
@@ -206,15 +206,15 @@ export class VersionHistoryActions {
     
     try {
       if (hasVersions) {
-        if (import.meta.env.DEV) console.log(`Project modified (${action}) event received - auto-syncing current version`);
-        if (import.meta.env.DEV) console.log(`Feature ${featureId} was ${action.replace('feature-', '')}`);
+        if (import.meta.env?.DEV) console.log(`Project modified (${action}) event received - auto-syncing current version`);
+        if (import.meta.env?.DEV) console.log(`Feature ${featureId} was ${action.replace('feature-', '')}`);
         
         // Small delay to ensure the store is updated
         await new Promise(resolve => setTimeout(resolve, 100));
         
         await this.updateCurrentVersion();
       } else {
-        if (import.meta.env.DEV) console.log('No versions to update for modified project');
+        if (import.meta.env?.DEV) console.log('No versions to update for modified project');
       }
     } catch (error) {
       console.error('Failed to update current version from project-modified event:', error);
@@ -283,7 +283,7 @@ export class VersionHistoryActions {
       state.updateProjectVersions(updatedVersions);
       state.markDirty();
 
-      if (import.meta.env.DEV) console.log(`Version ${nextVersionId} created successfully`);
+      if (import.meta.env?.DEV) console.log(`Version ${nextVersionId} created successfully`);
 
       // Close the modal after successful version creation
       this.closeCreateVersionModal();
@@ -307,16 +307,16 @@ export class VersionHistoryActions {
       const currentProject = state.currentProject;
 
       if (!currentProject || !currentProject.versions || currentProject.versions.length === 0) {
-        if (import.meta.env.DEV) console.log('No versions to update - skipping current version update');
+        if (import.meta.env?.DEV) console.log('No versions to update - skipping current version update');
         return;
       }
 
-      if (import.meta.env.DEV) console.log('Updating current version with fresh store state');
-      if (import.meta.env.DEV) console.log(`Project has ${currentProject.features?.length || 0} features to include in snapshot`);
+      if (import.meta.env?.DEV) console.log('Updating current version with fresh store state');
+      if (import.meta.env?.DEV) console.log(`Project has ${currentProject.features?.length || 0} features to include in snapshot`);
       
       // DEBUG: Log features before snapshot creation
       if (!(currentProject.features && currentProject.features.length > 0)) {
-        if (import.meta.env.DEV) console.log('DEBUG - NO FEATURES found in currentProject!');
+        if (import.meta.env?.DEV) console.log('DEBUG - NO FEATURES found in currentProject!');
       }
 
       // Find the current version (the one with the highest ID)
@@ -327,7 +327,7 @@ export class VersionHistoryActions {
         return currentNum > latestNum ? current : latest;
       });
 
-      if (import.meta.env.DEV) console.log(`Updating version ${mostRecentVersion.id} with latest project state`);
+      if (import.meta.env?.DEV) console.log(`Updating version ${mostRecentVersion.id} with latest project state`);
 
       // Start loading
       this.setLoadingState(true);
@@ -336,8 +336,8 @@ export class VersionHistoryActions {
       const updatedSnapshot = this.createProjectSnapshot(currentProject);
       
       // Log snapshot validation
-      if (import.meta.env.DEV) console.log(`Snapshot created with ${updatedSnapshot.features?.length || 0} features`);
-      if (import.meta.env.DEV && updatedSnapshot.features?.length > 0) {
+      if (import.meta.env?.DEV) console.log(`Snapshot created with ${updatedSnapshot.features?.length || 0} features`);
+      if (import.meta.env?.DEV && updatedSnapshot.features?.length > 0) {
         console.log('Features in snapshot:', updatedSnapshot.features.map((f: any) => ({ id: f.id, description: f.description })));
       }
       
@@ -372,8 +372,8 @@ export class VersionHistoryActions {
       // ACTIONS PATTERN: Update store through actions
       state.updateProjectVersions(updatedVersions);
       
-      if (import.meta.env.DEV) console.log(`Version ${mostRecentVersion.id} updated successfully via State/Actions pattern`);
-      if (import.meta.env.DEV) console.log(`Version snapshot now contains ${updatedSnapshot.features?.length || 0} features`);
+      if (import.meta.env?.DEV) console.log(`Version ${mostRecentVersion.id} updated successfully via State/Actions pattern`);
+      if (import.meta.env?.DEV) console.log(`Version snapshot now contains ${updatedSnapshot.features?.length || 0} features`);
     } catch (error) {
       console.error('Failed to update current version:', error);
       throw error;
@@ -479,7 +479,7 @@ export class VersionHistoryActions {
       // Close modal
       this.closeRestoreModal();
 
-      if (import.meta.env.DEV) console.log(`Created new version ${nextVersionId} with data restored from ${versionToRestore.id}`);
+      if (import.meta.env?.DEV) console.log(`Created new version ${nextVersionId} with data restored from ${versionToRestore.id}`);
     } catch (error) {
       console.error('Failed to restore version:', error);
       throw error;
@@ -520,7 +520,7 @@ export class VersionHistoryActions {
       state.updateProjectVersions(updatedVersions);
       state.markDirty();
 
-      if (import.meta.env.DEV) console.log(`Version ${versionId} deleted successfully`);
+      if (import.meta.env?.DEV) console.log(`Version ${versionId} deleted successfully`);
     } catch (error) {
       console.error('Failed to delete version:', error);
       throw error;
@@ -563,7 +563,7 @@ export class VersionHistoryActions {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      if (import.meta.env.DEV) console.log(`Version ${versionId} exported successfully`);
+      if (import.meta.env?.DEV) console.log(`Version ${versionId} exported successfully`);
     } catch (error) {
       console.error('Failed to export version:', error);
       throw error;
@@ -584,7 +584,7 @@ export class VersionHistoryActions {
     // Update filters in the store
     state.setVersionHistoryFilters(filters);
 
-    if (import.meta.env.DEV) console.log('Version filters applied:', filters);
+    if (import.meta.env?.DEV) console.log('Version filters applied:', filters);
   }
 
   /**
@@ -981,7 +981,7 @@ export class VersionHistoryActions {
           selectedVersion: context.previousVersion
         });
         
-        if (import.meta.env.DEV) console.log(`Navigated to previous version: ${context.previousVersion.id}`);
+        if (import.meta.env?.DEV) console.log(`Navigated to previous version: ${context.previousVersion.id}`);
       }
     } catch (error) {
       console.error('Failed to navigate to previous version:', error);
@@ -1006,7 +1006,7 @@ export class VersionHistoryActions {
           selectedVersion: context.nextVersion
         });
         
-        if (import.meta.env.DEV) console.log(`Navigated to next version: ${context.nextVersion.id}`);
+        if (import.meta.env?.DEV) console.log(`Navigated to next version: ${context.nextVersion.id}`);
       }
     } catch (error) {
       console.error('Failed to navigate to next version:', error);
@@ -1218,9 +1218,9 @@ export class VersionHistoryActions {
           ))
         };
 
-        if (import.meta.env.DEV) console.log('Successfully captured calculationData with', activeVendorCosts.length, 'vendors');
+        if (import.meta.env?.DEV) console.log('Successfully captured calculationData with', activeVendorCosts.length, 'vendors');
       } else {
-        if (import.meta.env.DEV) console.log('No vendor costs found in store - keeping existing calculationData in snapshot');
+        if (import.meta.env?.DEV) console.log('No vendor costs found in store - keeping existing calculationData in snapshot');
         // Do not remove existing calculationData if there is no new data
       }
     } catch (error) {

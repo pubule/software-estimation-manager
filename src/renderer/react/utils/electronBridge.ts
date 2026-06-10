@@ -286,6 +286,19 @@ export interface ProjectActionsGlobal {
 }
 
 // ---------------------------------------------------------------------------
+// CapacityActions -- window.CapacityActions (constructor)
+// ---------------------------------------------------------------------------
+
+export interface CapacityActionsInstance {
+  calculateAvailableCapacity: (memberId: string, monthString: string) => number;
+  [key: string]: unknown;
+}
+
+export interface CapacityActionsClass {
+  new (): CapacityActionsInstance;
+}
+
+// ---------------------------------------------------------------------------
 // Typed accessor functions
 // ---------------------------------------------------------------------------
 
@@ -377,3 +390,14 @@ export function getDataManager(): DataManager | null {
 export function getNavigationManager(): NavigationManager | null {
   return getApp()?.navigationManager ?? null;
 }
+
+/**
+ * Get the CapacityActions constructor from window.
+ * Returns `null` before capacity-actions.js has been loaded.
+ */
+export function getCapacityActionsClass(): CapacityActionsClass | null {
+  return ((window as unknown as Record<string, unknown>).CapacityActions as CapacityActionsClass) ?? null;
+}
+
+/** Alias for getApp() — used by components that imported getAppController from the old bridge. */
+export const getAppController = getApp;

@@ -10,7 +10,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useStore } from '../hooks/useStore';
 import { useCalculationsActions } from '../hooks/useCalculationsActions';
-import { getAppController } from '../electronBridge';
+import { getAppController } from '../utils/electronBridge';
 import RateSpecificationModal from './RateSpecificationModal';
 
 // Working Package Resource interface
@@ -355,7 +355,7 @@ const CalculationsPage: React.FC = () => {
       // Only clear overrides when switching projects (not on initial load)
       // previousProjectIdRef.current === undefined means this is the initial load
       if (projectIdChanged && previousProjectIdRef.current !== undefined) {
-        if (import.meta.env.DEV) console.log('Project changed - clearing overrides and recalculating');
+        if (import.meta.env?.DEV) console.log('Project changed - clearing overrides and recalculating');
         // Reset all overrides on project change (but not on initial load)
         clearFinalMDsOverrides();
       }
@@ -366,7 +366,7 @@ const CalculationsPage: React.FC = () => {
 
       // ALWAYS recalculate when project or phases change
       // This ensures Development phase changes are reflected in calculations
-      if (import.meta.env.DEV) console.log('Recalculating project costs (project or phases changed)');
+      if (import.meta.env?.DEV) console.log('Recalculating project costs (project or phases changed)');
       calculateProjectCosts();
     }
   }, [currentProject, currentPhases, calculateProjectCosts, clearFinalMDsOverrides]);

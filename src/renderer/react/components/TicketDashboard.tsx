@@ -66,11 +66,11 @@ export const TicketDashboard: React.FC = () => {
   }, [ticketData.length]);
 
   const handleFileUpload = async (file: File) => {
-    if (import.meta.env.DEV) console.log('[TICKET-DASHBOARD] File selected:', file.name, 'Size:', file.size);
+    if (import.meta.env?.DEV) console.log('[TICKET-DASHBOARD] File selected:', file.name, 'Size:', file.size);
     setIsProcessing(true);
     try {
       const csvContent = await file.text();
-      if (import.meta.env.DEV) console.log('[TICKET-DASHBOARD] CSV content loaded, length:', csvContent.length);
+      if (import.meta.env?.DEV) console.log('[TICKET-DASHBOARD] CSV content loaded, length:', csvContent.length);
       actions.importCsvData(csvContent);
     } catch (error) {
       console.error('[TICKET-DASHBOARD] Error processing file:', error);

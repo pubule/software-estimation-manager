@@ -67,7 +67,7 @@ import '../js/store/app-store.js';
 window.CapacityActions = CapacityActions;
 window.AllocationActions = AllocationActions;
 window.TicketDashboardActions = TicketDashboardActions;
-if (import.meta.env.DEV) console.log('Actions exported BEFORE React components mount');
+if (import.meta.env?.DEV) console.log('Actions exported BEFORE React components mount');
 
 // Export React components globally for use by vanilla JS
 declare global {
@@ -163,7 +163,7 @@ window.versionHistoryActions = versionHistoryActions;
 window.calculationsActions = calculationsActions;
 // Note: CapacityActions and AllocationActions already exported at top of file
 
-if (import.meta.env.DEV) {
+if (import.meta.env?.DEV) {
   console.log('React components exported globally:', Object.keys(window.ReactComponents));
   console.log('NavigationActions exported globally');
   console.log('versionHistoryActions exported globally');
