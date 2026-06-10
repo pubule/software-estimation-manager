@@ -2073,8 +2073,11 @@ select:read-only:focus-visible {
             gap: var(--spacing-xs);
         }
     }
+}
 
---sidebar-bg: #0f1420;
+:root {
+    /* Sidebar */
+    --sidebar-bg: #0f1420;
     --sidebar-border: #252b3d;
 
     /* Table */
