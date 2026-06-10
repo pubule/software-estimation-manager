@@ -18,6 +18,7 @@ import Button from './Button';
 import { useResourceOverviewHeatmap } from '../hooks/useResourceOverviewHeatmap';
 import type { HeatmapMember, HeatmapCell } from '../hooks/useResourceOverviewHeatmap';
 import { ResourceOverviewExportActions } from '../actions/ResourceOverviewExportActions';
+import { getCapacityActionsClass, getTeamHelpers, getElectronAPI } from '../electronBridge';
 import '../../styles/capacity-heatmap.css';
 
 interface ResourceOverviewHeatmapProps {
@@ -57,18 +58,21 @@ export const ResourceOverviewHeatmap: React.FC<ResourceOverviewHeatmapProps> = (
             let attempts = 0;
             const maxAttempts = 50;
 
-            while ((!window.CapacityActions || !window.TeamHelpers) && attempts < maxAttempts) {
+            while ((!getCapacityActionsClass() || !getTeamHelpers()) && attempts < maxAttempts) {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 attempts++;
             }
 
-            if (!window.CapacityActions || !window.TeamHelpers) {
+            const CapacityActionsClass = getCapacityActionsClass();
+            const teamHelpersInstance = getTeamHelpers();
+
+            if (!CapacityActionsClass || !teamHelpersInstance) {
                 console.warn('Required Actions not available');
                 return [];
             }
 
-            const capacityActions = new (window as any).CapacityActions();
-            const teamMembers = (window as any).TeamHelpers.getAllTeamMembers() || [];
+            const capacityActions = new CapacityActionsClass();
+            const teamMembers = teamHelpersInstance.getAllTeamMembers() || [];
 
             const heatmapData: HeatmapMember[] = [];
 
@@ -135,7 +139,11 @@ export const ResourceOverviewHeatmap: React.FC<ResourceOverviewHeatmapProps> = (
             exportData.nextYear = nextYear;
             exportData.nextYearHeatmap = nextYearHeatmap;
 
-            const result = await (window as any).electronAPI.exportResourceOverview(exportData);
+            const electronAPI = getElectronAPI();
+            if (!electronAPI) {
+                throw new Error('Electron API not available');
+            }
+            const result = await electronAPI.exportResourceOverview(exportData);
 
             if (result.success) {
                 alert(`Export successful!\nFile: ${result.filename}\nLocation: Downloads folder`);

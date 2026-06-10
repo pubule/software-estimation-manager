@@ -16,6 +16,7 @@ import { useStore } from '../hooks/useStore';
 import { useProjectsList } from '../hooks/useProjectsList';
 import { useProjectPhases } from '../hooks/useProjectPhases';
 import { AllocationActions } from '../actions/AllocationActions';
+import { getWorkingDaysCalculator } from '../electronBridge';
 import Button from './Button';
 import type {
     AllocationFormData,
@@ -295,23 +296,23 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
 
     // Initialize WorkingDaysCalculator singleton
     useEffect(() => {
-        const WorkingDaysCalcClass = (window as any).WorkingDaysCalculator;
+        const WorkingDaysCalcRef = getWorkingDaysCalculator();
 
-        if (WorkingDaysCalcClass && !workingDaysCalc) {
+        if (WorkingDaysCalcRef && !workingDaysCalc) {
             try {
                 // Check if it's a constructor or already an instance
-                if (typeof WorkingDaysCalcClass === 'function') {
+                if (typeof WorkingDaysCalcRef === 'function') {
                     // It's a constructor, create new instance
-                    const instance = new WorkingDaysCalcClass();
+                    const instance = new WorkingDaysCalcRef();
                     setWorkingDaysCalc(instance);
-                    console.log('✅ WorkingDaysCalculator initialized (from constructor)');
-                } else if (typeof WorkingDaysCalcClass === 'object') {
+                    console.log('WorkingDaysCalculator initialized (from constructor)');
+                } else if (typeof WorkingDaysCalcRef === 'object') {
                     // It's already an instance, use it directly
-                    setWorkingDaysCalc(WorkingDaysCalcClass);
-                    console.log('✅ WorkingDaysCalculator initialized (using existing instance)');
+                    setWorkingDaysCalc(WorkingDaysCalcRef);
+                    console.log('WorkingDaysCalculator initialized (using existing instance)');
                 }
             } catch (error) {
-                console.error('❌ Failed to initialize WorkingDaysCalculator:', error);
+                console.error('Failed to initialize WorkingDaysCalculator:', error);
             }
         }
     }, [workingDaysCalc]);

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../hooks/useStore';
+import { getAppController } from '../electronBridge';
 import Button from './Button';
 import ApprovalStatusIcon from './ApprovalStatusIcon';
 
@@ -37,7 +38,7 @@ const CurrentProjectCard: React.FC<CurrentProjectCardProps> = ({
 
   // Simplified project detection logic
   const project = currentProject?.project;
-  const app = (window as any).app;
+  const app = getAppController();
 
   const hasLoadedProject = project &&
     project.name &&
