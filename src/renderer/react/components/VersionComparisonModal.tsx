@@ -1,10 +1,10 @@
 /**
- * VersionComparisonModal - Modal React per confronto versioni
- * 
- * PATTERN OBBLIGATORIO: State/Actions/Dispatcher
- * - SOLO presentazione e UI
- * - ZERO business logic
- * - Props per dati e handlers da VersionHistoryActions
+ * VersionComparisonModal - React modal for version comparison
+ *
+ * REQUIRED PATTERN: State/Actions/Dispatcher
+ * - Presentation and UI only
+ * - Zero business logic
+ * - Props for data and handlers from VersionHistoryActions
  */
 
 import React, { useMemo } from 'react';
@@ -14,10 +14,10 @@ import { ComparisonData, ComparisonField } from '../actions/VersionHistoryAction
 import Button from './Button';
 
 const VersionComparisonModal: React.FC = () => {
-  // SOLO lettura dallo store - Selettori specifici per massima reattività
+  // Read-only from store - Specific selectors for maximum reactivity
   const modalState = useStore(state => state.versionHistoryData?.modalStates?.compareModal || { isOpen: false, selectedVersion: null });
   
-  // Actions per operazioni business (attraverso hook)
+  // Actions for business operations (via hook)
   const actions = useVersionHistoryActions();
 
   // Computed comparison data with navigation (derived state)
@@ -25,7 +25,7 @@ const VersionComparisonModal: React.FC = () => {
     if (!modalState.selectedVersion || !modalState.isOpen) return null;
     
     try {
-      // MAI business logic qui! Solo chiamata ad Actions per calcolo
+      // No business logic here! Actions call only for computation
       return actions.generateComparisonDataWithNavigation(modalState.selectedVersion);
     } catch (error) {
       console.error('Error generating comparison data:', error);
@@ -33,7 +33,7 @@ const VersionComparisonModal: React.FC = () => {
     }
   }, [modalState.selectedVersion, modalState.isOpen, actions]);
 
-  // Handle modal close (SOLO chiamata ad Actions)
+  // Handle modal close (Actions call only)
   const handleClose = () => {
     actions.closeCompareModal();
   };

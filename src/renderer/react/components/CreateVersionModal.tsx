@@ -1,10 +1,10 @@
 /**
- * CreateVersionModal - Modal React per creazione nuova versione
- * 
- * PATTERN OBBLIGATORIO: State/Actions/Dispatcher
- * - SOLO presentazione e UI
- * - ZERO business logic
- * - Props per dati e handlers da VersionHistoryActions
+ * CreateVersionModal - React modal for creating new versions
+ *
+ * REQUIRED PATTERN: State/Actions/Dispatcher
+ * - Presentation and UI only
+ * - Zero business logic
+ * - Props for data and handlers from VersionHistoryActions
  */
 
 import React, { useState, useEffect } from 'react';
@@ -13,12 +13,12 @@ import { useVersionHistoryActions } from '../hooks/useVersionHistoryActions';
 import Button from './Button';
 
 const CreateVersionModal: React.FC = () => {
-  // SOLO lettura dallo store - Selettori specifici per massima reattività
+  // Read-only from store - Specific selectors for maximum reactivity
   const modalState = useStore(state => state.versionHistoryData?.modalStates?.createModal || { isOpen: false, selectedVersion: null });
   const currentProject = useStore(state => state.currentProject);
   const isLoading = useStore(state => state.versionHistoryData?.isLoading || false);
   
-  // Actions per operazioni business (attraverso hook)
+  // Actions for business operations (via hook)
   const actions = useVersionHistoryActions();
   
   // LOCAL form state (non business data)
@@ -33,7 +33,7 @@ const CreateVersionModal: React.FC = () => {
     }
   }, [modalState.isOpen]);
 
-  // Handle form submission (SOLO chiamata ad Actions)
+  // Handle form submission (Actions call only)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -44,7 +44,7 @@ const CreateVersionModal: React.FC = () => {
 
     try {
       setError('');
-      // MAI business logic qui! Solo chiamata ad Actions
+      // No business logic here! Actions call only
       await actions.createVersion(reason.trim());
     } catch (error) {
       console.error('Error creating version:', error);
@@ -52,7 +52,7 @@ const CreateVersionModal: React.FC = () => {
     }
   };
 
-  // Handle modal close (SOLO chiamata ad Actions)
+  // Handle modal close (Actions call only)
   const handleClose = () => {
     if (isLoading) return; // Prevent closing during operation
     // MAI business logic qui! Solo chiamata ad Actions

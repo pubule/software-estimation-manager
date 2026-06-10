@@ -135,7 +135,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                 const projectIds = JSON.parse(saved);
                 setExpandedProjects(new Set(projectIds));
             } catch (error) {
-                console.error('Failed to parse expanded projects:', error);
+                if (import.meta.env.DEV) console.error('Failed to parse expanded projects:', error);
             }
         } else {
             setExpandedProjects(new Set());
@@ -156,7 +156,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             if (!isCapacitySection) {
                 // Use refs to check current state without causing re-subscription
                 if (isMemberExpandedRef.current || expandedProjectsRef.current.size > 0) {
-                    console.log('🧹 Capacity section left, resetting expansion states');
+                    if (import.meta.env.DEV) console.log('Capacity section left, resetting expansion states');
                     setIsMemberExpanded(false);
                     setExpandedProjects(new Set());
                     // Also clear localStorage to prevent restore on return
@@ -178,7 +178,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             const allocationActions = new window.AllocationActions();
             const allocations = allocationActions.getAllocationsForMember(member.id);
 
-            console.log(`📊 Loaded ${allocations.length} allocation(s) for ${member.fullName}`);
+            if (import.meta.env.DEV) console.log(`Loaded ${allocations.length} allocation(s) for ${member.fullName}`);
 
             const projects: ProjectAllocation[] = allocations.map((allocation: any) => ({
                 projectId: allocation.projectId,
@@ -208,12 +208,12 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
     const loadProjectPhases = async (projectId: string, allocationId: string) => {
         // Skip if already loaded
         if (loadedProjectPhases.has(projectId)) {
-            console.log(`✅ Phases already loaded for project ${projectId}`);
+            if (import.meta.env.DEV) console.log(`Phases already loaded for project ${projectId}`);
             return;
         }
 
         try {
-            console.log(`📂 Loading phases from project file for ${projectId}...`);
+            if (import.meta.env.DEV) console.log(`Loading phases from project file for ${projectId}...`);
 
             // Find project file path from store
             const store = window.appStore?.getState();
@@ -221,20 +221,20 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             const project = projectsList.find((p: any) => p.id === projectId || p.code === projectId);
 
             if (!project || !project.filePath) {
-                console.warn(`⚠️ Project file path not found for ${projectId}`);
+                if (import.meta.env.DEV) console.warn(`Project file path not found for ${projectId}`);
                 return;
             }
 
             // Load project file
             if (!window.electronAPI?.loadProjectFile) {
-                console.error('❌ electronAPI not available');
+                console.error('electronAPI not available');
                 return;
             }
 
             const result = await window.electronAPI.loadProjectFile(project.filePath);
 
             if (!result.success || !result.data) {
-                console.error(`❌ Failed to load project file: ${result.error}`);
+                console.error(`Failed to load project file: ${result.error}`);
                 return;
             }
 
@@ -273,7 +273,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                 });
             }
 
-            console.log(`✅ Loaded ${phasesFromProject.length} phase(s) from project file`);
+            if (import.meta.env.DEV) console.log(`Loaded ${phasesFromProject.length} phase(s) from project file`);
 
             // Update the allocation's phaseAllocations
             setProjectAllocations(prev => prev.map(p =>
@@ -286,7 +286,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             setLoadedProjectPhases(prev => new Set([...prev, projectId]));
 
         } catch (error) {
-            console.error(`❌ Error loading project phases:`, error);
+            console.error('Error loading project phases:', error);
         }
     };
 
@@ -330,7 +330,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             if (wasCollapsed) {
                 const project = projectAllocations.find(p => p.projectId === projectId);
                 if (project && (!project.phaseAllocations || project.phaseAllocations.length === 0)) {
-                    console.log(`📦 Project ${projectId} has no phases, loading from file...`);
+                    if (import.meta.env.DEV) console.log(`Project ${projectId} has no phases, loading from file...`);
                     loadProjectPhases(projectId, allocationId);
                 }
             }
@@ -373,7 +373,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
      */
     const handlePhaseMDChange = async (allocationId: string, phaseId: string, month: string, newValue: number) => {
         if (isNaN(newValue) || newValue < 0) {
-            console.warn('Invalid value:', newValue);
+            if (import.meta.env.DEV) console.warn('Invalid value:', newValue);
             return;
         }
 
@@ -382,11 +382,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             const allocation = projectAllocations.find(p => p.allocationId === allocationId);
             if (!allocation) return;
 
-            console.log('💾 Updating phase MD:', {
-                phase: phaseId,
-                month,
-                newValue
-            });
+            if (import.meta.env.DEV) console.log('Updating phase MD:', { phase: phaseId, month, newValue });
 
             // 1. Update phaseMonthlyBreakdown
             const updatedBreakdown = {
@@ -432,12 +428,12 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                 monthlyAllocations: updatedMonthlyAllocations
             });
 
-            console.log('✅ Allocation updated successfully');
+            if (import.meta.env.DEV) console.log('Allocation updated successfully');
 
             // 5. Refresh data locally (no need to refresh parent - it would cause re-render and lose expansion state)
             loadMemberAllocations();
         } catch (error) {
-            console.error('❌ Error updating allocation:', error);
+            console.error('Error updating allocation:', error);
             alert('Failed to update allocation');
         }
     };
@@ -457,16 +453,16 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
             if (allocation?.originalPhaseMonthlyBreakdown?.[phase.phaseId]?.[month] !== undefined) {
                 // Use the original working-days-aware calculated value
                 originalValue = allocation.originalPhaseMonthlyBreakdown[phase.phaseId][month];
-                console.log(`↻ Resetting ${phase.phaseName} ${month} to original calculated value:`, originalValue);
+                if (import.meta.env.DEV) console.log(`Resetting ${phase.phaseName} ${month} to original calculated value:`, originalValue);
             } else {
                 // Fallback: calculate uniform distribution (for backward compatibility with old allocations)
                 originalValue = calculateUniformPhaseMD(phase, month);
-                console.log(`↻ Resetting ${phase.phaseName} ${month} to uniform distribution (fallback):`, originalValue);
+                if (import.meta.env.DEV) console.log(`Resetting ${phase.phaseName} ${month} to uniform distribution (fallback):`, originalValue);
             }
 
             await handlePhaseMDChange(allocationId, phase.phaseId, month, originalValue);
         } catch (error) {
-            console.error('❌ Error resetting phase MD:', error);
+            console.error('Error resetting phase MD:', error);
             alert('Failed to reset value');
         }
     };
@@ -475,7 +471,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
     const handleEditAllocation = (e: React.MouseEvent, project: ProjectAllocation) => {
         e.stopPropagation(); // Prevent row toggle
 
-        console.log('✏️ Opening edit modal for allocation:', project.allocationId);
+        if (import.meta.env.DEV) console.log('Opening edit modal for allocation:', project.allocationId);
 
         // Build full allocation object for modal
         const allocationData = {
@@ -517,13 +513,13 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                 try {
                     const allocationActions = new window.AllocationActions();
 
-                    console.log('Deleting allocation:', project.allocationId);
+                    if (import.meta.env.DEV) console.log('Deleting allocation:', project.allocationId);
 
                     // Delete allocation
                     const result = await allocationActions.deleteAllocation(project.allocationId);
 
                     if (result.success) {
-                        console.log('Allocation deleted successfully:', project.allocationId);
+                        if (import.meta.env.DEV) console.log('Allocation deleted successfully:', project.allocationId);
 
                         // Refresh data immediately to show updated timeline
                         loadMemberAllocations();
@@ -598,7 +594,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
 
         // If phaseMonthlyBreakdown exists (saved data), use it
         if (project.phaseMonthlyBreakdown) {
-            console.log('📊 Using saved phaseMonthlyBreakdown for project:', project.projectName);
+            if (import.meta.env.DEV) console.log('Using saved phaseMonthlyBreakdown for project:', project.projectName);
             project.phaseAllocations.forEach(phase => {
                 breakdown[phase.phaseId] = {
                     phaseName: phase.phaseName,
@@ -609,7 +605,7 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
         }
 
         // Otherwise, calculate uniformly (backward compatibility for old allocations)
-        console.log('📊 Calculating uniform distribution for project:', project.projectName);
+        if (import.meta.env.DEV) console.log('Calculating uniform distribution for project:', project.projectName);
         project.phaseAllocations.forEach(phase => {
             const startDate = new Date(phase.startDate);
             const endDate = new Date(phase.endDate);

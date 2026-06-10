@@ -1,10 +1,10 @@
 /**
- * NavigationActions.ts - Business logic per navigation e state preservation
+ * NavigationActions.ts - Business logic for navigation and state preservation
  *
  * PATTERN: State/Actions/Dispatcher
- * - TUTTA la logica navigation qui
- * - Gestisce preservation dello state durante navigation
- * - Previene reset inutili delle configurazioni utente
+ * - ALL navigation logic here
+ * - Manages state preservation during navigation
+ * - Prevents unnecessary resets of user configurations
  */
 
 import { getAppStore, getApp } from '../utils/electronBridge';
@@ -18,7 +18,7 @@ export class NavigationActions {
   }
 
   /**
-   * Navigate to section preservando stato esistente
+   * Navigate to section preserving existing state
    */
   navigateToSection(section: string): void {
     const store = this.getStore();
@@ -29,17 +29,17 @@ export class NavigationActions {
 
     const state = store.getState();
     
-    // Business logic: preserve existing state se già configurato
+    // Business logic: preserve existing state if already configured
     if (section === 'phases') {
       this.navigateToPhases(state);
     } else if (section === 'features') {
       this.navigateToFeatures(state);
     } else {
-      // Standard navigation per altre sezioni
+      // Standard navigation for other sections
       state.setCurrentSection(section);
     }
-    
-    console.log(`Navigation: Moved to ${section}, state preserved`);
+
+    if (import.meta.env.DEV) console.log(`Navigation: Moved to ${section}, state preserved`);
   }
 
   /**
@@ -56,7 +56,7 @@ export class NavigationActions {
     const state = store.getState();
     state.setComponentInitialized(component, initialized);
     
-    console.log(`Navigation: Component ${component} initialized: ${initialized}`);
+    if (import.meta.env.DEV) console.log(`Navigation: Component ${component} initialized: ${initialized}`);
   }
 
   /**
@@ -71,39 +71,39 @@ export class NavigationActions {
   }
 
   /**
-   * Navigation specifica per phases - preserva configurazioni
+   * Phase-specific navigation - preserves configurations
    */
   private navigateToPhases(state: any): void {
     const currentPhases = state.currentPhases || [];
     const hasExistingPhases = currentPhases.length > 0;
     const hasSelectedSuppliers = Object.values(state.selectedSuppliers || {}).some(s => s !== null);
-    
-    // Business logic: se ho già configurazioni, NON resettare
+
+    // Business logic: if configurations already exist, do NOT reset
     if (hasExistingPhases && hasSelectedSuppliers) {
-      console.log('Phases already configured, preserving existing state');
+      if (import.meta.env.DEV) console.log('Phases already configured, preserving existing state');
       state.setCurrentSection('phases');
       return;
     }
-    
-    // Solo se necessario, inizializza
+
+    // Only initialize if necessary
     if (!hasExistingPhases) {
-      console.log('Initializing phases for first time');
+      if (import.meta.env.DEV) console.log('Initializing phases for first time');
       state.initializePhases();
     }
-    
+
     state.setCurrentSection('phases');
   }
 
   /**
-   * Navigation specifica per features con state preservation
+   * Feature-specific navigation with state preservation
    */
   private navigateToFeatures(state: any): void {
-    // Business logic: preserve features state se esiste
+    // Business logic: preserve features state if it exists
     const hasFilteredFeatures = state.filteredFeatures && state.filteredFeatures.length > 0;
     const hasSort = state.currentSort && state.currentSort.field;
     const hasEditingFeature = state.editingFeature !== null;
-    
-    // Preserve features state prima di navigare
+
+    // Preserve features state before navigating
     if (hasFilteredFeatures || hasSort || hasEditingFeature) {
       const featuresState = {
         filteredFeatures: state.filteredFeatures,
@@ -112,83 +112,81 @@ export class NavigationActions {
         featureModalOpen: state.featureModalOpen,
         featureModalEditingItem: state.featureModalEditingItem
       };
-      
+
       state.preserveSectionState('features', featuresState);
-      console.log('Features state preserved before navigation');
+      if (import.meta.env.DEV) console.log('Features state preserved before navigation');
     }
-    
+
     state.setCurrentSection('features');
   }
   
   /**
-   * Navigation per projects page
+   * Navigate to projects page
    */
   navigateToProjects(): void {
     const store = this.getStore();
     if (!store) return;
-    
+
     const state = store.getState();
-    
-    // Projects è la home page, non serve particolare preservation
-    // Ma verifichiamo se wrapper React esiste già
+
+    // Projects is the home page, no special preservation needed
+    // But verify if the React wrapper already exists
     const isInitialized = state.isComponentInitialized('projects');
-    
+
     if (!isInitialized) {
-      console.log('Projects page will initialize for first time');
+      if (import.meta.env.DEV) console.log('Projects page will initialize for first time');
     } else {
-      console.log('Projects wrapper already initialized, preserving state');
+      if (import.meta.env.DEV) console.log('Projects wrapper already initialized, preserving state');
     }
-    
+
     state.setCurrentSection('projects');
   }
 
   /**
-   * Navigation per calculations page
+   * Navigate to calculations page
    */
   navigateToCalculations(): void {
     const store = this.getStore();
     if (!store) return;
-    
+
     const state = store.getState();
-    
-    // Verifica che ci sia un progetto caricato
+
+    // Verify that a project is loaded
     if (!state.currentProject) {
       console.warn('Cannot navigate to calculations: No project loaded');
-      // Potresti aggiungere una notification qui se necessario
       return;
     }
-    
-    // Preserva stato della sezione corrente se necessario
+
+    // Preserve current section state if necessary
     this.preserveCurrentSectionState();
-    
-    // Verifica se calculations wrapper React è già inizializzato
+
+    // Check if calculations React wrapper is already initialized
     const isInitialized = state.isComponentInitialized('calculations');
-    
+
     if (!isInitialized) {
-      console.log('Calculations page will initialize for first time');
-      // Il wrapper verrà inizializzato dal ReactCalculationsWrapper
+      if (import.meta.env.DEV) console.log('Calculations page will initialize for first time');
     } else {
-      console.log('Calculations wrapper already initialized, preserving state');
+      if (import.meta.env.DEV) console.log('Calculations wrapper already initialized, preserving state');
     }
-    
+
     state.setCurrentSection('calculations');
-    console.log('Navigated to calculations page');
+    if (import.meta.env.DEV) console.log('Navigated to calculations page');
   }
   
   /**
-   * Navigation per history/versioning page
+   * Navigate to history/versioning page
    */
   navigateToHistory(): void {
     const store = this.getStore();
     if (!store) return;
-    
+
     const state = store.getState();
     state.setCurrentSection('history');
-    console.log('Navigated to version history page');
+    if (import.meta.env.DEV) console.log('Navigated to version history page');
   }
 
   /**
-   * Preserva stato prima di navigare (per sezioni che necessitano)
+   * Preserve state before navigating (for sections that need it)
    */
   preserveCurrentSectionState(): void {
     const store = this.getStore();
@@ -197,7 +195,7 @@ export class NavigationActions {
     const state = store.getState();
     const currentSection = state.currentSection;
 
-    // Preserva stato sezioni critiche
+    // Preserve state of critical sections
     if (currentSection === 'phases') {
       this.preservePhasesStateBeforeLeaving();
     } else if (currentSection === 'features') {
@@ -223,7 +221,7 @@ export class NavigationActions {
       };
       
       state.preserveSectionState('phases', phasesState);
-      console.log('✅ NavigationActions: Preserved phases state including supplier selections');
+      if (import.meta.env.DEV) console.log('NavigationActions: Preserved phases state including supplier selections');
     }
   }
 
@@ -241,7 +239,7 @@ export class NavigationActions {
         && typeof state.navigationState.preservedStates.has === 'function' 
         && state.navigationState.preservedStates.has('phases')) {
       state.restoreSectionState('phases');
-      console.log('✅ NavigationActions: Restored phases state including supplier selections');
+      if (import.meta.env.DEV) console.log('NavigationActions: Restored phases state including supplier selections');
       return true;
     }
     
@@ -267,28 +265,28 @@ export class NavigationActions {
       };
       
       state.preserveSectionState('features', featuresState);
-      console.log('✅ NavigationActions: Preserved features state');
+      if (import.meta.env.DEV) console.log('NavigationActions: Preserved features state');
     }
   }
 
   /**
-   * Verifica se sezione necessita preservazione
+   * Check if section needs state preservation
    */
   needsStatePreservation(section: string): boolean {
     return ['phases', 'features'].includes(section);
   }
 
   /**
-   * Reset forzato di una sezione (solo se richiesto esplicitamente)
+   * Force reset a section (only when explicitly requested)
    */
   resetSection(section: string): void {
     const store = this.getStore();
     if (!store) return;
 
     const state = store.getState();
-    
+
     if (section === 'phases') {
-      console.log('Force resetting phases section');
+      if (import.meta.env.DEV) console.log('Force resetting phases section');
       state.initializePhases(); // Force re-init
     }
   }
@@ -306,7 +304,7 @@ export class NavigationActions {
 
 
   /**
-   * Force component re-initialization (solo se necessario)
+   * Force component re-initialization (only when necessary)
    */
   forceComponentReInit(section: string): void {
     const navigationManager = getApp()?.navigationManager;
@@ -314,7 +312,7 @@ export class NavigationActions {
 
     if (section === 'phases') {
       navigationManager.reactPhasesWrapper = null;
-      console.log('Forced phases component re-initialization');
+      if (import.meta.env.DEV) console.log('Forced phases component re-initialization');
     }
   }
 }

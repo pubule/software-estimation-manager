@@ -40,14 +40,14 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
     const store = getAppStore();
     if (store) {
       store.getState().setComponentInitialized('features', true);
-      console.log('FeatureManager: Component initialized and tracked in store');
+      if (import.meta.env.DEV) console.log('FeatureManager: Component initialized and tracked in store');
     }
 
     return () => {
       // Cleanup on unmount
       if (store) {
         store.getState().setComponentInitialized('features', false);
-        console.log('FeatureManager: Component unmounted, tracking cleared');
+        if (import.meta.env.DEV) console.log('FeatureManager: Component unmounted, tracking cleared');
       }
     };
   }, []);

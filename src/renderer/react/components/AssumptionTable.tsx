@@ -1,10 +1,10 @@
 /**
- * AssumptionTable - Tabella React per visualizzazione assumptions
- * 
- * PATTERN OBBLIGATORIO: State/Actions/Dispatcher
- * - SOLO presentazione e UI
- * - ZERO business logic
- * - Props per dati e handlers
+ * AssumptionTable - React table for assumptions display
+ *
+ * REQUIRED PATTERN: State/Actions/Dispatcher
+ * - Presentation and UI only
+ * - Zero business logic
+ * - Props for data and handlers
  */
 
 import React, { useState, useMemo } from 'react';
@@ -28,11 +28,11 @@ const AssumptionTable: React.FC<AssumptionTableProps> = ({
   onDuplicate, 
   onDelete 
 }) => {
-  // LOCAL UI state per sorting (non business data)
+  // LOCAL UI state for sorting (not business data)
   const [sortField, setSortField] = useState<SortField>('id');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
-  // Sorting logic (presentazione, non business)
+  // Sorting logic (presentation, not business)
   const sortedAssumptions = useMemo(() => {
     if (!assumptions?.length) return [];
 
@@ -51,7 +51,7 @@ const AssumptionTable: React.FC<AssumptionTableProps> = ({
     });
   }, [assumptions, sortField, sortDirection]);
 
-  // Handle sorting (solo UI state)
+  // Handle sorting (UI state only)
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');

@@ -1,11 +1,11 @@
 /**
- * VersionHistoryPage - Pagina React per gestione Version History
- * 
- * PATTERN OBBLIGATORIO: State/Actions/Dispatcher
- * - SOLO presentazione e UI
- * - ZERO business logic (tutto in VersionHistoryActions)
- * - useStore per lettura state
- * - useVersionHistoryActions per operazioni
+ * VersionHistoryPage - React page for Version History management
+ *
+ * REQUIRED PATTERN: State/Actions/Dispatcher
+ * - Presentation and UI only
+ * - Zero business logic (all in VersionHistoryActions)
+ * - useStore for reading state
+ * - useVersionHistoryActions for operations
  */
 
 import React, { useEffect } from 'react';
@@ -18,12 +18,8 @@ import CreateVersionModal from './CreateVersionModal';
 import VersionComparisonModal from './VersionComparisonModal';
 import RestoreVersionModal from './RestoreVersionModal';
 
-interface VersionHistoryPageProps {
-  // Props interface se necessarie
-}
-
-const VersionHistoryPage: React.FC<VersionHistoryPageProps> = () => {
-  // SOLO lettura dallo store - Selettori specifici per massima reattività
+const VersionHistoryPage: React.FC = () => {
+  // Read-only from store - Specific selectors for maximum reactivity
   const currentProject = useStore(state => state.currentProject);
   const versionHistoryData = useStore(state => state.versionHistoryData);
   const filters = useStore(state => state.versionHistoryData?.filters || { dateRange: '', reason: '' });
@@ -34,25 +30,25 @@ const VersionHistoryPage: React.FC<VersionHistoryPageProps> = () => {
   });
   const isLoading = useStore(state => state.versionHistoryData?.isLoading || false);
 
-  // Actions per operazioni business (attraverso hook)
+  // Actions for business operations (via hook)
   const actions = useVersionHistoryActions();
   
-  // Computed values per UI (derived state)
+  // Computed values for UI (derived state)
   const filteredVersions = actions.getFilteredVersions();
 
-  // Handler eventi (SOLO chiamate ad Actions)
+  // Event handlers (Actions calls only)
   const handleCreateVersion = () => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.openCreateVersionModal();
   };
 
   const handleCompareVersion = (versionId: string) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.compareVersion(versionId);
   };
 
   const handleRestoreVersion = (versionId: string) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     const version = currentProject?.versions?.find((v: any) => v.id === versionId);
     if (version) {
       actions.openRestoreModal(version);
@@ -60,22 +56,22 @@ const VersionHistoryPage: React.FC<VersionHistoryPageProps> = () => {
   };
 
   const handleDeleteVersion = (versionId: string) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.deleteVersion(versionId);
   };
 
   const handleExportVersion = (versionId: string) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.exportVersion(versionId);
   };
 
   const handleFilterChange = (newFilters: any) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.applyFilters({ ...filters, ...newFilters });
   };
 
   const handleResetFilters = () => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.resetFilters();
   };
 

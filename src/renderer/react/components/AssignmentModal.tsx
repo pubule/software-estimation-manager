@@ -157,7 +157,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
     // Initialize phaseAllocations from allocation in edit mode
     useEffect(() => {
         if (allocation && allocation.phaseAllocations && Array.isArray(allocation.phaseAllocations)) {
-            console.log('📋 Edit mode: Initializing phaseAllocations from allocation object');
+            if (import.meta.env.DEV) console.log('Edit mode: Initializing phaseAllocations from allocation object');
 
             // Convert allocation.phaseAllocations array to phaseAllocations state object
             const initialAllocations: Record<string, PhaseAllocation> = {};
@@ -171,7 +171,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                 if (allocation.phaseMonthlyBreakdown && allocation.phaseMonthlyBreakdown[phase.phaseId]) {
                     const monthlyValues = Object.values(allocation.phaseMonthlyBreakdown[phase.phaseId]) as number[];
                     const sumFromMonthly = monthlyValues.reduce((sum: number, val: number) => sum + (val || 0), 0);
-                    console.log(`  🔄 ${phase.phaseName}: allocatedMDs ${allocatedMDs} → ${sumFromMonthly} (recalculated from monthly breakdown)`);
+                    if (import.meta.env.DEV) console.log(`${phase.phaseName}: allocatedMDs ${allocatedMDs} -> ${sumFromMonthly} (recalculated from monthly breakdown)`);
                     allocatedMDs = sumFromMonthly;
                 }
 
@@ -188,7 +188,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
             });
 
             setPhaseAllocations(initialAllocations);
-            console.log(`✅ Edit mode: Loaded ${Object.keys(initialAllocations).length} phase(s) from allocation`);
+            if (import.meta.env.DEV) console.log(`Edit mode: Loaded ${Object.keys(initialAllocations).length} phase(s) from allocation`);
         }
     }, [allocation]);
 
@@ -244,38 +244,37 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
 
     // Auto-populate phase allocations with MDs from project phases (CREATE mode only)
     useEffect(() => {
-        console.log('🔍 Allocation Effect Debug:', {
+        if (import.meta.env.DEV) console.log('Allocation Effect Debug:', {
             isEditing,
             projectPhases_length: projectPhases?.length,
             projectId: formData.projectId,
             teamMemberId: formData.teamMemberId,
             loadingPhases,
-            first_phase_effort: projectPhases?.[0]?.effort
         });
 
         if (!isEditing && projectPhases.length > 0 && formData.projectId && formData.teamMemberId && !loadingPhases) {
-            console.log('📋 Auto-populating phase allocations from project phases:', projectPhases);
+            if (import.meta.env.DEV) console.log('Auto-populating phase allocations from project phases:', projectPhases);
 
             // Get team member role
             const member = allTeamMembers.find(m => m.id === formData.teamMemberId);
             const role = member?.role; // G1, G2, TA, PM
 
             if (!role) {
-                console.warn('⚠️ Team member role not found for:', formData.teamMemberId);
+                if (import.meta.env.DEV) console.warn('Team member role not found for:', formData.teamMemberId);
                 return;
             }
 
-            console.log('👤 Calculating MDs for role:', role);
+            if (import.meta.env.DEV) console.log('Calculating MDs for role:', role);
 
             const initialAllocations: Record<string, PhaseAllocation> = {};
 
             projectPhases.forEach(phase => {
                 // Calculate MDs for this specific role based on effort percentage
-                console.log(`🔎 Phase ${phase.name}: effort field = `, phase.effort);
+                if (import.meta.env.DEV) console.log(`Phase ${phase.name}: effort field =`, phase.effort);
                 const effortPercentage = phase.effort?.[role] || 0;
                 const mdsForRole = phase.manDays * (effortPercentage / 100);
 
-                console.log(`  📊 ${phase.name}: ${phase.manDays} MD total, ${role} (${effortPercentage}%) = ${mdsForRole} MD allocated`);
+                if (import.meta.env.DEV) console.log(`${phase.name}: ${phase.manDays} MD total, ${role} (${effortPercentage}%) = ${mdsForRole} MD allocated`);
 
                 initialAllocations[phase.id] = {
                     phaseId: phase.id,
@@ -290,7 +289,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
             });
 
             setPhaseAllocations(initialAllocations);
-            console.log('✅ Phase allocations initialized with role-based MDs for', role, ':', initialAllocations);
+            if (import.meta.env.DEV) console.log('Phase allocations initialized with role-based MDs for', role, ':', initialAllocations);
         }
     }, [projectPhases, formData.projectId, formData.teamMemberId, loadingPhases, allTeamMembers]);
 
@@ -305,11 +304,11 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                     // It's a constructor, create new instance
                     const instance = new WorkingDaysCalcRef();
                     setWorkingDaysCalc(instance);
-                    console.log('WorkingDaysCalculator initialized (from constructor)');
+                    if (import.meta.env.DEV) console.log('WorkingDaysCalculator initialized (from constructor)');
                 } else if (typeof WorkingDaysCalcRef === 'object') {
                     // It's already an instance, use it directly
                     setWorkingDaysCalc(WorkingDaysCalcRef);
-                    console.log('WorkingDaysCalculator initialized (using existing instance)');
+                    if (import.meta.env.DEV) console.log('WorkingDaysCalculator initialized (using existing instance)');
                 }
             } catch (error) {
                 console.error('Failed to initialize WorkingDaysCalculator:', error);
@@ -442,7 +441,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
             try {
                 return !workingDaysCalc.isNationalHoliday(date, 'IT');
             } catch (error) {
-                console.warn('⚠️ isNationalHoliday failed:', error);
+                if (import.meta.env.DEV) console.warn('isNationalHoliday failed:', error);
             }
         }
 
@@ -522,7 +521,7 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
 
             if (changedIndex === -1) return prev;
 
-            console.log(`🔄 Recalculating cascade from phase ${changedIndex}: ${changedPhaseId} (changed field: ${changedField})`);
+            if (import.meta.env.DEV) console.log(`Recalculating cascade from phase ${changedIndex}: ${changedPhaseId} (changed field: ${changedField})`);
 
             // Process from changed phase onwards
             for (let i = changedIndex; i < phaseIds.length; i++) {
@@ -536,11 +535,11 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                     // - If endDate was manually changed: keep it, don't recalculate
                     // - If startDate or allocatedMDs changed: recalculate endDate from start + phaseTotalMDs (duration = phase total)
                     if (changedField === 'endDate') {
-                        console.log(`  ✏️ Phase ${allocation.phaseName}: endDate manually set, keeping ${allocation.endDate}`);
+                        if (import.meta.env.DEV) console.log(`Phase ${allocation.phaseName}: endDate manually set, keeping ${allocation.endDate}`);
                         // Don't recalculate, use the manually set endDate
                     } else if (allocation.startDate && allocation.phaseTotalMDs >= 0) {
                         const newEndDate = calculateEndDateFromMDs(allocation.startDate, allocation.phaseTotalMDs);
-                        console.log(`  ✏️ Phase ${allocation.phaseName}: endDate ${allocation.endDate} → ${newEndDate} (using phaseTotalMDs: ${allocation.phaseTotalMDs})`);
+                        if (import.meta.env.DEV) console.log(`Phase ${allocation.phaseName}: endDate ${allocation.endDate} -> ${newEndDate} (using phaseTotalMDs: ${allocation.phaseTotalMDs})`);
                         allocation.endDate = newEndDate;
                     }
                 } else {
@@ -553,20 +552,20 @@ export const AssignmentModal: React.FC<AssignmentModalProps> = ({
                         const nextStart = getNextWorkingDay(prevEndDate);
                         const newStartDate = nextStart.toISOString().split('T')[0];
 
-                        console.log(`  ⏭️ Phase ${allocation.phaseName}: startDate ${allocation.startDate} → ${newStartDate}`);
+                        if (import.meta.env.DEV) console.log(`Phase ${allocation.phaseName}: startDate ${allocation.startDate} -> ${newStartDate}`);
                         allocation.startDate = newStartDate;
 
                         // End = start + phaseTotalMDs (duration based on phase total from project)
                         if (allocation.phaseTotalMDs >= 0) {
                             const newEndDate = calculateEndDateFromMDs(allocation.startDate, allocation.phaseTotalMDs);
-                            console.log(`  ⏭️ Phase ${allocation.phaseName}: endDate ${allocation.endDate} → ${newEndDate} (using phaseTotalMDs: ${allocation.phaseTotalMDs})`);
+                            if (import.meta.env.DEV) console.log(`Phase ${allocation.phaseName}: endDate ${allocation.endDate} -> ${newEndDate} (using phaseTotalMDs: ${allocation.phaseTotalMDs})`);
                             allocation.endDate = newEndDate;
                         }
                     }
                 }
             }
 
-            console.log('✅ Cascade recalculation complete');
+            if (import.meta.env.DEV) console.log('Cascade recalculation complete');
             return updated;
         });
     };

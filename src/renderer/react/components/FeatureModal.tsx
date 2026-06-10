@@ -145,7 +145,7 @@ const FeatureModal: React.FC<FeatureModalProps> = ({ feature, onSave, onClose })
   useEffect(() => {
     if (formData.category && formData.featureType) {
       const defaultMDs = getDefaultManDays(formData.category, formData.featureType);
-      // Solo applica il default se non esiste già un valore per realManDays
+      // Only apply the default if there is no existing value for realManDays
       if (defaultMDs > 0 && (formData.realManDays === undefined || formData.realManDays === 0)) {
         setFormData(prev => ({ 
           ...prev, 

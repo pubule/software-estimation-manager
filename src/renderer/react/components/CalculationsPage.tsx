@@ -1,10 +1,10 @@
 /**
- * CalculationsPage.tsx - Container principale per Calculations Dashboard
+ * CalculationsPage.tsx - Main container for Calculations Dashboard
  *
- * PATTERN: SOLO presentazione!
- * - SOLO lettura dallo store
- * - Actions per operazioni
- * - MAI business logic qui
+ * PATTERN: Presentation only!
+ * - Read-only from store
+ * - Actions for operations
+ * - No business logic here
  */
 
 import React, { useEffect, useMemo } from 'react';
@@ -12,10 +12,6 @@ import { useStore } from '../hooks/useStore';
 import { useCalculationsActions } from '../hooks/useCalculationsActions';
 import { getAppController } from '../electronBridge';
 import RateSpecificationModal from './RateSpecificationModal';
-
-interface CalculationsPageProps {
-  // Props interface (se necessario)
-}
 
 // Working Package Resource interface
 interface WorkingPackageResource {
@@ -26,16 +22,16 @@ interface WorkingPackageResource {
   deliveryModel: string;
 }
 
-const CalculationsPage: React.FC<CalculationsPageProps> = () => {
+const CalculationsPage: React.FC = () => {
   // State for copy feedback
   const [isCopied, setIsCopied] = React.useState(false);
 
-  // SOLO lettura dallo store - Selettori specifici per massima reattivita
+  // Read-only from store - Specific selectors for maximum reactivity
   const currentProject = useStore(state => state.currentProject);
   const currentPhases = useStore(state => state.currentPhases);
   const calculationsData = useStore(state => state.calculationsData);
 
-  // Selettori specifici per ogni proprieta per forzare re-render
+  // Specific selectors per property to force re-render
   const calculationsVersion = useStore(state => state.calculationsData?.version || 0);
 
   // MODE-AWARE SELECTORS: Read from correct data section based on mode
@@ -50,7 +46,6 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     } else {
       costs = state.calculationsData?.featureBased?.vendorCosts || [];
     }
-    console.log('🔍 VENDOR_COSTS SELECTOR - Mode:', isWP ? 'WP' : 'FB', 'Count:', costs.length);
     return costs;
   });
 
@@ -64,29 +59,21 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   });
   // Force selectors to refresh using calculationsVersion
   const categoryFilter = useStore(state => {
-    const version = state.calculationsData?.version || 0;
     const category = state.calculationsData?.filters?.category || 'all';
-    console.log('🔍 CATEGORY_SELECTOR - Version:', version, 'Category:', category);
     return category;
   });
   const vendorFilter = useStore(state => {
-    const version = state.calculationsData?.version || 0;
     const vendor = state.calculationsData?.filters?.vendor || 'all';
-    console.log('🔍 VENDOR_SELECTOR - Version:', version, 'Vendor:', vendor);
     return vendor;
   });
   const roleFilter = useStore(state => {
-    const version = state.calculationsData?.version || 0;
     const role = state.calculationsData?.filters?.role || 'all';
-    console.log('🔍 ROLE_SELECTOR - Version:', version, 'Role:', role);
     return role;
   });
 
   // Combine for compatibility
   const filters = useMemo(() => {
     const result = { vendor: vendorFilter, role: roleFilter, category: categoryFilter };
-    console.log('🔍 FILTERS COMBINED - Recalculating with:', { vendorFilter, roleFilter, categoryFilter });
-    console.log('🔍 FILTERS COMBINED - Result filters:', result);
     return result;
   }, [vendorFilter, roleFilter, categoryFilter]);
   // MODE-AWARE: Separate overrides for FB and WP modes
@@ -149,7 +136,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     return expandedSuppliers.filter((s: any) => s.role === 'G1' || s.role === 'PM');
   }, [expandedSuppliers]);
 
-  // Actions per operazioni business (attraverso hook)
+  // Actions for business operations (via hook)
   const {
     calculateProjectCosts,
     updateFinalMDs,
@@ -254,19 +241,19 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
     );
   };
 
-  // Handler eventi (SOLO chiamate ad Actions)
+  // Event handlers (Actions calls only)
   const handleFinalMDsChange = (vendorId: string, role: string, value: number) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     updateFinalMDs(vendorId, role, value);
   };
 
   const handleFilterChange = (vendorFilter: string, roleFilter: string) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     applyFilters(vendorFilter, roleFilter);
   };
 
   const handleCopyTemplate = async () => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     try {
       await copyToClipboard();
       setIsCopied(true);
@@ -281,31 +268,27 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   };
 
   const handleCopyToClipboard = async () => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     try {
       await copyToClipboard();
-      // Potresti aggiungere una notification qui se necessario
     } catch (error) {
       console.error('Copy failed:', error);
     }
   };
 
   const handleResetFinalMDs = () => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     resetAllFinalMDs();
   };
 
   // Helper function to get input value from finalMDsOverrides or fallback to finalMDs (calculated value)
   const getInputValue = (cost: any) => {
-    const key = `${cost.vendorId}_${cost.role}`; // Senza department
+    const key = `${cost.vendorId}_${cost.role}`; // Without department
     return finalMDsOverrides[key] ?? cost.finalMDs;
   };
 
-  // Computed values per UI (derived state) - LOCAL reactive filtering
+  // Computed values for UI (derived state) - LOCAL reactive filtering
   const filteredCosts = useMemo(() => {
-    console.log('🔍 FILTERED COSTS - Recalculating with filters:', filters);
-    console.log('🔍 FILTERED COSTS - VendorCosts count:', vendorCosts.length);
-
     const result = vendorCosts.filter(cost => {
       const vendorMatch = filters.vendor === 'all' || cost.vendorId === filters.vendor;
       const roleMatch = filters.role === 'all' || cost.role === filters.role;
@@ -318,22 +301,9 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
         categoryMatch = cost.role === 'G1' || cost.role === 'PM';
       }
 
-      const matches = vendorMatch && roleMatch && categoryMatch;
-      if (!matches) {
-        console.log('🔍 FILTERED COSTS - Filtering out:', {
-          vendor: cost.vendorName,
-          role: cost.role,
-          vendorMatch,
-          roleMatch,
-          categoryMatch,
-          filterCategory: filters.category
-        });
-      }
-
-      return matches;
+      return vendorMatch && roleMatch && categoryMatch;
     });
 
-    console.log('🔍 FILTERED COSTS - Result count:', result.length, 'from', vendorCosts.length);
     return result;
   }, [vendorCosts, filters]);
 
@@ -376,7 +346,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
   // Ref to track previous project for detecting project changes
   const previousProjectIdRef = React.useRef<string | undefined>();
 
-  // Calcola al mount e quando cambia progetto o phases (calcoli ogni volta come richiesto)
+  // Calculate on mount and when project or phases change (recalculate every time as required)
   useEffect(() => {
     if (currentProject) {
       // Check if project changed (by ID)
@@ -385,7 +355,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
       // Only clear overrides when switching projects (not on initial load)
       // previousProjectIdRef.current === undefined means this is the initial load
       if (projectIdChanged && previousProjectIdRef.current !== undefined) {
-        console.log('📦 Project changed - clearing overrides and recalculating');
+        if (import.meta.env.DEV) console.log('Project changed - clearing overrides and recalculating');
         // Reset all overrides on project change (but not on initial load)
         clearFinalMDsOverrides();
       }
@@ -396,7 +366,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
 
       // ALWAYS recalculate when project or phases change
       // This ensures Development phase changes are reflected in calculations
-      console.log('🔄 Recalculating project costs (project or phases changed)');
+      if (import.meta.env.DEV) console.log('Recalculating project costs (project or phases changed)');
       calculateProjectCosts();
     }
   }, [currentProject, currentPhases, calculateProjectCosts, clearFinalMDsOverrides]);
@@ -874,7 +844,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
                 ))}
               </tbody>
 
-              {/* Footer con totali */}
+              {/* Footer with totals */}
               <tfoot>
                 <tr className="totals-row">
                   <td colSpan={6}><strong>TOTALS</strong></td>

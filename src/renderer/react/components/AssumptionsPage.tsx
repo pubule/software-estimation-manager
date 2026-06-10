@@ -1,11 +1,11 @@
 /**
- * AssumptionsPage - Pagina React per gestione assumptions
- * 
- * PATTERN OBBLIGATORIO: State/Actions/Dispatcher
- * - SOLO presentazione e UI
- * - ZERO business logic (tutto in AssumptionsActions)
- * - useStore per lettura state
- * - useAssumptionsActions per operazioni
+ * AssumptionsPage - React page for assumptions management
+ *
+ * REQUIRED PATTERN: State/Actions/Dispatcher
+ * - Presentation and UI only
+ * - Zero business logic (all in AssumptionsActions)
+ * - useStore for reading state
+ * - useAssumptionsActions for operations
  */
 
 import React, { useEffect, useMemo } from 'react';
@@ -15,22 +15,18 @@ import AssumptionModal from './AssumptionModal';
 import AssumptionTable from './AssumptionTable';
 import Button from './Button';
 
-interface AssumptionsPageProps {
-  // Props interface se necessarie
-}
-
-const AssumptionsPage: React.FC<AssumptionsPageProps> = () => {
-  // SOLO lettura dallo store - Selettori specifici per massima reattività
+const AssumptionsPage: React.FC = () => {
+  // Read-only from store - Specific selectors for maximum reactivity
   const currentProject = useStore(state => state.currentProject);
   const assumptions = useStore(state => state.currentProject?.assumptions || []);
   const assumptionsData = useStore(state => state.assumptionsData);
   const filters = useStore(state => state.assumptionsData?.filters || { search: '', type: '', impact: '' });
   const modalState = useStore(state => state.assumptionsData?.modalState || { isOpen: false, mode: 'add', selectedAssumption: null });
 
-  // Actions per operazioni business (attraverso hook)
+  // Actions for business operations (via hook)
   const actions = useAssumptionsActions();
-  
-  // Computed values per UI (derived state)
+
+  // Computed values for UI (derived state)
   const filteredAssumptions = useMemo(() => {
     return actions.getFilteredAssumptions();
   }, [assumptions, filters, actions]);
@@ -48,44 +44,44 @@ const AssumptionsPage: React.FC<AssumptionsPageProps> = () => {
     return ['High', 'Medium', 'Low'];
   }, []);
 
-  // Handler eventi (SOLO chiamate ad Actions)
+  // Event handlers (Actions calls only)
   const handleAddClick = () => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.openAddAssumptionModal();
   };
 
   const handleEditClick = (assumption: any) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.openEditAssumptionModal(assumption);
   };
 
   const handleDuplicateClick = (assumptionId: string) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.duplicateAssumption(assumptionId);
   };
 
   const handleDeleteClick = (assumptionId: string) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.deleteAssumption(assumptionId);
   };
 
   const handleSearchChange = (search: string) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.applyFilters({ ...filters, search });
   };
 
   const handleTypeFilterChange = (type: string) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.applyFilters({ ...filters, type });
   };
 
   const handleImpactFilterChange = (impact: string) => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.applyFilters({ ...filters, impact });
   };
 
   const handleResetFilters = () => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.resetFilters();
   };
 

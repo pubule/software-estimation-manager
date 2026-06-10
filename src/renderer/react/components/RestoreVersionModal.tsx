@@ -1,10 +1,10 @@
 /**
- * RestoreVersionModal - Modal React per ripristino versione
- * 
- * PATTERN OBBLIGATORIO: State/Actions/Dispatcher
- * - SOLO presentazione e UI
- * - ZERO business logic
- * - Props per dati e handlers da VersionHistoryActions
+ * RestoreVersionModal - React modal for version restoration
+ *
+ * REQUIRED PATTERN: State/Actions/Dispatcher
+ * - Presentation and UI only
+ * - Zero business logic
+ * - Props for data and handlers from VersionHistoryActions
  */
 
 import React, { useMemo, useState } from 'react';
@@ -14,24 +14,24 @@ import { ComparisonData } from '../actions/VersionHistoryActions';
 import Button from './Button';
 
 const RestoreVersionModal: React.FC = () => {
-  // SOLO lettura dallo store - Selettori specifici per massima reattività
+  // Read-only from store - Specific selectors for maximum reactivity
   const modalState = useStore(state => state.versionHistoryData?.modalStates?.restoreModal || { isOpen: false, selectedVersion: null });
   const currentProject = useStore(state => state.currentProject);
   const isLoading = useStore(state => state.versionHistoryData?.isLoading || false);
   
-  // Actions per operazioni business (attraverso hook)
+  // Actions for business operations (via hook)
   const actions = useVersionHistoryActions();
 
   // LOCAL UI state
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [error, setError] = useState('');
 
-  // Computed comparison data per preview (derived state)
+  // Computed comparison data for preview (derived state)
   const comparisonData: ComparisonData | null = useMemo(() => {
     if (!modalState.selectedVersion || !modalState.isOpen) return null;
     
     try {
-      // MAI business logic qui! Solo chiamata ad Actions per calcolo
+      // No business logic here! Actions call only per calcolo
       return actions.generateComparisonData(modalState.selectedVersion);
     } catch (error) {
       console.error('Error generating comparison data for restore:', error);
@@ -39,13 +39,13 @@ const RestoreVersionModal: React.FC = () => {
     }
   }, [modalState.selectedVersion, modalState.isOpen, actions]);
 
-  // Handle restore confirmation (SOLO chiamata ad Actions)
+  // Handle restore confirmation (Actions call only)
   const handleRestore = async () => {
     if (!modalState.selectedVersion || !isConfirmed) return;
 
     try {
       setError('');
-      // MAI business logic qui! Solo chiamata ad Actions
+      // No business logic here! Actions call only
       await actions.restoreVersion(modalState.selectedVersion.id);
     } catch (error) {
       console.error('Error restoring version:', error);
@@ -53,10 +53,10 @@ const RestoreVersionModal: React.FC = () => {
     }
   };
 
-  // Handle modal close (SOLO chiamata ad Actions)
+  // Handle modal close (Actions call only)
   const handleClose = () => {
     if (isLoading) return; // Prevent closing during operation
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.closeRestoreModal();
     // Reset local state
     setIsConfirmed(false);

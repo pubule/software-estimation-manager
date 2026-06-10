@@ -1,10 +1,10 @@
 /**
- * AssumptionModal - Modal React per aggiunta/modifica assumptions
- * 
- * PATTERN OBBLIGATORIO: State/Actions/Dispatcher
- * - SOLO presentazione e UI
- * - ZERO business logic
- * - Props per dati e handlers da AssumptionsActions
+ * AssumptionModal - React modal for adding/editing assumptions
+ *
+ * REQUIRED PATTERN: State/Actions/Dispatcher
+ * - Presentation and UI only
+ * - Zero business logic
+ * - Props for data and handlers from AssumptionsActions
  */
 
 import React, { useState, useEffect } from 'react';
@@ -14,10 +14,10 @@ import { AssumptionFormData } from '../actions/AssumptionsActions';
 import Button from './Button';
 
 const AssumptionModal: React.FC = () => {
-  // SOLO lettura dallo store - Selettori specifici per massima reattività
+  // Read-only from store - Specific selectors for maximum reactivity
   const modalState = useStore(state => state.assumptionsData?.modalState || { isOpen: false, mode: 'add', selectedAssumption: null });
-  
-  // Actions per operazioni business (attraverso hook)
+
+  // Actions for business operations (via hook)
   const actions = useAssumptionsActions();
   
   // LOCAL form state (non business data)
@@ -66,7 +66,7 @@ const AssumptionModal: React.FC = () => {
     }
   };
 
-  // Handle form submission (SOLO chiamata ad Actions)
+  // Handle form submission (Actions call only)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -77,14 +77,14 @@ const AssumptionModal: React.FC = () => {
 
     try {
       if (modalState.mode === 'add') {
-        // MAI business logic qui! Solo chiamata ad Actions
+        // No business logic here! Actions call only
         actions.createAssumption(formData);
       } else {
-        // MAI business logic qui! Solo chiamata ad Actions
+        // No business logic here! Actions call only
         actions.updateAssumption(formData.id, formData);
       }
     } catch (error) {
-      // Gestione errori di validazione
+      // Handle validation errors
       if (error instanceof Error && error.message.includes('Validation failed:')) {
         const validationErrors = error.message.replace('Validation failed: ', '').split(', ');
         const errorMap: Record<string, string> = {};
@@ -104,9 +104,9 @@ const AssumptionModal: React.FC = () => {
     }
   };
 
-  // Handle modal close (SOLO chiamata ad Actions)
+  // Handle modal close (Actions call only)
   const handleClose = () => {
-    // MAI business logic qui! Solo chiamata ad Actions
+    // No business logic here! Actions call only
     actions.closeAssumptionModal();
   };
 

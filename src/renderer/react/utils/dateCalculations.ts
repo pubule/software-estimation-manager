@@ -28,7 +28,7 @@ export function isWorkingDay(
     try {
       return !workingDaysCalculator.isNationalHoliday(date, 'IT');
     } catch (error) {
-      console.warn('⚠️ isNationalHoliday check failed:', error);
+      if (import.meta.env.DEV) console.warn('isNationalHoliday check failed:', error);
     }
   }
 
@@ -310,7 +310,7 @@ export function cascadeRecalculatePhaseDates(
     return updated;
   }
 
-  console.log(`🔄 Cascade recalculation from phase ${changedPhaseIndex}: ${updated[changedPhaseIndex].phaseName}`);
+  if (import.meta.env.DEV) console.log(`Cascade recalculation from phase ${changedPhaseIndex}: ${updated[changedPhaseIndex].phaseName}`);
 
   // Process from changed phase onwards
   for (let i = changedPhaseIndex; i < updated.length; i++) {
@@ -321,12 +321,10 @@ export function cascadeRecalculatePhaseDates(
       // - If endDate was manually changed: keep it
       // - If startDate or allocatedMDs changed: recalculate endDate
       if (changedField === 'endDate') {
-        console.log(`  ✏️ Phase ${phase.phaseName}: endDate manually set, keeping ${phase.endDate}`);
+        if (import.meta.env.DEV) console.log(`Phase ${phase.phaseName}: endDate manually set, keeping ${phase.endDate}`);
       } else if (phase.startDate && phase.phaseTotalMDs >= 0) {
         const newEndDate = calculateEndDateFromMDs(phase.startDate, phase.phaseTotalMDs, workingDaysCalculator);
-        console.log(
-          `  ✏️ Phase ${phase.phaseName}: endDate ${phase.endDate} → ${newEndDate} (using phaseTotalMDs: ${phase.phaseTotalMDs})`
-        );
+        if (import.meta.env.DEV) console.log(`Phase ${phase.phaseName}: endDate ${phase.endDate} -> ${newEndDate} (using phaseTotalMDs: ${phase.phaseTotalMDs})`);
         phase.endDate = newEndDate;
       }
     } else {
@@ -339,15 +337,13 @@ export function cascadeRecalculatePhaseDates(
           const nextStart = getNextWorkingDay(prevEndDate, workingDaysCalculator);
           const newStartDate = formatDate(nextStart);
 
-          console.log(`  ⏭️ Phase ${phase.phaseName}: startDate ${phase.startDate} → ${newStartDate}`);
+          if (import.meta.env.DEV) console.log(`Phase ${phase.phaseName}: startDate ${phase.startDate} -> ${newStartDate}`);
           phase.startDate = newStartDate;
 
           // End = start + phaseTotalMDs
           if (phase.phaseTotalMDs >= 0) {
             const newEndDate = calculateEndDateFromMDs(phase.startDate, phase.phaseTotalMDs, workingDaysCalculator);
-            console.log(
-              `  ⏭️ Phase ${phase.phaseName}: endDate ${phase.endDate} → ${newEndDate} (using phaseTotalMDs: ${phase.phaseTotalMDs})`
-            );
+            if (import.meta.env.DEV) console.log(`Phase ${phase.phaseName}: endDate ${phase.endDate} -> ${newEndDate} (using phaseTotalMDs: ${phase.phaseTotalMDs})`);
             phase.endDate = newEndDate;
           }
         }
@@ -355,6 +351,6 @@ export function cascadeRecalculatePhaseDates(
     }
   }
 
-  console.log('✅ Cascade recalculation complete');
+  if (import.meta.env.DEV) console.log('Cascade recalculation complete');
   return updated;
 }
