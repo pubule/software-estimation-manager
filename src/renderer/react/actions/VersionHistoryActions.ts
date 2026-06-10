@@ -1,11 +1,13 @@
 /**
  * VersionHistoryActions - TUTTA la business logic per Version History
- * 
+ *
  * PATTERN OBBLIGATORIO: State/Actions/Dispatcher
  * - ZERO business logic nei componenti
  * - TUTTO qui: validazione, calcoli, operazioni, confronti
  * - Store aggiornato SOLO attraverso questi metodi
  */
+
+import { getAppStore } from '../utils/electronBridge';
 
 export interface Version {
   id: string;
@@ -224,7 +226,7 @@ export class VersionHistoryActions {
    * Pattern obbligatorio: accesso store attraverso getStore()
    */
   private getStore() {
-    return (window as any).appStore;
+    return getAppStore();
   }
 
   /**
@@ -1233,7 +1235,7 @@ export class VersionHistoryActions {
     } catch (error) {
       console.error('❌ Failed to capture latest calculationData from store:', error);
       // Fallback: prova con il metodo precedente (leggi dalla sezione corretta)
-      const appStore = (window as any).appStore?.getState();
+      const appStore = getAppStore()?.getState();
       const calculationsData = appStore?.calculationsData;
       const isWPFallback = appStore?.currentProject?.workingPackageData?.enabled;
       const fallbackVendorCosts = isWPFallback

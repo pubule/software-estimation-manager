@@ -3,6 +3,8 @@
  * Following the application's state manager + actions + dispatcher pattern
  */
 
+import { getApp, getAppStore } from '../utils/electronBridge';
+
 export interface PhaseData {
   id: string;
   name: string;
@@ -48,7 +50,7 @@ export interface PhasesTotals {
 
 export class PhasesActions {
   private getApp() {
-    return (window as any).app;
+    return getApp();
   }
 
   private getConfigManager() {
@@ -57,7 +59,7 @@ export class PhasesActions {
   }
 
   private getStore() {
-    return (window as any).appStore;
+    return getAppStore();
   }
 
   async updateSelectedPhaseResource(resourceType: string, resource: Partial<PhaseResource> | null): Promise<void> {
