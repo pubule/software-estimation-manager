@@ -39,7 +39,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveFile: (defaultPath, data) => ipcRenderer.invoke('save-file', defaultPath, data),
     openFile: () => ipcRenderer.invoke('open-file'),
 
-    // Excel export file operations
+    // Excel import/export file operations
+    importExcelProject: () => ipcRenderer.invoke('import-excel-project'),
     saveExcelFile: (filename, data) => ipcRenderer.invoke('save-excel-file', { filename, data }),
     exportTicketReport: (exportData) => ipcRenderer.invoke('export-ticket-report', exportData),
     exportResourceOverview: (exportData) => ipcRenderer.invoke('export-resource-overview', exportData),

@@ -77,6 +77,9 @@ function setupWindowMock() {
     close: async () => {},
     setWindowTitle: async () => {},
 
+    // Excel import
+    importExcelProject: async () => ({ success: false, canceled: true }),
+
     // Additional methods referenced in source but not in preload.js
     clearAllProjectData: async () => ({ success: true }),
     saveFileBuffer: async () => ({ success: true }),

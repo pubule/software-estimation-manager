@@ -59,7 +59,21 @@ export interface ElectronAPI {
   saveFile: (defaultPath: string, data: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
   openFile: () => Promise<string | null>;
 
-  // Excel export
+  // Excel import/export
+  importExcelProject: () => Promise<{
+    success: boolean;
+    fileName?: string;
+    filePath?: string;
+    data?: {
+      features: Array<{ brId: string; description: string; mds: number; vendor: string; comment: string; rowIndex: number }>;
+      phases: Array<{ phaseName: string; elapsed: number; g2MDs: number; taMDs: number }>;
+      estimationExport: Array<{ vendorName: string; lta: string; role: string; totalMDs: number; totalCost: number; rate: number }>;
+      vendorNames: string[];
+    };
+    warnings?: string[];
+    canceled?: boolean;
+    error?: string;
+  }>;
   saveExcelFile: (filename: string, data: unknown) => Promise<{ success: boolean; error?: string }>;
   exportTicketReport: (exportData: unknown) => Promise<{ success: boolean; error?: string }>;
   exportResourceOverview: (exportData: unknown) => Promise<{ success: boolean; error?: string }>;

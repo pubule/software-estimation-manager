@@ -422,6 +422,131 @@ ipcMain.handle('open-file', async (event) => {
     }
 });
 
+// Import project from Excel workbook
+ipcMain.handle('import-excel-project', async () => {
+    try {
+        const result = await dialog.showOpenDialog(mainWindow, {
+            title: 'Import Project from Excel',
+            filters: [
+                { name: 'Excel Files', extensions: ['xlsx', 'xls'] }
+            ],
+            properties: ['openFile']
+        });
+
+        if (result.canceled) {
+            return { success: false, canceled: true };
+        }
+
+        const filePath = result.filePaths[0];
+        const fileName = require('path').basename(filePath);
+
+        const ExcelJSLib = global.ExcelJS || require('exceljs');
+        const workbook = new ExcelJSLib.Workbook();
+        await workbook.xlsx.readFile(filePath);
+
+        const warnings = [];
+
+        const getCellNumber = (cell) => {
+            const v = cell.value;
+            if (typeof v === 'object' && v !== null && 'result' in v) return Number(v.result) || 0;
+            return Number(v) || 0;
+        };
+
+        // Parse "Attività" sheet → features
+        const features = [];
+        const attivitaSheet = workbook.getWorksheet('Attività');
+        if (!attivitaSheet) {
+            return { success: false, error: 'Sheet "Attività" not found in workbook' };
+        }
+
+        const vendorNamesSet = new Set();
+        attivitaSheet.eachRow({ includeEmpty: false }, (row, rowIndex) => {
+            if (rowIndex === 1) return; // skip header
+            const brId = row.getCell(1).value;
+            const description = row.getCell(2).value;
+            const mdsRaw = row.getCell(5).value;
+            // ExcelJS formula cells return { formula, result } objects
+            const mds = typeof mdsRaw === 'object' && mdsRaw !== null && 'result' in mdsRaw
+                ? mdsRaw.result : mdsRaw;
+
+            // Only process rows with a numeric BR ID
+            if (typeof brId !== 'number' || !description) return;
+
+            const vendor = String(row.getCell(6).value || '').trim();
+            const comment = String(row.getCell(9).value || '').trim();
+
+            if (vendor) vendorNamesSet.add(vendor);
+
+            features.push({
+                brId: String(brId),
+                description: String(description).trim(),
+                mds: typeof mds === 'number' ? mds : 0,
+                vendor,
+                comment: comment === 'null' ? '' : comment,
+                rowIndex
+            });
+        });
+
+        // Parse "Summary" sheet → phases
+        const phases = [];
+        const summarySheet = workbook.getWorksheet('Summary');
+        if (summarySheet) {
+            summarySheet.eachRow({ includeEmpty: false }, (row, rowIndex) => {
+                if (rowIndex < 5) return; // skip title and header rows
+                const phaseName = String(row.getCell(2).value || '').trim();
+                if (!phaseName || phaseName === 'TOTALE') return;
+
+                const g2MDs = getCellNumber(row.getCell(5));
+                const taMDs = getCellNumber(row.getCell(6));
+                const elapsed = getCellNumber(row.getCell(3));
+
+                phases.push({ phaseName, elapsed, g2MDs, taMDs });
+            });
+        } else {
+            warnings.push('Sheet "Summary" not found — phases will not be imported');
+        }
+
+        // Parse "Estimation export" sheet → vendor costs for Working Package
+        const estimationExport = [];
+        const estSheet = workbook.getWorksheet('Estimation export');
+        if (estSheet) {
+            estSheet.eachRow({ includeEmpty: false }, (row, rowIndex) => {
+                if (rowIndex < 3) return; // skip header rows
+                const vendorName = String(row.getCell(2).value || '').trim();
+                if (!vendorName || vendorName === '0') return;
+
+                const lta = String(row.getCell(3).value || '').trim();
+                const role = String(row.getCell(4).value || '').trim();
+                const totalMDs = getCellNumber(row.getCell(5));
+                const totalCost = getCellNumber(row.getCell(6));
+                const rate = getCellNumber(row.getCell(7));
+
+                if (totalMDs > 0 || totalCost > 0) {
+                    estimationExport.push({ vendorName, lta, role, totalMDs, totalCost, rate });
+                }
+            });
+        } else {
+            warnings.push('Sheet "Estimation export" not found — Working Package import unavailable');
+        }
+
+        return {
+            success: true,
+            fileName,
+            filePath,
+            data: {
+                features,
+                phases,
+                estimationExport,
+                vendorNames: Array.from(vendorNamesSet)
+            },
+            warnings
+        };
+    } catch (error) {
+        console.error('[IPC] import-excel-project error:', error);
+        return { success: false, error: `Failed to read Excel file: ${error.message}` };
+    }
+});
+
 // Window controls
 ipcMain.handle('window-minimize', () => {
     if (mainWindow) mainWindow.minimize();

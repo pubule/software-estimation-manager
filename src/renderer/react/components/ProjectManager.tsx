@@ -7,6 +7,7 @@ import Button from './Button';
 import ApprovalStatusIcon from './ApprovalStatusIcon';
 import NewProjectModal from './NewProjectModal';
 import LoadProjectModal from './LoadProjectModal';
+import ImportProjectModal from './ImportProjectModal';
 
 type SortField = 'name' | 'modified' | 'size' | 'version';
 type SortDirection = 'asc' | 'desc';
@@ -35,6 +36,7 @@ const formatFileSize = (bytes: number): string => {
 const ProjectManager: React.FC = () => {
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [showLoadProjectModal, setShowLoadProjectModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -211,6 +213,8 @@ const ProjectManager: React.FC = () => {
         <div className="page-actions">
           <Button variant="secondary" onClick={() => setShowLoadProjectModal(true)}
             icon={<i className="fas fa-folder-open" />}>Load Project</Button>
+          <Button variant="secondary" onClick={() => setShowImportModal(true)}
+            icon={<i className="fas fa-file-excel" />}>Import from Excel</Button>
           <Button variant="primary" onClick={handleNewProject}
             icon={<i className="fas fa-plus" />}>New Project</Button>
         </div>
@@ -401,6 +405,14 @@ const ProjectManager: React.FC = () => {
         onClose={() => setShowLoadProjectModal(false)}
         onLoadFromFile={handleLoadFromFile}
         onLoadRecentProject={handleLoadRecentProject}
+      />
+      <ImportProjectModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={() => {
+          setShowImportModal(false);
+          loadSavedProjects();
+        }}
       />
     </>
   );

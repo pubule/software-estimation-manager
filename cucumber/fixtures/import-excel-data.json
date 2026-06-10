@@ -1,0 +1,23 @@
+{
+  "features": [
+    { "brId": "1", "description": "User Login", "mds": 10, "vendor": "EY", "comment": "Auth module", "rowIndex": 2 },
+    { "brId": "2", "description": "Dashboard", "mds": 20, "vendor": "EY", "comment": "", "rowIndex": 3 },
+    { "brId": "3", "description": "Reports", "mds": 15, "vendor": "TA IT", "comment": "Monthly reports", "rowIndex": 4 }
+  ],
+  "phases": [
+    { "phaseName": "AF", "elapsed": 10, "g2MDs": 5, "taMDs": 3 },
+    { "phaseName": "AT", "elapsed": 8, "g2MDs": 4, "taMDs": 2 },
+    { "phaseName": "DEV", "elapsed": 30, "g2MDs": 20, "taMDs": 10 },
+    { "phaseName": "SIT", "elapsed": 10, "g2MDs": 6, "taMDs": 4 },
+    { "phaseName": "UAT", "elapsed": 8, "g2MDs": 5, "taMDs": 3 },
+    { "phaseName": "CONSOLIDAMENTO", "elapsed": 5, "g2MDs": 3, "taMDs": 2 },
+    { "phaseName": "VA/PT", "elapsed": 3, "g2MDs": 2, "taMDs": 1 },
+    { "phaseName": "Supporto post go-live", "elapsed": 10, "g2MDs": 4, "taMDs": 2 }
+  ],
+  "estimationExport": [
+    { "vendorName": "EY", "lta": "LTA-001", "role": "Developer", "totalMDs": 30, "totalCost": 15000, "rate": 500 },
+    { "vendorName": "TA IT", "lta": "LTA-002", "role": "Architect", "totalMDs": 10, "totalCost": 6000, "rate": 600 },
+    { "vendorName": "TA RO", "lta": "LTA-003", "role": "Developer", "totalMDs": 5, "totalCost": 2000, "rate": 400 }
+  ],
+  "vendorNames": ["EY", "TA IT", "TA RO"]
+}
