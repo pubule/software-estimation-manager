@@ -91,10 +91,11 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ features, onEdit, onDelete,
               <React.Fragment key={feature.id}>
                 <tr className={`feature-row ${isExpanded ? 'expanded' : ''}`}>
                   <td className="expand-column">
-                    <button 
+                    <button
                       className="expand-btn"
                       onClick={() => toggleRowExpansion(feature.id)}
                       aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
+                      aria-expanded={isExpanded}
                     >
                       <i className="fas fa-chevron-right"></i>
                     </button>

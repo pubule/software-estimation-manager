@@ -415,12 +415,14 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
             <button
               className={`mode-btn ${!workingPackageEnabled ? 'active' : ''}`}
               onClick={() => setWorkingPackageEnabled(false)}
+              aria-pressed={!workingPackageEnabled}
             >
               Feature-based
             </button>
             <button
               className={`mode-btn ${workingPackageEnabled ? 'active' : ''}`}
               onClick={() => setWorkingPackageEnabled(true)}
+              aria-pressed={workingPackageEnabled}
             >
               Working Package
             </button>
@@ -716,6 +718,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
           <button
             className={`filter-btn filter-btn-all ${categoryFilter === 'all' ? 'active' : ''}`}
             onClick={() => applyCategoryFilter('all')}
+            aria-pressed={categoryFilter === 'all'}
           >
             ALL
             <span className="filter-count">({vendorCounts.all})</span>
@@ -723,6 +726,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
           <button
             className={`filter-btn filter-btn-gto ${categoryFilter === 'gto' ? 'active' : ''}`}
             onClick={() => applyCategoryFilter('gto')}
+            aria-pressed={categoryFilter === 'gto'}
           >
             GTO
             <span className="filter-count">({vendorCounts.gto})</span>
@@ -730,6 +734,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
           <button
             className={`filter-btn filter-btn-gds ${categoryFilter === 'gds' ? 'active' : ''}`}
             onClick={() => applyCategoryFilter('gds')}
+            aria-pressed={categoryFilter === 'gds'}
           >
             GDS
             <span className="filter-count">({vendorCounts.gds})</span>

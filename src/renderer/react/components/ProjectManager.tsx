@@ -302,17 +302,21 @@ const ProjectManager: React.FC = () => {
           <table className="pm-table">
             <thead>
               <tr>
-                <th className="pm-th-sortable" onClick={() => { setSortField('name'); setSortDirection(d => sortField === 'name' ? (d === 'asc' ? 'desc' : 'asc') : 'asc'); }}>
+                <th className="pm-th-sortable" onClick={() => { setSortField('name'); setSortDirection(d => sortField === 'name' ? (d === 'asc' ? 'desc' : 'asc') : 'asc'); }}
+                  aria-sort={sortField === 'name' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   Project Name{sortIndicator('name')}
                 </th>
                 <th>Code</th>
-                <th className="pm-th-sortable" onClick={() => { setSortField('version'); setSortDirection(d => sortField === 'version' ? (d === 'asc' ? 'desc' : 'asc') : 'asc'); }}>
+                <th className="pm-th-sortable" onClick={() => { setSortField('version'); setSortDirection(d => sortField === 'version' ? (d === 'asc' ? 'desc' : 'asc') : 'asc'); }}
+                  aria-sort={sortField === 'version' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   Version{sortIndicator('version')}
                 </th>
-                <th className="pm-th-sortable" onClick={() => { setSortField('modified'); setSortDirection(d => sortField === 'modified' ? (d === 'asc' ? 'desc' : 'asc') : 'desc'); }}>
+                <th className="pm-th-sortable" onClick={() => { setSortField('modified'); setSortDirection(d => sortField === 'modified' ? (d === 'asc' ? 'desc' : 'asc') : 'desc'); }}
+                  aria-sort={sortField === 'modified' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   Last Modified{sortIndicator('modified')}
                 </th>
-                <th className="pm-th-sortable" onClick={() => { setSortField('size'); setSortDirection(d => sortField === 'size' ? (d === 'asc' ? 'desc' : 'asc') : 'desc'); }}>
+                <th className="pm-th-sortable" onClick={() => { setSortField('size'); setSortDirection(d => sortField === 'size' ? (d === 'asc' ? 'desc' : 'asc') : 'desc'); }}
+                  aria-sort={sortField === 'size' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   Size{sortIndicator('size')}
                 </th>
                 <th style={{ textAlign: 'center' }}>Actions</th>
