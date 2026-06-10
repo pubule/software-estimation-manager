@@ -3,6 +3,8 @@
  * Following the application's state manager + actions + dispatcher pattern
  */
 
+import { getApp, getAppStore } from '../utils/electronBridge';
+
 export interface RecentProject {
   id: string;
   name: string;
@@ -44,11 +46,11 @@ function getVendorRole(vendor: any): string {
 
 export class ProjectActions {
   private getApp() {
-    return (window as any).app;
+    return getApp();
   }
 
   private getStore() {
-    return (window as any).appStore;
+    return getAppStore();
   }
 
   /**

@@ -1,18 +1,20 @@
 /**
  * NavigationActions.ts - Business logic per navigation e state preservation
- * 
+ *
  * PATTERN: State/Actions/Dispatcher
  * - TUTTA la logica navigation qui
  * - Gestisce preservation dello state durante navigation
  * - Previene reset inutili delle configurazioni utente
  */
 
+import { getAppStore, getApp } from '../utils/electronBridge';
+
 export class NavigationActions {
   /**
    * Get store instance (pattern standard)
    */
   private getStore() {
-    return (window as any).appStore;
+    return getAppStore();
   }
 
   /**
@@ -307,7 +309,7 @@ export class NavigationActions {
    * Force component re-initialization (solo se necessario)
    */
   forceComponentReInit(section: string): void {
-    const navigationManager = (window as any).app?.navigationManager;
+    const navigationManager = getApp()?.navigationManager;
     if (!navigationManager) return;
 
     if (section === 'phases') {
