@@ -1,0 +1,92 @@
+/**
+ * ConfirmDialog Styles
+ *
+ * Dark-theme dialog matching the application's VSCode-inspired design.
+ * Reuses existing modal patterns from capacity.css.
+ */
+
+.confirm-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: confirmOverlayFadeIn 0.15s ease-out;
+}
+
+@keyframes confirmOverlayFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes confirmDialogSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.confirm-dialog {
+    background: var(--bg-secondary, #252526);
+    border: 1px solid var(--border-primary, #333333);
+    border-radius: 8px;
+    width: 90%;
+    max-width: 440px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    animation: confirmDialogSlideIn 0.15s ease-out;
+    outline: none;
+}
+
+.confirm-dialog-header {
+    padding: 16px 20px 0;
+}
+
+.confirm-dialog-title {
+    color: var(--text-primary, #ffffff);
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.confirm-dialog-body {
+    padding: 12px 20px 16px;
+}
+
+.confirm-dialog-message {
+    color: var(--text-secondary, #cccccc);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.confirm-dialog-footer {
+    padding: 12px 20px 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid var(--border-primary, #333333);
+}
+
+/* Ensure buttons in the footer are appropriately sized */
+.confirm-dialog-footer .btn {
+    min-width: 80px;
+}
+
+/* Print: hide the dialog */
+@media print {
+    .confirm-dialog-overlay {
+        display: none !important;
+    }
+}

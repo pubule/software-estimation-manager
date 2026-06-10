@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useProject } from '../hooks/useStore';
 import { useStore } from '../hooks/useStore';
 import { useFeatureActions } from '../hooks/useFeatureActions';
 import FeatureTable from './FeatureTable';
 import FeatureModal from './FeatureModal';
+import ConfirmDialog from './ConfirmDialog';
+import type { ConfirmDialogState } from './ConfirmDialog';
 
 interface FeatureManagerProps {
   customFilteredFeatures?: any[];
@@ -18,16 +20,19 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
     featureModalEditingItem: state.featureModalEditingItem
   }));
   
-  const { 
+  const {
     addFeature,
     updateFeature,
     deleteFeature,
     duplicateFeature,
-    openEditModal, 
+    openEditModal,
     closeModal,
     showSuccessNotification,
     showErrorNotification
   } = useFeatureActions();
+
+  // Confirm dialog state (replaces window.confirm)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
 
   // Track component initialization in navigation state (Pattern State/Actions/Dispatcher)
   useEffect(() => {
@@ -59,18 +64,21 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
 
   const handleDeleteFeature = (featureId: string) => {
     if (!currentProject?.features) return;
-    
-    if (window.confirm('Are you sure you want to delete this feature?')) {
-      const featureIndex = currentProject.features.findIndex(f => f.id === featureId);
-      if (featureIndex >= 0) {
-        deleteFeature(featureIndex);
-        
-        // Feature deletion will trigger parent component to re-filter
-        
-        // Show notification
-        showSuccessNotification(`Feature ${featureId} deleted successfully`);
+
+    setConfirmDialog({
+      title: 'Delete Feature',
+      message: 'Are you sure you want to delete this feature?',
+      confirmLabel: 'Delete',
+      confirmVariant: 'danger',
+      onConfirm: () => {
+        const featureIndex = currentProject.features.findIndex(f => f.id === featureId);
+        if (featureIndex >= 0) {
+          deleteFeature(featureIndex);
+          showSuccessNotification(`Feature ${featureId} deleted successfully`);
+        }
+        setConfirmDialog(null);
       }
-    }
+    });
   };
 
   const handleSaveFeature = (featureData: any) => {
@@ -144,10 +152,21 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
       />
 
       {featureModalOpen && (
-        <FeatureModal 
+        <FeatureModal
           feature={featureModalEditingItem}
           onSave={handleSaveFeature}
           onClose={handleCloseModal}
+        />
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          confirmVariant={confirmDialog.confirmVariant}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
         />
       )}
     </div>

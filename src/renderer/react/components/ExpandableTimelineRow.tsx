@@ -13,6 +13,8 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Button from './Button';
+import ConfirmDialog from './ConfirmDialog';
+import type { ConfirmDialogState } from './ConfirmDialog';
 import TimelineMonthCell from './TimelineMonthCell';
 import AvailableCapacityRow from './AvailableCapacityRow';
 import PhaseBreakdownHeader from './PhaseBreakdownHeader';
@@ -95,6 +97,9 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
 
     // Track which projects have loaded phases from project file (for backward compatibility)
     const [loadedProjectPhases, setLoadedProjectPhases] = useState<Set<string>>(new Set());
+
+    // Confirm dialog state (replaces window.confirm)
+    const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
 
     // Sync refs with state (for cleanup useEffect)
     useEffect(() => {
@@ -488,49 +493,51 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
     };
 
     // Handle delete allocation button click
-    const handleDeleteAllocation = async (e: React.MouseEvent, project: ProjectAllocation) => {
+    const handleDeleteAllocation = (e: React.MouseEvent, project: ProjectAllocation) => {
         e.stopPropagation(); // Prevent row toggle
 
         // Count total months for confirmation message
         const monthCount = Object.keys(project.monthlyAllocations || {}).length;
         const phaseCount = project.phaseAllocations?.length || 0;
 
-        // Confirmation dialog (destructive action)
-        const confirmed = window.confirm(
-            `Delete allocation for project "${project.projectName}"?\n\n` +
-            `This will remove:\n` +
-            `• ${monthCount} month(s) of data\n` +
-            `• ${phaseCount} phase allocation(s)\n\n` +
-            `This action cannot be undone.`
-        );
+        // Show accessible ConfirmDialog instead of window.confirm
+        setConfirmDialog({
+            title: 'Delete Allocation',
+            message:
+                `Delete allocation for project "${project.projectName}"?\n\n` +
+                `This will remove:\n` +
+                `  ${monthCount} month(s) of data\n` +
+                `  ${phaseCount} phase allocation(s)\n\n` +
+                `This action cannot be undone.`,
+            confirmLabel: 'Delete',
+            confirmVariant: 'danger',
+            onConfirm: async () => {
+                setConfirmDialog(null);
 
-        if (!confirmed) {
-            console.log('🚫 Delete cancelled by user');
-            return;
-        }
+                try {
+                    const allocationActions = new window.AllocationActions();
 
-        try {
-            const allocationActions = new window.AllocationActions();
+                    console.log('Deleting allocation:', project.allocationId);
 
-            console.log('🗑️ Deleting allocation:', project.allocationId);
+                    // Delete allocation
+                    const result = await allocationActions.deleteAllocation(project.allocationId);
 
-            // Delete allocation
-            const result = await allocationActions.deleteAllocation(project.allocationId);
+                    if (result.success) {
+                        console.log('Allocation deleted successfully:', project.allocationId);
 
-            if (result.success) {
-                console.log('✅ Allocation deleted successfully:', project.allocationId);
-
-                // Refresh data immediately to show updated timeline
-                loadMemberAllocations();
-                onRefresh?.();
-            } else {
-                console.error('❌ Delete failed:', result.error);
-                alert(`Failed to delete allocation: ${result.error}`);
+                        // Refresh data immediately to show updated timeline
+                        loadMemberAllocations();
+                        onRefresh?.();
+                    } else {
+                        console.error('Delete failed:', result.error);
+                        alert(`Failed to delete allocation: ${result.error}`);
+                    }
+                } catch (error: any) {
+                    console.error('Error deleting allocation:', error);
+                    alert(`Error deleting allocation: ${error.message}`);
+                }
             }
-        } catch (error: any) {
-            console.error('❌ Error deleting allocation:', error);
-            alert(`Error deleting allocation: ${error.message}`);
-        }
+        });
     };
 
     // Calculate total capacity across all months
@@ -945,6 +952,18 @@ export const ExpandableTimelineRow: React.FC<ExpandableTimelineRowProps> = ({
                         </>
                     )}
                 </>
+            )}
+
+            {/* Accessible confirm dialog (replaces window.confirm) */}
+            {confirmDialog && (
+                <ConfirmDialog
+                    title={confirmDialog.title}
+                    message={confirmDialog.message}
+                    confirmLabel={confirmDialog.confirmLabel}
+                    confirmVariant={confirmDialog.confirmVariant}
+                    onConfirm={confirmDialog.onConfirm}
+                    onCancel={() => setConfirmDialog(null)}
+                />
             )}
         </>
     );
