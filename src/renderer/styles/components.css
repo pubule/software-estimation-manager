@@ -528,7 +528,7 @@ table.sticky-header thead th,
 }
 
 .error-boundary-fallback-retry-btn:hover {
-    background-color: #d32f2f;
+    background-color: var(--color-error-dark, #d32f2f);
 }
 
 .error-boundary-fallback-retry-btn:focus-visible {

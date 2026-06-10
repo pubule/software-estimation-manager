@@ -33,8 +33,8 @@ export interface ElectronAPI {
   // Projects folder operations
   getProjectsPath: () => Promise<string>;
   setProjectsPath: (newPath: string) => Promise<{ success: boolean; error?: string }>;
-  chooseProjectsFolder: () => Promise<{ success: boolean; path?: string; error?: string }>;
-  openProjectsFolder: () => Promise<void>;
+  chooseProjectsFolder: () => Promise<{ success: boolean; path?: string; canceled?: boolean; error?: string }>;
+  openProjectsFolder: () => Promise<{ success: boolean; error?: string }>;
 
   // Settings operations
   getSettings: () => Promise<Record<string, unknown>>;

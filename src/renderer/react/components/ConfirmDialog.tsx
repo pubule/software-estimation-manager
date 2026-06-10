@@ -28,7 +28,7 @@
  *   )}
  */
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useId } from 'react';
 import Button from './Button';
 import '../../styles/confirm-dialog.css';
 
@@ -67,6 +67,9 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   onCancel
 }) => {
+  const instanceId = useId();
+  const titleId = `confirm-dialog-title-${instanceId}`;
+  const descId = `confirm-dialog-desc-${instanceId}`;
   const cancelBtnRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<Element | null>(null);
@@ -127,10 +130,10 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const renderMessage = () => {
     const lines = message.split('\n');
     if (lines.length === 1) {
-      return <p id="confirm-dialog-desc" className="confirm-dialog-message">{message}</p>;
+      return <p id={descId} className="confirm-dialog-message">{message}</p>;
     }
     return (
-      <div id="confirm-dialog-desc" className="confirm-dialog-message">
+      <div id={descId} className="confirm-dialog-message">
         {lines.map((line, i) => (
           <React.Fragment key={i}>
             {line}
@@ -151,11 +154,11 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         className="confirm-dialog"
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-desc"
+        aria-labelledby={titleId}
+        aria-describedby={descId}
       >
         <div className="confirm-dialog-header">
-          <h3 id="confirm-dialog-title" className="confirm-dialog-title">
+          <h3 id={titleId} className="confirm-dialog-title">
             {title}
           </h3>
         </div>

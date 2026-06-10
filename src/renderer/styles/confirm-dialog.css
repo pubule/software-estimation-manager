@@ -84,6 +84,13 @@
     min-width: 80px;
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .confirm-dialog-overlay,
+    .confirm-dialog {
+        animation: none;
+    }
+}
+
 /* Print: hide the dialog */
 @media print {
     .confirm-dialog-overlay {

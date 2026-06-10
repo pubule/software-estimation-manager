@@ -40,7 +40,7 @@ function setupWindowMock() {
     // Projects folder operations
     getProjectsPath: async () => '/tmp/test-projects',
     setProjectsPath: async () => ({ success: true }),
-    chooseProjectsFolder: async () => ({ canceled: false, path: '/tmp/test-projects' }),
+    chooseProjectsFolder: async () => ({ success: true, path: '/tmp/test-projects' }),
     openProjectsFolder: async () => ({ success: true }),
 
     // Settings operations
@@ -128,7 +128,6 @@ function setupWindowMock() {
   global.window.confirm = () => true;
   global.window.location = { hostname: 'test', hash: '' };
   global.window.open = () => {};
-  global.window.confirm = () => true;
   global.window.alert = () => {};
   global.window.isSecureContext = false;
   global.window.URL = {
