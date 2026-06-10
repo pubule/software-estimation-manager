@@ -90,7 +90,7 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
 
     // Handle edit allocation (from ExpandableTimelineRow edit button)
     const handleEditAllocation = (allocation: any) => {
-        console.log('✏️ Opening edit modal for allocation:', allocation);
+        if (import.meta.env.DEV) console.log('Opening edit modal for allocation:', allocation);
         setEditingAllocation(allocation);
         setSelectedMemberId(undefined); // Clear member selection (allocation has its own member)
         setSelectedMonth(undefined); // Clear month selection (allocation has its own dates)
@@ -118,16 +118,16 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
             }
         });
 
-        console.log('🧹 All timeline chevron states cleared from localStorage');
+        if (import.meta.env.DEV) console.log('All timeline chevron states cleared from localStorage');
     };
 
     // Handle successful save
     const handleSave = (updatedAllocation?: any) => {
-        console.log('💾 CapacityTimeline: handleSave called with:', updatedAllocation);
+        if (import.meta.env.DEV) console.log('CapacityTimeline: handleSave called with:', updatedAllocation);
         collapseAllTimelineChevrons(); // Collapse all chevrons before refresh
         refresh(); // Refresh data to show new allocation
         handleModalClose();
-        console.log('✅ CapacityTimeline: Data refreshed and modal closed');
+        if (import.meta.env.DEV) console.log('CapacityTimeline: Data refreshed and modal closed');
     };
 
     // Render statistics bar

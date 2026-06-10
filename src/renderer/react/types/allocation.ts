@@ -33,10 +33,10 @@ export interface AllocationFormData {
     projectName?: string;
     teamMemberId: string;
 
-    // NUOVO: Per allocazioni multi-fase (sostituisce totalMDs/startDate/endDate)
+    // NEW: For multi-phase allocations (replaces totalMDs/startDate/endDate)
     phaseAllocations?: PhaseAllocation[];
 
-    // LEGACY: Per allocazioni semplici (backward compatibility)
+    // LEGACY: For simple allocations (backward compatibility)
     totalMDs?: number; // Optional if using phaseAllocations or monthlyAllocations
     startDate?: string; // ISO date 'YYYY-MM-DD'
     endDate?: string;   // ISO date 'YYYY-MM-DD'

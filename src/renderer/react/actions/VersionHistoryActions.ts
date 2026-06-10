@@ -1,10 +1,10 @@
 /**
- * VersionHistoryActions - TUTTA la business logic per Version History
- * 
- * PATTERN OBBLIGATORIO: State/Actions/Dispatcher
- * - ZERO business logic nei componenti
- * - TUTTO qui: validazione, calcoli, operazioni, confronti
- * - Store aggiornato SOLO attraverso questi metodi
+ * VersionHistoryActions - ALL business logic for Version History
+ *
+ * REQUIRED PATTERN: State/Actions/Dispatcher
+ * - ZERO business logic in components
+ * - EVERYTHING here: validation, calculations, operations, comparisons
+ * - Store updated ONLY through these methods
  */
 
 export interface Version {
@@ -174,7 +174,7 @@ export class VersionHistoryActions {
     // Listen for project-modified event to auto-sync current version
     window.addEventListener('project-modified', this.handleProjectModified.bind(this));
     
-    console.log('✅ VersionHistoryActions: Event listeners initialized (State/Actions/Dispatcher pattern)');
+    if (import.meta.env.DEV) console.log('VersionHistoryActions: Event listeners initialized (State/Actions/Dispatcher pattern)');
   }
 
   /**
@@ -185,10 +185,10 @@ export class VersionHistoryActions {
     
     try {
       if (versionHistoryAvailable && hasVersions) {
-        console.log('🔄 Project saved event received - updating current version');
+        if (import.meta.env.DEV) console.log('Project saved event received - updating current version');
         await this.updateCurrentVersion();
       } else {
-        console.log('No versions to update or versionHistoryActions not available');
+        if (import.meta.env.DEV) console.log('No versions to update or versionHistoryActions not available');
       }
     } catch (error) {
       console.error('Failed to update current version from project-saved event:', error);
@@ -204,15 +204,15 @@ export class VersionHistoryActions {
     
     try {
       if (hasVersions) {
-        console.log(`🔄 Project modified (${action}) event received - auto-syncing current version`);
-        console.log(`📝 Feature ${featureId} was ${action.replace('feature-', '')}`);
+        if (import.meta.env.DEV) console.log(`Project modified (${action}) event received - auto-syncing current version`);
+        if (import.meta.env.DEV) console.log(`Feature ${featureId} was ${action.replace('feature-', '')}`);
         
-        // Piccolo delay per assicurarsi che lo store sia aggiornato
+        // Small delay to ensure the store is updated
         await new Promise(resolve => setTimeout(resolve, 100));
         
         await this.updateCurrentVersion();
       } else {
-        console.log('No versions to update for modified project');
+        if (import.meta.env.DEV) console.log('No versions to update for modified project');
       }
     } catch (error) {
       console.error('Failed to update current version from project-modified event:', error);
@@ -221,7 +221,7 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Pattern obbligatorio: accesso store attraverso getStore()
+   * Required pattern: store access through getStore()
    */
   private getStore() {
     return (window as any).appStore;
@@ -232,7 +232,7 @@ export class VersionHistoryActions {
    */
 
   /**
-   * Crea nuova versione del progetto corrente
+   * Create a new version of the current project
    */
   async createVersion(reason: string): Promise<void> {
     try {
@@ -248,23 +248,23 @@ export class VersionHistoryActions {
         throw new Error('Version reason is required');
       }
 
-      // Avvia loading
+      // Start loading
       this.setLoadingState(true);
 
-      // Business logic: genera snapshot del progetto
+      // Business logic: generate project snapshot
       const snapshot = this.createProjectSnapshot(currentProject);
       const checksum = this.generateChecksum(snapshot);
       const fileSize = this.calculateDataSize(snapshot);
 
-      // Validazione dimensione
+      // Size validation
       if (fileSize > this.maxFileSize) {
         throw new Error('Project data too large for versioning');
       }
 
-      // Business logic: genera prossimo ID versione
+      // Business logic: generate next version ID
       const nextVersionId = this.generateNextVersionId(currentProject.versions || []);
 
-      // Crea nuovo oggetto versione
+      // Create new version object
       const newVersion: Version = {
         id: nextVersionId,
         timestamp: new Date().toISOString(),
@@ -274,16 +274,16 @@ export class VersionHistoryActions {
         fileSize: fileSize
       };
 
-      // Business logic: gestisci limite massimo versioni
+      // Business logic: enforce maximum version limit
       const updatedVersions = this.enforceVersionLimit([...currentProject.versions || [], newVersion]);
 
-      // Aggiorna store
+      // Update store
       state.updateProjectVersions(updatedVersions);
       state.markDirty();
 
-      console.log(`Version ${nextVersionId} created successfully`);
-      
-      // Chiudi la modal dopo aver creato la versione con successo
+      if (import.meta.env.DEV) console.log(`Version ${nextVersionId} created successfully`);
+
+      // Close the modal after successful version creation
       this.closeCreateVersionModal();
     } catch (error) {
       console.error('Failed to create version:', error);
@@ -294,17 +294,9 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Aggiorna la versione più recente con lo stato corrente del progetto
-   * Utilizzato quando si salva il progetto per mantenere la versione corrente sincronizzata
-   */
-  /**
-   * Aggiorna la versione più recente con lo stato corrente del progetto
-   * Utilizzato quando si salva il progetto per mantenere la versione corrente sincronizzata
-   * ENHANCED: Fixed timing issue with features not being included in snapshots
-   */
-  /**
-   * Aggiorna la versione più recente con lo stato corrente del progetto
-   * STATE/ACTIONS/DISPATCHER PATTERN: No delays, solo eventi e stato
+   * Update the most recent version with the current project state
+   * Used when saving the project to keep the current version synchronized
+   * STATE/ACTIONS/DISPATCHER PATTERN: No delays, only events and state
    */
   async updateCurrentVersion(): Promise<void> {
     try {
@@ -313,20 +305,19 @@ export class VersionHistoryActions {
       const currentProject = state.currentProject;
 
       if (!currentProject || !currentProject.versions || currentProject.versions.length === 0) {
-        console.log('No versions to update - skipping current version update');
+        if (import.meta.env.DEV) console.log('No versions to update - skipping current version update');
         return;
       }
 
-      console.log('🔄 Updating current version with fresh store state');
-      console.log(`📊 Project has ${currentProject.features?.length || 0} features to include in snapshot`);
+      if (import.meta.env.DEV) console.log('Updating current version with fresh store state');
+      if (import.meta.env.DEV) console.log(`Project has ${currentProject.features?.length || 0} features to include in snapshot`);
       
-      // DEBUG: Log delle features prima della creazione snapshot
-      if (currentProject.features && currentProject.features.length > 0) {
-      } else {
-        console.log('🚨 DEBUG - NO FEATURES found in currentProject!');
+      // DEBUG: Log features before snapshot creation
+      if (!(currentProject.features && currentProject.features.length > 0)) {
+        if (import.meta.env.DEV) console.log('DEBUG - NO FEATURES found in currentProject!');
       }
 
-      // Trova la versione corrente (quella con l'ID più alto)
+      // Find the current version (the one with the highest ID)
       
       const mostRecentVersion = currentProject.versions.reduce((latest: Version, current: Version) => {
         const latestNum = parseInt(latest.id.replace('V-', ''));
@@ -334,53 +325,53 @@ export class VersionHistoryActions {
         return currentNum > latestNum ? current : latest;
       });
 
-      console.log(`Updating version ${mostRecentVersion.id} with latest project state`);
+      if (import.meta.env.DEV) console.log(`Updating version ${mostRecentVersion.id} with latest project state`);
 
-      // Avvia loading
+      // Start loading
       this.setLoadingState(true);
 
-      // STATE PATTERN: Genera snapshot dal current state (single source of truth)
+      // STATE PATTERN: Generate snapshot from current state (single source of truth)
       const updatedSnapshot = this.createProjectSnapshot(currentProject);
       
       // Log snapshot validation
-      console.log(`✅ Snapshot created with ${updatedSnapshot.features?.length || 0} features`);
-      if (updatedSnapshot.features?.length > 0) {
-        console.log('✅ Features in snapshot:', updatedSnapshot.features.map((f: any) => ({ id: f.id, description: f.description })));
+      if (import.meta.env.DEV) console.log(`Snapshot created with ${updatedSnapshot.features?.length || 0} features`);
+      if (import.meta.env.DEV && updatedSnapshot.features?.length > 0) {
+        console.log('Features in snapshot:', updatedSnapshot.features.map((f: any) => ({ id: f.id, description: f.description })));
       }
       
       const updatedChecksum = this.generateChecksum(updatedSnapshot);
       const updatedFileSize = this.calculateDataSize(updatedSnapshot);
 
-      // Validazione dimensione
+      // Size validation
       if (updatedFileSize > this.maxFileSize) {
         throw new Error('Project data too large for versioning');
       }
 
-      // Aggiorna la versione corrente mantenendo ID e timestamp originali
+      // Update the current version keeping original ID and timestamp
       const updatedVersion: Version = {
         ...mostRecentVersion,
         projectSnapshot: updatedSnapshot,
         checksum: updatedChecksum,
         fileSize: updatedFileSize,
-        // Non modificare la reason se contiene già (updated)
+        // Do not modify the reason if it already contains (updated)
         reason: mostRecentVersion.reason.includes('(updated)') 
           ? mostRecentVersion.reason 
           : mostRecentVersion.reason + ' (updated)'
       };
 
-      // Sostituisci la versione nel array
+      // Replace the version in the array
       const updatedVersions = currentProject.versions.map((v: Version) => 
         v.id === mostRecentVersion.id ? updatedVersion : v
       );
       
-      // DEBUG: Verifica dell'aggiornamento
+      // DEBUG: Verify the update
       const updatedVersionCheck = updatedVersions.find((v: Version) => v.id === mostRecentVersion.id);
 
       // ACTIONS PATTERN: Update store through actions
       state.updateProjectVersions(updatedVersions);
       
-      console.log(`✅ Version ${mostRecentVersion.id} updated successfully via State/Actions pattern`);
-      console.log(`✅ Version snapshot now contains ${updatedSnapshot.features?.length || 0} features`);
+      if (import.meta.env.DEV) console.log(`Version ${mostRecentVersion.id} updated successfully via State/Actions pattern`);
+      if (import.meta.env.DEV) console.log(`Version snapshot now contains ${updatedSnapshot.features?.length || 0} features`);
     } catch (error) {
       console.error('Failed to update current version:', error);
       throw error;
@@ -390,7 +381,7 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Confronta versione specifica con lo stato corrente
+   * Compare a specific version with the current state
    */
   compareVersion(versionId: string): void {
     try {
@@ -402,18 +393,18 @@ export class VersionHistoryActions {
         throw new Error('No project loaded');
       }
 
-      // Trova versione da confrontare
+      // Find the version to compare
       const versionToCompare = currentProject.versions?.find((v: Version) => v.id === versionId);
       if (!versionToCompare) {
         throw new Error('Version not found');
       }
 
-      // Validazione integrità
+      // Integrity validation
       if (!this.validateVersion(versionToCompare)) {
         throw new Error('Version data is corrupted');
       }
 
-      // Apri modal confronto
+      // Open comparison modal
       state.setVersionHistoryModalState('compareModal', {
         isOpen: true,
         selectedVersion: versionToCompare
@@ -426,7 +417,7 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Ripristina versione specifica creando una nuova versione
+   * Restore a specific version by creating a new version
    */
   async restoreVersion(versionId: string): Promise<void> {
     try {
@@ -438,26 +429,26 @@ export class VersionHistoryActions {
         throw new Error('No project loaded');
       }
 
-      // Trova versione da ripristinare
+      // Find the version to restore
       const versionToRestore = currentProject.versions?.find((v: Version) => v.id === versionId);
       if (!versionToRestore) {
         throw new Error('Version not found');
       }
 
-      // Validazione integrità
+      // Integrity validation
       if (!this.validateVersion(versionToRestore)) {
         throw new Error('Version data is corrupted');
       }
 
       this.setLoadingState(true);
 
-      // Business logic: crea una NUOVA versione con i dati ripristinati
+      // Business logic: create a NEW version with the restored data
       const restoredSnapshot = JSON.parse(JSON.stringify(versionToRestore.projectSnapshot));
       
-      // Genera nuovo ID per la versione ripristinata
+      // Generate new ID for the restored version
       const nextVersionId = this.generateNextVersionId(currentProject.versions || []);
       
-      // Crea nuova versione che rappresenta il ripristino
+      // Create new version representing the restoration
       const restoredVersion: Version = {
         id: nextVersionId,
         timestamp: new Date().toISOString(),
@@ -467,26 +458,26 @@ export class VersionHistoryActions {
         fileSize: this.calculateDataSize(restoredSnapshot)
       };
       
-      // Aggiungi la nuova versione all'array esistente
+      // Add the new version to the existing array
       const updatedVersions = [...(currentProject.versions || []), restoredVersion];
       
-      // Applica limite massimo versioni se necessario
+      // Apply maximum version limit if necessary
       const finalVersions = this.enforceVersionLimit(updatedVersions);
       
-      // Prepara i dati del progetto ripristinato con le versioni aggiornate
+      // Prepare the restored project data with updated versions
       const projectWithRestoredData = {
         ...restoredSnapshot,
         versions: finalVersions
       };
 
-      // Aggiorna store con dati ripristinati e nuova versione
+      // Update store with restored data and new version
       state.setProject(projectWithRestoredData);
       state.markDirty();
 
-      // Chiudi modal
+      // Close modal
       this.closeRestoreModal();
 
-      console.log(`Created new version ${nextVersionId} with data restored from ${versionToRestore.id}`);
+      if (import.meta.env.DEV) console.log(`Created new version ${nextVersionId} with data restored from ${versionToRestore.id}`);
     } catch (error) {
       console.error('Failed to restore version:', error);
       throw error;
@@ -496,7 +487,7 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Elimina versione specifica
+   * Delete a specific version
    */
   deleteVersion(versionId: string): void {
     try {
@@ -508,26 +499,26 @@ export class VersionHistoryActions {
         throw new Error('No versions available');
       }
 
-      // Business logic: trova versione da eliminare
+      // Business logic: find the version to delete
       const versionIndex = currentProject.versions.findIndex((v: Version) => v.id === versionId);
       if (versionIndex === -1) {
         throw new Error('Version not found');
       }
 
-      // Business logic: conferma eliminazione
+      // Business logic: confirm deletion
       const version = currentProject.versions[versionIndex];
       if (!confirm(`Are you sure you want to delete version ${version.id}? This action cannot be undone.`)) {
         return;
       }
 
-      // Rimuovi versione dall'array
+      // Remove version from the array
       const updatedVersions = currentProject.versions.filter((v: Version) => v.id !== versionId);
 
-      // Aggiorna store
+      // Update store
       state.updateProjectVersions(updatedVersions);
       state.markDirty();
 
-      console.log(`Version ${versionId} deleted successfully`);
+      if (import.meta.env.DEV) console.log(`Version ${versionId} deleted successfully`);
     } catch (error) {
       console.error('Failed to delete version:', error);
       throw error;
@@ -535,7 +526,7 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Export versione specifica
+   * Export a specific version
    */
   exportVersion(versionId: string): void {
     try {
@@ -552,14 +543,14 @@ export class VersionHistoryActions {
         throw new Error('Version not found');
       }
 
-      // Business logic: prepara dati per export
+      // Business logic: prepare data for export
       const exportData = {
         version: version,
         exportedAt: new Date().toISOString(),
         projectName: currentProject.project?.name || 'Unknown Project'
       };
 
-      // Download come JSON
+      // Download as JSON
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -570,7 +561,7 @@ export class VersionHistoryActions {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      console.log(`Version ${versionId} exported successfully`);
+      if (import.meta.env.DEV) console.log(`Version ${versionId} exported successfully`);
     } catch (error) {
       console.error('Failed to export version:', error);
       throw error;
@@ -582,20 +573,20 @@ export class VersionHistoryActions {
    */
 
   /**
-   * Applica filtri alle versioni
+   * Apply filters to versions
    */
   applyFilters(filters: VersionFilters): void {
     const store = this.getStore();
     const state = store.getState();
     
-    // Aggiorna filtri nello store
+    // Update filters in the store
     state.setVersionHistoryFilters(filters);
-    
-    console.log('Version filters applied:', filters);
+
+    if (import.meta.env.DEV) console.log('Version filters applied:', filters);
   }
 
   /**
-   * Reset filtri
+   * Reset filters
    */
   resetFilters(): void {
     this.applyFilters({
@@ -605,7 +596,7 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Ottieni versioni filtrate
+   * Get filtered versions
    */
   getFilteredVersions(): Version[] {
     const store = this.getStore();
@@ -619,11 +610,11 @@ export class VersionHistoryActions {
 
     return currentProject.versions
       .filter((version: Version) => {
-        // Filtro per reason
+        // Filter by reason
         const reasonMatch = !filters.reason || 
           version.reason.toLowerCase().includes(filters.reason.toLowerCase());
 
-        // Filtro per data range (implementazione semplificata)
+        // Filter by date range (simplified implementation)
         let dateMatch = true;
         if (filters.dateRange) {
           const versionDate = new Date(version.timestamp);
@@ -659,7 +650,7 @@ export class VersionHistoryActions {
    */
 
   /**
-   * Genera dati di confronto completi tra versione e stato corrente
+   * Generate complete comparison data between a version and the current state
    */
   generateComparisonData(versionToCompare: Version): ComparisonData {
     const store = this.getStore();
@@ -988,7 +979,7 @@ export class VersionHistoryActions {
           selectedVersion: context.previousVersion
         });
         
-        console.log(`Navigated to previous version: ${context.previousVersion.id}`);
+        if (import.meta.env.DEV) console.log(`Navigated to previous version: ${context.previousVersion.id}`);
       }
     } catch (error) {
       console.error('Failed to navigate to previous version:', error);
@@ -1013,7 +1004,7 @@ export class VersionHistoryActions {
           selectedVersion: context.nextVersion
         });
         
-        console.log(`Navigated to next version: ${context.nextVersion.id}`);
+        if (import.meta.env.DEV) console.log(`Navigated to next version: ${context.nextVersion.id}`);
       }
     } catch (error) {
       console.error('Failed to navigate to next version:', error);
@@ -1104,7 +1095,7 @@ export class VersionHistoryActions {
    */
 
   /**
-   * Apri modal creazione versione
+   * Open create version modal
    */
   openCreateVersionModal(): void {
     const store = this.getStore();
@@ -1117,7 +1108,7 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Chiudi modal creazione versione
+   * Close create version modal
    */
   closeCreateVersionModal(): void {
     const store = this.getStore();
@@ -1130,7 +1121,7 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Chiudi modal confronto
+   * Close comparison modal
    */
   closeCompareModal(): void {
     const store = this.getStore();
@@ -1143,7 +1134,7 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Apri modal ripristino
+   * Open restore modal
    */
   openRestoreModal(version: Version): void {
     const store = this.getStore();
@@ -1156,7 +1147,7 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Chiudi modal ripristino
+   * Close restore modal
    */
   closeRestoreModal(): void {
     const store = this.getStore();
@@ -1173,17 +1164,17 @@ export class VersionHistoryActions {
    */
 
   /**
-   * Crea snapshot del progetto corrente
-   * ENHANCED: Cattura sempre i calculationData più aggiornati dallo store
+   * Create a snapshot of the current project
+   * ENHANCED: Always captures the most up-to-date calculationData from the store
    */
   private createProjectSnapshot(project: any): any {
-    // DEBUG: Log del progetto prima del deep copy
+    // DEBUG: Log the project before deep copy
     
     const snapshot = JSON.parse(JSON.stringify(project));
     
-    // DEBUG: Log dello snapshot dopo deep copy
+    // DEBUG: Log the snapshot after deep copy
     
-    // Rimuovi array versions per evitare ricorsione
+    // Remove versions array to avoid recursion
     delete snapshot.versions;
     
     // 🔧 ENHANCED: Cattura sempre i calculationData più aggiornati dallo store
@@ -1202,22 +1193,22 @@ export class VersionHistoryActions {
         : calculationsData?.featureBased?.kpiData;
 
       if (activeVendorCosts && activeVendorCosts.length > 0) {
-        // Includi tutti i dati di calcolo aggiornati
-        // 🔧 SEPARAZIONE OVERRIDE: usa la nuova struttura con featureBased e workingPackage separati
+        // Include all updated calculation data
+        // OVERRIDE SEPARATION: use the new structure with featureBased and workingPackage separated
         snapshot.calculationData = {
           vendorCosts: JSON.parse(JSON.stringify(activeVendorCosts)),
           filters: JSON.parse(JSON.stringify(calculationsData.filters || {})),
           kpiData: activeKpiData ? JSON.parse(JSON.stringify(activeKpiData)) : null,
-          timestamp: new Date().toISOString(), // Timestamp per tracking
+          timestamp: new Date().toISOString(), // Timestamp for tracking
           version: calculationsData.version || 0,
-          // Nuova struttura: override separati per FB e WP
+          // New structure: separate overrides for FB and WP
           featureBased: {
             finalMDsOverrides: JSON.parse(JSON.stringify(calculationsData.featureBased?.finalMDsOverrides || {}))
           },
           workingPackage: {
             finalMDsOverrides: JSON.parse(JSON.stringify(calculationsData.workingPackage?.finalMDsOverrides || {}))
           },
-          // Mantieni per retrocompatibilità (legacy)
+          // Keep for backward compatibility (legacy)
           finalMDsOverrides: JSON.parse(JSON.stringify(
             calculationsData.featureBased?.finalMDsOverrides ||
             calculationsData.workingPackage?.finalMDsOverrides ||
@@ -1225,14 +1216,14 @@ export class VersionHistoryActions {
           ))
         };
 
-        console.log('✅ Successfully captured calculationData with', activeVendorCosts.length, 'vendors');
+        if (import.meta.env.DEV) console.log('Successfully captured calculationData with', activeVendorCosts.length, 'vendors');
       } else {
-        console.log('⚠️  No vendor costs found in store - keeping existing calculationData in snapshot');
-        // Non rimuovere calculationData esistente se non ci sono nuovi dati
+        if (import.meta.env.DEV) console.log('No vendor costs found in store - keeping existing calculationData in snapshot');
+        // Do not remove existing calculationData if there is no new data
       }
     } catch (error) {
-      console.error('❌ Failed to capture latest calculationData from store:', error);
-      // Fallback: prova con il metodo precedente (leggi dalla sezione corretta)
+      console.error('Failed to capture latest calculationData from store:', error);
+      // Fallback: try with previous method (read from correct section)
       const appStore = (window as any).appStore?.getState();
       const calculationsData = appStore?.calculationsData;
       const isWPFallback = appStore?.currentProject?.workingPackageData?.enabled;
@@ -1250,18 +1241,18 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Genera checksum per integrità dati
+   * Generate checksum for data integrity
    */
   private generateChecksum(data: any): string {
-    // Copia dati escludendo campi volatili
+    // Copy data excluding volatile fields
     const dataForHashing = JSON.parse(JSON.stringify(data));
     
-    // Normalizza struttura per compatibilità
+    // Normalize structure for compatibility
     if (!dataForHashing.assumptions) {
       dataForHashing.assumptions = [];
     }
     
-    // Rimuovi timestamp volatili per consistency
+    // Remove volatile timestamps for consistency
     if (dataForHashing.calculationData?.timestamp) {
       delete dataForHashing.calculationData.timestamp;
     }
@@ -1273,7 +1264,7 @@ export class VersionHistoryActions {
       });
     }
     
-    // Genera hash semplice (per demo - in produzione usare crypto)
+    // Generate simple hash (for demo - in production use crypto)
     const str = JSON.stringify(dataForHashing);
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -1285,14 +1276,14 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Calcola dimensione dati in bytes
+   * Calculate data size in bytes
    */
   private calculateDataSize(data: any): number {
     return new Blob([JSON.stringify(data)]).size;
   }
 
   /**
-   * Genera prossimo ID versione
+   * Generate next version ID
    */
   private generateNextVersionId(versions: Version[]): string {
     if (!versions.length) {
@@ -1308,35 +1299,35 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Applica limite massimo versioni
+   * Enforce maximum version limit
    */
   private enforceVersionLimit(versions: Version[]): Version[] {
     if (versions.length <= this.maxVersions) {
       return versions;
     }
     
-    // Mantieni le versioni più recenti
+    // Keep the most recent versions
     return versions
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, this.maxVersions);
   }
 
   /**
-   * Valida integrità versione con supporto per progetti legacy
+   * Validate version integrity with support for legacy projects
    */
   private validateVersion(version: Version): boolean {
-    // Se non ha projectSnapshot, è invalida
+    // If it has no projectSnapshot, it is invalid
     if (!version.projectSnapshot) {
       return false;
     }
     
-    // Se non ha checksum, probabilmente è un progetto legacy - consideralo valido
+    // If it has no checksum, it is likely a legacy project - consider it valid
     if (!version.checksum) {
       console.warn('Version without checksum detected (legacy project), accepting as valid:', version.id);
       return true;
     }
     
-    // Per progetti con checksum, verifica l'integrità ma sii permissivo
+    // For projects with checksum, verify integrity but be permissive
     const recalculatedChecksum = this.generateChecksum(version.projectSnapshot);
     const isValid = recalculatedChecksum === version.checksum;
     
@@ -1346,7 +1337,7 @@ export class VersionHistoryActions {
         storedChecksum: version.checksum,
         calculatedChecksum: recalculatedChecksum
       });
-      // Per i progetti legacy, accetta comunque la versione e aggiorna il checksum
+      // For legacy projects, accept the version anyway and update the checksum
       version.checksum = recalculatedChecksum;
       return true;
     }
@@ -1364,14 +1355,14 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Utility per confronto date
+   * Utility for date comparison
    */
   private isSameDay(date1: Date, date2: Date): boolean {
     return date1.toDateString() === date2.toDateString();
   }
 
   /**
-   * COMPARISON METHODS (implementazione semplificata)
+   * COMPARISON METHODS (simplified implementation)
    */
 
   private compareProjectMetadata(current: any, compare: any): ComparisonField[] {
@@ -1620,12 +1611,12 @@ export class VersionHistoryActions {
   }
 
   /**
-   * Utility per accesso proprietà nidificate
+   * Utility for accessing nested properties
    */
   private getNestedValue(obj: any, path: string): any {
     return path.split('.').reduce((current, key) => current?.[key], obj);
   }
 }
 
-// Export singleton instance (seguendo pattern del codebase)
+// Export singleton instance (following codebase pattern)
 export const versionHistoryActions = new VersionHistoryActions();
