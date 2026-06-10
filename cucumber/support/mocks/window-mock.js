@@ -1,4 +1,5 @@
 const { createStore } = require('zustand/vanilla');
+const WorkingDaysCalculator = require('../../../src/renderer/js/components/working-days-calculator.js');
 
 function setupWindowMock() {
   if (typeof global.window === 'undefined') {
@@ -26,13 +27,84 @@ function setupWindowMock() {
     },
   };
 
+  // Full electronAPI mock matching preload.js surface (all 27 methods)
+  // plus additional methods referenced in source code (3 extra)
   global.window.electronAPI = {
-    exportTicketReport: async () => ({ success: true }),
+    // Project file operations
+    saveProjectFile: async () => ({ success: true }),
+    loadProjectFile: async () => null,
+    deleteProjectFile: async () => ({ success: true }),
+    checkFileExists: async () => false,
+    listProjects: async () => ([]),
+
+    // Projects folder operations
+    getProjectsPath: async () => '/tmp/test-projects',
+    setProjectsPath: async () => ({ success: true }),
+    chooseProjectsFolder: async () => ({ canceled: false, path: '/tmp/test-projects' }),
+    openProjectsFolder: async () => ({ success: true }),
+
+    // Settings operations
+    getSettings: async () => ({}),
+    saveSettings: async () => ({ success: true }),
+
+    // Configuration file operations
+    createDefaultConfig: async () => ({ success: true }),
+    updateDefaultConfig: async () => ({ success: true }),
+
+    // Resource Allocations
+    loadResourceAllocations: async () => ([]),
+    saveResourceAllocations: async () => ({ success: true }),
+
+    // Menu actions
+    onMenuAction: () => {},
+
+    // Application close handling
+    onCheckBeforeClose: () => {},
+    confirmWindowClose: async () => ({ success: true }),
+
+    // File operations (legacy for export)
     saveFile: async () => ({ success: true }),
     openFile: async () => null,
-    showSaveDialog: async () => ({ canceled: false, filePath: '/tmp/test.json' }),
-    showOpenDialog: async () => ({ canceled: false, filePaths: ['/tmp/test.json'] }),
+
+    // Excel export file operations
+    saveExcelFile: async () => ({ success: true }),
+    exportTicketReport: async () => ({ success: true }),
+    exportResourceOverview: async () => ({ success: true }),
+
+    // Window controls
+    minimize: async () => {},
+    maximize: async () => {},
+    close: async () => {},
+    setWindowTitle: async () => {},
+
+    // Additional methods referenced in source but not in preload.js
+    clearAllProjectData: async () => ({ success: true }),
+    saveFileBuffer: async () => ({ success: true }),
+    saveFileToPath: async () => ({ success: true }),
   };
+
+  // TeamHelpers mock - mirrors window.TeamHelpers from team-helpers.js
+  // All 15 helper functions with safe default return values
+  global.window.TeamHelpers = {
+    getAllTeamMembers: () => [],
+    getTeamMemberById: () => null,
+    getTeamMembersByVendor: () => [],
+    getTeamMembersByVendorType: () => [],
+    getTeamMembersByRole: () => [],
+    getTeamForMember: () => null,
+    getTeamMemberCapacity: () => 22,
+    getTeamMemberFullName: () => 'Unknown',
+    searchTeamMembers: () => [],
+    getVendorNameForMember: () => 'Unknown',
+    getAllRoles: () => [],
+    getAllVendors: () => [],
+    teamMemberExists: () => false,
+    getTeamMembersCount: () => 0,
+    getTeamMemberEmail: () => null,
+  };
+
+  // WorkingDaysCalculator - expose the real class for accurate calculations in tests
+  global.window.WorkingDaysCalculator = WorkingDaysCalculator;
 
   global.window.phasesActions = {
     calculateCostByResourceForPhase: () => ({ G1: 0, G2: 0, TA: 0, PM: 0 }),
