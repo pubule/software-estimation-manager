@@ -5,7 +5,10 @@ const fsSync = require('fs');
 const os = require('os');
 
 // Initialize default projects folder
-const defaultProjectsPath = path.join(os.homedir(), 'OneDrive - Unicredit', 'Documentazione', 'TOOLS', 'Software Estimation Projects');
+// Check for OneDrive path first, fall back to ~/Documents/Software Estimation Projects
+const oneDrivePath = path.join(os.homedir(), 'OneDrive - Unicredit', 'Documentazione', 'TOOLS', 'Software Estimation Projects');
+const fallbackPath = path.join(os.homedir(), 'Documents', 'Software Estimation Projects');
+const defaultProjectsPath = fsSync.existsSync(path.join(os.homedir(), 'OneDrive - Unicredit')) ? oneDrivePath : fallbackPath;
 
 let mainWindow;
 
