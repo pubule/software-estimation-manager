@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getAppStore } from '../utils/electronBridge';
 
 // Type definitions for our store
 export interface Project {
@@ -87,14 +88,13 @@ export interface AppState {
 export function useStore<T>(selector: (state: AppState) => T): T {
   const [state, setState] = useState<T>(() => {
     // Get initial state from global store
-    const store = (window as any).appStore;
+    const store = getAppStore();
     return selector(store.getState());
   });
 
   useEffect(() => {
-    const store = (window as any).appStore;
+    const store = getAppStore();
     if (!store) {
-      console.warn('Store not available in React hook');
       return;
     }
 
