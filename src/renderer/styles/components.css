@@ -445,3 +445,93 @@ table.sticky-header thead th,
     outline: 2px solid var(--color-border-focus, #007fd4);
     outline-offset: 2px;
 }
+
+/* ============================================================================
+   ERROR BOUNDARY FALLBACK
+   ============================================================================ */
+
+.error-boundary-fallback {
+    text-align: center;
+    padding: var(--spacing-3xl, 3rem) var(--spacing-lg, 1.5rem);
+    margin: var(--spacing-lg, 1.5rem) 0;
+    background-color: var(--color-bg-secondary, #252526);
+    border: 1px solid var(--color-error, #f44336);
+    border-radius: var(--radius-lg, 6px);
+}
+
+.error-boundary-fallback-icon {
+    font-size: 2.5rem;
+    color: var(--color-error, #f44336);
+    margin-bottom: var(--spacing-lg, 1.5rem);
+    opacity: 0.8;
+}
+
+.error-boundary-fallback-title {
+    font-size: var(--font-size-lg, 16px);
+    font-weight: var(--font-weight-semibold, 600);
+    color: var(--color-text-primary, #cccccc);
+    margin: 0 0 var(--spacing-sm, 0.5rem) 0;
+}
+
+.error-boundary-fallback-message {
+    font-size: var(--font-size-sm, 12px);
+    color: var(--color-text-secondary, #a0a0a0);
+    margin: 0 0 var(--spacing-lg, 1.5rem) 0;
+    line-height: var(--lh-normal, 1.5);
+}
+
+.error-boundary-fallback-details {
+    text-align: left;
+    margin: 0 auto var(--spacing-lg, 1.5rem);
+    max-width: 600px;
+}
+
+.error-boundary-fallback-details summary {
+    cursor: pointer;
+    font-size: var(--font-size-sm, 12px);
+    color: var(--color-text-secondary, #a0a0a0);
+    margin-bottom: var(--spacing-sm, 0.5rem);
+}
+
+.error-boundary-fallback-details pre {
+    background-color: var(--color-bg-tertiary, #2d2d30);
+    border: 1px solid var(--color-border, #3e3e42);
+    border-radius: var(--radius-md, 4px);
+    padding: var(--spacing-md, 1rem);
+    font-size: var(--font-size-xs, 11px);
+    color: var(--color-error, #f44336);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+}
+
+.error-boundary-fallback-actions {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-md, 1rem);
+}
+
+.error-boundary-fallback-retry-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm, 0.5rem);
+    padding: var(--spacing-sm, 0.5rem) var(--spacing-lg, 1.5rem);
+    background-color: var(--color-error, #f44336);
+    color: var(--color-text-inverse, #ffffff);
+    border: none;
+    border-radius: var(--radius-md, 4px);
+    font-size: var(--font-size-sm, 12px);
+    font-weight: var(--font-weight-medium, 500);
+    cursor: pointer;
+    transition: background-color var(--transition-fast, 0.15s);
+}
+
+.error-boundary-fallback-retry-btn:hover {
+    background-color: #d32f2f;
+}
+
+.error-boundary-fallback-retry-btn:focus-visible {
+    outline: 2px solid var(--color-border-focus, #007fd4);
+    outline-offset: 2px;
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useStore } from './hooks/useStore';
+import ErrorBoundary from './components/ErrorBoundary';
 import FeaturesPage from './components/FeaturesPage';
 import ProjectManager from './components/ProjectManager';
 
@@ -18,20 +19,30 @@ function App() {
       </header>
 
       <main className="app-main">
-        <Routes>
-          <Route path="/projects" element={<ProjectManager />} />
-          <Route path="/features" element={<FeaturesPage />} />
-          <Route path="/" element={
-            <div>
-              <h2>Welcome to React Version!</h2>
-              <p>Start by navigating to Projects to manage your projects or Features to see the React implementation.</p>
-              <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
-                <a href="/projects">Go to Projects →</a>
-                <a href="/features">Go to Features →</a>
+        <ErrorBoundary sectionLabel="Application">
+          <Routes>
+            <Route path="/projects" element={
+              <ErrorBoundary sectionLabel="Project Manager">
+                <ProjectManager />
+              </ErrorBoundary>
+            } />
+            <Route path="/features" element={
+              <ErrorBoundary sectionLabel="Features">
+                <FeaturesPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/" element={
+              <div>
+                <h2>Welcome to React Version!</h2>
+                <p>Start by navigating to Projects to manage your projects or Features to see the React implementation.</p>
+                <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+                  <a href="/projects">Go to Projects →</a>
+                  <a href="/features">Go to Features →</a>
+                </div>
               </div>
-            </div>
-          } />
-        </Routes>
+            } />
+          </Routes>
+        </ErrorBoundary>
       </main>
     </div>
   );
