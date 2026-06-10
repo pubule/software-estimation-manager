@@ -10,6 +10,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useStore } from '../hooks/useStore';
 import { useCalculationsActions } from '../hooks/useCalculationsActions';
+import { getAppController } from '../electronBridge';
 import RateSpecificationModal from './RateSpecificationModal';
 
 interface CalculationsPageProps {
@@ -106,7 +107,7 @@ const CalculationsPage: React.FC<CalculationsPageProps> = () => {
 
   // All suppliers for vendor selection
   const allSuppliers = useStore(state => {
-    const app = (window as any).app;
+    const app = getAppController();
     const configManager = app?.managers?.config;
     if (!configManager) return [];
 

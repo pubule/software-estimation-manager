@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../hooks/useStore';
 import { useProjectActions } from '../hooks/useProjectActions';
 import { NewProjectFormData, SavedProject, projectActions } from '../actions/ProjectsActions';
+import { getAppController } from '../electronBridge';
 import Button from './Button';
 import ApprovalStatusIcon from './ApprovalStatusIcon';
 import NewProjectModal from './NewProjectModal';
@@ -53,7 +54,7 @@ const ProjectManager: React.FC = () => {
   } = useProjectActions();
 
   const project = currentProject?.project;
-  const app = (window as any).app;
+  const app = getAppController();
   const hasLoadedProject = project && project.name && project.name !== 'New Project' &&
     (app?.dataManager?.currentProjectPath || project.id || Array.isArray(currentProject?.features));
 

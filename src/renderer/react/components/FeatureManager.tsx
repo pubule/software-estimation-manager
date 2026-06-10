@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react';
-import { useProject } from '../hooks/useStore';
+import { useProject, Feature } from '../hooks/useStore';
 import { useStore } from '../hooks/useStore';
 import { useFeatureActions } from '../hooks/useFeatureActions';
+import { getAppStore } from '../electronBridge';
 import FeatureTable from './FeatureTable';
 import FeatureModal from './FeatureModal';
 
 interface FeatureManagerProps {
-  customFilteredFeatures?: any[];
+  customFilteredFeatures?: Feature[];
 }
 
 const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures }) => {
@@ -31,12 +32,12 @@ const FeatureManager: React.FC<FeatureManagerProps> = ({ customFilteredFeatures 
 
   // Track component initialization in navigation state (Pattern State/Actions/Dispatcher)
   useEffect(() => {
-    const store = (window as any).appStore;
+    const store = getAppStore();
     if (store) {
       store.getState().setComponentInitialized('features', true);
       console.log('FeatureManager: Component initialized and tracked in store');
     }
-    
+
     return () => {
       // Cleanup on unmount
       if (store) {
