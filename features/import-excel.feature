@@ -52,7 +52,7 @@ Feature: Import Project from Excel
     When I build project data with code "TEST-001" name "Test Import" and mode "feature-based"
     Then the built project should have code "TEST-001"
     And the built project should have 3 features
-    And the built project phase "functionalAnalysis" should have manDays 8
+    And the built project phase "functionalAnalysis" should have manDays 10
     And the built project phase "development" should have manDays 0
 
   Scenario: Build project data excludes unchecked features

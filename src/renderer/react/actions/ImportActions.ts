@@ -216,7 +216,7 @@ export class ImportActions {
       for (const excelPhase of parsedData.phases) {
         const phaseId = this.mapExcelPhaseToToolPhaseId(excelPhase.phaseName);
         if (phaseId && initialPhases[phaseId]) {
-          initialPhases[phaseId].manDays = excelPhase.g2MDs + excelPhase.taMDs;
+          initialPhases[phaseId].manDays = excelPhase.elapsed;
         }
       }
     }
