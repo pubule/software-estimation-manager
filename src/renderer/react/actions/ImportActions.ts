@@ -6,6 +6,7 @@ import type {
   ImportWizardState,
   RawExcelEstimationRow,
   WorkingPackageImportConfig,
+  ExistingProjectInfo,
 } from '../types/ImportTypes';
 
 const PHASE_NAME_MAP: Record<string, string> = {
@@ -104,7 +105,8 @@ export class ImportActions {
 
   buildWorkingPackageConfig(
     estimationExport: RawExcelEstimationRow[],
-    vendorMappings: VendorMapping[]
+    vendorMappings: VendorMapping[],
+    estimationTotalAmount?: number
   ): WorkingPackageImportConfig | null {
     if (estimationExport.length === 0) return null;
 
@@ -133,7 +135,9 @@ export class ImportActions {
       }
     }
 
-    const totalCost = primaryCost + secondaryCost;
+    const totalCost = estimationTotalAmount && estimationTotalAmount > 0
+      ? estimationTotalAmount
+      : primaryCost + secondaryCost;
     if (totalCost <= 0) return null;
 
     const secondaryPercentage = Math.round((secondaryCost / totalCost) * 100);
@@ -169,6 +173,37 @@ export class ImportActions {
     return configManager.getVendors() || [];
   }
 
+  async checkExistingProject(code: string): Promise<ExistingProjectInfo> {
+    const store = this.getStore();
+    const currentProject = store?.getState().currentProject;
+
+    if (currentProject?.project?.code === code || currentProject?.project?.id === code) {
+      return {
+        exists: true,
+        source: 'loaded',
+        created: currentProject.project.created,
+        version: currentProject.project.version,
+      };
+    }
+
+    const api = getElectronAPI();
+    if (api) {
+      const result = await api.listProjects();
+      const projects = Array.isArray(result) ? result : ((result as any)?.projects || []);
+      const match = projects.find((p: any) => p.project?.id === code || p.project?.code === code);
+      if (match) {
+        return {
+          exists: true,
+          source: 'disk',
+          created: match.project.created,
+          version: match.project.version,
+        };
+      }
+    }
+
+    return { exists: false, source: null };
+  }
+
   buildProjectData(wizardState: ImportWizardState, projectManager: any): Record<string, unknown> {
     const { metadata, featureConfigs, vendorMappings, parsedData, calcMode, workingPackageConfig } = wizardState;
 
@@ -184,6 +219,9 @@ export class ImportActions {
     }
 
     const now = new Date().toISOString();
+    const existing = wizardState.existingProject;
+    const projectCreated = existing?.exists && existing.created ? existing.created : now;
+    const projectVersion = existing?.exists && existing.version ? existing.version : '1.0.0';
     const features = featureConfigs
       .filter(fc => fc.include)
       .map(fc => {
@@ -191,7 +229,7 @@ export class ImportActions {
         return {
           id: `BR-${fc.brId}`,
           name: fc.description,
-          description: '',
+          description: fc.description,
           category: fc.category,
           featureType: fc.featureType,
           supplier: vendorMap?.toolSupplierId || '',
@@ -233,8 +271,8 @@ export class ImportActions {
         code: metadata.code,
         name: metadata.name,
         description: metadata.description,
-        version: '1.0.0',
-        created: now,
+        version: projectVersion,
+        created: projectCreated,
         lastModified: now,
       },
       features,

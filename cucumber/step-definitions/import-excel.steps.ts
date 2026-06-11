@@ -9,6 +9,7 @@ let vendorMappings: any[] = [];
 let wpConfig: any = null;
 let builtProject: any = null;
 let importError: string | null = null;
+let existingProjectResult: any = null;
 
 Given('the import configuration has categories', function () {
   const configManager = (global as any).window.app.managers.config;
@@ -114,7 +115,7 @@ Then('all feature configs should have empty category', function () {
 
 // --- Working Package ---
 When('I build working package config', function () {
-  wpConfig = importActions.buildWorkingPackageConfig(parsedData.estimationExport, vendorMappings);
+  wpConfig = importActions.buildWorkingPackageConfig(parsedData.estimationExport, vendorMappings, parsedData.estimationTotalAmount);
 });
 
 Then('the working package GTO total should be {int}', function (expected: number) {
@@ -222,4 +223,64 @@ Then('the store should contain the original project', function () {
   const currentProject = this.getState().currentProject;
   assert.ok(currentProject, 'Store should still have a project');
   assert.strictEqual(currentProject.project.id, 'test-project-001');
+});
+
+// --- Check existing project ---
+When('I check for existing project with code {string}', async function (code: string) {
+  existingProjectResult = await importActions.checkExistingProject(code);
+});
+
+Then('the existing project check should return exists false', function () {
+  assert.strictEqual(existingProjectResult.exists, false);
+});
+
+Then('the existing project check should return exists true', function () {
+  assert.strictEqual(existingProjectResult.exists, true);
+});
+
+Then('the existing project check source should be {string}', function (expected: string) {
+  assert.strictEqual(existingProjectResult.source, expected);
+});
+
+// --- Build with existing project ---
+When('I build project data with code {string} name {string} and mode {string} with existing created {string}',
+  function (code: string, name: string, mode: string, existingCreated: string) {
+    if (featureConfigs.length === 0) {
+      featureConfigs = importActions.buildFeatureConfigs(parsedData.features);
+    }
+    featureConfigs = featureConfigs.map((fc: any) => ({
+      ...fc,
+      category: fc.category || 'cat-general',
+      featureType: fc.featureType || 'ft-new',
+    }));
+
+    if (vendorMappings.length === 0) {
+      vendorMappings = importActions.buildVendorMappings(parsedData.vendorNames);
+    }
+
+    const projectManager = (global as any).window.app.managers.project;
+    builtProject = importActions.buildProjectData({
+      step: 'confirm',
+      parsedData,
+      fileName: `${code}.xlsx`,
+      filePath: `/tmp/${code}.xlsx`,
+      vendorMappings,
+      featureConfigs,
+      metadata: { code, name, description: '' },
+      calcMode: mode as any,
+      workingPackageConfig: wpConfig,
+      existingProject: {
+        exists: true,
+        source: 'loaded',
+        created: existingCreated,
+        version: '2.0.0',
+      },
+      errors: [],
+      warnings: [],
+    }, projectManager);
+  }
+);
+
+Then('the built project should have created {string}', function (expected: string) {
+  assert.strictEqual((builtProject.project as any).created, expected);
 });

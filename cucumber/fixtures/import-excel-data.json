@@ -14,6 +14,7 @@
     { "phaseName": "VA/PT", "elapsed": 3, "g2MDs": 2, "taMDs": 1 },
     { "phaseName": "Supporto post go-live", "elapsed": 10, "g2MDs": 4, "taMDs": 2 }
   ],
+  "estimationTotalAmount": 23000,
   "estimationExport": [
     { "vendorName": "EY", "lta": "LTA-001", "role": "Developer", "totalMDs": 30, "totalCost": 15000, "rate": 500 },
     { "vendorName": "TA IT", "lta": "LTA-002", "role": "Architect", "totalMDs": 10, "totalCost": 6000, "rate": 600 },

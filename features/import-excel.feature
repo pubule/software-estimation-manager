@@ -68,3 +68,19 @@ Feature: Import Project from Excel
     When I attempt to execute import with code "FAIL-001"
     Then the import should fail
     And the store should contain the original project
+
+  Scenario: Check existing project returns false for unknown code
+    When I check for existing project with code "UNKNOWN-999"
+    Then the existing project check should return exists false
+
+  Scenario: Check existing project detects loaded project
+    When I check for existing project with code "test-project-001"
+    Then the existing project check should return exists true
+    And the existing project check source should be "loaded"
+
+  Scenario: Build project data preserves created date for existing project
+    Given import data is loaded from fixture "import-excel-data"
+    And a project manager mock is configured
+    When I build project data with code "TEST-UPD" name "Update Test" and mode "feature-based" with existing created "2025-01-15T10:00:00.000Z"
+    Then the built project should have created "2025-01-15T10:00:00.000Z"
+    And the built project should have code "TEST-UPD"

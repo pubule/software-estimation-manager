@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Button from './Button';
 import { importActions } from '../actions/ImportActions';
 import type {
@@ -61,6 +61,31 @@ const ImportProjectModal: React.FC<ImportProjectModalProps> = ({
     }
   }, [isOpen]);
 
+  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (wizard.step !== 'metadata') return;
+    const code = wizard.metadata.code;
+    if (code.length < 3 || !/^[A-Z0-9_-]+$/.test(code)) {
+      setWizard(prev => {
+        if (!prev.existingProject) return prev;
+        const { existingProject: _, ...rest } = prev;
+        return rest as ImportWizardState;
+      });
+      return;
+    }
+
+    if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    checkTimerRef.current = setTimeout(async () => {
+      const result = await importActions.checkExistingProject(code);
+      setWizard(prev => ({ ...prev, existingProject: result }));
+    }, 300);
+
+    return () => {
+      if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    };
+  }, [wizard.step, wizard.metadata.code]);
+
   const currentStepIndex = STEPS.indexOf(wizard.step);
 
   const handleSelectFile = useCallback(async () => {
@@ -73,7 +98,7 @@ const ImportProjectModal: React.FC<ImportProjectModalProps> = ({
       const code = importActions.extractProjectCodeFromFilename(result.fileName);
       const vendorMappings = importActions.buildVendorMappings(result.data.vendorNames);
       const featureConfigs = importActions.buildFeatureConfigs(result.data.features);
-      const wpConfig = importActions.buildWorkingPackageConfig(result.data.estimationExport, vendorMappings);
+      const wpConfig = importActions.buildWorkingPackageConfig(result.data.estimationExport, vendorMappings, result.data.estimationTotalAmount);
 
       setWizard(prev => ({
         ...prev,
@@ -500,6 +525,13 @@ const ImportProjectModal: React.FC<ImportProjectModalProps> = ({
 
   const renderMetadata = () => (
     <div>
+      {wizard.existingProject?.exists && (
+        <div style={{ background: 'var(--warning-bg, #2d2a1b)', padding: '10px 14px', borderRadius: '6px', marginBottom: '16px', fontSize: '13px', color: 'var(--warning, #ffc107)', border: '1px solid var(--warning, #ffc107)' }}>
+          <i className="fas fa-exclamation-triangle" style={{ marginRight: '8px' }} />
+          Il progetto <strong>{wizard.metadata.code}</strong> esiste già.
+          L'importazione sostituirà tutti i dati esistenti (feature, fasi, costi).
+        </div>
+      )}
       <div className="form-group">
         <label htmlFor="import-project-code">Project Code:</label>
         <input
@@ -557,7 +589,15 @@ const ImportProjectModal: React.FC<ImportProjectModalProps> = ({
 
     return (
       <div>
-        <h4 style={{ marginBottom: '12px' }}>Import Summary</h4>
+        <h4 style={{ marginBottom: '12px' }}>
+          {wizard.existingProject?.exists ? 'Aggiornamento progetto esistente' : 'Import Summary'}
+        </h4>
+        {wizard.existingProject?.exists && (
+          <div style={{ background: 'var(--warning-bg, #2d2a1b)', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '13px', color: 'var(--warning, #ffc107)' }}>
+            <i className="fas fa-sync-alt" style={{ marginRight: '6px' }} />
+            I dati del progetto esistente verranno completamente sostituiti.
+          </div>
+        )}
         <div style={{ display: 'grid', gap: '8px', fontSize: '13px' }}>
           <div style={{ padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
             <strong>Project:</strong> {wizard.metadata.code} — {wizard.metadata.name}
@@ -639,7 +679,8 @@ const ImportProjectModal: React.FC<ImportProjectModalProps> = ({
             )}
             {wizard.step === 'confirm' ? (
               <Button variant="primary" onClick={handleImport} loading={isLoading} disabled={!canProceed}>
-                <i className="fas fa-file-import" style={{ marginRight: '4px' }} />Import Project
+                <i className={`fas fa-${wizard.existingProject?.exists ? 'sync-alt' : 'file-import'}`} style={{ marginRight: '4px' }} />
+                {wizard.existingProject?.exists ? 'Update Project' : 'Import Project'}
               </Button>
             ) : (
               <Button variant="primary" onClick={goNext} disabled={!canProceed || isLoading}>

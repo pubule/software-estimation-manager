@@ -27,6 +27,7 @@ export interface ParsedExcelData {
   features: RawExcelFeature[];
   phases: RawExcelPhase[];
   estimationExport: RawExcelEstimationRow[];
+  estimationTotalAmount?: number;
   vendorNames: string[];
 }
 
@@ -69,6 +70,13 @@ export interface WorkingPackageImportConfig {
   secondaryPercentage: number;
 }
 
+export interface ExistingProjectInfo {
+  exists: boolean;
+  source: 'loaded' | 'disk' | null;
+  created?: string;
+  version?: string;
+}
+
 export interface ImportWizardState {
   step: ImportWizardStep;
   parsedData: ParsedExcelData | null;
@@ -79,6 +87,7 @@ export interface ImportWizardState {
   metadata: ImportProjectMetadata;
   calcMode: CalcMode;
   workingPackageConfig: WorkingPackageImportConfig | null;
+  existingProject?: ExistingProjectInfo;
   errors: string[];
   warnings: string[];
 }
