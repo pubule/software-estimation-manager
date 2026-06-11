@@ -312,6 +312,10 @@ export class ImportActions {
       if ((window as any).calculationsActions) {
         await (window as any).calculationsActions.calculateProjectCosts();
       }
+
+      if ((window as any).versionHistoryActions) {
+        await (window as any).versionHistoryActions.createVersion('Imported from Excel');
+      }
     } catch (error) {
       if (previousState) {
         store.getState().setProject(previousState);
