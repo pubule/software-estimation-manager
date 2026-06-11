@@ -474,14 +474,14 @@ ipcMain.handle('import-excel-project', async () => {
         attivitaSheet.eachRow({ includeEmpty: false }, (row, rowIndex) => {
             if (rowIndex === 1) return; // skip header
             const brId = row.getCell(1).value;
-            const description = row.getCell(2).value;
+            const description = getCellString(row.getCell(2));
             const mdsRaw = row.getCell(5).value;
             // ExcelJS formula cells return { formula, result } objects
             const mds = typeof mdsRaw === 'object' && mdsRaw !== null && 'result' in mdsRaw
                 ? mdsRaw.result : mdsRaw;
 
             // Only process rows with a numeric BR ID
-            if (typeof brId !== 'number' || !description) return;
+            if (typeof brId !== 'number' || !description.length) return;
 
             const vendor = getCellString(row.getCell(6));
             const comment = getCellString(row.getCell(9));
@@ -490,7 +490,7 @@ ipcMain.handle('import-excel-project', async () => {
 
             features.push({
                 brId: String(brId),
-                description: String(description).trim(),
+                description,
                 mds: typeof mds === 'number' ? mds : 0,
                 vendor,
                 comment: comment === 'null' ? '' : comment,
