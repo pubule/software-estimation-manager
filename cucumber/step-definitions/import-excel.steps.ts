@@ -115,7 +115,7 @@ Then('all feature configs should have empty category', function () {
 
 // --- Working Package ---
 When('I build working package config', function () {
-  wpConfig = importActions.buildWorkingPackageConfig(parsedData.estimationExport, vendorMappings, parsedData.estimationTotalAmount);
+  wpConfig = importActions.buildWorkingPackageConfig(parsedData.estimationExport, vendorMappings, parsedData.estimationTotalAmount, parsedData.estimationSecondaryPct);
 });
 
 Then('the working package GTO total should be {int}', function (expected: number) {

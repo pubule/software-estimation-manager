@@ -520,6 +520,7 @@ ipcMain.handle('import-excel-project', async () => {
         // Parse "Estimation export" sheet → vendor costs for Working Package
         const estimationExport = [];
         let estimationTotalAmount = 0;
+        let estimationSecondaryPct = 0;
         const estSheet = workbook.getWorksheet('Estimation export');
         if (estSheet) {
             estSheet.eachRow({ includeEmpty: false }, (row, rowIndex) => {
@@ -538,6 +539,7 @@ ipcMain.handle('import-excel-project', async () => {
                 }
             });
             estimationTotalAmount = getCellNumber(estSheet.getRow(6).getCell(6));
+            estimationSecondaryPct = getCellNumber(estSheet.getRow(3).getCell(11));
         } else {
             warnings.push('Sheet "Estimation export" not found — Working Package import unavailable');
         }
@@ -551,6 +553,7 @@ ipcMain.handle('import-excel-project', async () => {
                 phases,
                 estimationExport,
                 estimationTotalAmount,
+                estimationSecondaryPct,
                 vendorNames: Array.from(vendorNamesSet)
             },
             warnings

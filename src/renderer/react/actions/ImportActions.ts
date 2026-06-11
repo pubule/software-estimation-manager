@@ -106,7 +106,8 @@ export class ImportActions {
   buildWorkingPackageConfig(
     estimationExport: RawExcelEstimationRow[],
     vendorMappings: VendorMapping[],
-    estimationTotalAmount?: number
+    estimationTotalAmount?: number,
+    estimationSecondaryPct?: number
   ): WorkingPackageImportConfig | null {
     if (estimationExport.length === 0) return null;
 
@@ -140,7 +141,9 @@ export class ImportActions {
       : primaryCost + secondaryCost;
     if (totalCost <= 0) return null;
 
-    const secondaryPercentage = Math.round((secondaryCost / totalCost) * 100);
+    const secondaryPercentage = estimationSecondaryPct && estimationSecondaryPct > 0
+      ? Math.round(estimationSecondaryPct <= 1 ? estimationSecondaryPct * 100 : estimationSecondaryPct)
+      : Math.round((secondaryCost / totalCost) * 100);
 
     const findToolVendorId = (excelName: string): string => {
       const mapping = vendorMappings.find(m => m.excelVendorName === excelName);

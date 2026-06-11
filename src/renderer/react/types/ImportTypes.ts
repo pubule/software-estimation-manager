@@ -28,6 +28,7 @@ export interface ParsedExcelData {
   phases: RawExcelPhase[];
   estimationExport: RawExcelEstimationRow[];
   estimationTotalAmount?: number;
+  estimationSecondaryPct?: number;
   vendorNames: string[];
 }
 

@@ -98,7 +98,7 @@ const ImportProjectModal: React.FC<ImportProjectModalProps> = ({
       const code = importActions.extractProjectCodeFromFilename(result.fileName);
       const vendorMappings = importActions.buildVendorMappings(result.data.vendorNames);
       const featureConfigs = importActions.buildFeatureConfigs(result.data.features);
-      const wpConfig = importActions.buildWorkingPackageConfig(result.data.estimationExport, vendorMappings, result.data.estimationTotalAmount);
+      const wpConfig = importActions.buildWorkingPackageConfig(result.data.estimationExport, vendorMappings, result.data.estimationTotalAmount, result.data.estimationSecondaryPct);
 
       setWizard(prev => ({
         ...prev,
