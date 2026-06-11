@@ -452,6 +452,17 @@ ipcMain.handle('import-excel-project', async () => {
             return Number(v) || 0;
         };
 
+        const getCellString = (cell) => {
+            const v = cell.value;
+            if (v == null) return '';
+            if (typeof v === 'object') {
+                if (v.richText) return v.richText.map(rt => rt.text).join('');
+                if ('result' in v) return String(v.result);
+                if ('text' in v) return String(v.text);
+            }
+            return String(v).trim();
+        };
+
         // Parse "Attività" sheet → features
         const features = [];
         const attivitaSheet = workbook.getWorksheet('Attività');
@@ -472,8 +483,8 @@ ipcMain.handle('import-excel-project', async () => {
             // Only process rows with a numeric BR ID
             if (typeof brId !== 'number' || !description) return;
 
-            const vendor = String(row.getCell(6).value || '').trim();
-            const comment = String(row.getCell(9).value || '').trim();
+            const vendor = getCellString(row.getCell(6));
+            const comment = getCellString(row.getCell(9));
 
             if (vendor) vendorNamesSet.add(vendor);
 
@@ -492,8 +503,8 @@ ipcMain.handle('import-excel-project', async () => {
         const summarySheet = workbook.getWorksheet('Summary');
         if (summarySheet) {
             summarySheet.eachRow({ includeEmpty: false }, (row, rowIndex) => {
-                if (rowIndex < 5) return; // skip title and header rows
-                const phaseName = String(row.getCell(2).value || '').trim();
+                if (rowIndex < 5 || rowIndex > 13) return;
+                const phaseName = getCellString(row.getCell(2));
                 if (!phaseName || phaseName === 'TOTALE') return;
 
                 const g2MDs = getCellNumber(row.getCell(5));
@@ -512,11 +523,11 @@ ipcMain.handle('import-excel-project', async () => {
         if (estSheet) {
             estSheet.eachRow({ includeEmpty: false }, (row, rowIndex) => {
                 if (rowIndex < 3) return; // skip header rows
-                const vendorName = String(row.getCell(2).value || '').trim();
+                const vendorName = getCellString(row.getCell(2));
                 if (!vendorName || vendorName === '0') return;
 
-                const lta = String(row.getCell(3).value || '').trim();
-                const role = String(row.getCell(4).value || '').trim();
+                const lta = getCellString(row.getCell(3));
+                const role = getCellString(row.getCell(4));
                 const totalMDs = getCellNumber(row.getCell(5));
                 const totalCost = getCellNumber(row.getCell(6));
                 const rate = getCellNumber(row.getCell(7));
