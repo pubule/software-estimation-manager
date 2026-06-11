@@ -298,7 +298,7 @@ const ImportProjectModal: React.FC<ImportProjectModalProps> = ({
               {phases.map(p => (
                 <tr key={p.phaseName} style={p.phaseName === 'DEV' ? { opacity: 0.4, textDecoration: 'line-through' } : {}}>
                   <td>{p.phaseName}{p.phaseName === 'DEV' ? ' (auto-calculated)' : ''}</td>
-                  <td>{p.g2MDs}</td><td>{p.taMDs}</td><td>{p.g2MDs + p.taMDs}</td>
+                  <td>{p.g2MDs}</td><td>{p.taMDs}</td><td>{p.elapsed}</td>
                 </tr>
               ))}
             </tbody>
@@ -612,7 +612,7 @@ const ImportProjectModal: React.FC<ImportProjectModalProps> = ({
             <strong>Phases:</strong>
             <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
               {importedPhases.map(p => (
-                <li key={p.phaseName}>{p.phaseName}: {p.g2MDs + p.taMDs} MDs</li>
+                <li key={p.phaseName}>{p.phaseName}: {p.elapsed} MDs</li>
               ))}
               <li style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Development: auto-calculated from features</li>
             </ul>
