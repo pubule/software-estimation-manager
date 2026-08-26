@@ -52,6 +52,7 @@ export interface TimelineMemberCapacity {
 }
 
 export interface TimelineFilters {
+    search?: string;
     vendor?: string;
     role?: string;
     status?: 'all' | 'available' | 'near-capacity' | 'over-allocated';
@@ -60,6 +61,8 @@ export interface TimelineFilters {
 
 export interface TimelineStats {
     totalMembers: number;
+    /** Members before filtering - used by the toolbar result counter */
+    unfilteredMembers: number;
     averageUtilization: number;
     totalOverallocated: number;
     monthsDisplayed: number;
@@ -195,6 +198,16 @@ export const useCapacityTimeline = (monthsToShow: number = 8) => {
     const filteredMembers = useMemo(() => {
         let filtered = [...members];
 
+        // Filter by free-text search (name, role, vendor)
+        if (filters.search && filters.search.trim()) {
+            const searchLower = filters.search.toLowerCase();
+            filtered = filtered.filter(m =>
+                m.fullName?.toLowerCase().includes(searchLower) ||
+                m.role?.toLowerCase().includes(searchLower) ||
+                m.vendorName?.toLowerCase().includes(searchLower)
+            );
+        }
+
         // Filter by vendor
         if (filters.vendor) {
             filtered = filtered.filter(m => m.vendorId === filters.vendor);
@@ -260,11 +273,12 @@ export const useCapacityTimeline = (monthsToShow: number = 8) => {
 
         return {
             totalMembers,
+            unfilteredMembers: members.length,
             averageUtilization,
             totalOverallocated,
             monthsDisplayed: months.length
         };
-    }, [filteredMembers, months]);
+    }, [filteredMembers, members, months]);
 
     // Get unique vendors
     const vendors = useMemo(() => {

@@ -238,22 +238,8 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
         );
     }
 
-    // Render empty state
-    if (members.length === 0) {
-        return (
-            <div className="capacity-modern-section">
-                <div className="capacity-modern-empty-state">
-                    <i className="fas fa-users"></i>
-                    <h3>No team members found</h3>
-                    <p>
-                        {filters.vendor || filters.role || filters.status
-                            ? 'Try adjusting your filters to see team members'
-                            : 'No team members configured in the system'}
-                    </p>
-                </div>
-            </div>
-        );
-    }
+    // No early return on an empty result: the toolbar must stay on screen so the
+    // filters that emptied the list can be cleared. Empty state renders in the table.
 
     return (
         <div className="capacity-modern-section">
@@ -288,6 +274,8 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
                 filters={filters}
                 vendors={vendors}
                 roles={roles}
+                filteredCount={stats.totalMembers}
+                totalCount={stats.unfilteredMembers}
                 onNavigate={navigateTimeline}
                 onResetToToday={resetToCurrentMonth}
                 onFilterChange={updateFilters}
@@ -322,7 +310,14 @@ export const CapacityTimeline: React.FC<CapacityTimelineProps> = ({
 
                     {/* Member Rows or Empty State */}
                     {members.length === 0 ? (
-                        <EmptyStateAllocation />
+                        stats.unfilteredMembers > 0 ? (
+                            <EmptyStateAllocation
+                                message="No team members match the current filters"
+                                hint="Clear the search or the filters above to see team members"
+                            />
+                        ) : (
+                            <EmptyStateAllocation />
+                        )
                     ) : (
                         members.map(member => (
                             <ExpandableTimelineRow
