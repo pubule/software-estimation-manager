@@ -1,5 +1,7 @@
 import { Given, When, Then } from '@cucumber/cucumber';
 import * as assert from 'assert';
+import * as fs from 'fs';
+import * as path from 'path';
 import ExcelJS from 'exceljs';
 import {
   toExcelDate,
@@ -141,13 +143,51 @@ When('I render zero rows', function () {
   renderResult = renderTable(worksheet, { columns, rows: [], title: 'TEST TABLE' });
 });
 
-When('I render a backlog row with {int} days open', function (daysOpen: number) {
+When('I render a backlog row with {float} days open', function (daysOpen: number) {
   worksheet = new ExcelJS.Workbook().addWorksheet('Full Backlog');
   renderResult = renderTable(worksheet, {
     columns,
     rows: [backlogRow({ daysOpen })],
     title: 'FULL BACKLOG',
   });
+});
+
+When('I render a summary with {string} at {int} and {string} unparsable', function (
+  loudLabel: string,
+  loudValue: number,
+  nanLabel: string
+) {
+  worksheet = new ExcelJS.Workbook().addWorksheet('Alert');
+  renderResult = renderTable(worksheet, {
+    columns,
+    rows: [backlogRow({})],
+    title: 'ALERT',
+    // NaN is what Math.max over a list holding one unparsable timestamp returns.
+    metadata: [[loudLabel, loudValue], [nanLabel, Math.max(NaN, 0)]],
+  });
+});
+
+/** The value cell (column B) of the summary row carrying a label. */
+function summaryValueCell(label: string): any {
+  for (let row = 1; row < renderResult.headerRowNumber; row++) {
+    if (worksheet.getCell(row, 1).value === label) return worksheet.getCell(row, 2);
+  }
+  throw new Error(`no summary row labelled ${label}`);
+}
+
+Then('the {string} summary value is bold and red', function (label: string) {
+  const font = summaryValueCell(label).font;
+  assert.strictEqual(font.bold, true);
+  assert.strictEqual(font.color.argb, COLORS.darkRed);
+});
+
+Then('the {string} summary value is an empty cell', function (label: string) {
+  assert.strictEqual(summaryValueCell(label).value, null);
+});
+
+Then('the summary is separated from the title by a blank row', function () {
+  assert.strictEqual(worksheet.getCell(2, 1).value, null);
+  assert.notStrictEqual(worksheet.getCell(3, 1).value, null);
 });
 
 When('I render a backlog row with priority {string}', function (priority: string) {
@@ -205,6 +245,35 @@ Then('every column has a header and a width', function () {
 
 Then('the worksheet has no AutoFilter', function () {
   assert.ok(!worksheet.autoFilter, 'expected no AutoFilter on an empty table');
+});
+
+/**
+ * Source of the export-ticket-report IPC handler.
+ *
+ * main.js is the Electron main entry: requiring it here would boot Electron, so the
+ * wiring is asserted on its source instead. This is what catches a sheet quietly
+ * falling back to hand-rolled rows (a merge already did that once).
+ */
+let handlerSource: string;
+
+Given('the export-ticket-report handler in src\\/main.js', function () {
+  const source = fs.readFileSync(path.resolve(__dirname, '../../src/main.js'), 'utf8');
+  const start = source.indexOf("ipcMain.handle('export-ticket-report'");
+  assert.notStrictEqual(start, -1, 'no export-ticket-report handler in src/main.js');
+  const end = source.indexOf('ipcMain.handle(', start + 1);
+  handlerSource = source.slice(start, end === -1 ? undefined : end);
+});
+
+Then('every worksheet it adds is written through renderTable', function () {
+  const sheets = handlerSource.match(/addWorksheet\(/g) || [];
+  const renders = handlerSource.match(/renderTable\(/g) || [];
+  assert.ok(sheets.length > 0, 'the handler adds no worksheet');
+  assert.strictEqual(renders.length, sheets.length, `${sheets.length} sheets but ${renders.length} renderTable calls`);
+  assert.strictEqual((handlerSource.match(/addRow\(/g) || []).length, 0, 'a sheet still writes rows by hand');
+});
+
+Then('the Full Backlog sheet renders the exported column list', function () {
+  assert.ok(handlerSource.includes('buildFullBacklogColumns()'), 'Full Backlog does not use buildFullBacklogColumns()');
 });
 
 Then('the header row is frozen', function () {

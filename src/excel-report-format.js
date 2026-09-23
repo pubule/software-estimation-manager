@@ -16,7 +16,9 @@ const DATE_FORMAT = 'dd-mm-yyyy';
 const NUM_FMT = {
   int: '0',
   decimal: '0.0',
-  percent: '0.00',
+  // Named for what it renders, not for what it means: the callers already pass
+  // 0-100 magnitudes into columns whose header carries the % sign.
+  decimal2: '0.00',
 };
 
 const COLORS = {
@@ -54,6 +56,17 @@ function toExcelDate(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+/**
+ * Same as toExcelDate, shifted so the cell displays the local calendar day.
+ *
+ * ExcelJS serializes a Date by its UTC instant, so 2026-09-23T23:30:00Z would
+ * read 23-09 for a user in UTC+2 whose clock already says 24-09.
+ */
+function toDisplayDate(value) {
+  const date = toExcelDate(value);
+  return date === null ? null : new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+}
+
 /** Coerce a value to a finite number, or null. Empty strings are not zero. */
 function toFiniteNumber(value) {
   if (value === null || value === undefined) return null;
@@ -74,7 +87,7 @@ const CELL_BORDER = {
   right: { style: 'thin', color: { argb: COLORS.gridline } },
 };
 
-const NUMERIC_TYPES = new Set(['int', 'decimal', 'percent']);
+const NUMERIC_TYPES = new Set(['int', 'decimal', 'decimal2']);
 
 /** Convert one item into the value that belongs in the cell, typed for Excel. */
 function toCellValue(column, item) {
@@ -82,13 +95,13 @@ function toCellValue(column, item) {
 
   switch (column.type) {
     case 'date':
-      return toExcelDate(raw);
+      return toDisplayDate(raw);
     case 'int': {
       const num = toFiniteNumber(raw);
       return num === null ? null : Math.round(num);
     }
     case 'decimal':
-    case 'percent':
+    case 'decimal2':
       return toFiniteNumber(raw);
     default: {
       if (raw === null || raw === undefined) return column.emptyText || '';
@@ -138,10 +151,25 @@ function renderTable(worksheet, options) {
     worksheet.getRow(1).height = 25;
   }
 
+  if (title && metadata.length > 0) worksheet.addRow([]);
+
   metadata.forEach(([label, value]) => {
-    const row = worksheet.addRow([label, value]);
+    // A NaN aggregate (one unparsable timestamp poisons Math.max) would be written
+    // out as <v>NaN</v>, which Excel opens as a corrupt file needing repair.
+    const safeValue = typeof value === 'number' && !Number.isFinite(value) ? null : value;
+    // Counters that are above zero are the reason the sheet exists: keep them loud.
+    const alert = typeof safeValue === 'number' && safeValue > 0;
+    const isDate = safeValue instanceof Date;
+    const row = worksheet.addRow([label, isDate ? toDisplayDate(safeValue) : safeValue]);
+    // A summary date is written as a real Date, so it needs the same format as the body.
+    if (isDate) row.getCell(2).numFmt = DATE_FORMAT;
     row.getCell(1).font = { name: FONT_NAME, size: 11, bold: true };
-    row.getCell(2).font = { name: FONT_NAME, size: 11 };
+    row.getCell(2).font = {
+      name: FONT_NAME,
+      size: 11,
+      bold: alert,
+      color: { argb: alert ? COLORS.darkRed : COLORS.black },
+    };
   });
 
   if (metadata.length > 0) worksheet.addRow([]);
@@ -190,8 +218,12 @@ function renderTable(worksheet, options) {
 
   // Widths go through getColumn(n): assigning worksheet.columns after rows exist
   // replaces every definition at once and lets widths drift off their headers.
+  // Column A also holds the metadata labels, and column B holds their values, so a
+  // label longer than the first header would render clipped instead of overflowing.
+  const labelWidth = metadata.reduce((max, [label]) => Math.max(max, String(label).length + 2), 0);
+
   columns.forEach((column, index) => {
-    worksheet.getColumn(index + 1).width = column.width;
+    worksheet.getColumn(index + 1).width = index === 0 ? Math.max(column.width, labelWidth) : column.width;
   });
 
   const lastRowNumber = headerRowNumber + rows.length;

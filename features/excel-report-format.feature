@@ -91,7 +91,15 @@ Feature: Excel report formatting helpers
       | 14   | FFFFFFFF |
       | 15   | FFFFFF00 |
       | 30   | FFFFFF00 |
+      | 30.4 | FFFFFF00 |
       | 31   | FFFF0000 |
+
+  Scenario: The summary block is readable and never corrupts the file
+    Given the Full Backlog column list
+    When I render a summary with "Total Orphaned" at 47 and "Max Unworked (days)" unparsable
+    Then the "Total Orphaned" summary value is bold and red
+    And the "Max Unworked (days)" summary value is an empty cell
+    And the summary is separated from the title by a blank row
 
   Scenario: Full Backlog declares one width per column
     Given the Full Backlog column list
@@ -128,3 +136,8 @@ Feature: Excel report formatting helpers
     Given the Full Backlog column list
     When I render a backlog row with priority "P1"
     Then the "Priority" cell has background "FFFFFFFF"
+
+  Scenario: The export handler wires every sheet to the shared renderer
+    Given the export-ticket-report handler in src/main.js
+    Then every worksheet it adds is written through renderTable
+    And the Full Backlog sheet renders the exported column list

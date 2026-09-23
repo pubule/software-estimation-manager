@@ -6,6 +6,7 @@ const os = require('os');
 const {
   COLORS,
   renderTable,
+  buildFullBacklogColumns,
   toExcelDate,
   slaHoursFor,
 } = require('./excel-report-format');
@@ -657,98 +658,17 @@ ipcMain.handle('save-excel-file', async (event, { filename, data }) => {
 // Export Ticket Report to Excel - Creates Excel file in main process
 // This avoids "require is not defined" error in renderer process
 
-// ============== EXCEL STYLING UTILITIES ==============
-
 /**
- * Apply header style to cell
+ * Whole days elapsed from an ISO timestamp until now. null when unparsable.
+ *
+ * Floored, not rounded: an age of 6.6 days is 6 days old, and the "> 7 Days"
+ * summary counters are computed on the raw fraction, so rounding up made the
+ * column contradict the counter above it.
  */
-
-// Helper function to convert hex string to RGB number for XLSX
-function hexToRgb(hexString) {
-  return parseInt('0x' + hexString);
-}
-
-function applyHeaderStyle(sheet, cellAddress, bgColor = '333333', textColor = 'FFFFFF') {
-  if (!sheet[cellAddress]) {
-    sheet[cellAddress] = {};
-  }
-  sheet[cellAddress].s = {
-    fill: { fgColor: { rgb: hexToRgb(bgColor) } },
-    font: { bold: true, color: { rgb: hexToRgb(textColor) }, sz: 11 },
-    alignment: { horizontal: 'center', vertical: 'center' }
-  };
-}
-
-/**
- * Apply cell style
- */
-function applyCellStyle(sheet, cellAddress, bgColor = null, textColor = '000000', isBold = false) {
-  if (!sheet[cellAddress]) {
-    sheet[cellAddress] = {};
-  }
-  sheet[cellAddress].s = {
-    fill: bgColor ? { fgColor: { rgb: hexToRgb(bgColor) } } : undefined,
-    font: { bold: isBold, color: { rgb: hexToRgb(textColor) }, sz: 11 },
-    alignment: { horizontal: 'left', vertical: 'center' }
-  };
-}
-
-/**
- * Apply row style with alternating colors
- */
-function applyRowStyle(sheet, row, startCol, endCol, bgColor = 'FFFFFF', textColor = '000000') {
-  for (let col = startCol; col <= endCol; col++) {
-    const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-    if (!sheet[cellAddress]) {
-      sheet[cellAddress] = {};
-    }
-    sheet[cellAddress].s = {
-      fill: { fgColor: { rgb: hexToRgb(bgColor) } },
-      font: { color: { rgb: hexToRgb(textColor) }, sz: 11 },
-      alignment: { horizontal: 'left', vertical: 'center' }
-    };
-  }
-}
-
-/**
- * Apply conditional background color based on value and thresholds
- */
-function getConditionalColor(value, type = 'days') {
-  if (type === 'days') {
-    if (value > 30) return 'FF0000';      // Bright red
-    if (value > 14) return 'FFFF00';      // Bright yellow
-    return 'FFFFFF';                       // White default
-  } else if (type === 'delayPercentage') {
-    if (value > 20) return 'C00000';      // Dark red critical
-    if (value > 10) return 'FFC000';      // Warning yellow
-    return 'C8FFC8';                       // Green OK
-  } else if (type === 'priority') {
-    if (value === 'P5') return 'FFC8C8';  // Pink
-    if (value === 'P6') return 'FFF0C8';  // Orange
-    return 'FFFFFF';
-  }
-  return 'FFFFFF';
-}
-
-/**
- * Get alert header colors based on alert type
- */
-function getAlertColors(alertType) {
-  const criticalAlerts = ['orphaned', 'stagnant', 'expiredHighPriority'];
-  if (criticalAlerts.includes(alertType)) {
-    return { headerBg: 'C00000', lightBg: 'FFE6E6' };  // Red
-  } else {
-    return { headerBg: 'FFC000', lightBg: 'FFFFC8' };  // Yellow
-  }
-}
-
-// ============== END STYLING UTILITIES ==============
-
-/** Whole days elapsed from an ISO timestamp until now. null when unparsable. */
 function daysBetween(isoTimestamp) {
   const date = toExcelDate(isoTimestamp);
   if (!date) return null;
-  return (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
+  return Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 /** Hours a ticket has been open past its SLA window. Never negative. */
@@ -809,11 +729,11 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
             header: 'Delay %',
             width: 12,
             get: m => m.delayPercentage || 0,
-            type: 'percent',
+            type: 'decimal2',
             fill: value => (value > 20 ? COLORS.darkRed : value > 10 ? COLORS.amber : COLORS.green),
             bold: value => value > 10,
           },
-          { header: 'Utilization %', width: 14, get: m => m.utilizationPercentage || 0, type: 'percent' },
+          { header: 'Utilization %', width: 14, get: m => m.utilizationPercentage || 0, type: 'decimal2' },
         ],
         rows: exportData.teamAnalysis.metrics,
         title: 'Team Analysis - Operator Performance Metrics',
@@ -1003,101 +923,18 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
 
     // ============== SHEET 7: FULL BACKLOG ==============
     if (exportData.fullBacklog) {
-      const worksheet = workbook.addWorksheet('Full Backlog', { tabColor: { argb: 'FF333333' } });
-      
-      // Title
-      worksheet.mergeCells('A1:K1');
-      const titleCell = worksheet.getCell('A1');
-      titleCell.value = 'FULL BACKLOG - All Unresolved Tickets Sorted by Priority';
-      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
-      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } };
-      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-      worksheet.getRow(1).height = 25;
-      
-      // Metadata
-      worksheet.addRow(['Export Date', new Date().toLocaleDateString()]);
-      worksheet.addRow(['Time Period', exportData.timeFilterLabel || 'All Time']);
-      
-      // Headers
-      const headers = ['Ticket ID', 'Title', 'Assignment Group', 'Created', 'Days Open', 'Priority', 'Assigned To', 'Status', 'Last Updated', 'Days Since Update', 'Time in Delay (hrs)', 'Notes'];
-      const headerRow = worksheet.addRow(headers);
-      headerRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } };
-      headerRow.height = 20;
-      
-      // Data rows
-      exportData.fullBacklog.forEach((t, index) => {
-        const row = worksheet.addRow([
-          t.id || '',
-          t.title || '',
-          t.assignment_group || '',
-          new Date(t.created).toLocaleDateString(),
-          t.daysOpen.toFixed(1),
-          t.priority || '',
-          t.assignedTo || '',
-          t.status || '',
-          new Date(t.lastUpdated).toLocaleDateString(),
-          t.daysSinceUpdate.toFixed(1),
-          t.timeInDelay > 0 ? t.timeInDelay.toFixed(1) : '',
-          t.notes || ''
-        ]);
-        
-        const bgColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF5F5F5';
-        
-        for (let i = 1; i <= 11; i++) {
-          const cell = row.getCell(i);
-          let cellBgColor = bgColor;
-          let fontColor = 'FF000000';
-          let isBold = false;
-          
-          // Days Open conditional coloring
-          if (i === 4) {
-            const daysOpen = parseFloat(t.daysOpen);
-            if (daysOpen > 30) cellBgColor = 'FFFF0000';
-            else if (daysOpen > 14) cellBgColor = 'FFFFFF00';
-          }
-          
-          // Priority coloring
-          if (i === 5) {
-            if (t.priority === 'P5') cellBgColor = 'FFFFC8C8';
-            else if (t.priority === 'P6') cellBgColor = 'FFFFF0C8';
-          }
-          
-          // Time in Delay - red text if > 0
-          if (i === 10 && t.timeInDelay > 0) {
-            fontColor = 'FFC00000';
-            isBold = true;
-          }
-          
-          // Days Since Update - orange text if > 7
-          if (i === 9 && t.daysSinceUpdate > 7) {
-            fontColor = 'FFFFA500';
-          }
-          
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cellBgColor } };
-          cell.font = { name: 'Calibri', size: 11, bold: isBold, color: { argb: fontColor } };
-          cell.border = { top: { style: 'thin', color: { argb: 'FFD3D3D3' } }, left: { style: 'thin', color: { argb: 'FFD3D3D3' } }, bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } }, right: { style: 'thin', color: { argb: 'FFD3D3D3' } } };
-          cell.alignment = { horizontal: i === 2 || i === 3 || i === 6 || i === 11 ? 'left' : 'center', vertical: 'center', wrapText: i === 2 || i === 11 };
-        }
+      const worksheet = workbook.addWorksheet('Full Backlog', { tabColor: { argb: COLORS.headerGray } });
+
+      renderTable(worksheet, {
+        columns: buildFullBacklogColumns(),
+        rows: exportData.fullBacklog,
+        title: 'FULL BACKLOG - All Unresolved Tickets Sorted by Priority',
+        headerFill: COLORS.headerGray,
+        metadata: [
+          ['Export Date', new Date()],
+          ['Time Period', exportData.timeFilterLabel || 'All Time'],
+        ],
       });
-      
-      // Set column widths
-      worksheet.columns = [
-        { width: 12 },
-        { width: 30 },
-        { width: 15 },
-        { width: 12 },
-        { width: 10 },
-        { width: 15 },
-        { width: 12 },
-        { width: 15 },
-        { width: 15 },
-        { width: 15 },
-        { width: 20 }
-      ];
-      
-      // Freeze panes
-      worksheet.views = [{ state: 'frozen', ySplit: 5, xSplit: 0 }];
     }
 
     // Save workbook to buffer
