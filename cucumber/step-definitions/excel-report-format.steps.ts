@@ -6,6 +6,7 @@ import ExcelJS from 'exceljs';
 import {
   toExcelDate,
   toFiniteNumber,
+  summaryNumber,
   renderTable,
   buildFullBacklogColumns,
   slaHoursFor,
@@ -15,6 +16,7 @@ import {
 
 let coercedDate: Date | null;
 let coercedNumber: number | null;
+let summaryValue: number | null;
 let slaHours: number;
 let worksheet: any;
 let columns: any[];
@@ -167,10 +169,10 @@ When('I render a summary with {string} at {int} and {string} unparsable', functi
   });
 });
 
-/** The value cell (column B) of the summary row carrying a label. */
+/** The value cell of the summary row carrying a label: column C, since A:B holds the label. */
 function summaryValueCell(label: string): any {
   for (let row = 1; row < renderResult.headerRowNumber; row++) {
-    if (worksheet.getCell(row, 1).value === label) return worksheet.getCell(row, 2);
+    if (worksheet.getCell(row, 1).value === label) return worksheet.getCell(row, 3);
   }
   throw new Error(`no summary row labelled ${label}`);
 }
@@ -274,6 +276,58 @@ Then('every worksheet it adds is written through renderTable', function () {
 
 Then('the Full Backlog sheet renders the exported column list', function () {
   assert.ok(handlerSource.includes('buildFullBacklogColumns()'), 'Full Backlog does not use buildFullBacklogColumns()');
+});
+
+When('I render a summary labelled {string}', function (label: string) {
+  worksheet = new ExcelJS.Workbook().addWorksheet('Alert');
+  renderResult = renderTable(worksheet, {
+    columns,
+    rows: [backlogRow({})],
+    title: 'ALERT',
+    metadata: [[label, 12]],
+  });
+});
+
+Then('the first column keeps its declared width', function () {
+  assert.strictEqual(worksheet.getColumn(1).width, columns[0].width);
+});
+
+Then('the summary label spans the first two columns', function () {
+  const labelCell = worksheet.getCell(renderResult.summaryRowNumbers[0], 1);
+  assert.ok(labelCell.isMerged, 'the label cell is not merged');
+  assert.strictEqual(labelCell.master.address, labelCell.address, 'the label is not the merge master');
+  // B must be swallowed by the merge; C must not.
+  assert.ok(worksheet.getCell(renderResult.summaryRowNumbers[0], 2).isMerged);
+  assert.ok(!worksheet.getCell(renderResult.summaryRowNumbers[0], 3).isMerged);
+});
+
+Then('the summary value sits in the third column', function () {
+  assert.strictEqual(worksheet.getCell(renderResult.summaryRowNumbers[0], 3).value, 12);
+});
+
+Then('no summary aggregate has toFixed called directly on it', function () {
+  const offenders = handlerSource.match(/summary\.\w+\.toFixed\(/g) || [];
+  assert.deepStrictEqual(
+    offenders,
+    [],
+    `toFixed on a raw summary field throws when the field is absent: ${offenders.join(', ')}`,
+  );
+});
+
+When('I round {word} as a summary number with {int} decimals', function (word: string, decimals: number) {
+  summaryValue = summaryNumber(absentLiteral(word), decimals);
+});
+
+When('I round the number {float} as a summary number with {int} decimals', function (input: number, decimals: number) {
+  summaryValue = summaryNumber(input, decimals);
+});
+
+Then('the summary number is null', function () {
+  assert.strictEqual(summaryValue, null);
+});
+
+Then('the summary number is {float}', function (expected: number) {
+  assert.strictEqual(summaryValue, expected);
 });
 
 Then('the header row is frozen', function () {

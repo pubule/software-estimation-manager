@@ -76,6 +76,21 @@ function toFiniteNumber(value) {
   return Number.isFinite(num) ? num : null;
 }
 
+/**
+ * A summary aggregate rounded for display, or null when it is missing.
+ *
+ * The summary block is built from whatever the renderer sent over IPC. Calling
+ * toFixed on a field directly throws when that field is absent, and the throw
+ * escapes past renderTable's own guard to fail the entire export.
+ */
+function summaryNumber(value, decimals = 0) {
+  const num = toFiniteNumber(value);
+  if (num === null) return null;
+
+  const factor = 10 ** decimals;
+  return Math.round(num * factor) / factor;
+}
+
 function solidFill(argb) {
   return { type: 'pattern', pattern: 'solid', fgColor: { argb } };
 }
@@ -153,23 +168,30 @@ function renderTable(worksheet, options) {
 
   if (title && metadata.length > 0) worksheet.addRow([]);
 
-  metadata.forEach(([label, value]) => {
+  // Labels are merged across A:B with the value in C, so a long label stays readable
+  // without forcing the first data column — usually a short Ticket ID — to its width.
+  const summaryRowNumbers = metadata.map(([label, value]) => {
     // A NaN aggregate (one unparsable timestamp poisons Math.max) would be written
     // out as <v>NaN</v>, which Excel opens as a corrupt file needing repair.
     const safeValue = typeof value === 'number' && !Number.isFinite(value) ? null : value;
     // Counters that are above zero are the reason the sheet exists: keep them loud.
     const alert = typeof safeValue === 'number' && safeValue > 0;
     const isDate = safeValue instanceof Date;
-    const row = worksheet.addRow([label, isDate ? toDisplayDate(safeValue) : safeValue]);
-    // A summary date is written as a real Date, so it needs the same format as the body.
-    if (isDate) row.getCell(2).numFmt = DATE_FORMAT;
+
+    const row = worksheet.addRow([label, null, isDate ? toDisplayDate(safeValue) : safeValue]);
+    worksheet.mergeCells(row.number, 1, row.number, 2);
+
     row.getCell(1).font = { name: FONT_NAME, size: 11, bold: true };
-    row.getCell(2).font = {
+    // A summary date is written as a real Date, so it needs the same format as the body.
+    if (isDate) row.getCell(3).numFmt = DATE_FORMAT;
+    row.getCell(3).font = {
       name: FONT_NAME,
       size: 11,
       bold: alert,
       color: { argb: alert ? COLORS.darkRed : COLORS.black },
     };
+
+    return row.number;
   });
 
   if (metadata.length > 0) worksheet.addRow([]);
@@ -218,12 +240,8 @@ function renderTable(worksheet, options) {
 
   // Widths go through getColumn(n): assigning worksheet.columns after rows exist
   // replaces every definition at once and lets widths drift off their headers.
-  // Column A also holds the metadata labels, and column B holds their values, so a
-  // label longer than the first header would render clipped instead of overflowing.
-  const labelWidth = metadata.reduce((max, [label]) => Math.max(max, String(label).length + 2), 0);
-
   columns.forEach((column, index) => {
-    worksheet.getColumn(index + 1).width = index === 0 ? Math.max(column.width, labelWidth) : column.width;
+    worksheet.getColumn(index + 1).width = column.width;
   });
 
   const lastRowNumber = headerRowNumber + rows.length;
@@ -242,6 +260,7 @@ function renderTable(worksheet, options) {
     headerRowNumber,
     firstDataRowNumber: headerRowNumber + 1,
     lastRowNumber,
+    summaryRowNumbers,
   };
 }
 
@@ -309,6 +328,7 @@ module.exports = {
   solidFill,
   toExcelDate,
   toFiniteNumber,
+  summaryNumber,
   renderTable,
   buildFullBacklogColumns,
   slaHoursFor,

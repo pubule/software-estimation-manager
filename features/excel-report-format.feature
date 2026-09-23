@@ -141,3 +141,33 @@ Feature: Excel report formatting helpers
     Given the export-ticket-report handler in src/main.js
     Then every worksheet it adds is written through renderTable
     And the Full Backlog sheet renders the exported column list
+
+  Scenario Outline: A missing summary aggregate leaves an empty cell instead of failing the export
+    When I round <input> as a summary number with <decimals> decimals
+    Then the summary number is null
+
+    Examples:
+      | input     | decimals |
+      | null      | 0        |
+      | undefined | 1        |
+
+  Scenario Outline: Summary aggregates are rounded for display
+    When I round the number <input> as a summary number with <decimals> decimals
+    Then the summary number is <result>
+
+    Examples:
+      | input   | decimals | result |
+      | 12.66   | 1        | 12.7   |
+      | 12.66   | 0        | 13     |
+      | 6.04    | 1        | 6      |
+
+  Scenario: The export handler never calls toFixed on a raw summary field
+    Given the export-ticket-report handler in src/main.js
+    Then no summary aggregate has toFixed called directly on it
+
+  Scenario: A long summary label does not widen the first data column
+    Given the Full Backlog column list
+    When I render a summary labelled "Max Stagnation (days)"
+    Then the first column keeps its declared width
+    And the summary label spans the first two columns
+    And the summary value sits in the third column

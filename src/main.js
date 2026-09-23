@@ -8,6 +8,7 @@ const {
   renderTable,
   buildFullBacklogColumns,
   toExcelDate,
+  summaryNumber,
   slaHoursFor,
 } = require('./excel-report-format');
 
@@ -805,7 +806,7 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           ['Total Stagnant', summary.total],
           ['> 7 Days No Update', summary.overSevenDays],
           ['> 14 Days No Update', summary.overFourteenDays],
-          ['Max Stagnation (days)', Math.round(summary.maxStagnationDays)],
+          ['Max Stagnation (days)', summaryNumber(summary.maxStagnationDays)],
         ],
       });
     }
@@ -849,7 +850,7 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           ['P6 Overdue', summary.p6Overdue],
           ['P7 Overdue', summary.p7Overdue],
           ['P8 Overdue', summary.p8Overdue],
-          ['Max Overdue (hrs)', Number(summary.maxOverdueHours.toFixed(1))],
+          ['Max Overdue (hrs)', summaryNumber(summary.maxOverdueHours, 1)],
         ],
       });
     }
@@ -879,7 +880,7 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           ['< 5 minutes', summary.lessThan5Min],
           ['< 15 minutes', summary.lessThan15Min],
           ['< 30 minutes', summary.lessThan30Min],
-          ['Avg Close Time (min)', Number(summary.avgCloseTimeMin.toFixed(1))],
+          ['Avg Close Time (min)', summaryNumber(summary.avgCloseTimeMin, 1)],
         ],
       });
     }
@@ -916,7 +917,7 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           ['Total Unworked', summary.total],
           ['> 7 Days', summary.overSevenDays],
           ['> 14 Days', summary.overFourteenDays],
-          ['Max Unworked (days)', Math.round(summary.maxUnworkedDays)],
+          ['Max Unworked (days)', summaryNumber(summary.maxUnworkedDays)],
         ],
       });
     }
