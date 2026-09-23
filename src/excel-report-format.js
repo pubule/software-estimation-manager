@@ -188,6 +188,8 @@ function renderTable(worksheet, options) {
     });
   });
 
+  // Widths go through getColumn(n): assigning worksheet.columns after rows exist
+  // replaces every definition at once and lets widths drift off their headers.
   columns.forEach((column, index) => {
     worksheet.getColumn(index + 1).width = column.width;
   });
