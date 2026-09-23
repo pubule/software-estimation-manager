@@ -5,10 +5,13 @@ const fsSync = require('fs');
 const os = require('os');
 const {
   COLORS,
+  UNASSIGNED,
   renderTable,
   buildFullBacklogColumns,
-  toExcelDate,
   summaryNumber,
+  daysBetween,
+  hoursOverdue,
+  minutesToClose,
   slaHoursFor,
 } = require('./excel-report-format');
 
@@ -658,36 +661,6 @@ ipcMain.handle('save-excel-file', async (event, { filename, data }) => {
 
 // Export Ticket Report to Excel - Creates Excel file in main process
 // This avoids "require is not defined" error in renderer process
-
-/**
- * Whole days elapsed from an ISO timestamp until now. null when unparsable.
- *
- * Floored, not rounded: an age of 6.6 days is 6 days old, and the "> 7 Days"
- * summary counters are computed on the raw fraction, so rounding up made the
- * column contradict the counter above it.
- */
-function daysBetween(isoTimestamp) {
-  const date = toExcelDate(isoTimestamp);
-  if (!date) return null;
-  return Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-/** Hours a ticket has been open past its SLA window. Never negative. */
-function hoursOverdue(ticket) {
-  const openedAt = toExcelDate(ticket.opened_at);
-  if (!openedAt) return 0;
-  const slaMs = slaHoursFor(ticket.priority) * 60 * 60 * 1000;
-  return Math.max(0, (Date.now() - openedAt.getTime() - slaMs) / (1000 * 60 * 60));
-}
-
-/** Minutes between opening and resolution. null when either timestamp is absent. */
-function minutesToClose(ticket) {
-  const openedAt = toExcelDate(ticket.opened_at);
-  const resolvedAt = toExcelDate(ticket.resolved_at);
-  if (!openedAt || !resolvedAt) return null;
-  return (resolvedAt.getTime() - openedAt.getTime()) / (1000 * 60);
-}
-
 ipcMain.handle('export-ticket-report', async (event, exportData) => {
   try {
     // Load ExcelJS if not available
@@ -795,7 +768,7 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
           },
           { header: 'Days Open', width: 11, get: t => daysBetween(t.opened_at), type: 'int' },
           { header: 'Priority', width: 10, get: t => t.priority, align: 'center' },
-          { header: 'Assigned To', width: 24, get: t => t.assigned_to, emptyText: 'Non assegnato' },
+          { header: 'Assigned To', width: 24, get: t => t.assigned_to, emptyText: UNASSIGNED },
           { header: 'Status', width: 14, get: t => t.state },
         ],
         rows: exportData.alerts.stagnant.tickets,
@@ -837,7 +810,7 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
             bold: value => value > 0,
           },
           { header: 'SLA Threshold (hrs)', width: 17, get: t => slaHoursFor(t.priority), type: 'int' },
-          { header: 'Assigned To', width: 24, get: t => t.assigned_to, emptyText: 'Non assegnato' },
+          { header: 'Assigned To', width: 24, get: t => t.assigned_to, emptyText: UNASSIGNED },
           { header: 'Status', width: 14, get: t => t.state },
         ],
         rows: exportData.alerts.expiredHighPriority.tickets,
@@ -905,7 +878,7 @@ ipcMain.handle('export-ticket-report', async (event, exportData) => {
             fontColor: value => (value > 7 ? COLORS.orange : null),
           },
           { header: 'Days Open', width: 11, get: t => daysBetween(t.opened_at), type: 'int' },
-          { header: 'Assigned To', width: 24, get: t => t.assigned_to, emptyText: 'Non assegnato' },
+          { header: 'Assigned To', width: 24, get: t => t.assigned_to, emptyText: UNASSIGNED },
           { header: 'Status', width: 14, get: t => t.state },
         ],
         rows: exportData.alerts.unworked.tickets,

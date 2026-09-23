@@ -7,6 +7,8 @@ import {
   toExcelDate,
   toFiniteNumber,
   summaryNumber,
+  daysBetween,
+  hoursOverdue,
   renderTable,
   buildFullBacklogColumns,
   slaHoursFor,
@@ -17,6 +19,8 @@ import {
 let coercedDate: Date | null;
 let coercedNumber: number | null;
 let summaryValue: number | null;
+let dayCount: number | null;
+let overdue: number | null;
 let slaHours: number;
 let worksheet: any;
 let columns: any[];
@@ -36,6 +40,11 @@ function columnIndexOf(header: string): number {
 
 function dataCell(header: string): any {
   return worksheet.getCell(renderResult.firstDataRowNumber, columnIndexOf(header));
+}
+
+/** An ISO timestamp the given number of days in the past. */
+function daysAgo(days: number): string {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 }
 
 function backlogRow(overrides: Record<string, unknown>): Record<string, unknown> {
@@ -148,8 +157,10 @@ When('I render zero rows', function () {
 When('I render a backlog row with {float} days open', function (daysOpen: number) {
   worksheet = new ExcelJS.Workbook().addWorksheet('Full Backlog');
   renderResult = renderTable(worksheet, {
+    // The sheet derives the age from the timestamp, so age is expressed as one.
+    // Half a day of slack keeps the floor off the boundary the example is testing.
     columns,
-    rows: [backlogRow({ daysOpen })],
+    rows: [backlogRow({ created: daysAgo(daysOpen + 0.5) })],
     title: 'FULL BACKLOG',
   });
 });
@@ -276,6 +287,76 @@ Then('every worksheet it adds is written through renderTable', function () {
 
 Then('the Full Backlog sheet renders the exported column list', function () {
   assert.ok(handlerSource.includes('buildFullBacklogColumns()'), 'Full Backlog does not use buildFullBacklogColumns()');
+});
+
+When('I render a backlog row created at {string} and read the workbook back', async function (created: string) {
+  const written = new ExcelJS.Workbook();
+  const sheet = written.addWorksheet('Full Backlog');
+  renderResult = renderTable(sheet, { columns, rows: [backlogRow({ created })], title: 'FULL BACKLOG' });
+
+  // Round-trip through the real serializer: a cell can look right in memory and
+  // still deserialize to a different instant.
+  const buffer = await written.xlsx.writeBuffer();
+  const reread = new ExcelJS.Workbook();
+  await reread.xlsx.load(buffer);
+  worksheet = reread.getWorksheet('Full Backlog');
+});
+
+Then('the reread {string} cell is the calendar day {int}-{int}-{int} with no time component', function (
+  header: string,
+  year: number,
+  month: number,
+  day: number,
+) {
+  const value = dataCell(header).value;
+  assert.ok(value instanceof Date, `expected a Date, got ${typeof value}`);
+  assert.strictEqual(
+    (value as Date).getTime(),
+    Date.UTC(year, month - 1, day),
+    `expected the bare calendar day, got ${(value as Date).toISOString()}`,
+  );
+});
+
+When('I count the days since {int} hours ago', function (hours: number) {
+  dayCount = daysBetween(new Date(Date.now() - hours * 60 * 60 * 1000).toISOString());
+});
+
+When('I count the days since the timestamp {string}', function (timestamp: string) {
+  dayCount = daysBetween(timestamp);
+});
+
+Then('the day count is null', function () {
+  assert.strictEqual(dayCount, null);
+});
+
+Then('the day count is {int}', function (expected: number) {
+  assert.strictEqual(dayCount, expected);
+});
+
+When('I measure hours overdue for a {string} ticket opened at {string}', function (priority: string, opened: string) {
+  overdue = hoursOverdue({ priority, opened_at: opened });
+});
+
+When('I measure hours overdue for a {string} ticket opened {int} hours ago', function (priority: string, hours: number) {
+  overdue = hoursOverdue({ priority, opened_at: new Date(Date.now() - hours * 60 * 60 * 1000).toISOString() });
+});
+
+Then('the hours overdue are null', function () {
+  assert.strictEqual(overdue, null);
+});
+
+Then('the hours overdue are {int}', function (expected: number) {
+  assert.strictEqual(overdue, expected);
+});
+
+Then('every placeholder is plain ASCII English', function () {
+  const placeholders = columns.map(c => c.emptyText).filter(Boolean);
+  assert.ok(placeholders.length > 0, 'no placeholder declared, nothing to check');
+  placeholders.forEach(text => {
+    // eslint-disable-next-line no-control-regex
+    assert.ok(/^[\x20-\x7E]*$/.test(text), `placeholder "${text}" is not ASCII`);
+    assert.ok(!/\b(assegnato|giorni|non)\b/i.test(text), `placeholder "${text}" is not English`);
+  });
 });
 
 When('I render a summary labelled {string}', function (label: string) {

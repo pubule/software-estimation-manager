@@ -67,9 +67,9 @@ Feature: Excel report formatting helpers
     And the "Days Open" cell number format is "0"
 
   Scenario: Blank text falls back to the declared placeholder
-    Given a table with an "Assigned To" text column whose placeholder is "Non assegnato"
+    Given a table with an "Assigned To" text column whose placeholder is "Unassigned"
     When I render one row whose assignee is "   "
-    Then the "Assigned To" cell value is "Non assegnato"
+    Then the "Assigned To" cell value is "Unassigned"
 
   Scenario: An empty table gets headers but no AutoFilter
     Given a table whose fourth column is "Days Open" with a red fill above 30 days
@@ -108,7 +108,7 @@ Feature: Excel report formatting helpers
   Scenario: An unassigned backlog ticket reads as unassigned
     Given the Full Backlog column list
     When I render a backlog row with 5 days open
-    Then the "Assigned To" cell value is "Non assegnato"
+    Then the "Assigned To" cell value is "Unassigned"
 
   Scenario Outline: SLA thresholds fall back for unknown priorities
     When I look up the SLA hours for priority "<priority>"
@@ -164,6 +164,44 @@ Feature: Excel report formatting helpers
   Scenario: The export handler never calls toFixed on a raw summary field
     Given the export-ticket-report handler in src/main.js
     Then no summary aggregate has toFixed called directly on it
+
+  Scenario: A date survives a write-and-read round trip as the plain calendar day
+    Given the Full Backlog column list
+    When I render a backlog row created at "2026-09-23T14:30:00Z" and read the workbook back
+    Then the reread "Created" cell is the calendar day 2026-09-23 with no time component
+
+  Scenario Outline: Day counts use one rule everywhere — elapsed whole days, floored
+    When I count the days since <hours> hours ago
+    Then the day count is <days>
+
+    Examples:
+      | hours | days |
+      | 0     | 0    |
+      | 23    | 0    |
+      | 25    | 1    |
+      | 350   | 14   |
+      | 359   | 14   |
+
+  Scenario: An unreadable timestamp yields an unknown day count, not zero
+    When I count the days since the timestamp "not-a-date"
+    Then the day count is null
+
+  Scenario Outline: Hours overdue is unknown, not zero, when the open date is unreadable
+    When I measure hours overdue for a "<priority>" ticket opened at "<opened>"
+    Then the hours overdue are <result>
+
+    Examples:
+      | priority | opened     | result |
+      |          |            | null   |
+      | P5       | not-a-date | null   |
+
+  Scenario: A ticket still inside its SLA window is not reported as overdue
+    When I measure hours overdue for a "P8" ticket opened 1 hours ago
+    Then the hours overdue are 0
+
+  Scenario: The unassigned placeholder is in the same language as the headers
+    Given the Full Backlog column list
+    Then every placeholder is plain ASCII English
 
   Scenario: A long summary label does not widen the first data column
     Given the Full Backlog column list

@@ -849,17 +849,18 @@ export class TicketDashboardActions {
           }
         }
       },
+      // Day counts are deliberately absent: the main process derives them from these
+      // timestamps for every sheet, so there is one clock and one rounding rule.
+      // Sending our own produced a ticket that read 15 here and 14 on an alert sheet.
       fullBacklog: fullBacklog.map(t => ({
         id: t.number,
         title: t.short_description,
-          assignment_group: t.assignment_group,
+        assignment_group: t.assignment_group,
         created: t.opened_at,
-        daysOpen: (new Date().getTime() - new Date(t.opened_at).getTime()) / (1000 * 60 * 60 * 24),
         priority: t.priority,
         assignedTo: t.assigned_to,
         status: t.state,
         lastUpdated: t.sys_updated_on,
-        daysSinceUpdate: (new Date().getTime() - new Date(t.sys_updated_on).getTime()) / (1000 * 60 * 60 * 24),
         timeInDelay: (() => {
           const slaThresholds = { P5: 4, P6: 8, P7: 24, P8: 72 };
           const slaMs = (slaThresholds[t.priority as keyof typeof slaThresholds] || 72) * 60 * 60 * 1000;

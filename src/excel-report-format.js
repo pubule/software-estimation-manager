@@ -10,6 +10,9 @@
 
 const FONT_NAME = 'Calibri';
 
+/** Shown where a ticket has no owner. English, like every column header. */
+const UNASSIGNED = 'Unassigned';
+
 /** Excel shows dd-mm-yyyy; the cell still holds a real date underneath. */
 const DATE_FORMAT = 'dd-mm-yyyy';
 
@@ -57,14 +60,37 @@ function toExcelDate(value) {
 }
 
 /**
- * Same as toExcelDate, shifted so the cell displays the local calendar day.
+ * The local calendar day of a timestamp, as a bare date at midnight.
  *
- * ExcelJS serializes a Date by its UTC instant, so 2026-09-23T23:30:00Z would
- * read 23-09 for a user in UTC+2 whose clock already says 24-09.
+ * An Excel date cell has no timezone — it is a plain serial number — so the
+ * instant cannot be preserved and the only question is which day it names.
+ * We take the day the exporting user's clock shows: 2026-09-23T23:30:00Z is
+ * the 24th for someone in UTC+2, and their report should say so.
+ *
+ * Midnight matters as much as the day. Carrying the original time of day would
+ * still render dd-mm-yyyy but leave a hidden fraction, so an exact-date filter
+ * or an =A2=DATE(...) formula would not match the date the user can see.
  */
 function toDisplayDate(value) {
   const date = toExcelDate(value);
-  return date === null ? null : new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  if (date === null) return null;
+
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+}
+
+/**
+ * Whole days elapsed from a timestamp until now, or null when unreadable.
+ *
+ * Floored, not rounded: an age of 6.6 days is 6 days old. The "> 7 Days"
+ * summary counters are computed on the raw fraction, so rounding up made the
+ * column contradict the counter above it. Every sheet derives day counts here
+ * so that one rule applies to all of them.
+ */
+function daysBetween(timestamp) {
+  const date = toExcelDate(timestamp);
+  if (date === null) return null;
+
+  return Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 /** Coerce a value to a finite number, or null. Empty strings are not zero. */
@@ -274,12 +300,15 @@ function buildFullBacklogColumns() {
   return [
     { header: 'Ticket ID', width: 14, get: t => t.id },
     { header: 'Title', width: 45, get: t => t.title, wrap: true },
-    { header: 'Assignment Group', width: 22, get: t => t.assignment_group, emptyText: 'Non assegnato' },
+    { header: 'Assignment Group', width: 22, get: t => t.assignment_group, emptyText: UNASSIGNED },
     { header: 'Created', width: 13, get: t => t.created, type: 'date' },
     {
+      // Derived here, not taken from the payload: the renderer used to send its own
+      // float and the alert sheets floored their own, so the same ticket could read
+      // 15 here and 14 two tabs over.
       header: 'Days Open',
       width: 11,
-      get: t => t.daysOpen,
+      get: t => daysBetween(t.created),
       type: 'int',
       fill: value => (value > 30 ? COLORS.red : value > 14 ? COLORS.yellow : null),
     },
@@ -290,13 +319,13 @@ function buildFullBacklogColumns() {
       align: 'center',
       fill: value => (value === 'P5' ? COLORS.priorityP5 : value === 'P6' ? COLORS.priorityP6 : null),
     },
-    { header: 'Assigned To', width: 24, get: t => t.assignedTo, emptyText: 'Non assegnato' },
+    { header: 'Assigned To', width: 24, get: t => t.assignedTo, emptyText: UNASSIGNED },
     { header: 'Status', width: 14, get: t => t.status },
     { header: 'Last Updated', width: 14, get: t => t.lastUpdated, type: 'date' },
     {
       header: 'Days Since Update',
       width: 14,
-      get: t => t.daysSinceUpdate,
+      get: t => daysBetween(t.lastUpdated),
       type: 'int',
       fontColor: value => (value > 7 ? COLORS.orange : null),
     },
@@ -319,17 +348,47 @@ function slaHoursFor(priority) {
   return SLA_HOURS[priority] || 72;
 }
 
+/**
+ * Hours a ticket has been open past its SLA window, or null when unreadable.
+ *
+ * Null rather than 0 for a missing opened_at: 0 means "inside the window", and
+ * rendering an unknown as compliant is the same silent wrongness this report
+ * exists to remove. Clamped at 0 below the threshold, so a ticket with time to
+ * spare reads 0 rather than a negative overdue.
+ */
+function hoursOverdue(ticket) {
+  const openedAt = toExcelDate(ticket.opened_at);
+  if (openedAt === null) return null;
+
+  const slaMs = slaHoursFor(ticket.priority) * 60 * 60 * 1000;
+  return Math.max(0, (Date.now() - openedAt.getTime() - slaMs) / (1000 * 60 * 60));
+}
+
+/** Minutes between opening and resolution, or null when either end is unreadable. */
+function minutesToClose(ticket) {
+  const openedAt = toExcelDate(ticket.opened_at);
+  const resolvedAt = toExcelDate(ticket.resolved_at);
+  if (openedAt === null || resolvedAt === null) return null;
+
+  return (resolvedAt.getTime() - openedAt.getTime()) / (1000 * 60);
+}
+
 module.exports = {
   FONT_NAME,
   DATE_FORMAT,
   NUM_FMT,
   COLORS,
   CELL_BORDER,
+  UNASSIGNED,
   solidFill,
   toExcelDate,
+  toDisplayDate,
   toFiniteNumber,
   summaryNumber,
+  daysBetween,
+  hoursOverdue,
+  minutesToClose,
+  slaHoursFor,
   renderTable,
   buildFullBacklogColumns,
-  slaHoursFor,
 };
